@@ -17,6 +17,8 @@ type Opportunity = {
   };
   dimensionsConfidence: string;
   comparableCount: number;
+  bestSellerPosition: number | null;
+  bestSellerEvidence: "DIRECT_ITEM_MATCH" | "CATEGORY_ONLY";
   feeAmount?: number;
   shippingCost?: number;
   status: string;
@@ -154,20 +156,14 @@ export function OpportunityRadar() {
                 <div className="opportunity-foot">
                   <span>{item.comparableCount} comparáveis</span>
                   <span>
-                    embalagem{" "}
-                    {item.dimensionsConfidence.toLowerCase()}
+                    {item.bestSellerPosition != null
+                      ? `#${item.bestSellerPosition} entre mais vendidos`
+                      : "ranking da categoria consultado"}
                   </span>
                 </div>
 
                 <a
-                  href="#analisar"
-                  onClick={() => {
-                    window.dispatchEvent(
-                      new CustomEvent("radar:analyze-product", {
-                        detail: { productName: item.keyword },
-                      }),
-                    );
-                  }}
+                  href={`/analisar?q=${encodeURIComponent(item.keyword)}`}
                 >
                   Analisar este produto
                 </a>

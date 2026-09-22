@@ -273,3 +273,102 @@ export async function predictCategory(input: {
     attributes: item.attributes ?? [],
   }));
 }
+
+
+export type MarketplaceSearchItem = {
+  id: string;
+  title: string;
+  price: number;
+  currencyId: string;
+  permalink: string | null;
+  thumbnail: string | null;
+  categoryId: string | null;
+  sellerId: string | null;
+  listingTypeId: string | null;
+  freeShipping: boolean;
+};
+
+export async function searchMarketplace(input: {
+  accessToken: string;
+  query: string;
+  categoryId?: string;
+  limit?: number;
+}) {
+  const params = new URLSearchParams({
+    q: input.query,
+    limit: String(Math.min(Math.max(input.limit ?? 30, 1), 50)),
+  });
+
+  if (input.categoryId) {
+    params.set("category", input.categoryId);
+  }
+
+  const raw = await jsonFetch<{
+    results?: Array<{
+      id?: string;
+      title?: string;
+      price?: number;
+      currency_id?: string;
+      permalink?: string;
+      thumbnail?: string;
+      category_id?: string;
+      seller?: { id?: number | string };
+      listing_type_id?: string;
+      shipping?: { free_shipping?: boolean };
+    }>;
+  }>(`${API}/sites/MLB/search?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${input.accessToken}` },
+  });
+
+  return (raw.results ?? [])
+    .filter((item) => item.id && item.title)
+    .map<MarketplaceSearchItem>((item) => ({
+      id: String(item.id),
+      title: String(item.title),
+      price: Number(item.price ?? 0),
+      currencyId: String(item.currency_id ?? "BRL"),
+      permalink: item.permalink ?? null,
+      thumbnail: item.thumbnail ?? null,
+      categoryId: item.category_id ?? null,
+      sellerId: item.seller?.id == null ? null : String(item.seller.id),
+      listingTypeId: item.listing_type_id ?? null,
+      freeShipping: Boolean(item.shipping?.free_shipping),
+    }));
+}
+
+export async function getItemCurrentPrice(input: {
+  accessToken: string;
+  itemId: string;
+}) {
+  const raw = await jsonFetch<{
+    prices?: Array<{
+      type?: string;
+      amount?: number;
+      conditions?: {
+        context_restrictions?: string[];
+        min_purchase_unit?: number;
+      };
+    }>;
+  }>(`${API}/items/${input.itemId}/prices`, {
+    headers: { Authorization: `Bearer ${input.accessToken}` },
+  });
+
+  const prices = (raw.prices ?? []).filter(
+    (price) => Number(price.amount) > 0,
+  );
+
+  const consumerPrices = prices.filter((price) => {
+    const restrictions = price.conditions?.context_restrictions ?? [];
+    return (
+      !restrictions.includes("user_type_business") &&
+      (price.conditions?.min_purchase_unit ?? 1) <= 1
+    );
+  });
+
+  const candidates = consumerPrices.length > 0 ? consumerPrices : prices;
+  const promotion = candidates.find((price) => price.type === "promotion");
+  const standard = candidates.find((price) => price.type === "standard");
+  const selected = promotion ?? standard ?? candidates[0];
+
+  return selected ? Number(selected.amount) : null;
+}

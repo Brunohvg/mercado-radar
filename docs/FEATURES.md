@@ -4,12 +4,14 @@ Este documento é a fonte de verdade funcional do produto. Toda feature nova dev
 
 ## Visão do produto
 
-O Mercado Radar deve responder quatro perguntas:
+O Mercado Radar é um **copiloto de compra e rentabilidade**, organizado em quatro pilares:
 
-1. **Vale comprar este produto?**
-2. **Quanto posso pagar e quanto preciso cobrar?**
-3. **O preço necessário cabe no mercado?**
-4. **Depois que vendeu, quanto realmente sobrou e o que devo fazer agora?**
+1. **Sourcing** — o que comprar e quanto pagar;
+2. **Pricing** — por quanto vender sem destruir margem;
+3. **Profit** — quanto realmente sobrou;
+4. **Capital & Estoque** — repor, reduzir ou parar.
+
+Produtos e Vendas são fontes para essas decisões, não cópias do Seller Center.
 
 A inteligência do sistema vem de dados reais, regras determinísticas e histórico. IA generativa é uma camada complementar, nunca a fonte de verdade financeira.
 

@@ -2,7 +2,7 @@
 
 ## MVP v0.1
 
-Status atual: **em validação real**.
+Status atual: **reforma funcional implementada / validação real pendente**.
 
 Implementado no código:
 - módulos Produtos e Vendas ativados no MVP;
@@ -64,3 +64,26 @@ Após o deploy do HEAD atual:
 5. conferir pedidos e valores;
 6. validar que lucro aparece como pendente quando custos não estiverem completos;
 7. somente então avançar para lucro realizado automático.
+
+
+## Reforma de experiência e inteligência — 22/09/2026
+
+Implementado no código:
+- home transformada em hub e módulos separados por rota;
+- menu mobile para navegação entre módulos;
+- busca com autocomplete por nome;
+- EAN/GTIN e scanner por câmera quando o navegador suporta BarcodeDetector;
+- embalagem inferida com indicação explícita de estimativa e acesso rápido à embalagem real;
+- Trends + Highlights para combinar crescimento semanal e evidência de mais vendidos;
+- lucro realizado usando custo de envio do shipment;
+- fallback para localizar shipment a partir da order;
+- margem realizada agregada;
+- Product Health com giro 30d, cobertura, decisão e capital de reposição.
+
+Gate antes de chamar esta reforma de validada:
+1. CI do HEAD final verde;
+2. deploy no Coolify saudável;
+3. testar scanner em iPhone e Android;
+4. sincronizar 5 pedidos e comparar frete/tarifa/lucro com o Mercado Livre;
+5. conferir Product Health em ao menos 3 SKUs reais;
+6. conferir 3 oportunidades com o ranking e anúncios do marketplace.

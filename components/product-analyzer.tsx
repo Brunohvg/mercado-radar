@@ -180,9 +180,15 @@ const money = new Intl.NumberFormat("pt-BR", {
 });
 
 function verdictLabel(verdict: ProfitabilityResult["verdict"]) {
-  if (verdict === "GOOD") return "COMPENSA TESTAR";
-  if (verdict === "TIGHT") return "MARGEM APERTADA";
-  return "NÃO COMPENSA";
+  if (verdict === "GOOD") return "FINANCEIRAMENTE VIÁVEL";
+  if (verdict === "TIGHT") return "FINANCEIRO APERTADO";
+  return "FINANCEIRAMENTE INVIÁVEL";
+}
+
+function kitPreviewLabel(verdict: ProfitabilityResult["verdict"]) {
+  if (verdict === "GOOD") return "PRÉVIA POSITIVA";
+  if (verdict === "TIGHT") return "PRÉVIA APERTADA";
+  return "PRÉVIA RUIM";
 }
 
 function number(value: string) {
@@ -496,6 +502,16 @@ export function ProductAnalyzer() {
   const qty = Math.max(1, number(form.kitQuantity));
   const maxSupplierUnit =
     discountFactor > 0 ? maxNetPurchase / qty / discountFactor : 0;
+
+  const marketReferenceAvailable =
+    Boolean(discovery?.market.medianPrice) &&
+    (discovery?.market.comparableCount ?? 0) >= 3 &&
+    !discovery?.market.accessBlocked;
+
+  const supplierNetCost =
+    number(form.supplierPrice) * (1 - number(form.discountPercent) / 100);
+  const supplierLimitGap = Math.max(0, maxSupplierUnit - number(form.supplierPrice));
+  const supplierOverLimit = Math.max(0, number(form.supplierPrice) - maxSupplierUnit);
 
   const kitRows = useMemo(() => {
     if (!hasCoreInputs) return [];
@@ -1366,9 +1382,9 @@ export function ProductAnalyzer() {
               <div>
                 <span>Tarifa fixa</span>
                 <strong>
-                  {number(form.fixedFee) > 0
+                  {analysis || number(form.commissionPercent) > 0
                     ? money.format(number(form.fixedFee))
-                    : "Automática"}
+                    : "Aguardando consulta"}
                 </strong>
               </div>
               <div>
@@ -1416,18 +1432,26 @@ export function ProductAnalyzer() {
           </div>
 
           {number(form.salePrice) > 0 ? (
-            <div className="purchase-limit wide">
+            <div className="purchase-limit wide purchase-decision">
               <div>
-                <span>Custo líquido máximo do kit</span>
-                <strong>{money.format(maxNetPurchase)}</strong>
+                <span>Você paga no fornecedor</span>
+                <strong>{money.format(number(form.supplierPrice))}</strong>
               </div>
               <div>
-                <span>Preço máximo no fornecedor por unidade</span>
+                <span>Seu limite de compra</span>
                 <strong>{money.format(maxSupplierUnit)}</strong>
               </div>
+              <div className={supplierOverLimit > 0 ? "limit-gap bad" : "limit-gap good"}>
+                <span>{supplierOverLimit > 0 ? "Acima do limite" : "Folga de compra"}</span>
+                <strong>
+                  {money.format(
+                    supplierOverLimit > 0 ? supplierOverLimit : supplierLimitGap,
+                  )}
+                </strong>
+              </div>
               <small>
-                Limite calculado para manter {form.targetMarginPercent}% de
-                margem com os custos atuais.
+                Limite por unidade para manter {form.targetMarginPercent}% de margem
+                com os custos atuais.
               </small>
             </div>
           ) : (
@@ -1468,7 +1492,7 @@ export function ProductAnalyzer() {
           ) : (
             <>
               <div className="verdict">
-                <span>Resultado</span>
+                <span>Resultado financeiro</span>
                 <strong>{verdictLabel(analysis.verdict)}</strong>
               </div>
 
@@ -1477,14 +1501,45 @@ export function ProductAnalyzer() {
                 <strong>{money.format(analysis.profit)}</strong>
               </div>
 
+              <div className="goal-checks">
+                <div className={analysis.marginPercent >= number(form.targetMarginPercent) ? "ok" : "fail"}>
+                  <span>Margem alvo</span>
+                  <strong>
+                    {analysis.marginPercent.toFixed(1)}%{" "}
+                    <small>meta {form.targetMarginPercent}%</small>
+                  </strong>
+                </div>
+                <div className={analysis.roiPercent >= number(form.targetRoiPercent) ? "ok" : "fail"}>
+                  <span>ROI alvo</span>
+                  <strong>
+                    {analysis.roiPercent.toFixed(1)}%{" "}
+                    <small>meta {form.targetRoiPercent}%</small>
+                  </strong>
+                </div>
+              </div>
+
+              <div className="market-validation-status">
+                <span>Validação de mercado</span>
+                <strong>
+                  {marketReferenceAvailable
+                    ? "Preço validado com comparáveis"
+                    : "Mercado ainda não validado"}
+                </strong>
+                <small>
+                  {marketReferenceAvailable
+                    ? `Mediana encontrada: ${money.format(discovery?.market.medianPrice ?? 0)} · ${discovery?.market.comparableCount ?? 0} comparáveis.`
+                    : "A conta financeira fecha, mas ainda não há evidência suficiente para afirmar que este preço é competitivo."}
+                </small>
+              </div>
+
               <div className="result-grid">
                 <div>
-                  <span>Custo unitário</span>
+                  <span>Seu custo</span>
                   <strong>{money.format(analysis.unitCost)}</strong>
                 </div>
                 <div>
-                  <span>Custo do kit</span>
-                  <strong>{money.format(analysis.purchaseCost)}</strong>
+                  <span>Venda analisada</span>
+                  <strong>{money.format(number(form.salePrice))}</strong>
                 </div>
                 <div>
                   <span>Comissão ML</span>
@@ -1494,26 +1549,14 @@ export function ProductAnalyzer() {
                   <span>Recebe do ML</span>
                   <strong>{money.format(analysis.amountReceived)}</strong>
                 </div>
-                <div>
-                  <span>Margem</span>
-                  <strong>{analysis.marginPercent.toFixed(1)}%</strong>
-                </div>
-                <div>
-                  <span>ROI</span>
-                  <strong>{analysis.roiPercent.toFixed(1)}%</strong>
-                </div>
               </div>
 
               <div className="recommendation">
                 <span>Preço mínimo para suas metas</span>
-                <strong>
-                  {money.format(analysis.minimumSuggestedPrice)}
-                </strong>
+                <strong>{money.format(analysis.minimumSuggestedPrice)}</strong>
                 <small>
-                  Ponto de equilíbrio:{" "}
-                  {money.format(analysis.breakEvenPrice)} · ML deixa{" "}
-                  {analysis.receivedPercent.toFixed(1)}% do preço antes
-                  do custo do produto.
+                  Ponto de equilíbrio: {money.format(analysis.breakEvenPrice)}.
+                  Este preço mínimo é financeiro; competitividade depende da validação de mercado.
                 </small>
               </div>
             </>
@@ -1881,8 +1924,8 @@ export function ProductAnalyzer() {
             <h2>Quando o kit melhora a conta?</h2>
           </div>
           <p>
-            Prévia com desconto progressivo no preço do kit e o mesmo frete
-            atual. Recalcule o frete antes de publicar kits maiores.
+            Prévia financeira apenas. Kits maiores ainda usam o frete atual,
+            portanto não são uma recomendação de venda até a logística ser recalculada.
           </p>
         </div>
 
@@ -1897,7 +1940,7 @@ export function ProductAnalyzer() {
                 <th>Margem</th>
                 <th>ROI</th>
                 <th>Preço mínimo</th>
-                <th>Status</th>
+                <th>Prévia</th>
               </tr>
             </thead>
             <tbody>
@@ -1923,7 +1966,7 @@ export function ProductAnalyzer() {
                             : "bad")
                       }
                     >
-                      {verdictLabel(item.verdict)}
+                      {kitPreviewLabel(item.verdict)}
                     </span>
                   </td>
                 </tr>

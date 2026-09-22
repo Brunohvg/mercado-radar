@@ -84,6 +84,8 @@ type DiscoveryPayload = {
     minimumPrice: number | null;
     medianPrice: number | null;
     maximumPrice: number | null;
+    source: "MARKETPLACE_SEARCH" | "CATALOG_WINNER" | "UNAVAILABLE";
+    accessBlocked: boolean;
   };
   dimensions: {
     heightCm: number;
@@ -1158,7 +1160,11 @@ export function ProductAnalyzer() {
                   </small>
                 </div>
                 <div className="discovery-market-price">
-                  <span>Preço típico no mercado</span>
+                  <span>
+                    {discovery.market.source === "CATALOG_WINNER"
+                      ? "Preço de referência do catálogo"
+                      : "Preço típico no mercado"}
+                  </span>
                   <strong>
                     {discovery.market.medianPrice == null
                       ? "Sem referência"
@@ -1173,6 +1179,17 @@ export function ProductAnalyzer() {
                   </small>
                 </div>
               </div>
+
+              {discovery.market.accessBlocked && (
+                <div className="discovery-warning">
+                  <strong>Busca ampla do marketplace bloqueada para esta integração.</strong>
+                  <small>
+                    O Radar continuou com catálogo, categoria e referência disponível,
+                    sem derrubar a análise. Para comparáveis completos, precisamos
+                    liberar a permissão correspondente no aplicativo Mercado Livre.
+                  </small>
+                </div>
+              )}
 
               {discovery.dimensions && (
                 <div className="discovery-dimensions">

@@ -385,3 +385,12 @@ h1 em {
   .flow-step:first-child { border-top: 0 !important; }
   .flow-arrow { display: none; }
 }
+
+
+.field-hint {
+  display: block;
+  margin-top: 7px;
+  color: var(--accent-2);
+  font-size: 10px;
+  line-height: 1.4;
+}

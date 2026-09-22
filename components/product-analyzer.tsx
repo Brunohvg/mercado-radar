@@ -134,6 +134,42 @@ function number(value: string) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+async function fetchJsonWithTimeout<T>(
+  url: string,
+  init: RequestInit,
+  timeoutMs = 30000,
+): Promise<T> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(
+        typeof payload?.error === "string"
+          ? payload.error
+          : "A operação não pôde ser concluída.",
+      );
+    }
+
+    return payload as T;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(
+        "A consulta demorou demais. O carregamento foi interrompido; tente novamente.",
+      );
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
 function toInput(form: FormState, override?: Partial<{
   listingType: ListingType;
   commissionPercent: number;
@@ -254,10 +290,12 @@ export function ProductAnalyzer() {
     setQuoteMessage("");
 
     try {
-      if (!form.categoryId.trim()) {
-        throw new Error(
-          "Detecte a categoria do Mercado Livre antes de analisar.",
-        );
+      if (!form.productName.trim()) {
+        throw new Error("Informe o nome do produto.");
+      }
+
+      if (number(form.supplierPrice) <= 0) {
+        throw new Error("Informe o preço de compra do produto.");
       }
 
       if (
@@ -267,22 +305,95 @@ export function ProductAnalyzer() {
         number(form.lengthCm) <= 0
       ) {
         throw new Error(
-          "Informe peso e dimensões reais da embalagem para calcular o frete.",
+          "Informe peso, altura, largura e comprimento reais da embalagem.",
         );
       }
 
-      const quote = await fetchMlQuote(form.listingType, form);
-      const next = {
-        ...form,
-        commissionPercent: quote.commissionPercent.toFixed(2),
-        fixedFee: quote.fixedFee.toFixed(2),
-        shippingCost: quote.shippingCost.toFixed(2),
-      };
+      let next = { ...form };
+
+      if (!next.categoryId.trim()) {
+        const categoryPayload = await fetchJsonWithTimeout<{
+          best: CategorySuggestion | null;
+        }>(
+          "/api/ml/category-predict",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: next.productName }),
+          },
+          20000,
+        );
+
+        if (!categoryPayload.best) {
+          throw new Error(
+            "Não foi possível detectar a categoria automaticamente.",
+          );
+        }
+
+        setCategorySuggestion(categoryPayload.best);
+        next = {
+          ...next,
+          categoryId: categoryPayload.best.categoryId,
+        };
+      }
+
+      if (number(next.salePrice) <= 0) {
+        const pricePayload = await fetchJsonWithTimeout<{
+          suggestedPrice: number;
+          quote: {
+            commissionPercent: number;
+            fixedFee: number;
+            shippingCost: number;
+          };
+          analysis: ProfitabilityResult;
+        }>(
+          "/api/ml/suggest-price",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              productName: next.productName,
+              supplierPrice: number(next.supplierPrice),
+              discountPercent: number(next.discountPercent),
+              kitQuantity: number(next.kitQuantity),
+              listingType: next.listingType,
+              categoryId: next.categoryId.trim(),
+              weightGrams: number(next.weightGrams),
+              heightCm: number(next.heightCm),
+              widthCm: number(next.widthCm),
+              lengthCm: number(next.lengthCm),
+              operatingCost: number(next.operatingCost),
+              targetMarginPercent: number(next.targetMarginPercent),
+              targetRoiPercent: number(next.targetRoiPercent),
+            }),
+          },
+          45000,
+        );
+
+        next = {
+          ...next,
+          salePrice: Number(pricePayload.suggestedPrice).toFixed(2),
+          commissionPercent: Number(
+            pricePayload.quote.commissionPercent,
+          ).toFixed(2),
+          fixedFee: Number(pricePayload.quote.fixedFee).toFixed(2),
+          shippingCost: Number(pricePayload.quote.shippingCost).toFixed(2),
+        };
+        setAnalysis(pricePayload.analysis);
+      } else {
+        const quote = await fetchMlQuote(next.listingType, next);
+        next = {
+          ...next,
+          commissionPercent: quote.commissionPercent.toFixed(2),
+          fixedFee: quote.fixedFee.toFixed(2),
+          shippingCost: quote.shippingCost.toFixed(2),
+        };
+        await runAnalysis(next);
+      }
 
       setForm(next);
-      await runAnalysis(next);
       setQuoteMessage(
-        "Tarifa, comissão e frete preenchidos automaticamente pela API do Mercado Livre.",
+        "Categoria, tarifa, comissão e frete foram atualizados automaticamente pelo Mercado Livre.",
       );
     } catch (caught) {
       setError(
@@ -297,28 +408,23 @@ export function ProductAnalyzer() {
     listingType: ListingType,
     sourceForm: FormState = form,
   ): Promise<MlQuote> {
-    const response = await fetch("/api/ml/quote", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        salePrice: number(sourceForm.salePrice),
-        categoryId: sourceForm.categoryId.trim(),
-        listingType,
-        weightGrams: number(sourceForm.weightGrams),
-        heightCm: number(sourceForm.heightCm),
-        widthCm: number(sourceForm.widthCm),
-        lengthCm: number(sourceForm.lengthCm),
-      }),
-    });
-
-    const payload = await response.json();
-    if (!response.ok) {
-      throw new Error(
-        payload.error ?? "Falha ao consultar custos do Mercado Livre.",
-      );
-    }
-
-    return payload;
+    return fetchJsonWithTimeout<MlQuote>(
+      "/api/ml/quote",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          salePrice: number(sourceForm.salePrice),
+          categoryId: sourceForm.categoryId.trim(),
+          listingType,
+          weightGrams: number(sourceForm.weightGrams),
+          heightCm: number(sourceForm.heightCm),
+          widthCm: number(sourceForm.widthCm),
+          lengthCm: number(sourceForm.lengthCm),
+        }),
+      },
+      25000,
+    );
   }
 
   async function detectCategory() {
@@ -726,14 +832,11 @@ export function ProductAnalyzer() {
 
           <button
             className="primary wide"
-            disabled={
-              loading ||
-              !hasCoreInputs ||
-              !form.productName.trim() ||
-              !form.categoryId.trim()
-            }
+            disabled={loading}
           >
-            {loading ? "Consultando Mercado Livre..." : "Analisar com custos reais"}
+            {loading
+              ? "Consultando Mercado Livre..."
+              : "Analisar produto automaticamente"}
           </button>
         </form>
 

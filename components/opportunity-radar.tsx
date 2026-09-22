@@ -72,13 +72,13 @@ export function OpportunityRadar() {
     <section className="module-section opportunity-module" id="oportunidades">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Radar da semana</p>
-          <h2>O que está crescendo no Mercado Livre agora?</h2>
+          <p className="eyebrow">Sourcing Intelligence</p>
+          <h2>O que merece ser investigado antes de comprar?</h2>
         </div>
         <div className="module-heading-actions">
           <p>
-            O Radar cruza tendências semanais, preço de mercado, tarifa e frete
-            da sua conta para indicar um teto preliminar de compra.
+            O Radar cruza sinais de mercado com os custos da sua conta para
+            transformar “produto interessante” em “até quanto eu poderia pagar”.
           </p>
           <button
             type="button"

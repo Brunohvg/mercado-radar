@@ -58,3 +58,17 @@ O motor financeiro continuará determinístico e testável.
 4. adicionar assistente de IA para enriquecer a entrada e explicar decisões.
 
 Assim a IA melhora a experiência sem comprometer a confiabilidade financeira.
+
+
+## Restrição de custo
+
+Durante o MVP, a camada de IA deve ter **custo zero**.
+
+Regras:
+- não depender de API paga;
+- aceitar somente provedor com uso gratuito suficiente para o MVP ou modelo self-hosted;
+- manter a interface `AIProvider` desacoplada para trocar de provedor sem alterar o motor financeiro;
+- se a cota gratuita acabar, o sistema continua funcionando sem IA;
+- nenhuma decisão financeira crítica depende da disponibilidade do modelo.
+
+A IA é complementar. O núcleo do Radar continua funcionando apenas com dados reais do Mercado Livre e regras determinísticas.

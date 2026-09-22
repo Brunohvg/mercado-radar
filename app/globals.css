@@ -2443,3 +2443,105 @@ h1 em {
     grid-template-columns: 1fr;
   }
 }
+
+
+.goal-checks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.goal-checks > div {
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255,255,255,.016);
+}
+
+.goal-checks > div.ok {
+  border-color: rgba(94,231,176,.18);
+  background: rgba(94,231,176,.035);
+}
+
+.goal-checks > div.fail {
+  border-color: rgba(255,125,144,.18);
+  background: rgba(255,125,144,.035);
+}
+
+.goal-checks span,
+.goal-checks strong,
+.goal-checks small {
+  display: block;
+}
+
+.goal-checks span {
+  color: var(--muted);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.goal-checks strong {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.goal-checks strong small {
+  display: inline;
+  margin-left: 4px;
+  color: #8295ac;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.market-validation-status {
+  margin-top: 10px;
+  padding: 11px 12px;
+  border: 1px solid rgba(255,210,122,.16);
+  border-radius: 11px;
+  background: rgba(255,210,122,.03);
+}
+
+.market-validation-status span,
+.market-validation-status strong,
+.market-validation-status small {
+  display: block;
+}
+
+.market-validation-status span {
+  color: var(--muted);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.market-validation-status strong {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.market-validation-status small {
+  margin-top: 4px;
+  color: #8799ad;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.purchase-decision {
+  grid-template-columns: repeat(3,minmax(0,1fr));
+}
+
+.purchase-decision .limit-gap.good strong {
+  color: var(--accent);
+}
+
+.purchase-decision .limit-gap.bad strong {
+  color: var(--danger);
+}
+
+@media (max-width: 620px) {
+  .goal-checks,
+  .purchase-decision {
+    grid-template-columns: 1fr;
+  }
+}

@@ -22,6 +22,13 @@ type ProductRow = {
   discountPercent: number;
   netUnitCost: number | null;
   lastSyncedAt: string;
+  economics: {
+    saleFee: number;
+    shippingCost: number;
+    estimatedProfit: number;
+    estimatedMarginPercent: number;
+    amountReceived: number;
+  } | null;
   health: {
     periodDays: number;
     unitsSold: number;
@@ -299,11 +306,15 @@ export function ProductsDashboard() {
                       </strong>
                     </div>
                     <div>
-                      <span>Margem real</span>
+                      <span>
+                        {product.health.realizedMarginPercent != null
+                          ? "Margem real"
+                          : "Margem estimada"}
+                      </span>
                       <strong>
-                        {product.health.realizedMarginPercent == null
+                        {product.health.decisionMarginPercent == null
                           ? "Aguardando"
-                          : `${product.health.realizedMarginPercent.toFixed(1)}%`}
+                          : `${product.health.decisionMarginPercent.toFixed(1)}%`}
                       </strong>
                     </div>
                   </div>
@@ -360,6 +371,31 @@ export function ProductsDashboard() {
                       >
                         Editar custo
                       </button>
+                    </div>
+                  )}
+
+                  {product.economics && (
+                    <div className="listing-economics">
+                      <div>
+                        <span>Tarifa do anúncio</span>
+                        <strong>{money.format(product.economics.saleFee)}</strong>
+                      </div>
+                      <div>
+                        <span>Frete estimado</span>
+                        <strong>{money.format(product.economics.shippingCost)}</strong>
+                      </div>
+                      <div>
+                        <span>Recebe do ML</span>
+                        <strong>{money.format(product.economics.amountReceived)}</strong>
+                      </div>
+                      <div>
+                        <span>Lucro estimado</span>
+                        <strong>{money.format(product.economics.estimatedProfit)}</strong>
+                      </div>
+                      <div>
+                        <span>Margem estimada</span>
+                        <strong>{product.economics.estimatedMarginPercent.toFixed(1)}%</strong>
+                      </div>
                     </div>
                   )}
 

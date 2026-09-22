@@ -1182,16 +1182,15 @@ export function ProductAnalyzer() {
 
               {discovery.market.accessBlocked && (
                 <div className="discovery-warning">
-                  <strong>Busca ampla do marketplace bloqueada para esta integração.</strong>
+                  <strong>Comparação ampla de mercado indisponível nesta conexão.</strong>
                   <small>
-                    O Radar continuou com catálogo, categoria e referência disponível,
-                    sem derrubar a análise. Para comparáveis completos, precisamos
-                    liberar a permissão correspondente no aplicativo Mercado Livre.
+                    A análise financeira continua normalmente com os dados disponíveis.
+                    O diagnóstico detalhado fica em Integrações.
                   </small>
                 </div>
               )}
 
-              {discovery.dimensions && (
+              {discovery.dimensions ? (
                 <div className="discovery-dimensions">
                   <div>
                     <span>Embalagem estimada</span>
@@ -1206,20 +1205,78 @@ export function ProductAnalyzer() {
                     type="button"
                     className="table-action"
                     onClick={() => {
-                      const details = document.getElementById(
-                        "advanced-logistics",
-                      ) as HTMLDetailsElement | null;
-                      if (details) {
-                        details.open = true;
-                        details.scrollIntoView({
-                          behavior: "smooth",
-                          block: "start",
-                        });
-                      }
+                      setForm((current) => ({
+                        ...current,
+                        weightGrams: "",
+                        heightCm: "",
+                        widthCm: "",
+                        lengthCm: "",
+                      }));
                     }}
                   >
-                    Usar embalagem real
+                    Corrigir embalagem
                   </button>
+                </div>
+              ) : (
+                <div className="inline-package-editor">
+                  <div className="inline-package-head">
+                    <div>
+                      <span>Falta somente a embalagem</span>
+                      <strong>Preencha aqui sem sair da análise</strong>
+                    </div>
+                    <small>
+                      Não encontrei medidas confiáveis para este produto.
+                    </small>
+                  </div>
+                  <div className="inline-package-grid">
+                    <label>
+                      <span>Peso (g)</span>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Ex.: 120"
+                        value={form.weightGrams}
+                        onChange={(e) => field("weightGrams", e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      <span>Altura (cm)</span>
+                      <input
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        placeholder="Ex.: 3"
+                        value={form.heightCm}
+                        onChange={(e) => field("heightCm", e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      <span>Largura (cm)</span>
+                      <input
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        placeholder="Ex.: 10"
+                        value={form.widthCm}
+                        onChange={(e) => field("widthCm", e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      <span>Comprimento (cm)</span>
+                      <input
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        placeholder="Ex.: 15"
+                        value={form.lengthCm}
+                        onChange={(e) => field("lengthCm", e.target.value)}
+                      />
+                    </label>
+                  </div>
+                  <small className="inline-package-help">
+                    Use as medidas da embalagem pronta para envio. Depois disso, clique
+                    em “Analisar produto automaticamente”.
+                  </small>
                 </div>
               )}
             </div>
@@ -1380,7 +1437,7 @@ export function ProductAnalyzer() {
                 <strong>Será sugerido</strong>
               </div>
               <small>
-                Detecte a categoria, informe peso e dimensões e use “Sugerir preço”.
+                Informe apenas o custo. Se a embalagem não puder ser descoberta, o Radar pede as medidas aqui mesmo.
               </small>
             </div>
           )}

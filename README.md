@@ -24,7 +24,12 @@ As integrações, cálculos, sincronizações, regras de preço, histórico, ale
 - preço mínimo para atingir meta de margem + ROI;
 - classificação automática;
 - OAuth Mercado Livre em evolução;
-- interface visual-first.
+- interface visual-first;
+- inteligência de mercado com anúncios comparáveis;
+- faixa de preços P25/mediana/P75;
+- fit score financeiro + mercado;
+- cálculo do custo máximo de compra para competir;
+- snapshots históricos de mercado.
 
 A interface foi preparada para substituir os campos manuais pelos dados reais da API do Mercado Livre.
 
@@ -97,4 +102,5 @@ Esses limites serão configuráveis.
 - [ ] Worker nativo de sincronização
 - [ ] Importação de pedidos e lucro real
 - [ ] Estoque e alertas
-- [ ] Radar de oportunidades
+- [x] Inteligência de mercado e fit score
+- [ ] Dashboard de oportunidades e histórico

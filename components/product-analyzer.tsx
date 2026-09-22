@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   analyzeProfitability,
   type ListingType,
@@ -265,6 +265,10 @@ export function ProductAnalyzer() {
     ProductSearchSuggestion[]
   >([]);
   const [catalogSearchUnavailable, setCatalogSearchUnavailable] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerMessage, setScannerMessage] = useState("");
+  const scannerVideoRef = useRef<HTMLVideoElement | null>(null);
+  const scannerStreamRef = useRef<MediaStream | null>(null);
   const [priceLoading, setPriceLoading] = useState(false);
   const [marketLoading, setMarketLoading] = useState(false);
   const [marketScan, setMarketScan] = useState<MarketScan | null>(null);
@@ -355,6 +359,91 @@ export function ProductAnalyzer() {
       controller.abort();
     };
   }, [form.productName, discovery]);
+
+  function stopBarcodeScanner() {
+    scannerStreamRef.current?.getTracks().forEach((track) => track.stop());
+    scannerStreamRef.current = null;
+    if (scannerVideoRef.current) {
+      scannerVideoRef.current.srcObject = null;
+    }
+    setScannerOpen(false);
+  }
+
+  async function openBarcodeScanner() {
+    setScannerMessage("");
+
+    try {
+      const BarcodeDetectorCtor = (
+        window as typeof window & {
+          BarcodeDetector?: new (options?: { formats?: string[] }) => {
+            detect(source: CanvasImageSource): Promise<Array<{ rawValue?: string }>>;
+          };
+        }
+      ).BarcodeDetector;
+
+      if (!BarcodeDetectorCtor) {
+        throw new Error(
+          "Este navegador não oferece leitura automática de código. Digite o EAN/GTIN no campo.",
+        );
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+        },
+        audio: false,
+      });
+
+      scannerStreamRef.current = stream;
+      setScannerOpen(true);
+
+      window.setTimeout(async () => {
+        const video = scannerVideoRef.current;
+        if (!video) return;
+
+        video.srcObject = stream;
+        await video.play();
+
+        const detector = new BarcodeDetectorCtor({
+          formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"],
+        });
+
+        const scan = async () => {
+          if (!scannerStreamRef.current || !scannerVideoRef.current) return;
+
+          try {
+            const codes = await detector.detect(scannerVideoRef.current);
+            const value = codes[0]?.rawValue?.trim();
+
+            if (value) {
+              setForm((current) => ({
+                ...current,
+                productName: value,
+              }));
+              setProductSuggestions([]);
+              setDiscovery(null);
+              setScannerMessage(`Código identificado: ${value}`);
+              stopBarcodeScanner();
+              return;
+            }
+          } catch {
+            // Mantém a câmera ativa e tenta novamente.
+          }
+
+          window.setTimeout(scan, 350);
+        };
+
+        void scan();
+      }, 50);
+    } catch (caught) {
+      stopBarcodeScanner();
+      setScannerMessage(
+        caught instanceof Error
+          ? caught.message
+          : "Não foi possível abrir a câmera.",
+      );
+    }
+  }
 
   function selectProductSuggestion(item: ProductSearchSuggestion) {
     setForm((current) => ({
@@ -951,6 +1040,15 @@ export function ProductAnalyzer() {
                 />
                 <button
                   type="button"
+                  className="scanner-button"
+                  onClick={openBarcodeScanner}
+                  aria-label="Ler código de barras com a câmera"
+                  title="Ler código de barras"
+                >
+                  ▣
+                </button>
+                <button
+                  type="button"
                   className="secondary"
                   disabled={discoveryLoading || !form.productName.trim()}
                   onClick={identifyProduct}
@@ -1010,6 +1108,34 @@ export function ProductAnalyzer() {
               </small>
             )}
           </div>
+
+          {scannerMessage && (
+            <small className="field-hint neutral wide">{scannerMessage}</small>
+          )}
+
+          {scannerOpen && (
+            <div className="barcode-scanner-modal" role="dialog" aria-modal="true">
+              <div className="barcode-scanner-card">
+                <div className="barcode-scanner-head">
+                  <div>
+                    <span className="eyebrow">Leitor de código</span>
+                    <strong>Aponte para o EAN/GTIN</strong>
+                  </div>
+                  <button type="button" onClick={stopBarcodeScanner}>
+                    Fechar
+                  </button>
+                </div>
+                <div className="barcode-video-shell">
+                  <video ref={scannerVideoRef} muted playsInline />
+                  <span className="barcode-target" />
+                </div>
+                <small>
+                  O código é processado no próprio navegador e usado apenas para
+                  localizar o produto.
+                </small>
+              </div>
+            </div>
+          )}
 
           {discovery && (
             <div className="discovery-card wide">

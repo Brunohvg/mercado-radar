@@ -161,3 +161,33 @@ Objetivo da feature: responder não apenas "vale vender?", mas também "o que re
 - [ ] IA para enriquecer entrada e explicar análises;
 - [ ] nenhuma tarifa, frete, custo ou venda pode ser inventada pela IA;
 - [ ] aplicação deve continuar 100% funcional sem IA.
+
+
+## Produtos conectados — MVP
+
+- [x] models de anúncios no PostgreSQL
+- [x] busca de anúncios da conta conectada
+- [x] consulta em lote com `/items/bulk`
+- [x] preço atual pela API de preços
+- [x] visitas totais
+- [x] tela Produtos ativada
+- [x] sincronização manual
+- [ ] validar anúncios reais no deploy
+- [ ] validar estoque real
+- [ ] validar preços reais
+
+## Vendas conectadas — MVP
+
+- [x] models de pedidos e itens
+- [x] import por `/orders/search?seller=...`
+- [x] persistência idempotente
+- [x] dashboard 7/30/90 dias
+- [x] pedidos recentes
+- [x] ranking inicial por unidades
+- [x] impedir lucro definitivo quando custo/frete estiver ausente
+- [x] tela Vendas ativada
+- [ ] validar pedidos reais no deploy
+- [ ] processar `orders_v2` automaticamente
+- [ ] obter frete realizado da venda
+- [ ] vincular custo por SKU
+- [ ] calcular lucro realizado

@@ -276,14 +276,13 @@ export function ProductAnalyzer() {
     useState<CategorySuggestion | null>(null);
 
   useEffect(() => {
-    function handleOpportunity(event: Event) {
-      const custom = event as CustomEvent<{ productName?: string }>;
-      const productName = custom.detail?.productName?.trim();
-      if (!productName) return;
+    function loadProduct(productName: string) {
+      const clean = productName.trim();
+      if (!clean) return;
 
       setForm((current) => ({
         ...current,
-        productName,
+        productName: clean,
         categoryId: "",
         salePrice: "",
         weightGrams: "",
@@ -298,19 +297,23 @@ export function ProductAnalyzer() {
       setAnalysis(null);
       setMarketScan(null);
       setComparison([]);
-      setQuoteMessage("Produto carregado do Radar da semana. Identifique para completar os dados.");
-      window.setTimeout(() => {
-        document.getElementById("analisar")?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }, 0);
+      setQuoteMessage(
+        "Produto carregado do Radar de oportunidades. Identifique para completar os dados.",
+      );
+    }
+
+    const queryProduct = new URLSearchParams(window.location.search).get("q");
+    if (queryProduct) loadProduct(queryProduct);
+
+    function handleOpportunity(event: Event) {
+      const custom = event as CustomEvent<{ productName?: string }>;
+      if (custom.detail?.productName) loadProduct(custom.detail.productName);
     }
 
     window.addEventListener("radar:analyze-product", handleOpportunity);
     return () =>
       window.removeEventListener("radar:analyze-product", handleOpportunity);
-  }, []);
+  }, []);;
 
   useEffect(() => {
     const query = form.productName.trim();

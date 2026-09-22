@@ -2,20 +2,46 @@
 
 ## MVP v0.1
 
-Status atual: **candidato a primeiro deploy de teste**.
+Status atual: **em validação real**.
 
-Implementado:
-
-- infraestrutura Coolify;
-- PostgreSQL + Prisma;
+Já confirmados:
+- aplicação publicada no Coolify;
+- domínio público `radar.optarys.com.br`;
+- PostgreSQL na mesma stack;
+- OAuth Mercado Livre conectado com conta real;
+- tokens criptografados;
 - motor de rentabilidade;
-- simulador de kits;
-- OAuth Mercado Livre + PKCE;
-- tarifa e frete via API;
+- sugestão de preço;
 - comparação Clássico × Premium;
-- preditor automático de categoria;
+- preditor de categoria;
+- webhook Mercado Livre persistido;
+- Market Intelligence;
+- Fit Score;
+- snapshots de mercado;
 - design system visual-first.
 
-Próximo gate: **deploy no Coolify + validação com conta real do Mercado Livre**.
+## Gate atual
 
-Checklist detalhado: `docs/MVP_CHECKLIST.md`.
+Antes de mudar o foco principal para Sales Intelligence:
+
+1. validar Ilhós nº54 ponta a ponta;
+2. validar Arame encapado ponta a ponta;
+3. conferir tarifa e frete contra simulador oficial;
+4. revisar anúncios comparáveis;
+5. validar mediana/P25/P75;
+6. ajustar heurísticas se necessário.
+
+## Próxima feature oficial
+
+**Sales Intelligence**
+
+Importar pedidos reais, processar novas vendas, calcular lucro realizado por pedido/SKU e criar o dashboard operacional.
+
+## Fontes de verdade do projeto
+
+- `docs/FEATURES.md`
+- `docs/DEVELOPMENT_CHECKLIST.md`
+- `docs/QUALITY_GATES.md`
+- `docs/MVP_CHECKLIST.md`
+
+Nenhuma feature deve ser chamada de concluída apenas porque foi implementada.

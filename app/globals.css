@@ -2545,3 +2545,131 @@ h1 em {
     grid-template-columns: 1fr;
   }
 }
+
+
+.product-cost-summary {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr)) auto;
+  gap: 8px;
+  align-items: center;
+  grid-column: 1 / -1;
+  padding: 10px 12px;
+  border: 1px solid rgba(105,184,255,.12);
+  border-radius: 11px;
+  background: rgba(105,184,255,.025);
+}
+
+.product-cost-summary > div span,
+.product-cost-summary > div strong {
+  display: block;
+}
+
+.product-cost-summary > div span {
+  color: var(--muted);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.product-cost-summary > div strong {
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.product-cost-editor {
+  grid-column: 1 / -1;
+  padding: 13px;
+  border: 1px solid rgba(94,231,176,.18);
+  border-radius: 12px;
+  background: rgba(94,231,176,.035);
+}
+
+.product-cost-editor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 11px;
+}
+
+.product-cost-editor-head strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.product-cost-editor-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr .7fr 1fr;
+  gap: 8px;
+  align-items: end;
+}
+
+.product-cost-editor-grid label {
+  display: grid;
+  gap: 5px;
+}
+
+.product-cost-editor-grid label > span,
+.product-cost-preview > span {
+  color: var(--muted);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.product-cost-editor-grid input {
+  width: 100%;
+  min-width: 0;
+}
+
+.product-cost-preview {
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255,255,255,.018);
+}
+
+.product-cost-preview strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.product-cost-editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.product-cost-editor-actions small {
+  max-width: 620px;
+  color: #8295ac;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+@media (max-width: 860px) {
+  .product-cost-summary,
+  .product-cost-editor-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .product-cost-summary .table-action {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 520px) {
+  .product-cost-summary,
+  .product-cost-editor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .product-cost-editor-actions,
+  .product-cost-editor-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

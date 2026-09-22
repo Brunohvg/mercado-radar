@@ -226,6 +226,19 @@ export function ProductsDashboard() {
                     </div>
                   </div>
 
+                  <div className="product-actions">
+                    <span className="data-origin">Dados Mercado Livre</span>
+                    {product.permalink && (
+                      <a
+                        href={product.permalink}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Abrir anúncio
+                      </a>
+                    )}
+                  </div>
+
                   <div className={"product-health-card " + healthTone(product.health.action)}>
                     <div>
                       <span>Ação do Radar</span>
@@ -254,18 +267,6 @@ export function ProductsDashboard() {
                     </div>
                   </div>
 
-                  <div className="product-actions">
-                    <span className="data-origin">Dados Mercado Livre</span>
-                    {product.permalink && (
-                      <a
-                        href={product.permalink}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Abrir anúncio
-                      </a>
-                    )}
-                  </div>
                 </article>
               ))}
             </div>

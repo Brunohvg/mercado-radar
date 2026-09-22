@@ -25,6 +25,16 @@ problema entendido
 
 ---
 
+## Gate de valor do produto
+
+Antes de qualquer feature:
+- [ ] melhora uma decisão de compra, preço, lucro ou capital?
+- [ ] evita repetir algo que o Seller Center já resolve bem?
+- [ ] reduz digitação, pesquisa manual ou uso de planilha?
+- [ ] a ação resultante fica clara para o usuário?
+- [ ] a feature usa dado real antes de heurística?
+- [ ] se não gera decisão, deve ficar secundária ou fora do MVP.
+
 ## 1. Antes de programar
 
 - [ ] Definir qual pergunta a feature responde.

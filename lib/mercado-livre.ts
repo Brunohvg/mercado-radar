@@ -732,3 +732,42 @@ export async function getCategoryHighlights(input: {
     { headers: { Authorization: `Bearer ${input.accessToken}` } },
   );
 }
+
+
+export async function getShipmentCosts(input: {
+  accessToken: string;
+  shipmentId: string;
+}) {
+  const raw = await jsonFetch<{
+    gross_amount?: number;
+    receiver?: {
+      cost?: number;
+      promoted_amount?: number;
+    };
+    senders?: Array<{
+      id?: number | string;
+      cost?: number;
+      promoted_amount?: number;
+    }>;
+  }>(
+    `${API}/shipments/${input.shipmentId}/costs`,
+    {
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+        "x-format-new": "true",
+      },
+    },
+  );
+
+  const sellerCost = (raw.senders ?? []).reduce(
+    (sum, sender) => sum + Number(sender.cost ?? 0),
+    0,
+  );
+
+  return {
+    raw,
+    sellerCost,
+    buyerCost: Number(raw.receiver?.cost ?? 0),
+    grossAmount: Number(raw.gross_amount ?? 0),
+  };
+}

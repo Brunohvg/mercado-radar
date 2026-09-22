@@ -156,3 +156,81 @@ model MarketSnapshot {
   @@index([categoryId, createdAt])
   @@index([verdict, createdAt])
 }
+
+
+model MercadoLivreProduct {
+  id                String   @id @default(cuid())
+  mlItemId          String   @unique
+  sellerUserId      String
+  title             String
+  sku               String?
+  categoryId        String?
+  status            String
+  listingTypeId     String?
+  currentPrice      Decimal? @db.Decimal(12, 2)
+  availableQuantity Int      @default(0)
+  soldQuantity      Int      @default(0)
+  visitsTotal       Int?
+  permalink         String?
+  thumbnail         String?
+  freeShipping      Boolean  @default(false)
+  raw               Json
+  lastSyncedAt      DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([sellerUserId, status])
+  @@index([sellerUserId, soldQuantity])
+  @@index([lastSyncedAt])
+}
+
+model MercadoLivreOrder {
+  id                  String                    @id @default(cuid())
+  mlOrderId           String                    @unique
+  sellerUserId        String
+  status              String
+  dateCreated         DateTime
+  dateClosed          DateTime?
+  currencyId          String                    @default("BRL")
+  totalAmount         Decimal                   @default(0) @db.Decimal(12, 2)
+  paidAmount          Decimal                   @default(0) @db.Decimal(12, 2)
+  marketplaceFeeTotal Decimal?                  @db.Decimal(12, 2)
+  shippingId          String?
+  shippingCost        Decimal?                  @db.Decimal(12, 2)
+  buyerNickname       String?
+  profit              Decimal?                  @db.Decimal(12, 2)
+  marginPercent       Decimal?                  @db.Decimal(8, 2)
+  profitabilityStatus String                    @default("AWAITING_COST")
+  raw                 Json
+  lastSyncedAt        DateTime                  @default(now())
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  items               MercadoLivreOrderItem[]
+
+  @@index([sellerUserId, dateCreated])
+  @@index([status, dateCreated])
+  @@index([profitabilityStatus, dateCreated])
+}
+
+model MercadoLivreOrderItem {
+  id             String              @id @default(cuid())
+  externalKey    String              @unique
+  orderId        String
+  mlItemId       String
+  variationId    String?
+  title          String
+  sku            String?
+  quantity       Int
+  unitPrice      Decimal             @db.Decimal(12, 2)
+  saleFee        Decimal?            @db.Decimal(12, 2)
+  listingTypeId  String?
+  unitCost       Decimal?            @db.Decimal(12, 2)
+  profit         Decimal?            @db.Decimal(12, 2)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  order          MercadoLivreOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([mlItemId])
+  @@index([sku])
+}

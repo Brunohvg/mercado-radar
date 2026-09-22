@@ -432,3 +432,25 @@ Se faltar qualquer item crítico, marcar como **implementado / aguardando valida
 - [ ] explicação de decisão.
 - [ ] avaliação de qualidade.
 - [ ] nenhum número crítico inventado.
+
+
+## Smart Product Discovery
+
+- [ ] nome simples encontra produto relevante;
+- [ ] EAN/GTIN encontra produto de catálogo correto;
+- [ ] categoria preenchida automaticamente;
+- [ ] faixa de preço plausível;
+- [ ] dimensões só são preenchidas quando há amostra;
+- [ ] confiança da estimativa é exibida;
+- [ ] análise automática funciona sem exigir dimensões quando a inferência é suficiente;
+- [ ] fallback manual é claro quando não há dados;
+- [ ] testar no mobile.
+
+## Opportunity Radar
+
+- [ ] tendências semanais carregam;
+- [ ] candidatos têm preço mediano plausível;
+- [ ] teto de compra usa tarifa/frete reais da conta;
+- [ ] candidato abre diretamente no analisador;
+- [ ] tendência não é rotulada como venda realizada;
+- [ ] preparar ranking de mais vendidos por categoria como evidência complementar.

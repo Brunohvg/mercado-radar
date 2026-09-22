@@ -1176,13 +1176,33 @@ export function ProductAnalyzer() {
 
               {discovery.dimensions && (
                 <div className="discovery-dimensions">
-                  <span>Embalagem estimada</span>
-                  <strong>
-                    {discovery.dimensions.lengthCm} × {discovery.dimensions.widthCm} × {discovery.dimensions.heightCm} cm · {discovery.dimensions.weightGrams} g
-                  </strong>
-                  <small>
-                    Baseada em {discovery.dimensions.sampleSize} anúncio(s) semelhante(s) · confiança {discovery.dimensions.confidence.toLowerCase()}
-                  </small>
+                  <div>
+                    <span>Embalagem estimada</span>
+                    <strong>
+                      {discovery.dimensions.lengthCm} × {discovery.dimensions.widthCm} × {discovery.dimensions.heightCm} cm · {discovery.dimensions.weightGrams} g
+                    </strong>
+                    <small>
+                      Baseada em {discovery.dimensions.sampleSize} anúncio(s) semelhante(s) · confiança {discovery.dimensions.confidence.toLowerCase()}
+                    </small>
+                  </div>
+                  <button
+                    type="button"
+                    className="table-action"
+                    onClick={() => {
+                      const details = document.getElementById(
+                        "advanced-logistics",
+                      ) as HTMLDetailsElement | null;
+                      if (details) {
+                        details.open = true;
+                        details.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        });
+                      }
+                    }}
+                  >
+                    Usar embalagem real
+                  </button>
                 </div>
               )}
             </div>
@@ -1427,7 +1447,7 @@ export function ProductAnalyzer() {
         </div>
       </div>
 
-      <details className="ml-quote-panel advanced-analysis">
+      <details className="ml-quote-panel advanced-analysis" id="advanced-logistics">
         <summary>
           <div>
             <span className="eyebrow">Ajustes avançados</span>

@@ -204,14 +204,17 @@ export async function syncMercadoLivreOrders(days = 30) {
 
       let resolvedShipmentId =
         raw.shipping?.id == null ? null : String(raw.shipping.id);
+      let orderShipmentCost: number | null = null;
 
-      if (!resolvedShipmentId) {
-        resolvedShipmentId = await getOrderShipment({
-          accessToken: session.accessToken,
-          orderId: mlOrderId,
-        })
-          .then((shipment) => shipment.shipmentId)
-          .catch(() => null);
+      const orderShipment = await getOrderShipment({
+        accessToken: session.accessToken,
+        orderId: mlOrderId,
+      }).catch(() => null);
+
+      if (orderShipment) {
+        resolvedShipmentId =
+          resolvedShipmentId ?? orderShipment.shipmentId;
+        orderShipmentCost = orderShipment.orderCost;
       }
 
       const order = await prisma.mercadoLivreOrder.upsert({
@@ -363,6 +366,13 @@ export async function syncMercadoLivreOrders(days = 30) {
         })
           .then((quote) => quote.sellerCost)
           .catch(() => null);
+      }
+
+      // /shipments/{id}/costs is the preferred source. If that endpoint is
+      // temporarily unavailable for the account, the order shipment resource
+      // still exposes order_cost, which is the seller's shipping cost.
+      if (realizedShippingCost == null && orderShipmentCost != null) {
+        realizedShippingCost = orderShipmentCost;
       }
 
       const itemFeeTotal = persistedItems.reduce(

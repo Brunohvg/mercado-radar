@@ -3,6 +3,7 @@ import { ProductAnalyzer } from "@/components/product-analyzer";
 import { ProductsDashboard } from "@/components/products-dashboard";
 import { SalesDashboard } from "@/components/sales-dashboard";
 import { OpportunityRadar } from "@/components/opportunity-radar";
+import { AppNavigation } from "@/components/app-navigation";
 
 const flow = [
   ["01", "Custo real", "Fornecedor + desconto"],
@@ -15,37 +16,7 @@ const flow = [
 export default function Home() {
   return (
     <main className="shell">
-      <input className="mobile-nav-toggle" id="mobile-nav-toggle" type="checkbox" />
-      <label className="mobile-nav-button" htmlFor="mobile-nav-toggle" aria-label="Abrir menu">
-        <span />
-        <span />
-        <span />
-      </label>
-      <label className="mobile-nav-overlay" htmlFor="mobile-nav-toggle" />
-
-      <aside className="sidebar">
-        <div className="brand">
-          <span className="brand-mark">MR</span>
-          <div>
-            <strong>Mercado Radar</strong>
-            <small>Commerce Intelligence</small>
-          </div>
-        </div>
-
-        <nav>
-          <a className="nav-item active" href="#analisar">Analisar produto</a>
-          <a className="nav-item" href="#oportunidades">Oportunidades</a>
-          <a className="nav-item" href="#produtos">Produtos</a>
-          <a className="nav-item" href="#vendas">Vendas</a>
-          <a className="nav-item" href="#kits">Simular kits</a>
-          <a className="nav-item" href="#integracoes">Integrações</a>
-        </nav>
-
-        <div className="sidebar-foot">
-          <span className="status-dot" />
-          Core nativo · PostgreSQL
-        </div>
-      </aside>
+      <AppNavigation />
 
       <section className="content">
         <header className="topbar">

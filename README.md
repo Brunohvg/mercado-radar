@@ -111,3 +111,18 @@ Esses limites serão configuráveis.
 Depois da validação do motor de mercado, o próximo módulo será **Sales Intelligence**: sincronização de pedidos reais da conta conectada, custos reais da venda, lucro por pedido/SKU, margem realizada, ranking de produtos e base para reposição inteligente.
 
 A camada de IA do MVP terá custo zero: apenas provedor gratuito ou modelo self-hosted, sempre opcional e desacoplado do motor financeiro.
+
+
+## Documentação de desenvolvimento
+
+Antes de implementar qualquer feature, consulte:
+
+- `docs/FEATURES.md` — catálogo e ordem oficial das features inteligentes;
+- `docs/DEVELOPMENT_CHECKLIST.md` — checklist obrigatório de implementação, teste e deploy;
+- `docs/QUALITY_GATES.md` — bloqueios de qualidade que impedem tratar uma feature como pronta;
+- `docs/ARCHITECTURE.md` — arquitetura e responsabilidades;
+- `docs/DESIGN_SYSTEM.md` — regras visuais;
+- `docs/AI_STRATEGY.md` — uso de IA sem comprometer os dados financeiros;
+- `docs/MVP_CHECKLIST.md` — validação específica do MVP.
+
+Regra: uma feature escrita no código não é automaticamente concluída. O status só avança após CI verde, deploy saudável e validação real quando aplicável.

@@ -61,6 +61,11 @@ function median(values: number[]) {
     : sorted[middle];
 }
 
+function average(values: number[]) {
+  if (values.length === 0) return null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
 function isBarcode(value: string) {
   return /^\d{8,14}$/.test(value.replace(/\D/g, ""));
 }
@@ -96,6 +101,44 @@ export async function POST(request: Request) {
           productId: catalogBest.id,
         }).catch(() => null)
       : null;
+
+    const catalogPeerDetails = await Promise.all(
+      catalog.slice(0, 5).map(async (product) => {
+        const details =
+          product.id === catalogBest?.id && catalogDetails
+            ? catalogDetails
+            : await getCatalogProductDetails({
+                accessToken: session.accessToken,
+                productId: product.id,
+              }).catch(() => null);
+
+        if (!details) return null;
+
+        const winnerItemId = details.buy_box_winner?.item_id ?? null;
+        const currentPrice = winnerItemId
+          ? await getItemCurrentPrice({
+              accessToken: session.accessToken,
+              itemId: winnerItemId,
+            }).catch(() => null)
+          : null;
+
+        const price =
+          currentPrice && currentPrice > 0
+            ? currentPrice
+            : Number(details.buy_box_winner?.price ?? 0);
+
+        return {
+          product,
+          details,
+          winnerItemId,
+          price,
+        };
+      }),
+    );
+
+    const catalogPeerPrices = catalogPeerDetails
+      .map((entry) => Number(entry?.price ?? 0))
+      .filter((value) => Number.isFinite(value) && value > 0);
 
     const searchTitle =
       catalogDetails?.name ??
@@ -202,9 +245,16 @@ export async function POST(request: Request) {
       }),
     );
 
-    const prices = enriched
+    const marketplacePrices = enriched
       .map((item) => item.price)
       .filter((value) => Number.isFinite(value) && value > 0);
+
+    const prices =
+      marketplacePrices.length >= 3
+        ? marketplacePrices
+        : [...marketplacePrices, ...catalogPeerPrices].filter(
+            (value, index, array) => array.indexOf(value) === index,
+          );
 
     const completeDimensions = enriched
       .map((item) => item.inferred)
@@ -259,9 +309,10 @@ export async function POST(request: Request) {
         domainName: category?.domainName ?? null,
       },
       market: {
-        comparableCount: enriched.length,
+        comparableCount: prices.length,
         minimumPrice:
           sortedPrices.length > 0 ? sortedPrices[0] : null,
+        averagePrice: average(sortedPrices),
         medianPrice: median(sortedPrices),
         maximumPrice:
           sortedPrices.length > 0
@@ -270,7 +321,7 @@ export async function POST(request: Request) {
         source:
           market.length > 0
             ? "MARKETPLACE_SEARCH"
-            : winnerFallback.length > 0
+            : catalogPeerPrices.length > 0
               ? "CATALOG_WINNER"
               : "UNAVAILABLE",
         accessBlocked: marketAccessBlocked,
@@ -288,14 +339,29 @@ export async function POST(request: Request) {
                   : "LOW",
           }
         : null,
-      comparables: enriched.slice(0, 6).map((item) => ({
-        id: item.id,
-        title: item.title,
-        price: item.price,
-        permalink: item.permalink,
-        thumbnail: item.thumbnail,
-        freeShipping: item.freeShipping,
-      })),
+      comparables:
+        enriched.length > 0
+          ? enriched.slice(0, 6).map((item) => ({
+              id: item.id,
+              title: item.title,
+              price: item.price,
+              permalink: item.permalink,
+              thumbnail: item.thumbnail,
+              freeShipping: item.freeShipping,
+            }))
+          : catalogPeerDetails
+              .filter((entry) => entry && entry.price > 0)
+              .slice(0, 6)
+              .map((entry) => ({
+                id: String(entry!.winnerItemId ?? entry!.product.id),
+                title: entry!.details.name ?? entry!.product.name,
+                price: entry!.price,
+                permalink: entry!.details.permalink ?? null,
+                thumbnail: entry!.product.pictures?.[0]?.url ?? null,
+                freeShipping: Boolean(
+                  entry!.details.buy_box_winner?.shipping?.free_shipping,
+                ),
+              })),
     });
   } catch (error) {
     const message =

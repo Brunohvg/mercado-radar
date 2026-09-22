@@ -9,6 +9,7 @@ import {
 
 type FormState = {
   productName: string;
+  supplierName: string;
   supplierPrice: string;
   discountPercent: string;
   kitQuantity: string;
@@ -50,23 +51,24 @@ type CategorySuggestion = {
 };
 
 const initial: FormState = {
-  productName: "Arame encapado 10m",
-  supplierPrice: "4.40",
-  discountPercent: "35",
-  kitQuantity: "5",
-  salePrice: "59.90",
+  productName: "",
+  supplierName: "",
+  supplierPrice: "",
+  discountPercent: "0",
+  kitQuantity: "1",
+  salePrice: "",
   listingType: "CLASSIC",
-  commissionPercent: "11.5",
+  commissionPercent: "0",
   fixedFee: "0",
-  shippingCost: "12.95",
-  operatingCost: "1.50",
+  shippingCost: "0",
+  operatingCost: "0",
   targetMarginPercent: "20",
   targetRoiPercent: "30",
   categoryId: "",
-  weightGrams: "300",
-  heightCm: "5",
-  widthCm: "15",
-  lengthCm: "20",
+  weightGrams: "",
+  heightCm: "",
+  widthCm: "",
+  lengthCm: "",
 };
 
 const money = new Intl.NumberFormat("pt-BR", {
@@ -119,6 +121,7 @@ export function ProductAnalyzer() {
   const [quoteMessage, setQuoteMessage] = useState("");
   const [comparison, setComparison] = useState<ComparedQuote[]>([]);
   const [categoryLoading, setCategoryLoading] = useState(false);
+  const [priceLoading, setPriceLoading] = useState(false);
   const [categorySuggestion, setCategorySuggestion] =
     useState<CategorySuggestion | null>(null);
 
@@ -131,9 +134,12 @@ export function ProductAnalyzer() {
         : "bad";
   }, [analysis]);
 
+  const hasCoreInputs =
+    number(form.supplierPrice) > 0 && number(form.salePrice) > 0;
+
   const currentPreview = useMemo(
-    () => analyzeProfitability(toInput(form)),
-    [form],
+    () => (hasCoreInputs ? analyzeProfitability(toInput(form)) : null),
+    [form, hasCoreInputs],
   );
 
   const maxNetPurchase = Math.max(
@@ -152,6 +158,8 @@ export function ProductAnalyzer() {
     discountFactor > 0 ? maxNetPurchase / qty / discountFactor : 0;
 
   const kitRows = useMemo(() => {
+    if (!hasCoreInputs) return [];
+
     const basePrice = number(form.salePrice);
     const discounts: Record<number, number> = {
       1: 1,
@@ -169,7 +177,7 @@ export function ProductAnalyzer() {
         }),
       ),
     );
-  }, [form]);
+  }, [form, hasCoreInputs]);
 
   function field<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -269,6 +277,59 @@ export function ProductAnalyzer() {
     }
   }
 
+  async function suggestPrice() {
+    setPriceLoading(true);
+    setQuoteMessage("");
+    setError("");
+
+    try {
+      const response = await fetch("/api/ml/suggest-price", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productName: form.productName,
+          supplierPrice: number(form.supplierPrice),
+          discountPercent: number(form.discountPercent),
+          kitQuantity: number(form.kitQuantity),
+          listingType: form.listingType,
+          categoryId: form.categoryId.trim(),
+          weightGrams: number(form.weightGrams),
+          heightCm: number(form.heightCm),
+          widthCm: number(form.widthCm),
+          lengthCm: number(form.lengthCm),
+          operatingCost: number(form.operatingCost),
+          targetMarginPercent: number(form.targetMarginPercent),
+          targetRoiPercent: number(form.targetRoiPercent),
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Falha ao sugerir preço.");
+      }
+
+      const next = {
+        ...form,
+        salePrice: Number(payload.suggestedPrice).toFixed(2),
+        commissionPercent: Number(payload.quote.commissionPercent).toFixed(2),
+        fixedFee: Number(payload.quote.fixedFee).toFixed(2),
+        shippingCost: Number(payload.quote.shippingCost).toFixed(2),
+      };
+
+      setForm(next);
+      setAnalysis(payload.analysis);
+      setQuoteMessage(
+        `Preço sugerido pelo Radar: ${money.format(payload.suggestedPrice)} com tarifa e frete reais da sua conta.`,
+      );
+    } catch (caught) {
+      setQuoteMessage(
+        caught instanceof Error ? caught.message : "Falha ao sugerir preço.",
+      );
+    } finally {
+      setPriceLoading(false);
+    }
+  }
+
   async function applyMlQuote() {
     setQuoteLoading(true);
     setQuoteMessage("");
@@ -358,8 +419,8 @@ export function ProductAnalyzer() {
           <h2>Preço, frete, comissão e margem em uma conta só.</h2>
         </div>
         <p>
-          Use manualmente os custos do simulador ou conecte o Mercado Livre
-          para consultar tarifa e frete da sua própria conta.
+          Informe o produto e seu custo. O Radar pode detectar a categoria,
+          consultar os custos da sua conta e sugerir um preço de venda saudável.
         </p>
       </div>
 
@@ -368,22 +429,33 @@ export function ProductAnalyzer() {
           <div className="field wide">
             <label>Produto</label>
             <input
+              placeholder="Ex.: Ilhós nº54 alumínio pacote 1.000 unidades"
               value={form.productName}
               onChange={(e) => field("productName", e.target.value)}
             />
           </div>
 
           <div className="field">
-            <label>Preço Bibelô / fornecedor</label>
+            <label>Fornecedor <span className="optional-label">opcional</span></label>
+            <input
+              placeholder="Ex.: Distribuidora X"
+              value={form.supplierName}
+              onChange={(e) => field("supplierName", e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label>Preço de compra / tabela</label>
             <input
               type="number"
               step="0.01"
+              min="0"
+              placeholder="0,00"
               value={form.supplierPrice}
               onChange={(e) => field("supplierPrice", e.target.value)}
             />
           </div>
           <div className="field">
-            <label>Desconto %</label>
+            <label>Desconto do fornecedor %</label>
             <input
               type="number"
               step="0.01"
@@ -405,9 +477,14 @@ export function ProductAnalyzer() {
             <input
               type="number"
               step="0.01"
+              min="0"
+              placeholder="Pode ser sugerido pelo Radar"
               value={form.salePrice}
               onChange={(e) => field("salePrice", e.target.value)}
             />
+            <small className="field-hint neutral">
+              Deixe vazio para usar a sugestão baseada nos custos reais do Mercado Livre.
+            </small>
           </div>
 
           <div className="field">
@@ -481,24 +558,39 @@ export function ProductAnalyzer() {
             />
           </div>
 
-          <div className="purchase-limit wide">
-            <div>
-              <span>Custo líquido máximo do kit</span>
-              <strong>{money.format(maxNetPurchase)}</strong>
+          {number(form.salePrice) > 0 ? (
+            <div className="purchase-limit wide">
+              <div>
+                <span>Custo líquido máximo do kit</span>
+                <strong>{money.format(maxNetPurchase)}</strong>
+              </div>
+              <div>
+                <span>Preço máximo no fornecedor por unidade</span>
+                <strong>{money.format(maxSupplierUnit)}</strong>
+              </div>
+              <small>
+                Limite calculado para manter {form.targetMarginPercent}% de
+                margem com os custos atuais.
+              </small>
             </div>
-            <div>
-              <span>Preço máximo no fornecedor por unidade</span>
-              <strong>{money.format(maxSupplierUnit)}</strong>
+          ) : (
+            <div className="purchase-limit wide empty-limit">
+              <div>
+                <span>Preço de venda</span>
+                <strong>Será sugerido</strong>
+              </div>
+              <small>
+                Detecte a categoria, informe peso e dimensões e use “Sugerir preço”.
+              </small>
             </div>
-            <small>
-              Limite calculado para manter {form.targetMarginPercent}% de
-              margem com os custos atuais.
-            </small>
-          </div>
+          )}
 
           {error && <div className="error wide">{error}</div>}
 
-          <button className="primary wide" disabled={loading}>
+          <button
+            className="primary wide"
+            disabled={loading || !hasCoreInputs || !form.productName.trim()}
+          >
             {loading ? "Calculando..." : "Analisar rentabilidade"}
           </button>
         </form>
@@ -507,11 +599,11 @@ export function ProductAnalyzer() {
           {!analysis ? (
             <div className="empty-result">
               <span className="radar">◎</span>
-              <h3>Prévia pronta</h3>
+              <h3>{currentPreview ? "Prévia pronta" : "Comece pelo produto"}</h3>
               <p>
-                Com os números atuais: margem{" "}
-                {currentPreview.marginPercent.toFixed(1)}% e ROI{" "}
-                {currentPreview.roiPercent.toFixed(1)}%.
+                {currentPreview
+                  ? `Com os números atuais: margem ${currentPreview.marginPercent.toFixed(1)}% e ROI ${currentPreview.roiPercent.toFixed(1)}%.`
+                  : "Informe nome e custo. O Radar completa os dados do Mercado Livre e pode sugerir o preço."}
               </p>
             </div>
           ) : (
@@ -577,8 +669,8 @@ export function ProductAnalyzer() {
             <h2>Consultar Mercado Livre</h2>
           </div>
           <p>
-            Detecte a categoria pelo nome do produto e informe peso e dimensões.
-            O Radar consulta os custos da sua própria conta.
+            Categoria e custos vêm do Mercado Livre. Peso e dimensões precisam
+            corresponder à embalagem real para o frete não ser estimado errado.
           </p>
         </div>
 
@@ -643,23 +735,40 @@ export function ProductAnalyzer() {
             disabled={categoryLoading || !form.productName.trim()}
             onClick={detectCategory}
           >
-            {categoryLoading ? "Detectando..." : "Detectar categoria"}
-          </button>
-          <button
-            type="button"
-            className="secondary"
-            disabled={quoteLoading || !form.categoryId}
-            onClick={compareListingTypes}
-          >
-            Comparar Clássico × Premium
+            {categoryLoading ? "Detectando..." : "1. Detectar categoria"}
           </button>
           <button
             type="button"
             className="primary inline"
-            disabled={quoteLoading || !form.categoryId}
+            disabled={
+              priceLoading ||
+              !form.categoryId ||
+              !form.productName.trim() ||
+              number(form.supplierPrice) <= 0 ||
+              number(form.weightGrams) <= 0 ||
+              number(form.heightCm) <= 0 ||
+              number(form.widthCm) <= 0 ||
+              number(form.lengthCm) <= 0
+            }
+            onClick={suggestPrice}
+          >
+            {priceLoading ? "Calculando preço..." : "2. Sugerir preço"}
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            disabled={quoteLoading || !form.categoryId || number(form.salePrice) <= 0}
+            onClick={compareListingTypes}
+          >
+            3. Comparar Clássico × Premium
+          </button>
+          <button
+            type="button"
+            className="primary inline"
+            disabled={quoteLoading || !form.categoryId || number(form.salePrice) <= 0}
             onClick={applyMlQuote}
           >
-            {quoteLoading ? "Consultando..." : "Aplicar custos da API"}
+            {quoteLoading ? "Consultando..." : "Atualizar custos da API"}
           </button>
         </div>
 
@@ -713,6 +822,7 @@ export function ProductAnalyzer() {
         )}
       </section>
 
+      {kitRows.length > 0 && (
       <section className="kit-panel" id="kits">
         <div className="section-heading compact">
           <div>
@@ -771,6 +881,7 @@ export function ProductAnalyzer() {
           </table>
         </div>
       </section>
+      )}
     </section>
   );
 }

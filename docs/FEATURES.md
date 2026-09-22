@@ -188,7 +188,7 @@ O Fit Score **não é previsão de vendas**.
 
 ## F5A — Products Intelligence
 
-Status: **em desenvolvimento — MVP de leitura ativado**
+Status: **implementado / aguardando validação real**
 
 Objetivo: transformar os anúncios da conta conectada em uma visão operacional.
 
@@ -206,9 +206,11 @@ MVP atual:
 - [ ] visitas por período;
 - [ ] conversão por período;
 - [ ] margem estimada por SKU;
-- [ ] Product Health;
-- [ ] cobertura de estoque;
-- [ ] alertas de produto.
+- [x] Product Health inicial;
+- [x] cobertura de estoque em 30 dias;
+- [x] sugestão inicial de reposição e capital;
+- [ ] lead time e estoque de segurança configurável;
+- [ ] alertas automáticos de produto.
 
 ---
 
@@ -227,14 +229,15 @@ Objetivo: responder **o que realmente está dando dinheiro depois que vendeu**.
 - reprocessar com segurança.
 
 ### Lucro realizado
-- preço efetivamente vendido;
-- tarifa real;
-- custo real de envio;
-- custo do produto;
-- custo operacional;
-- lucro real;
-- margem real;
-- ROI realizado.
+- [x] preço efetivamente vendido;
+- [x] tarifa realizada quando disponível;
+- [x] custo real de envio por `/shipments/{id}/costs`;
+- [x] custo do produto por SKU quando vinculado;
+- [x] custo operacional;
+- [x] lucro real;
+- [x] margem real;
+- [ ] ROI realizado;
+- [ ] previsto × realizado.
 
 ### Dashboard
 - hoje;
@@ -510,8 +513,37 @@ Recursos:
 - [x] tarifa e frete da conta;
 - [x] teto preliminar de compra para 20% margem e 30% ROI;
 - [x] enviar candidato direto ao analisador;
-- [ ] adicionar ranking de mais vendidos por categoria como evidência complementar;
+- [x] consultar ranking oficial de mais vendidos por categoria;
+- [x] marcar correspondência direta quando um anúncio comparável aparece no ranking;
 - [ ] histórico semanal das oportunidades;
 - [ ] filtros por categoria e capital disponível.
 
 O Radar não deve chamar tendência de busca de "mais vendido". Ranking de mais vendidos é uma evidência separada.
+
+
+---
+
+## F0A — UX por rotas
+
+Status: **implementado / aguardando validação real**
+
+- [x] home simplificada como hub;
+- [x] /analisar;
+- [x] /oportunidades;
+- [x] /produtos;
+- [x] /vendas;
+- [x] /integracoes;
+- [x] menu mobile fecha após navegação;
+- [x] campos técnicos ficam em ajustes avançados.
+
+## F4B — Barcode Scanner
+
+Status: **implementado / aguardando validação em dispositivos**
+
+- [x] leitura por câmera usando BarcodeDetector quando disponível;
+- [x] EAN-13;
+- [x] EAN-8;
+- [x] UPC-A;
+- [x] UPC-E;
+- [x] Code 128;
+- [x] fallback para digitação quando o navegador não oferece detector.

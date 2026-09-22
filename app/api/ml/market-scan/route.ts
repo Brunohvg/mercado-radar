@@ -71,7 +71,17 @@ function similarity(query: string, title: string) {
       : queryNumbers.filter((token) => titleNumbers.has(token)).length /
         queryNumbers.length;
 
-  return Math.round((wordScore * 0.72 + numberScore * 0.28) * 1000) / 1000;
+  const importantNumbers = queryNumbers.filter(
+    (token) => Number(token) >= 100 || token.length >= 3,
+  );
+  const missingImportantNumber = importantNumbers.some(
+    (token) => !titleNumbers.has(token),
+  );
+
+  const base = wordScore * 0.72 + numberScore * 0.28;
+  const adjusted = missingImportantNumber ? base * 0.58 : base;
+
+  return Math.round(adjusted * 1000) / 1000;
 }
 
 function percentile(sorted: number[], p: number) {
@@ -103,6 +113,66 @@ function verdictLabel(code: string) {
     LOW_EVIDENCE: "Poucos comparáveis",
   };
   return labels[code] ?? code;
+}
+
+function decisionCopy(input: {
+  verdict: string;
+  testedPrice: number;
+  medianPrice: number;
+  p75Price: number;
+  currentNetUnitCost: number;
+  maxNetUnitCostAtMedian: number;
+  costReductionNeeded: number;
+}) {
+  if (input.verdict === "GOOD_FIT") {
+    return {
+      headline: "A conta fecha e o preço cabe no mercado.",
+      reason:
+        "O preço necessário preserva suas metas financeiras sem ultrapassar a faixa central dos comparáveis.",
+      nextAction:
+        "Valide com um lote pequeno e acompanhe conversão e lucro real antes de aumentar estoque.",
+    };
+  }
+
+  if (input.verdict === "TEST_SMALL") {
+    return {
+      headline: "Existe margem, mas o posicionamento exige cautela.",
+      reason:
+        "Seu preço ainda está próximo da faixa praticada, porém com menos folga competitiva.",
+      nextAction:
+        "Teste poucas unidades e evite estoque alto até confirmar vendas nesse preço.",
+    };
+  }
+
+  if (input.verdict === "PRICE_OUTSIDE_MARKET") {
+    return {
+      headline: "O custo atual empurra o preço para fora do mercado.",
+      reason:
+        `Para competir perto da mediana, o custo líquido unitário deveria ficar em até R$ ${input.maxNetUnitCostAtMedian.toFixed(2).replace(".", ",")}.`,
+      nextAction:
+        input.costReductionNeeded > 0
+          ? `Negocie aproximadamente R$ ${input.costReductionNeeded.toFixed(2).replace(".", ",")} a menos por unidade, teste kit/diferenciação ou descarte a oportunidade.`
+          : "Reveja a estratégia de preço e a diferenciação do anúncio.",
+    };
+  }
+
+  if (input.verdict === "LOW_EVIDENCE") {
+    return {
+      headline: "Ainda não há evidência suficiente para decidir.",
+      reason:
+        "Poucos anúncios realmente comparáveis foram encontrados com o nome e a categoria atuais.",
+      nextAction:
+        "Refine o título, confirme a categoria e rode a análise novamente.",
+    };
+  }
+
+  return {
+    headline: "O mercado pode aceitar o preço, mas sua margem ainda não fecha.",
+    reason:
+      "O custo do produto, tarifa, frete ou meta de retorno consome margem demais.",
+    nextAction:
+      "Reduza o custo de compra, ajuste o kit ou revise a meta antes de investir em estoque.",
+  };
 }
 
 export async function POST(request: Request) {
@@ -311,6 +381,16 @@ export async function POST(request: Request) {
       verdict = "PRICE_OUTSIDE_MARKET";
     }
 
+    const decision = decisionCopy({
+      verdict,
+      testedPrice: input.salePrice,
+      medianPrice,
+      p75Price,
+      currentNetUnitCost,
+      maxNetUnitCostAtMedian,
+      costReductionNeeded,
+    });
+
     const competitors = comparable.slice(0, 8).map((item) => ({
       id: item.id,
       title: item.title,
@@ -346,6 +426,7 @@ export async function POST(request: Request) {
       verdict,
       verdictLabel: verdictLabel(verdict),
       fitScore,
+      decision,
       market: {
         resultCount: comparable.length,
         minimumPrice,

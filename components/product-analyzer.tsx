@@ -251,9 +251,39 @@ export function ProductAnalyzer() {
     event.preventDefault();
     setLoading(true);
     setError("");
+    setQuoteMessage("");
 
     try {
-      await runAnalysis();
+      if (!form.categoryId.trim()) {
+        throw new Error(
+          "Detecte a categoria do Mercado Livre antes de analisar.",
+        );
+      }
+
+      if (
+        number(form.weightGrams) <= 0 ||
+        number(form.heightCm) <= 0 ||
+        number(form.widthCm) <= 0 ||
+        number(form.lengthCm) <= 0
+      ) {
+        throw new Error(
+          "Informe peso e dimensões reais da embalagem para calcular o frete.",
+        );
+      }
+
+      const quote = await fetchMlQuote(form.listingType, form);
+      const next = {
+        ...form,
+        commissionPercent: quote.commissionPercent.toFixed(2),
+        fixedFee: quote.fixedFee.toFixed(2),
+        shippingCost: quote.shippingCost.toFixed(2),
+      };
+
+      setForm(next);
+      await runAnalysis(next);
+      setQuoteMessage(
+        "Tarifa, comissão e frete preenchidos automaticamente pela API do Mercado Livre.",
+      );
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : "Falha ao analisar",
@@ -263,18 +293,21 @@ export function ProductAnalyzer() {
     }
   }
 
-  async function fetchMlQuote(listingType: ListingType): Promise<MlQuote> {
+  async function fetchMlQuote(
+    listingType: ListingType,
+    sourceForm: FormState = form,
+  ): Promise<MlQuote> {
     const response = await fetch("/api/ml/quote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        salePrice: number(form.salePrice),
-        categoryId: form.categoryId.trim(),
+        salePrice: number(sourceForm.salePrice),
+        categoryId: sourceForm.categoryId.trim(),
         listingType,
-        weightGrams: number(form.weightGrams),
-        heightCm: number(form.heightCm),
-        widthCm: number(form.widthCm),
-        lengthCm: number(form.lengthCm),
+        weightGrams: number(sourceForm.weightGrams),
+        heightCm: number(sourceForm.heightCm),
+        widthCm: number(sourceForm.widthCm),
+        lengthCm: number(sourceForm.lengthCm),
       }),
     });
 
@@ -513,8 +546,8 @@ export function ProductAnalyzer() {
           <h2>Preço, frete, comissão e margem em uma conta só.</h2>
         </div>
         <p>
-          Informe o produto e seu custo. O Radar pode detectar a categoria,
-          consultar os custos da sua conta e sugerir um preço de venda saudável.
+          Informe o produto e seu custo. Comissão, tarifa e frete são consultados
+          automaticamente na conta conectada do Mercado Livre.
         </p>
       </div>
 
@@ -593,34 +626,44 @@ export function ProductAnalyzer() {
               <option value="PREMIUM">Premium</option>
             </select>
           </div>
-          <div className="field">
-            <label>Comissão variável %</label>
-            <input
-              type="number"
-              step="0.01"
-              value={form.commissionPercent}
-              onChange={(e) =>
-                field("commissionPercent", e.target.value)
-              }
-            />
-          </div>
-          <div className="field">
-            <label>Tarifa fixa</label>
-            <input
-              type="number"
-              step="0.01"
-              value={form.fixedFee}
-              onChange={(e) => field("fixedFee", e.target.value)}
-            />
-          </div>
-          <div className="field">
-            <label>Seu custo de frete</label>
-            <input
-              type="number"
-              step="0.01"
-              value={form.shippingCost}
-              onChange={(e) => field("shippingCost", e.target.value)}
-            />
+          <div className="ml-costs-auto wide">
+            <div className="ml-costs-head">
+              <div>
+                <span>Custos Mercado Livre</span>
+                <strong>Preenchimento automático</strong>
+              </div>
+              <span className="api-source-badge">Mercado Livre API</span>
+            </div>
+            <div className="ml-costs-grid">
+              <div>
+                <span>Comissão</span>
+                <strong>
+                  {number(form.commissionPercent) > 0
+                    ? form.commissionPercent + "%"
+                    : "Aguardando consulta"}
+                </strong>
+              </div>
+              <div>
+                <span>Tarifa fixa</span>
+                <strong>
+                  {number(form.fixedFee) > 0
+                    ? money.format(number(form.fixedFee))
+                    : "Automática"}
+                </strong>
+              </div>
+              <div>
+                <span>Frete da conta</span>
+                <strong>
+                  {number(form.shippingCost) > 0
+                    ? money.format(number(form.shippingCost))
+                    : "Automático"}
+                </strong>
+              </div>
+            </div>
+            <small>
+              Esses valores não são digitados manualmente. O Radar consulta sua
+              conta, categoria, preço e logística no momento da análise.
+            </small>
           </div>
           <div className="field">
             <label>Custo operacional</label>
@@ -683,9 +726,14 @@ export function ProductAnalyzer() {
 
           <button
             className="primary wide"
-            disabled={loading || !hasCoreInputs || !form.productName.trim()}
+            disabled={
+              loading ||
+              !hasCoreInputs ||
+              !form.productName.trim() ||
+              !form.categoryId.trim()
+            }
           >
-            {loading ? "Calculando..." : "Analisar rentabilidade"}
+            {loading ? "Consultando Mercado Livre..." : "Analisar com custos reais"}
           </button>
         </form>
 
@@ -862,7 +910,7 @@ export function ProductAnalyzer() {
             disabled={quoteLoading || !form.categoryId || number(form.salePrice) <= 0}
             onClick={applyMlQuote}
           >
-            {quoteLoading ? "Consultando..." : "Atualizar custos da API"}
+            {quoteLoading ? "Consultando..." : "Recalcular custos ML"}
           </button>
           <button
             type="button"

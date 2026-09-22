@@ -50,6 +50,24 @@ type CategorySuggestion = {
   categoryName: string;
 };
 
+type ProductSearchSuggestion = {
+  key: string;
+  source: "CATALOG" | "MARKETPLACE";
+  id: string;
+  title: string;
+  price: number | null;
+  thumbnail: string | null;
+  categoryId: string | null;
+  productIdentifier: string | null;
+};
+
+type ProductSearchPayload = {
+  query: string;
+  barcode: string | null;
+  catalogUnavailable: boolean;
+  suggestions: ProductSearchSuggestion[];
+};
+
 type DiscoveryPayload = {
   identification: {
     input: string;
@@ -242,6 +260,11 @@ export function ProductAnalyzer() {
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [discoveryLoading, setDiscoveryLoading] = useState(false);
   const [discovery, setDiscovery] = useState<DiscoveryPayload | null>(null);
+  const [productSearchLoading, setProductSearchLoading] = useState(false);
+  const [productSuggestions, setProductSuggestions] = useState<
+    ProductSearchSuggestion[]
+  >([]);
+  const [catalogSearchUnavailable, setCatalogSearchUnavailable] = useState(false);
   const [priceLoading, setPriceLoading] = useState(false);
   const [marketLoading, setMarketLoading] = useState(false);
   const [marketScan, setMarketScan] = useState<MarketScan | null>(null);
@@ -284,6 +307,69 @@ export function ProductAnalyzer() {
     return () =>
       window.removeEventListener("radar:analyze-product", handleOpportunity);
   }, []);
+
+  useEffect(() => {
+    const query = form.productName.trim();
+
+    if (query.length < 2 || discovery) {
+      setProductSuggestions([]);
+      setCatalogSearchUnavailable(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setProductSearchLoading(true);
+
+      try {
+        const response = await fetch(
+          `/api/ml/product-search?q=${encodeURIComponent(query)}`,
+          {
+            cache: "no-store",
+            signal: controller.signal,
+          },
+        );
+        const payload = (await response.json()) as ProductSearchPayload & {
+          error?: string;
+        };
+
+        if (!response.ok) {
+          throw new Error(payload.error ?? "Falha ao buscar produtos.");
+        }
+
+        setProductSuggestions(payload.suggestions);
+        setCatalogSearchUnavailable(payload.catalogUnavailable);
+      } catch (caught) {
+        if (
+          !(caught instanceof DOMException && caught.name === "AbortError")
+        ) {
+          setProductSuggestions([]);
+        }
+      } finally {
+        setProductSearchLoading(false);
+      }
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [form.productName, discovery]);
+
+  function selectProductSuggestion(item: ProductSearchSuggestion) {
+    setForm((current) => ({
+      ...current,
+      productName: item.title,
+      categoryId: item.categoryId ?? current.categoryId,
+    }));
+    setProductSuggestions([]);
+    setDiscovery(null);
+    setQuoteMessage(
+      item.source === "CATALOG"
+        ? "Produto selecionado no catálogo. Agora vou completar mercado e logística."
+        : "Anúncio semelhante selecionado. Agora vou completar mercado e logística.",
+    );
+  }
 
   const tone = useMemo(() => {
     if (!analysis) return "neutral";
@@ -851,28 +937,78 @@ export function ProductAnalyzer() {
         <form className="panel form-panel" onSubmit={submit}>
           <div className="field wide smart-product-field">
             <label>Produto, EAN ou GTIN</label>
-            <div className="smart-product-input">
-              <input
-                placeholder="Digite o nome ou leia/digite o código de barras"
-                value={form.productName}
-                onChange={(e) => {
-                  field("productName", e.target.value);
-                  setDiscovery(null);
-                }}
-              />
-              <button
-                type="button"
-                className="secondary"
-                disabled={discoveryLoading || !form.productName.trim()}
-                onClick={identifyProduct}
-              >
-                {discoveryLoading ? "Identificando..." : "Identificar produto"}
-              </button>
+            <div className="smart-product-search-shell">
+              <div className="smart-product-input">
+                <input
+                  placeholder="Comece a digitar o produto ou informe o código de barras"
+                  value={form.productName}
+                  onChange={(e) => {
+                    field("productName", e.target.value);
+                    setDiscovery(null);
+                    setProductSuggestions([]);
+                  }}
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={discoveryLoading || !form.productName.trim()}
+                  onClick={identifyProduct}
+                >
+                  {discoveryLoading ? "Analisando..." : "Usar este produto"}
+                </button>
+              </div>
+
+              {(productSearchLoading || productSuggestions.length > 0) && (
+                <div className="product-search-results">
+                  {productSearchLoading && (
+                    <div className="product-search-status">
+                      Buscando no Mercado Livre...
+                    </div>
+                  )}
+
+                  {!productSearchLoading &&
+                    productSuggestions.map((item) => (
+                      <button
+                        type="button"
+                        className="product-search-option"
+                        key={item.key}
+                        onClick={() => selectProductSuggestion(item)}
+                      >
+                        {item.thumbnail ? (
+                          <img src={item.thumbnail} alt="" loading="lazy" />
+                        ) : (
+                          <span className="product-search-thumb">ML</span>
+                        )}
+
+                        <span className="product-search-copy">
+                          <strong>{item.title}</strong>
+                          <small>
+                            {item.source === "CATALOG"
+                              ? "Produto de catálogo"
+                              : "Anúncio semelhante"}
+                            {item.price != null
+                              ? ` · ${money.format(item.price)}`
+                              : ""}
+                          </small>
+                        </span>
+                      </button>
+                    ))}
+                </div>
+              )}
             </div>
+
             <small className="field-hint neutral">
-              O Radar procura no catálogo e em anúncios semelhantes para preencher
-              categoria, estimar embalagem e mostrar a faixa de preço praticada.
+              Ao digitar, o Radar mostra produtos do catálogo e anúncios semelhantes.
+              EAN/GTIN tenta uma identificação exata primeiro.
             </small>
+
+            {catalogSearchUnavailable && (
+              <small className="field-hint warning">
+                O catálogo não respondeu para esta conta, então estou usando a busca
+                de anúncios semelhantes como fallback.
+              </small>
+            )}
           </div>
 
           {discovery && (

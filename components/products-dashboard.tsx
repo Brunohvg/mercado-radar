@@ -308,53 +308,60 @@ export function ProductsDashboard() {
                     </div>
                   </div>
 
-                  <div className="product-cost-summary">
-                    <div>
-                      <span>Custo de tabela</span>
-                      <strong>
-                        {product.supplierPrice == null
-                          ? "Não informado"
-                          : money.format(product.supplierPrice)}
-                      </strong>
+                  {product.netUnitCost == null ? (
+                    <div className="product-cost-empty">
+                      <div>
+                        <span>Custo ainda não informado</span>
+                        <small>
+                          Informe o preço pago e o desconto para liberar margem,
+                          capital e lucro real.
+                        </small>
+                      </div>
+                      <button
+                        type="button"
+                        className="table-action"
+                        onClick={() => openCostEditor(product)}
+                      >
+                        Informar custo
+                      </button>
                     </div>
-                    <div>
-                      <span>Desconto</span>
-                      <strong>{product.discountPercent.toFixed(1)}%</strong>
+                  ) : (
+                    <div className="product-cost-summary compact">
+                      <div>
+                        <span>Custo líquido</span>
+                        <strong>{money.format(product.netUnitCost)}</strong>
+                        <small>
+                          tabela {money.format(product.supplierPrice ?? 0)}
+                          {product.discountPercent > 0
+                            ? ` · -${product.discountPercent.toFixed(1)}%`
+                            : ""}
+                        </small>
+                      </div>
+                      <div>
+                        <span>Markup bruto</span>
+                        <strong>
+                          {product.health.grossMarkupPercent == null
+                            ? "—"
+                            : `${product.health.grossMarkupPercent.toFixed(1)}%`}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>Capital em estoque</span>
+                        <strong>
+                          {product.health.inventoryCapital == null
+                            ? "—"
+                            : money.format(product.health.inventoryCapital)}
+                        </strong>
+                      </div>
+                      <button
+                        type="button"
+                        className="table-action"
+                        onClick={() => openCostEditor(product)}
+                      >
+                        Editar custo
+                      </button>
                     </div>
-                    <div>
-                      <span>Custo líquido</span>
-                      <strong>
-                        {product.netUnitCost == null
-                          ? "Aguardando"
-                          : money.format(product.netUnitCost)}
-                      </strong>
-                    </div>
-                    <div>
-                      <span>Markup bruto</span>
-                      <strong>
-                        {product.health.grossMarkupPercent == null
-                          ? "—"
-                          : `${product.health.grossMarkupPercent.toFixed(1)}%`}
-                      </strong>
-                    </div>
-                    <div>
-                      <span>Capital em estoque</span>
-                      <strong>
-                        {product.health.inventoryCapital == null
-                          ? "—"
-                          : money.format(product.health.inventoryCapital)}
-                      </strong>
-                    </div>
-                    <button
-                      type="button"
-                      className="table-action"
-                      onClick={() => openCostEditor(product)}
-                    >
-                      {product.netUnitCost == null
-                        ? "Informar custo"
-                        : "Editar custo"}
-                    </button>
-                  </div>
+                  )}
 
                   {costEditorId === product.mlItemId && (
                     <div className="product-cost-editor">

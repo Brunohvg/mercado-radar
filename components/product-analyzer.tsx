@@ -1162,7 +1162,15 @@ export function ProductAnalyzer() {
         </div>
       </div>
 
-      <section className="ml-quote-panel">
+      <details className="ml-quote-panel advanced-analysis">
+        <summary>
+          <div>
+            <span className="eyebrow">Ajustes avançados</span>
+            <strong>Categoria, embalagem e custos do Mercado Livre</strong>
+          </div>
+          <span className="advanced-chevron">⌄</span>
+        </summary>
+        <div className="advanced-analysis-body">
         <div className="section-heading compact">
           <div>
             <p className="eyebrow">Custos reais da conta</p>
@@ -1334,7 +1342,8 @@ export function ProductAnalyzer() {
             </table>
           </div>
         )}
-      </section>
+        </div>
+      </details>
 
       {marketScan && (
         <section className="market-intelligence-panel" id="mercado">

@@ -265,7 +265,20 @@ export async function syncMercadoLivreOrders(days = 30) {
               : null;
 
         let unitCost: number | null = null;
-        if (sku) {
+
+        const mlProductCost = await prisma.mercadoLivreProduct.findUnique({
+          where: { mlItemId },
+          select: {
+            supplierPrice: true,
+            discountPercent: true,
+          },
+        });
+
+        if (mlProductCost?.supplierPrice != null) {
+          unitCost =
+            Number(mlProductCost.supplierPrice) *
+            (1 - Number(mlProductCost.discountPercent) / 100);
+        } else if (sku) {
           const localProduct = await prisma.product.findUnique({
             where: { sku },
             select: {
@@ -297,7 +310,7 @@ export async function syncMercadoLivreOrders(days = 30) {
               typeof row.listing_type_id === "string"
                 ? row.listing_type_id
                 : null,
-            unitCost,
+            ...(unitCost != null ? { unitCost } : {}),
           },
           create: {
             externalKey,

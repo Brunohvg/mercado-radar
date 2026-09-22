@@ -160,9 +160,13 @@ export function OpportunityRadar() {
                 </div>
 
                 <a
-                  href={"#analisar"}
+                  href="#analisar"
                   onClick={() => {
-                    navigator.clipboard?.writeText(item.keyword).catch(() => {});
+                    window.dispatchEvent(
+                      new CustomEvent("radar:analyze-product", {
+                        detail: { productName: item.keyword },
+                      }),
+                    );
                   }}
                 >
                   Analisar este produto

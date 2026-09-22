@@ -1,12 +1,14 @@
 import { MercadoLivreIntegration } from "@/components/mercado-livre-integration";
 import { ProductAnalyzer } from "@/components/product-analyzer";
+import { ProductsDashboard } from "@/components/products-dashboard";
+import { SalesDashboard } from "@/components/sales-dashboard";
 
 const flow = [
   ["01", "Custo real", "Fornecedor + desconto"],
   ["02", "Mercado", "Preço e concorrência"],
   ["03", "Custos ML", "Tarifa + frete"],
   ["04", "Resultado", "Lucro + margem + ROI"],
-  ["05", "Decisão", "Testar, kit ou descartar"],
+  ["05", "Operação", "Produtos + vendas reais"],
 ];
 
 export default function Home() {
@@ -17,16 +19,16 @@ export default function Home() {
           <span className="brand-mark">MR</span>
           <div>
             <strong>Mercado Radar</strong>
-            <small>Product Intelligence</small>
+            <small>Commerce Intelligence</small>
           </div>
         </div>
 
         <nav>
           <a className="nav-item active" href="#analisar">Analisar produto</a>
+          <a className="nav-item" href="#produtos">Produtos</a>
+          <a className="nav-item" href="#vendas">Vendas</a>
           <a className="nav-item" href="#kits">Simular kits</a>
           <a className="nav-item" href="#integracoes">Integrações</a>
-          <a className="nav-item muted" href="#produtos">Produtos <span>em breve</span></a>
-          <a className="nav-item muted" href="#vendas">Vendas <span>em breve</span></a>
         </nav>
 
         <div className="sidebar-foot">
@@ -39,9 +41,12 @@ export default function Home() {
         <header className="topbar">
           <div>
             <p className="eyebrow">Inteligência para revenda</p>
-            <h1>Saiba se vale vender <em>antes</em> de colocar dinheiro no estoque.</h1>
+            <h1>
+              Decida melhor <em>antes e depois</em> de cada venda.
+            </h1>
             <p className="hero-copy">
-              Um painel para transformar custo, preço, frete e tarifa em uma decisão clara.
+              Analise oportunidades, acompanhe produtos conectados e transforme
+              vendas reais em decisões de margem, estoque e preço.
             </p>
           </div>
           <div className="pill">Meta padrão · 20% margem · 30% ROI</div>
@@ -64,7 +69,7 @@ export default function Home() {
           <article className="metric-card">
             <span>Margem alvo</span>
             <strong>≥ 20%</strong>
-            <small>Faixa saudável para escalar</small>
+            <small>Configurável por operação</small>
           </article>
           <article className="metric-card">
             <span>ROI desejado</span>
@@ -72,18 +77,20 @@ export default function Home() {
             <small>Retorno sobre capital aplicado</small>
           </article>
           <article className="metric-card">
-            <span>Desconto Bibelô</span>
-            <strong>35%</strong>
-            <small>Editável por produto</small>
+            <span>Fornecedor</span>
+            <strong>Flexível</strong>
+            <small>Custo e desconto por produto</small>
           </article>
           <article className="metric-card accent">
             <span>Motor de dados</span>
             <strong>Mercado Livre API</strong>
-            <small>Tarifa e frete da sua conta</small>
+            <small>Produtos, vendas, tarifa e frete</small>
           </article>
         </section>
 
         <ProductAnalyzer />
+        <ProductsDashboard />
+        <SalesDashboard />
         <MercadoLivreIntegration />
       </section>
     </main>

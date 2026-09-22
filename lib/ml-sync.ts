@@ -363,11 +363,15 @@ export async function syncMercadoLivreOrders(days = 30) {
         realizedShippingCost != null &&
         realizedFee != null;
 
+      const realizedFeeValue = realizedFee ?? 0;
+      const realizedShippingValue = realizedShippingCost ?? 0;
+      const totalProductCostValue = totalProductCost ?? 0;
+
       const realizedProfit = profitReady
         ? totalAmount -
-          realizedFee -
-          realizedShippingCost -
-          totalProductCost -
+          realizedFeeValue -
+          realizedShippingValue -
+          totalProductCostValue -
           operatingCost
         : null;
       const realizedMargin =
@@ -385,8 +389,8 @@ export async function syncMercadoLivreOrders(days = 30) {
           const itemRevenue = Number(item.unitPrice) * item.quantity;
           const share =
             totalItemRevenue > 0 ? itemRevenue / totalItemRevenue : 0;
-          const allocatedFee = realizedFee * share;
-          const allocatedShipping = realizedShippingCost * share;
+          const allocatedFee = realizedFeeValue * share;
+          const allocatedShipping = realizedShippingValue * share;
           const allocatedOperating = operatingCost * share;
           const itemCost = Number(item.unitCost ?? 0) * item.quantity;
           const itemProfit =

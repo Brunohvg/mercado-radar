@@ -66,6 +66,12 @@ export async function GET(request: Request) {
       (sum, order) => sum + Number(order.marketplaceFeeTotal ?? 0),
       0,
     );
+    const feeReadyCount = validOrders.filter(
+      (order) => order.marketplaceFeeTotal != null,
+    ).length;
+    const freightReadyCount = validOrders.filter(
+      (order) => order.shippingCost != null,
+    ).length;
     const realizedProfit = validOrders
       .filter((order) => order.profit != null)
       .reduce((sum, order) => sum + Number(order.profit), 0);
@@ -119,6 +125,8 @@ export async function GET(request: Request) {
         units,
         grossRevenue,
         knownFees,
+        feeReadyCount,
+        freightReadyCount,
         realizedProfit,
         realizedMarginPercent,
         profitReadyCount,

@@ -176,13 +176,21 @@ export async function syncMercadoLivreOrders(days = 30) {
       if (!mlOrderId) continue;
 
       const paymentRows = Array.isArray(raw.payments) ? raw.payments : [];
-      const marketplaceFeeTotal = paymentRows.length
+      const orderMarketplaceFee =
+        raw.marketplace_fee == null ? null : toNumber(raw.marketplace_fee);
+      const paymentMarketplaceFee = paymentRows.length
         ? paymentRows.reduce(
             (sum: number, payment: Record<string, any>) =>
               sum + toNumber(payment.marketplace_fee),
             0,
           )
-        : null;
+        : 0;
+      const marketplaceFeeTotal =
+        orderMarketplaceFee != null && orderMarketplaceFee > 0
+          ? orderMarketplaceFee
+          : paymentMarketplaceFee > 0
+            ? paymentMarketplaceFee
+            : null;
 
       const dateCreated = toDate(raw.date_created) ?? new Date();
       const dateClosed = toDate(raw.date_closed);
@@ -358,7 +366,8 @@ export async function syncMercadoLivreOrders(days = 30) {
       }
 
       const itemFeeTotal = persistedItems.reduce(
-        (sum, item) => sum + Number(item.saleFee ?? 0),
+        (sum, item) =>
+          sum + Number(item.saleFee ?? 0) * Math.max(item.quantity, 1),
         0,
       );
       const realizedFee =

@@ -1641,7 +1641,6 @@ h1 em {
   text-decoration: none;
 }
 
-.mobile-nav-toggle,
 .mobile-nav-button,
 .mobile-nav-overlay {
   display: none;
@@ -1656,12 +1655,6 @@ h1 em {
 @media (max-width: 860px) {
   .shell {
     display: block;
-  }
-
-  .mobile-nav-toggle {
-    position: fixed;
-    opacity: 0;
-    pointer-events: none;
   }
 
   .mobile-nav-button {
@@ -1704,15 +1697,14 @@ h1 em {
     position: fixed;
     z-index: 95;
     inset: 0;
+    display: block;
+    border: 0;
+    padding: 0;
     background: rgba(1,8,15,.68);
     backdrop-filter: blur(2px);
   }
 
-  .mobile-nav-toggle:checked ~ .mobile-nav-overlay {
-    display: block;
-  }
-
-  .mobile-nav-toggle:checked ~ .sidebar {
+  .sidebar.mobile-open {
     transform: translateX(0);
   }
 
@@ -1746,5 +1738,60 @@ h1 em {
 
   .opportunity-numbers {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+
+.advanced-analysis {
+  margin-top: 14px;
+  overflow: hidden;
+}
+
+.advanced-analysis > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 17px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.advanced-analysis > summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced-analysis > summary div {
+  display: grid;
+  gap: 4px;
+}
+
+.advanced-analysis > summary strong {
+  font-size: 13px;
+}
+
+.advanced-chevron {
+  color: var(--muted);
+  font-size: 18px;
+  transition: transform .18s ease;
+}
+
+.advanced-analysis[open] .advanced-chevron {
+  transform: rotate(180deg);
+}
+
+.advanced-analysis-body {
+  padding: 0 17px 17px;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 620px) {
+  .advanced-analysis > summary {
+    padding: 13px 14px;
+  }
+
+  .advanced-analysis-body {
+    padding: 0 14px 14px;
   }
 }

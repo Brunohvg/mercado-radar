@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   analyzeProfitability,
   type ListingType,
@@ -247,6 +247,43 @@ export function ProductAnalyzer() {
   const [marketScan, setMarketScan] = useState<MarketScan | null>(null);
   const [categorySuggestion, setCategorySuggestion] =
     useState<CategorySuggestion | null>(null);
+
+  useEffect(() => {
+    function handleOpportunity(event: Event) {
+      const custom = event as CustomEvent<{ productName?: string }>;
+      const productName = custom.detail?.productName?.trim();
+      if (!productName) return;
+
+      setForm((current) => ({
+        ...current,
+        productName,
+        categoryId: "",
+        salePrice: "",
+        weightGrams: "",
+        heightCm: "",
+        widthCm: "",
+        lengthCm: "",
+        commissionPercent: "0",
+        fixedFee: "0",
+        shippingCost: "0",
+      }));
+      setDiscovery(null);
+      setAnalysis(null);
+      setMarketScan(null);
+      setComparison([]);
+      setQuoteMessage("Produto carregado do Radar da semana. Identifique para completar os dados.");
+      window.setTimeout(() => {
+        document.getElementById("analisar")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 0);
+    }
+
+    window.addEventListener("radar:analyze-product", handleOpportunity);
+    return () =>
+      window.removeEventListener("radar:analyze-product", handleOpportunity);
+  }, []);
 
   const tone = useMemo(() => {
     if (!analysis) return "neutral";

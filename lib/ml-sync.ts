@@ -4,6 +4,7 @@ import {
   getItemsCurrentPrices,
   getItemsVisitTotals,
   getMlSession,
+  getOrderShipment,
   getShipmentCosts,
   getSellerItemIds,
   getSellerOrders,
@@ -193,6 +194,18 @@ export async function syncMercadoLivreOrders(days = 30) {
           0,
         ) || totalAmount;
 
+      let resolvedShipmentId =
+        raw.shipping?.id == null ? null : String(raw.shipping.id);
+
+      if (!resolvedShipmentId) {
+        resolvedShipmentId = await getOrderShipment({
+          accessToken: session.accessToken,
+          orderId: mlOrderId,
+        })
+          .then((shipment) => shipment.shipmentId)
+          .catch(() => null);
+      }
+
       const order = await prisma.mercadoLivreOrder.upsert({
         where: { mlOrderId },
         update: {
@@ -204,8 +217,7 @@ export async function syncMercadoLivreOrders(days = 30) {
           totalAmount,
           paidAmount,
           marketplaceFeeTotal,
-          shippingId:
-            raw.shipping?.id == null ? null : String(raw.shipping.id),
+          shippingId: resolvedShipmentId,
           buyerNickname:
             typeof raw.buyer?.nickname === "string" ? raw.buyer.nickname : null,
           raw,
@@ -221,8 +233,7 @@ export async function syncMercadoLivreOrders(days = 30) {
           totalAmount,
           paidAmount,
           marketplaceFeeTotal,
-          shippingId:
-            raw.shipping?.id == null ? null : String(raw.shipping.id),
+          shippingId: resolvedShipmentId,
           buyerNickname:
             typeof raw.buyer?.nickname === "string" ? raw.buyer.nickname : null,
           raw,

@@ -389,3 +389,190 @@ export async function getItemCurrentPrice(input: {
 
   return selected ? Number(selected.amount) : null;
 }
+
+
+export async function getSellerItemIds(input: {
+  accessToken: string;
+  userId: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const params = new URLSearchParams({
+    limit: String(Math.min(Math.max(input.limit ?? 50, 1), 50)),
+    offset: String(Math.max(input.offset ?? 0, 0)),
+  });
+
+  if (input.status) params.set("status", input.status);
+
+  return jsonFetch<{
+    seller_id?: string | number;
+    paging?: { total?: number; offset?: number; limit?: number };
+    results?: string[];
+  }>(
+    `${API}/users/${input.userId}/items/search?${params.toString()}`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+}
+
+export type SellerItemDetail = {
+  id: string;
+  title: string;
+  categoryId: string | null;
+  status: string;
+  listingTypeId: string | null;
+  availableQuantity: number;
+  soldQuantity: number;
+  permalink: string | null;
+  thumbnail: string | null;
+  freeShipping: boolean;
+  sellerSku: string | null;
+  raw: unknown;
+};
+
+export async function getItemsBulk(input: {
+  accessToken: string;
+  itemIds: string[];
+}) {
+  if (input.itemIds.length === 0) return [] as SellerItemDetail[];
+
+  const ids = input.itemIds.slice(0, 50).join(",");
+  const params = new URLSearchParams({
+    ids,
+    attributes: [
+      "body.id",
+      "body.title",
+      "body.category_id",
+      "body.status",
+      "body.listing_type_id",
+      "body.available_quantity",
+      "body.sold_quantity",
+      "body.permalink",
+      "body.thumbnail",
+      "body.shipping",
+      "body.seller_custom_field",
+      "body.attributes",
+    ].join(","),
+  });
+
+  const raw = await jsonFetch<Array<{
+    id?: string;
+    status_code?: number;
+    body?: {
+      id?: string;
+      title?: string;
+      category_id?: string;
+      status?: string;
+      listing_type_id?: string;
+      available_quantity?: number;
+      sold_quantity?: number;
+      permalink?: string;
+      thumbnail?: string;
+      seller_custom_field?: string;
+      shipping?: { free_shipping?: boolean };
+      attributes?: Array<{
+        id?: string;
+        value_name?: string;
+      }>;
+    };
+  }>>(
+    `${API}/items/bulk?${params.toString()}`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+
+  return raw
+    .filter((entry) => entry.body?.id)
+    .map<SellerItemDetail>((entry) => {
+      const body = entry.body!;
+      const sellerSku =
+        body.seller_custom_field ??
+        body.attributes?.find((attribute) => attribute.id === "SELLER_SKU")
+          ?.value_name ??
+        null;
+
+      return {
+        id: String(body.id),
+        title: String(body.title ?? body.id),
+        categoryId: body.category_id ?? null,
+        status: String(body.status ?? "unknown"),
+        listingTypeId: body.listing_type_id ?? null,
+        availableQuantity: Number(body.available_quantity ?? 0),
+        soldQuantity: Number(body.sold_quantity ?? 0),
+        permalink: body.permalink ?? null,
+        thumbnail: body.thumbnail ?? null,
+        freeShipping: Boolean(body.shipping?.free_shipping),
+        sellerSku,
+        raw: entry,
+      };
+    });
+}
+
+export async function getItemsCurrentPrices(input: {
+  accessToken: string;
+  itemIds: string[];
+}) {
+  const entries = await Promise.all(
+    input.itemIds.slice(0, 50).map(async (itemId) => {
+      try {
+        const price = await getItemCurrentPrice({
+          accessToken: input.accessToken,
+          itemId,
+        });
+        return [itemId, price] as const;
+      } catch {
+        return [itemId, null] as const;
+      }
+    }),
+  );
+
+  return Object.fromEntries(entries) as Record<string, number | null>;
+}
+
+export async function getItemsVisitTotals(input: {
+  accessToken: string;
+  itemIds: string[];
+}) {
+  if (input.itemIds.length === 0) return {} as Record<string, number>;
+
+  const params = new URLSearchParams({
+    ids: input.itemIds.slice(0, 50).join(","),
+  });
+
+  const raw = await jsonFetch<Record<string, number>>(
+    `${API}/visits/items?${params.toString()}`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+
+  return raw;
+}
+
+export type SellerOrderSearchResult = {
+  paging?: {
+    total?: number;
+    offset?: number;
+    limit?: number;
+  };
+  results?: Array<Record<string, any>>;
+};
+
+export async function getSellerOrders(input: {
+  accessToken: string;
+  userId: string;
+  days?: number;
+  limit?: number;
+  offset?: number;
+}) {
+  const days = Math.min(Math.max(input.days ?? 30, 1), 365);
+  const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const params = new URLSearchParams({
+    seller: input.userId,
+    limit: String(Math.min(Math.max(input.limit ?? 50, 1), 50)),
+    offset: String(Math.max(input.offset ?? 0, 0)),
+    "order.date_created.from": from.toISOString(),
+  });
+
+  return jsonFetch<SellerOrderSearchResult>(
+    `${API}/orders/search?${params.toString()}`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+}

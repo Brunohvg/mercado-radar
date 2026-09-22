@@ -114,3 +114,21 @@ A versão pode ser marcada como `v0.1.0-test` quando:
 - [ ] Radar de oportunidades
 - [ ] Opportunity Score
 - [ ] Worker nativo para sincronizações
+
+
+## 8. Inteligência de mercado
+
+- [x] Buscar anúncios comparáveis no Mercado Livre
+- [x] Filtrar por categoria e similaridade de título
+- [x] Penalizar divergência de quantidade/modelo numérico
+- [x] Consultar preço atual pela API de preços quando disponível
+- [x] Excluir anúncios da própria conta
+- [x] Calcular mínimo / P25 / mediana / P75 / máximo
+- [x] Comparar preço saudável com faixa do mercado
+- [x] Calcular Fit Score
+- [x] Calcular custo máximo de compra na mediana do mercado
+- [x] Gerar orientação de próxima ação
+- [x] Persistir snapshot no PostgreSQL
+- [ ] Validar comparáveis do Ilhós nº54
+- [ ] Validar comparáveis do Arame encapado
+- [ ] Ajustar heurísticas após os primeiros testes reais

@@ -859,3 +859,37 @@ export async function getCatalogProductDetails(input: {
     },
   );
 }
+
+
+export async function getExistingItemShippingQuote(input: {
+  accessToken: string;
+  userId: string;
+  itemId: string;
+  price: number;
+  listingType: MlListingType;
+}) {
+  const query = new URLSearchParams({
+    item_id: input.itemId,
+    verbose: "true",
+    item_price: String(input.price),
+    listing_type_id: listingTypeId(input.listingType),
+  });
+
+  const raw = await jsonFetch<any>(
+    `${API}/users/${input.userId}/shipping_options/free?${query.toString()}`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+
+  const coverage = raw?.coverage?.all_country;
+  if (!coverage) {
+    throw new Error("Mercado Livre não retornou o custo de envio do anúncio.");
+  }
+
+  return {
+    raw,
+    shippingCost: Number(coverage.list_cost ?? 0),
+    billableWeight: Number(coverage.billable_weight ?? 0),
+    discountRate: Number(coverage.discount?.rate ?? 0),
+    promotedAmount: Number(coverage.discount?.promoted_amount ?? 0),
+  };
+}

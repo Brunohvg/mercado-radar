@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
+  getCatalogProductDetails,
   getItemCurrentPrice,
   getItemFullDetails,
   getMlSession,
@@ -89,7 +90,17 @@ export async function POST(request: Request) {
     }).catch(() => []);
 
     const catalogBest = catalog[0] ?? null;
-    const searchTitle = catalogBest?.name ?? rawQuery;
+    const catalogDetails = catalogBest
+      ? await getCatalogProductDetails({
+          accessToken: session.accessToken,
+          productId: catalogBest.id,
+        }).catch(() => null)
+      : null;
+
+    const searchTitle =
+      catalogDetails?.name ??
+      catalogBest?.name ??
+      rawQuery;
 
     const predicted = await predictCategory({
       accessToken: session.accessToken,
@@ -98,15 +109,51 @@ export async function POST(request: Request) {
     }).catch(() => []);
 
     const category = predicted[0] ?? null;
+    const winnerItemId = catalogDetails?.buy_box_winner?.item_id ?? null;
+    const winnerPrice = Number(catalogDetails?.buy_box_winner?.price ?? 0);
 
+    let marketAccessBlocked = false;
     const market = await searchMarketplace({
       accessToken: session.accessToken,
       query: searchTitle,
-      categoryId: category?.categoryId,
+      categoryId:
+        category?.categoryId ??
+        catalogDetails?.buy_box_winner?.category_id ??
+        undefined,
       limit: 24,
+    }).catch((error) => {
+      marketAccessBlocked = true;
+      return [];
     });
 
-    const candidates = market
+    const winnerFallback =
+      market.length === 0 && winnerItemId
+        ? [
+            {
+              id: winnerItemId,
+              title: searchTitle,
+              price: winnerPrice > 0 ? winnerPrice : 0,
+              currencyId: "BRL",
+              permalink: catalogDetails?.permalink ?? null,
+              thumbnail: catalogBest?.pictures?.[0]?.url ?? null,
+              categoryId:
+                catalogDetails?.buy_box_winner?.category_id ?? null,
+              sellerId:
+                catalogDetails?.buy_box_winner?.seller_id == null
+                  ? null
+                  : String(catalogDetails.buy_box_winner.seller_id),
+              listingTypeId: null,
+              freeShipping: Boolean(
+                catalogDetails?.buy_box_winner?.shipping?.free_shipping,
+              ),
+            },
+          ]
+        : [];
+
+    const marketCandidates =
+      market.length > 0 ? market : winnerFallback;
+
+    const candidates = marketCandidates
       .filter(
         (item) =>
           item.sellerId !== session.account.mercadoLivreUserId &&
@@ -204,7 +251,10 @@ export async function POST(request: Request) {
         source: catalogBest ? "CATALOG" : "MARKETPLACE",
         catalogProductId: catalogBest?.id ?? null,
         name: catalogBest?.name ?? searchTitle,
-        categoryId: category?.categoryId ?? null,
+        categoryId:
+          category?.categoryId ??
+          catalogDetails?.buy_box_winner?.category_id ??
+          null,
         categoryName: category?.categoryName ?? null,
         domainName: category?.domainName ?? null,
       },
@@ -217,6 +267,13 @@ export async function POST(request: Request) {
           sortedPrices.length > 0
             ? sortedPrices[sortedPrices.length - 1]
             : null,
+        source:
+          market.length > 0
+            ? "MARKETPLACE_SEARCH"
+            : winnerFallback.length > 0
+              ? "CATALOG_WINNER"
+              : "UNAVAILABLE",
+        accessBlocked: marketAccessBlocked,
       },
       dimensions: inferredDimensions
         ? {

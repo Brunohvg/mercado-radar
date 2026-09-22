@@ -1,18 +1,20 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const items = [
-  ["#analisar", "Analisar oportunidade"],
-  ["#oportunidades", "Radar de oportunidades"],
-  ["#produtos", "Capital & estoque"],
-  ["#vendas", "Lucro realizado"],
-  ["#kits", "Estratégias de kit"],
-  ["#integracoes", "Integrações"],
+  ["/analisar", "Analisar oportunidade"],
+  ["/oportunidades", "Radar de oportunidades"],
+  ["/produtos", "Capital & estoque"],
+  ["/vendas", "Lucro realizado"],
+  ["/integracoes", "Integrações"],
 ] as const;
 
 export function AppNavigation() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
     <>
@@ -38,24 +40,24 @@ export function AppNavigation() {
       )}
 
       <aside className={"sidebar " + (open ? "mobile-open" : "")}>
-        <div className="brand">
+        <Link className="brand brand-link" href="/" onClick={() => setOpen(false)}>
           <span className="brand-mark">MR</span>
           <div>
             <strong>Mercado Radar</strong>
             <small>Revenda Intelligence</small>
           </div>
-        </div>
+        </Link>
 
         <nav>
-          {items.map(([href, label], index) => (
-            <a
-              className={"nav-item " + (index === 0 ? "active" : "")}
+          {items.map(([href, label]) => (
+            <Link
+              className={"nav-item " + (pathname === href ? "active" : "")}
               href={href}
               key={href}
               onClick={() => setOpen(false)}
             >
               {label}
-            </a>
+            </Link>
           ))}
         </nav>
 

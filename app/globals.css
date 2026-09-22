@@ -1105,7 +1105,7 @@ h1 em {
 
 .product-metrics {
   display: grid;
-  grid-template-columns: repeat(4,minmax(0,1fr));
+  grid-template-columns: repeat(5,minmax(0,1fr));
   gap: 7px;
 }
 
@@ -2549,7 +2549,7 @@ h1 em {
 
 .product-cost-summary {
   display: grid;
-  grid-template-columns: repeat(3,minmax(0,1fr)) auto;
+  grid-template-columns: repeat(5,minmax(0,1fr)) auto;
   gap: 8px;
   align-items: center;
   grid-column: 1 / -1;
@@ -2671,5 +2671,50 @@ h1 em {
   .product-cost-editor-head {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+
+.product-health-side {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.product-health-side .table-action {
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+@media (max-width: 1180px) {
+  .product-metrics {
+    grid-template-columns: repeat(3,minmax(0,1fr));
+  }
+
+  .product-cost-summary {
+    grid-template-columns: repeat(3,minmax(0,1fr));
+  }
+
+  .product-cost-summary .table-action {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .product-metrics,
+  .product-cost-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .product-health-side {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .product-metrics,
+  .product-cost-summary {
+    grid-template-columns: 1fr;
   }
 }

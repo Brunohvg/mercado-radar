@@ -108,3 +108,26 @@ model SyncRun {
 
   @@index([kind, startedAt])
 }
+
+
+model MercadoLivreNotification {
+  id            String    @id @default(cuid())
+  externalId    String?   @unique
+  topic         String
+  resource      String
+  userId        String
+  applicationId String?
+  attempts      Int       @default(1)
+  sentAt        DateTime?
+  receivedAt    DateTime?
+  payload       Json
+  status        String    @default("PENDING")
+  processedAt   DateTime?
+  error         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([topic, createdAt])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}

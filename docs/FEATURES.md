@@ -116,6 +116,8 @@ Status: **implementado / validar**
 
 ### Clássico × Premium
 
+Regra de produto: **tarifas do Mercado Livre nunca são campos manuais no fluxo principal**. Comissão, tarifa fixa e frete são consultados automaticamente pela API da conta conectada. A interface apenas exibe a origem e os valores retornados.
+
 Compara:
 - comissão;
 - tarifa fixa;

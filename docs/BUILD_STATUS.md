@@ -4,6 +4,12 @@
 
 Status atual: **em validação real**.
 
+Implementado no código:
+- módulos Produtos e Vendas ativados no MVP;
+- sincronização de anúncios e pedidos;
+- persistência PostgreSQL de produtos, pedidos e itens;
+- dashboards operacionais iniciais.
+
 Já confirmados:
 - aplicação publicada no Coolify;
 - domínio público `radar.optarys.com.br`;
@@ -45,3 +51,16 @@ Importar pedidos reais, processar novas vendas, calcular lucro realizado por ped
 - `docs/MVP_CHECKLIST.md`
 
 Nenhuma feature deve ser chamada de concluída apenas porque foi implementada.
+
+
+## Novo gate — Produtos e Vendas
+
+Após o deploy do HEAD atual:
+
+1. confirmar migration dos novos models;
+2. abrir Produtos e sincronizar;
+3. conferir quantidade/preço/estoque contra Mercado Livre;
+4. abrir Vendas e sincronizar 30 dias;
+5. conferir pedidos e valores;
+6. validar que lucro aparece como pendente quando custos não estiverem completos;
+7. somente então avançar para lucro realizado automático.

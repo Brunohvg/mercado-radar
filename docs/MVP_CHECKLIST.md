@@ -19,7 +19,7 @@ Objetivo: colocar a primeira versão no Coolify e testar com a conta real do Mer
 ## 2. Motor financeiro
 
 - [x] Custo do fornecedor
-- [x] Desconto Bibelô padrão de 35%
+- [x] Fornecedor e desconto configuráveis por produto
 - [x] Quantidade por kit
 - [x] Comissão percentual
 - [x] Tarifa fixa
@@ -79,8 +79,8 @@ Executar estes testes na ordem:
 
 - [ ] Abrir desktop e conferir layout
 - [ ] Abrir mobile e conferir responsividade
-- [ ] Testar análise manual do Ilhós nº54
-- [ ] Testar análise manual do Arame encapado 10 m
+- [ ] Testar análise real do Ilhós nº54
+- [ ] Testar análise real do Arame encapado 10 m
 - [ ] Conectar a conta Mercado Livre
 - [ ] Detectar categoria automaticamente
 - [ ] Consultar custos reais do Ilhós

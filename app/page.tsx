@@ -5,13 +5,36 @@ import { SalesDashboard } from "@/components/sales-dashboard";
 import { OpportunityRadar } from "@/components/opportunity-radar";
 import { AppNavigation } from "@/components/app-navigation";
 
-const flow = [
-  ["01", "Custo real", "Fornecedor + desconto"],
-  ["02", "Mercado", "Preço e concorrência"],
-  ["03", "Custos ML", "Tarifa + frete"],
-  ["04", "Resultado", "Lucro + margem + ROI"],
-  ["05", "Operação", "Produtos + vendas reais"],
-];
+const pillars = [
+  {
+    number: "01",
+    title: "Sourcing",
+    question: "O que comprar e quanto pagar?",
+    description:
+      "Identifique produtos, leia o mercado e descubra o preço máximo de compra antes de colocar capital em estoque.",
+  },
+  {
+    number: "02",
+    title: "Pricing",
+    question: "Por quanto vender?",
+    description:
+      "Cruze custo, tarifa, frete e concorrência para encontrar um preço saudável que ainda caiba no mercado.",
+  },
+  {
+    number: "03",
+    title: "Profit",
+    question: "Quanto realmente sobrou?",
+    description:
+      "Compare o previsto com a venda realizada e enxergue margem real, taxas, frete e custo por produto.",
+  },
+  {
+    number: "04",
+    title: "Capital & Estoque",
+    question: "Repor, reduzir ou parar?",
+    description:
+      "Use giro, cobertura, margem e capital necessário para decidir onde vale continuar investindo.",
+  },
+] as const;
 
 export default function Home() {
   return (
@@ -19,54 +42,44 @@ export default function Home() {
       <AppNavigation />
 
       <section className="content">
-        <header className="topbar">
+        <header className="topbar product-positioning">
           <div>
-            <p className="eyebrow">Inteligência para revenda</p>
+            <p className="eyebrow">Copiloto de compra e rentabilidade</p>
             <h1>
-              Decida melhor <em>antes e depois</em> de cada venda.
+              Decida <em>o que comprar, quanto pagar e quando repor.</em>
             </h1>
             <p className="hero-copy">
-              Analise oportunidades, acompanhe produtos conectados e transforme
-              vendas reais em decisões de margem, estoque e preço.
+              O Mercado Livre mostra o que acontece dentro do marketplace. O
+              Radar junta mercado, fornecedor, custos e vendas reais para
+              transformar esses dados em decisão financeira.
             </p>
           </div>
-          <div className="pill">Meta padrão · 20% margem · 30% ROI</div>
+          <div className="pill">20% margem · 30% ROI · ajustável</div>
         </header>
 
-        <section className="decision-flow" aria-label="Fluxo de decisão">
-          {flow.map(([number, title, description], index) => (
-            <div className="flow-step" key={title}>
-              <span className="flow-number">{number}</span>
+        <section className="value-pillars" aria-label="Pilares do Mercado Radar">
+          {pillars.map((pillar) => (
+            <article className="value-pillar" key={pillar.title}>
+              <span className="value-pillar-number">{pillar.number}</span>
               <div>
-                <strong>{title}</strong>
-                <small>{description}</small>
+                <span className="value-pillar-title">{pillar.title}</span>
+                <strong>{pillar.question}</strong>
+                <p>{pillar.description}</p>
               </div>
-              {index < flow.length - 1 && <span className="flow-arrow">→</span>}
-            </div>
+            </article>
           ))}
         </section>
 
-        <section className="summary-grid">
-          <article className="metric-card">
-            <span>Margem alvo</span>
-            <strong>≥ 20%</strong>
-            <small>Configurável por operação</small>
-          </article>
-          <article className="metric-card">
-            <span>ROI desejado</span>
-            <strong>≥ 30%</strong>
-            <small>Retorno sobre capital aplicado</small>
-          </article>
-          <article className="metric-card">
-            <span>Fornecedor</span>
-            <strong>Flexível</strong>
-            <small>Custo e desconto por produto</small>
-          </article>
-          <article className="metric-card accent">
-            <span>Motor de dados</span>
-            <strong>Mercado Livre API</strong>
-            <small>Produtos, vendas, tarifa e frete</small>
-          </article>
+        <section className="radar-promise">
+          <span className="eyebrow">Regra do produto</span>
+          <strong>
+            Se uma informação puder ser descoberta com segurança, o Radar não
+            deve pedir que você digite.
+          </strong>
+          <p>
+            Categoria, tarifas, frete, faixa de mercado e embalagem estimada são
+            preenchidos automaticamente quando houver evidência suficiente.
+          </p>
         </section>
 
         <ProductAnalyzer />

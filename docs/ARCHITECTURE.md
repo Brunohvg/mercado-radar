@@ -94,3 +94,35 @@ Worker nativo, pedidos, lucro real, estoque, reposição e alertas.
 
 ### Fase 4
 Radar de oportunidades, histórico de mercado e comparação automática de kits.
+
+
+### Inteligência de mercado
+
+O Radar não trata preço financeiro isoladamente como decisão final.
+
+Fluxo:
+
+```text
+produto + custo
+    ↓
+categoria ML
+    ↓
+tarifa + frete reais
+    ↓
+preço financeiramente saudável
+    ↓
+busca de anúncios comparáveis
+    ↓
+preços atuais /items/{id}/prices
+    ↓
+P25 / mediana / P75
+    ↓
+Fit Score + poder de compra
+    ↓
+orientação de próxima ação
+```
+
+O Fit Score combina saúde financeira, posição do preço e qualidade da evidência.
+Ele não representa previsão de vendas nem demanda futura.
+
+Cada leitura de mercado é persistida como `MarketSnapshot` para permitir histórico e evolução do Radar.

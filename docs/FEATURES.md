@@ -184,15 +184,41 @@ O Fit Score **não é previsão de vendas**.
 
 ---
 
+## F5A — Products Intelligence
+
+Status: **em desenvolvimento — MVP de leitura ativado**
+
+Objetivo: transformar os anúncios da conta conectada em uma visão operacional.
+
+MVP atual:
+- [x] listar anúncios da conta;
+- [x] usar `/users/{user_id}/items/search`;
+- [x] consultar detalhes via `/items/bulk`;
+- [x] consultar preço atual pela API de preços;
+- [x] estoque;
+- [x] quantidade vendida;
+- [x] visitas totais;
+- [x] status e tipo de anúncio;
+- [x] sincronização manual;
+- [x] persistência PostgreSQL;
+- [ ] visitas por período;
+- [ ] conversão por período;
+- [ ] margem estimada por SKU;
+- [ ] Product Health;
+- [ ] cobertura de estoque;
+- [ ] alertas de produto.
+
+---
+
 ## F5 — Sales Intelligence
 
-Status: **próxima feature oficial**
+Status: **em desenvolvimento — MVP de leitura ativado**
 
 Objetivo: responder **o que realmente está dando dinheiro depois que vendeu**.
 
 ### Sincronização
-- importar pedidos existentes;
-- receber `orders_v2`;
+- [x] importar pedidos existentes sob demanda;
+- [ ] processar `orders_v2` automaticamente;
 - buscar dados completos da venda;
 - relacionar item, variação e envio;
 - deduplicar eventos;

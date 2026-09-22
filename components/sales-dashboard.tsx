@@ -10,6 +10,8 @@ type SalesPayload = {
     units: number;
     grossRevenue: number;
     knownFees: number;
+    feeReadyCount: number;
+    freightReadyCount: number;
     realizedProfit: number;
     realizedMarginPercent: number | null;
     profitReadyCount: number;
@@ -72,6 +74,7 @@ export function SalesDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [showAllOrders, setShowAllOrders] = useState(false);
 
   const load = useCallback(async (refresh = false, period = days) => {
     refresh ? setRefreshing(true) : setLoading(true);
@@ -153,9 +156,15 @@ export function SalesDashboard() {
               <small>ticket {money.format(data.summary.averageTicket)}</small>
             </article>
             <article>
-              <span>Taxas identificadas</span>
-              <strong>{money.format(data.summary.knownFees)}</strong>
-              <small>quando presentes no pedido</small>
+              <span>Tarifas realizadas</span>
+              <strong>
+                {data.summary.feeReadyCount > 0
+                  ? money.format(data.summary.knownFees)
+                  : "Aguardando"}
+              </strong>
+              <small>
+                {data.summary.feeReadyCount}/{data.summary.orders} pedidos conciliados
+              </small>
             </article>
             <article className={data.summary.awaitingCostCount > 0 ? "attention" : ""}>
               <span>Lucro realizado</span>
@@ -212,7 +221,9 @@ export function SalesDashboard() {
                 Nenhuma venda encontrada no período.
               </div>
             ) : (
-              data.orders.slice(0, 30).map((order) => (
+              data.orders
+                .slice(0, showAllOrders ? 30 : 8)
+                .map((order) => (
                 <article className="sales-order-card" key={order.mlOrderId}>
                   <div className="order-main">
                     <div>
@@ -268,6 +279,18 @@ export function SalesDashboard() {
                   </div>
                 </article>
               ))
+            )}
+
+            {data.orders.length > 8 && (
+              <button
+                type="button"
+                className="secondary sales-more-button"
+                onClick={() => setShowAllOrders((current) => !current)}
+              >
+                {showAllOrders
+                  ? "Mostrar menos pedidos"
+                  : `Mostrar mais ${Math.min(data.orders.length - 8, 22)} pedido(s)`}
+              </button>
             )}
           </div>
         </>

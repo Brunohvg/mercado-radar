@@ -416,3 +416,362 @@ h1 em {
 .empty-limit div strong {
   color: var(--accent-2);
 }
+
+
+.market-action {
+  border-color: rgba(94,231,176,.24);
+  color: #ccefe1;
+}
+
+.market-intelligence-panel {
+  margin-top: 18px;
+  padding: 22px;
+  border: 1px solid rgba(105,184,255,.2);
+  border-radius: 21px;
+  background:
+    radial-gradient(circle at 96% 0%, rgba(105,184,255,.085), transparent 22rem),
+    linear-gradient(145deg, rgba(11,27,46,.94), rgba(7,20,35,.9));
+  box-shadow: 0 26px 80px rgba(0,0,0,.16);
+}
+
+.market-decision-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 28px;
+  margin-bottom: 18px;
+}
+
+.market-decision-head h2 {
+  margin-bottom: 8px;
+  font-size: 30px;
+}
+
+.market-decision-head > div:first-child > p:last-child {
+  max-width: 720px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.fit-score {
+  min-width: 112px;
+  min-height: 112px;
+  flex: 0 0 auto;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  border-radius: 24px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.025);
+}
+
+.fit-score span {
+  color: var(--muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.fit-score strong {
+  margin-top: 3px;
+  font-size: 36px;
+  letter-spacing: -.05em;
+}
+
+.fit-score small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.fit-score.good {
+  border-color: rgba(94,231,176,.28);
+  background: rgba(94,231,176,.07);
+}
+
+.fit-score.good strong { color: var(--accent); }
+
+.fit-score.tight {
+  border-color: rgba(255,210,122,.28);
+  background: rgba(255,210,122,.07);
+}
+
+.fit-score.tight strong { color: var(--warn); }
+
+.fit-score.bad {
+  border-color: rgba(255,125,144,.28);
+  background: rgba(255,125,144,.07);
+}
+
+.fit-score.bad strong { color: var(--danger); }
+
+.market-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--line);
+}
+
+.market-kpis > div {
+  padding: 16px;
+  background: #091827;
+}
+
+.market-kpis span,
+.market-kpis strong,
+.market-kpis small {
+  display: block;
+}
+
+.market-kpis span {
+  color: var(--muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+}
+
+.market-kpis strong {
+  margin: 6px 0 4px;
+  font-size: 18px;
+  letter-spacing: -.02em;
+}
+
+.market-kpis small {
+  color: #8094ad;
+  font-size: 10px;
+}
+
+.price-ladder {
+  margin-top: 16px;
+  padding: 16px 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: rgba(255,255,255,.018);
+}
+
+.ladder-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 17px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.ladder-track {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(94,231,176,.22), rgba(105,184,255,.18), rgba(255,125,144,.2));
+}
+
+.ladder-market-band {
+  position: absolute;
+  top: -3px;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(94,231,176,.8), rgba(105,184,255,.85));
+  box-shadow: 0 0 24px rgba(105,184,255,.16);
+}
+
+.ladder-own-price {
+  position: absolute;
+  top: -8px;
+  transform: translateX(-50%);
+}
+
+.ladder-own-price i {
+  display: block;
+  width: 3px;
+  height: 24px;
+  border-radius: 999px;
+  background: white;
+  box-shadow: 0 0 14px rgba(255,255,255,.35);
+}
+
+.ladder-own-price b {
+  position: absolute;
+  top: 27px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.buying-power {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.buying-power > div {
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgba(255,255,255,.018);
+}
+
+.buying-power span,
+.buying-power strong {
+  display: block;
+}
+
+.buying-power span {
+  color: var(--muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.buying-power strong {
+  margin-top: 6px;
+  font-size: 17px;
+}
+
+.buying-power .danger-value {
+  border-color: rgba(255,125,144,.22);
+  background: rgba(255,125,144,.045);
+}
+
+.buying-power .danger-value strong { color: var(--danger); }
+
+.buying-power .good-value {
+  border-color: rgba(94,231,176,.22);
+  background: rgba(94,231,176,.045);
+}
+
+.buying-power .good-value strong { color: var(--accent); }
+
+.competitor-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  margin-top: 24px;
+  margin-bottom: 11px;
+}
+
+.competitor-head strong,
+.competitor-head small {
+  display: block;
+}
+
+.competitor-head strong {
+  font-size: 14px;
+}
+
+.competitor-head small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.competitor-grid {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 10px;
+}
+
+.competitor-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(5,16,29,.64);
+}
+
+.competitor-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.competitor-top span,
+.competitor-top b {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.competitor-top span {
+  color: var(--accent-2);
+}
+
+.competitor-top b {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.competitor-card h3 {
+  min-height: 48px;
+  margin: 0 0 11px;
+  color: #d9e6f5;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.competitor-card > strong {
+  display: block;
+  font-size: 19px;
+  letter-spacing: -.03em;
+}
+
+.competitor-card > small {
+  display: block;
+  margin-top: 4px;
+  color: #667b95;
+  font-size: 9px;
+}
+
+.competitor-card a {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--accent-2);
+  font-size: 10px;
+  text-decoration: none;
+}
+
+.competitor-card a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 1180px) {
+  .market-kpis,
+  .buying-power {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .competitor-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .market-decision-head {
+    display: block;
+  }
+
+  .fit-score {
+    margin-top: 16px;
+    min-width: 96px;
+    min-height: 96px;
+    width: 96px;
+  }
+
+  .market-kpis,
+  .buying-power,
+  .competitor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ladder-labels {
+    font-size: 8px;
+  }
+}

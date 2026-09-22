@@ -1,3 +1,4 @@
+import { MercadoLivreIntegration } from "@/components/mercado-livre-integration";
 import { ProductAnalyzer } from "@/components/product-analyzer";
 
 export default function Home() {
@@ -15,9 +16,9 @@ export default function Home() {
         <nav>
           <a className="nav-item active" href="#analisar">Analisar produto</a>
           <a className="nav-item" href="#kits">Simular kits</a>
+          <a className="nav-item" href="#integracoes">Integrações</a>
           <a className="nav-item muted" href="#produtos">Produtos <span>em breve</span></a>
           <a className="nav-item muted" href="#vendas">Vendas <span>em breve</span></a>
-          <a className="nav-item muted" href="#integracoes">Integrações <span>em breve</span></a>
         </nav>
 
         <div className="sidebar-foot">
@@ -52,13 +53,14 @@ export default function Home() {
             <small>Editável por produto</small>
           </article>
           <article className="metric-card accent">
-            <span>Próxima integração</span>
+            <span>Integração disponível</span>
             <strong>Mercado Livre API</strong>
-            <small>Tarifa + frete automáticos</small>
+            <small>Tarifa + frete da sua conta</small>
           </article>
         </section>
 
         <ProductAnalyzer />
+        <MercadoLivreIntegration />
       </section>
     </main>
   );

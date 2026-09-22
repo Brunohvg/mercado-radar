@@ -106,8 +106,8 @@ export function SalesDashboard() {
     <section className="module-section" id="vendas">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Sales Intelligence</p>
-          <h2>Vendas reais da conta conectada.</h2>
+          <p className="eyebrow">Profit Intelligence</p>
+          <h2>O que realmente está deixando dinheiro?</h2>
         </div>
         <div className="module-heading-actions">
           <div className="period-switch">
@@ -197,7 +197,8 @@ export function SalesDashboard() {
             <div className="module-subhead">
               <strong>Pedidos recentes</strong>
               <small>
-                Lucro só será exibido como definitivo quando custos estiverem completos.
+                O Radar só chama de lucro real quando custo do produto, tarifa e
+                frete realizado estiverem completos.
               </small>
             </div>
 

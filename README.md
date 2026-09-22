@@ -2,6 +2,12 @@
 
 Painel próprio para decidir **o que comprar, quanto pagar, por quanto vender e quanto realmente sobra** em uma operação no Mercado Livre.
 
+## Direção do produto
+
+O Mercado Radar é um sistema completo, não um conjunto de automações externas.
+
+As integrações, cálculos, sincronizações, regras de preço, histórico, alertas e decisões ficam versionadas dentro do próprio projeto. Processos assíncronos serão executados por workers nativos usando PostgreSQL como fonte de verdade.
+
 ## MVP atual
 
 - cálculo do custo real após desconto do fornecedor;
@@ -16,9 +22,11 @@ Painel próprio para decidir **o que comprar, quanto pagar, por quanto vender e 
 - ROI;
 - preço de equilíbrio;
 - preço mínimo para atingir meta de margem + ROI;
-- classificação automática.
+- classificação automática;
+- OAuth Mercado Livre em evolução;
+- interface visual-first.
 
-A interface já nasce preparada para substituir os campos manuais pelos dados da API do Mercado Livre.
+A interface foi preparada para substituir os campos manuais pelos dados reais da API do Mercado Livre.
 
 ## Stack
 
@@ -27,8 +35,8 @@ A interface já nasce preparada para substituir os campos manuais pelos dados da
 - TypeScript
 - PostgreSQL 17
 - Prisma 7
+- workers nativos da aplicação
 - Docker / Docker Compose
-- n8n
 - Coolify
 
 ## Desenvolvimento
@@ -60,12 +68,11 @@ Variáveis automáticas do Coolify utilizadas:
 - `SERVICE_REALBASE64_64_ENCRYPTION`
 - `SERVICE_URL_APP_3000`
 
-Variáveis externas futuras:
+Variáveis externas:
 
 - `MERCADO_LIVRE_CLIENT_ID`
 - `MERCADO_LIVRE_CLIENT_SECRET`
 - `MERCADO_LIVRE_REDIRECT_URI`
-- `N8N_WEBHOOK_SECRET`
 
 ## Regras iniciais
 
@@ -82,10 +89,12 @@ Esses limites serão configuráveis.
 - [x] Infraestrutura deployável no Coolify
 - [x] Motor financeiro inicial
 - [x] Analisador manual
-- [ ] OAuth Mercado Livre
+- [x] Base visual profissional
+- [ ] OAuth Mercado Livre completo
 - [ ] Tarifas e frete via API
 - [ ] Comparação Clássico x Premium
 - [ ] Simulação automática de kits
+- [ ] Worker nativo de sincronização
 - [ ] Importação de pedidos e lucro real
 - [ ] Estoque e alertas
 - [ ] Radar de oportunidades

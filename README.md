@@ -80,7 +80,7 @@ Variáveis externas:
 - margem mínima: 15%;
 - ROI alvo: >= 30%;
 - ROI abaixo de 20%: produto reprovado;
-- desconto Bibelô padrão: 35%, sempre editável.
+- fornecedor e desconto são configuráveis; nenhum fornecedor é fixo no produto.
 
 Esses limites serão configuráveis.
 

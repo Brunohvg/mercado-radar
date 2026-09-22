@@ -25,7 +25,10 @@ const schema = z.object({
 
 function psychologicalPrice(value: number) {
   const minimum = Math.max(1, value);
-  return Math.round((Math.ceil((minimum + 0.1) * 10) / 10 - 0.1) * 100) / 100;
+  const whole = Math.floor(minimum);
+  const sameReal = whole + 0.9;
+  const candidate = sameReal >= minimum ? sameReal : whole + 1.9;
+  return Math.round(candidate * 100) / 100;
 }
 
 export async function POST(request: Request) {

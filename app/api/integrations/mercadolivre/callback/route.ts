@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { getPublicOrigin } from "@/lib/public-url";
 import {
   exchangeAuthorizationCode,
   fetchCurrentUser,
@@ -8,7 +9,7 @@ import {
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const origin = url.origin;
+  const origin = getPublicOrigin(request);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
 

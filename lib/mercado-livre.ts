@@ -576,3 +576,140 @@ export async function getSellerOrders(input: {
     { headers: { Authorization: `Bearer ${input.accessToken}` } },
   );
 }
+
+
+export type CatalogProductSearchResult = {
+  id: string;
+  name: string;
+  domainId: string | null;
+  status: string | null;
+  attributes: Array<{
+    id: string;
+    name?: string;
+    valueName?: string;
+  }>;
+  pictures: Array<{ id?: string; url?: string }>;
+  raw: unknown;
+};
+
+export async function searchCatalogProducts(input: {
+  accessToken: string;
+  query?: string;
+  productIdentifier?: string;
+  limit?: number;
+}) {
+  const params = new URLSearchParams({
+    site_id: "MLB",
+    status: "active",
+    limit: String(Math.min(Math.max(input.limit ?? 10, 1), 20)),
+  });
+
+  if (input.productIdentifier) {
+    params.set("product_identifier", input.productIdentifier);
+  } else if (input.query) {
+    params.set("q", input.query);
+  } else {
+    throw new Error("Informe um nome ou código de barras.");
+  }
+
+  const raw = await jsonFetch<{
+    results?: Array<{
+      id?: string;
+      name?: string;
+      domain_id?: string;
+      status?: string;
+      attributes?: Array<{
+        id?: string;
+        name?: string;
+        value_name?: string;
+      }>;
+      pictures?: Array<{ id?: string; url?: string }>;
+    }>;
+  }>(`${API}/products/search?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${input.accessToken}` },
+  });
+
+  return (raw.results ?? [])
+    .filter((item) => item.id && item.name)
+    .map<CatalogProductSearchResult>((item) => ({
+      id: String(item.id),
+      name: String(item.name),
+      domainId: item.domain_id ?? null,
+      status: item.status ?? null,
+      attributes: (item.attributes ?? [])
+        .filter((attribute) => attribute.id)
+        .map((attribute) => ({
+          id: String(attribute.id),
+          name: attribute.name,
+          valueName: attribute.value_name,
+        })),
+      pictures: item.pictures ?? [],
+      raw: item,
+    }));
+}
+
+export async function getItemFullDetails(input: {
+  accessToken: string;
+  itemId: string;
+}) {
+  return jsonFetch<{
+    id?: string;
+    title?: string;
+    category_id?: string;
+    attributes?: Array<{
+      id?: string;
+      name?: string;
+      value_name?: string;
+      value_struct?: {
+        number?: number;
+        unit?: string;
+      } | null;
+      values?: Array<{
+        name?: string;
+        struct?: {
+          number?: number;
+          unit?: string;
+        } | null;
+      }>;
+    }>;
+    shipping?: {
+      dimensions?: string | null;
+      free_shipping?: boolean;
+    };
+  }>(
+    `${API}/items/${input.itemId}?include_attributes=all`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+}
+
+export async function getTrends(input: {
+  accessToken: string;
+  categoryId?: string;
+}) {
+  const suffix = input.categoryId ? `/${input.categoryId}` : "";
+  return jsonFetch<Array<{ keyword: string; url?: string }>>(
+    `${API}/trends/MLB${suffix}`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+}
+
+export async function getCategoryHighlights(input: {
+  accessToken: string;
+  categoryId: string;
+}) {
+  return jsonFetch<{
+    query_data?: {
+      highlight_type?: string;
+      criteria?: string;
+      id?: string;
+    };
+    content?: Array<{
+      id: string;
+      position: number;
+      type: "ITEM" | "PRODUCT" | "USER_PRODUCT" | string;
+    }>;
+  }>(
+    `${API}/highlights/MLB/category/${input.categoryId}`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+}

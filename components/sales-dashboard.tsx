@@ -61,6 +61,8 @@ function orderStatus(status: string) {
 function profitStatus(status: string) {
   if (status === "AWAITING_PRODUCT_COST") return "Aguardando custo do produto";
   if (status === "AWAITING_SHIPPING_COST") return "Aguardando frete realizado";
+  if (status === "AWAITING_FEE") return "Aguardando tarifa realizada";
+  if (status === "REALIZED") return "Lucro realizado";
   return "Em processamento";
 }
 

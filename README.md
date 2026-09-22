@@ -32,7 +32,7 @@ As integrações, cálculos, sincronizações, regras de preço, histórico, ale
 - preço de equilíbrio;
 - preço mínimo para atingir meta de margem + ROI;
 - classificação automática;
-- OAuth Mercado Livre em evolução;
+- OAuth Mercado Livre conectado;
 - interface visual-first;
 - inteligência de mercado com anúncios comparáveis;
 - faixa de preços P25/mediana/P75;
@@ -104,20 +104,26 @@ Esses limites serão configuráveis.
 - [x] Motor financeiro inicial
 - [x] Analisador manual
 - [x] Base visual profissional
-- [ ] OAuth Mercado Livre completo
-- [ ] Tarifas e frete via API
-- [ ] Comparação Clássico x Premium
-- [ ] Simulação automática de kits
-- [ ] Worker nativo de sincronização
-- [ ] Importação de pedidos e lucro real
-- [ ] Estoque e alertas
+- [x] OAuth Mercado Livre
+- [x] Tarifas e frete via API
+- [x] Comparação Clássico x Premium
+- [x] Simulação inicial de kits
+- [x] Rotas separadas para análise, oportunidades, produtos, vendas e integrações
+- [x] Busca por nome + EAN/GTIN + scanner de câmera quando suportado
+- [x] Importação de pedidos
+- [x] Custo real de envio por shipment
+- [x] Lucro e margem realizados quando os custos estão completos
+- [x] Product Health inicial com giro, cobertura e reposição
 - [x] Inteligência de mercado e fit score
-- [ ] Dashboard de oportunidades e histórico
+- [x] Tendências semanais + evidência de mais vendidos
+- [ ] Webhook orders_v2 processado automaticamente
+- [ ] histórico previsto × realizado
+- [ ] lead time de fornecedor e estoque de segurança configurável
 
 
-## Próxima feature: Sales Intelligence
+## Próximo foco
 
-Depois da validação do motor de mercado, o próximo módulo será **Sales Intelligence**: sincronização de pedidos reais da conta conectada, custos reais da venda, lucro por pedido/SKU, margem realizada, ranking de produtos e base para reposição inteligente.
+Validar em produção os cinco fluxos reais: busca/scan, análise, oportunidades, lucro realizado e Product Health. Depois disso, fechar processamento automático de `orders_v2`, previsto × realizado e reposição com lead time.
 
 A camada de IA do MVP terá custo zero: apenas provedor gratuito ou modelo self-hosted, sempre opcional e desacoplado do motor financeiro.
 

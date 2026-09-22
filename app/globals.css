@@ -2230,3 +2230,29 @@ h1 em {
     text-align: left;
   }
 }
+
+
+.discovery-warning {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,210,122,.18);
+  border-radius: 10px;
+  background: rgba(255,210,122,.035);
+}
+
+.discovery-warning strong,
+.discovery-warning small {
+  display: block;
+}
+
+.discovery-warning strong {
+  color: var(--warn);
+  font-size: 10px;
+}
+
+.discovery-warning small {
+  margin-top: 4px;
+  color: #96a6b8;
+  font-size: 9px;
+  line-height: 1.45;
+}

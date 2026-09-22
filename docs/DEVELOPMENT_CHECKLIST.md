@@ -128,6 +128,11 @@ Para cada endpoint usado:
 
 ## 5. Motor financeiro
 
+Regra de UX/dados:
+- [ ] tarifas do Mercado Livre não aparecem como inputs editáveis no fluxo principal;
+- [ ] comissão, tarifa fixa e frete vêm automaticamente da API da conta conectada;
+- [ ] qualquer override manual futuro deve ficar em modo avançado, identificado como exceção.
+
 Toda alteração deve validar:
 
 - [ ] custo líquido;

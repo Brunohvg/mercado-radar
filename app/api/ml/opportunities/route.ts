@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  getCatalogProductDetails,
   getCategoryHighlights,
   getItemCurrentPrice,
   getItemFullDetails,
@@ -8,6 +9,7 @@ import {
   getShippingQuote,
   getTrends,
   predictCategory,
+  searchCatalogProducts,
   searchMarketplace,
 } from "@/lib/mercado-livre";
 
@@ -62,6 +64,11 @@ function median(values: number[]) {
     : sorted[center];
 }
 
+function average(values: number[]) {
+  if (values.length === 0) return null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
 async function analyzeTrend(input: {
   accessToken: string;
   userId: string;
@@ -77,12 +84,19 @@ async function analyzeTrend(input: {
   const category = predicted[0];
   if (!category?.categoryId) return null;
 
-  const results = await searchMarketplace({
-    accessToken: input.accessToken,
-    query: input.keyword,
-    categoryId: category.categoryId,
-    limit: 16,
-  }).catch(() => []);
+  const [catalog, results] = await Promise.all([
+    searchCatalogProducts({
+      accessToken: input.accessToken,
+      query: input.keyword,
+      limit: 5,
+    }).catch(() => []),
+    searchMarketplace({
+      accessToken: input.accessToken,
+      query: input.keyword,
+      categoryId: category.categoryId,
+      limit: 16,
+    }).catch(() => []),
+  ]);
 
   const marketItems = results
     .filter(
@@ -92,17 +106,59 @@ async function analyzeTrend(input: {
     )
     .slice(0, 8);
 
+  const catalogCandidates = await Promise.all(
+    catalog.slice(0, 5).map(async (product) => {
+      const details = await getCatalogProductDetails({
+        accessToken: input.accessToken,
+        productId: product.id,
+      }).catch(() => null);
+
+      if (!details) return null;
+
+      const winnerId = details.buy_box_winner?.item_id ?? null;
+      const currentPrice = winnerId
+        ? await getItemCurrentPrice({
+            accessToken: input.accessToken,
+            itemId: winnerId,
+          }).catch(() => null)
+        : null;
+
+      const price =
+        currentPrice && currentPrice > 0
+          ? currentPrice
+          : Number(details.buy_box_winner?.price ?? 0);
+
+      return price > 0
+        ? {
+            id: winnerId ?? product.id,
+            title: details.name ?? product.name,
+            price,
+            categoryId:
+              details.buy_box_winner?.category_id ?? category.categoryId,
+          }
+        : null;
+    }),
+  );
+
+  const catalogPrices = catalogCandidates
+    .filter((item): item is NonNullable<typeof item> => item !== null)
+    .map((item) => item.price);
+
   const highlights = await getCategoryHighlights({
     accessToken: input.accessToken,
     categoryId: category.categoryId,
   }).catch(() => null);
 
   const highlightContent = highlights?.content ?? [];
-  const directBestSellerPositions = marketItems
-    .map((item) => {
+  const directBestSellerPositions = [
+    ...marketItems.map((item) => item.id),
+    ...catalogCandidates
+      .filter((item): item is NonNullable<typeof item> => item !== null)
+      .map((item) => item.id),
+  ]
+    .map((id) => {
       const match = highlightContent.find(
-        (highlight) =>
-          highlight.type === "ITEM" && highlight.id === item.id,
+        (highlight) => highlight.id === id,
       );
       return match?.position ?? null;
     })
@@ -113,7 +169,7 @@ async function analyzeTrend(input: {
       ? Math.min(...directBestSellerPositions)
       : null;
 
-  if (marketItems.length < 3) return null;
+
 
   const currentPrices = await Promise.all(
     marketItems.slice(0, 6).map(async (item) => {
@@ -125,16 +181,30 @@ async function analyzeTrend(input: {
     }),
   );
 
-  const marketMedian = median(
-    currentPrices.filter((value) => value > 0),
-  );
+  const priceSample = [
+    ...currentPrices.filter((value) => value > 0),
+    ...catalogPrices,
+  ].filter((value, index, array) => array.indexOf(value) === index);
+
+  const marketMedian = median(priceSample);
+  const marketAverage = average(priceSample);
   if (!marketMedian) return null;
 
+  const dimensionSourceIds = [
+    ...marketItems.slice(0, 4).map((item) => item.id),
+    ...catalogCandidates
+      .filter((item): item is NonNullable<typeof item> => item !== null)
+      .slice(0, 4)
+      .map((item) => item.id),
+  ]
+    .filter((id, index, array) => array.indexOf(id) === index)
+    .slice(0, 4);
+
   const dimensionSamples = await Promise.all(
-    marketItems.slice(0, 4).map(async (item) => {
+    dimensionSourceIds.map(async (itemId) => {
       const details = await getItemFullDetails({
         accessToken: input.accessToken,
-        itemId: item.id,
+        itemId,
       }).catch(() => null);
 
       if (!details) return null;
@@ -172,9 +242,10 @@ async function analyzeTrend(input: {
       categoryId: category.categoryId,
       categoryName: category.categoryName,
       marketMedian,
+      marketAverage,
       targetPurchasePrice: null,
       dimensionsConfidence: "NONE",
-      comparableCount: marketItems.length,
+      comparableCount: priceSample.length,
       bestSellerPosition,
       bestSellerEvidence:
         bestSellerPosition != null ? "DIRECT_ITEM_MATCH" : "CATEGORY_ONLY",
@@ -234,6 +305,7 @@ async function analyzeTrend(input: {
     categoryId: category.categoryId,
     categoryName: category.categoryName,
     marketMedian,
+    marketAverage,
     targetPurchasePrice:
       Math.round(targetPurchasePrice * 100) / 100,
     dimensions,
@@ -243,7 +315,7 @@ async function analyzeTrend(input: {
         : complete.length === 2
           ? "MEDIUM"
           : "LOW",
-    comparableCount: marketItems.length,
+    comparableCount: priceSample.length,
     bestSellerPosition,
     bestSellerEvidence:
       bestSellerPosition != null ? "DIRECT_ITEM_MATCH" : "CATEGORY_ONLY",
@@ -263,7 +335,7 @@ export async function GET() {
       accessToken: session.accessToken,
     });
 
-    const fastestGrowing = trends.slice(0, 6);
+    const fastestGrowing = trends.slice(0, 12);
 
     const analyzed = [];
     for (let index = 0; index < fastestGrowing.length; index += 1) {
@@ -276,7 +348,7 @@ export async function GET() {
       }).catch(() => null);
 
       if (result) analyzed.push(result);
-      if (analyzed.length >= 4) break;
+      if (analyzed.length >= 6) break;
     }
 
     return NextResponse.json({

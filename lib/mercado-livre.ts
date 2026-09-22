@@ -267,7 +267,7 @@ export async function predictCategory(input: {
     limit: String(input.limit ?? 3),
   });
 
-  const raw = await jsonFetch<Array<{
+  let raw: Array<{
     domain_id?: string;
     domain_name?: string;
     category_id: string;
@@ -277,10 +277,18 @@ export async function predictCategory(input: {
       value_id?: string;
       value_name?: string;
     }>;
-  }>>(
-    `${API}/sites/MLB/domain_discovery/search?${query.toString()}`,
-    { headers: { Authorization: `Bearer ${input.accessToken}` } },
-  );
+  }>;
+
+  try {
+    raw = await jsonFetch(
+      `${API}/sites/MLB/domain_discovery/search?${query.toString()}`,
+      { headers: { Authorization: `Bearer ${input.accessToken}` } },
+    );
+  } catch {
+    raw = await jsonFetch(
+      `${API}/sites/MLB/domain_discovery/search?${query.toString()}`,
+    );
+  }
 
   return raw.map((item) => ({
     domainId: item.domain_id ?? null,
@@ -320,7 +328,7 @@ export async function searchMarketplace(input: {
     params.set("category", input.categoryId);
   }
 
-  const raw = await jsonFetch<{
+  type MarketplaceSearchResponse = {
     results?: Array<{
       id?: string;
       title?: string;
@@ -333,9 +341,20 @@ export async function searchMarketplace(input: {
       listing_type_id?: string;
       shipping?: { free_shipping?: boolean };
     }>;
-  }>(`${API}/sites/MLB/search?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${input.accessToken}` },
-  });
+  };
+
+  let raw: MarketplaceSearchResponse;
+
+  try {
+    raw = await jsonFetch<MarketplaceSearchResponse>(
+      `${API}/sites/MLB/search?${params.toString()}`,
+      { headers: { Authorization: `Bearer ${input.accessToken}` } },
+    );
+  } catch {
+    raw = await jsonFetch<MarketplaceSearchResponse>(
+      `${API}/sites/MLB/search?${params.toString()}`,
+    );
+  }
 
   return (raw.results ?? [])
     .filter((item) => item.id && item.title)

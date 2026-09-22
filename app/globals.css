@@ -1900,3 +1900,120 @@ h1 em {
     min-height: 0;
   }
 }
+
+
+.smart-product-search-shell {
+  position: relative;
+}
+
+.product-search-results {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  max-height: 360px;
+  overflow-y: auto;
+  border: 1px solid rgba(105,184,255,.2);
+  border-radius: 13px;
+  background: rgba(5,16,29,.98);
+  box-shadow: 0 24px 70px rgba(0,0,0,.38);
+  backdrop-filter: blur(16px);
+}
+
+.product-search-status {
+  padding: 14px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.product-search-option {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 42px minmax(0,1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.product-search-option:last-child {
+  border-bottom: 0;
+}
+
+.product-search-option:hover,
+.product-search-option:focus-visible {
+  background: rgba(105,184,255,.055);
+  outline: none;
+}
+
+.product-search-option img,
+.product-search-thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: 9px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.03);
+}
+
+.product-search-thumb {
+  display: grid;
+  place-items: center;
+  color: #6f8299;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.product-search-copy {
+  min-width: 0;
+}
+
+.product-search-copy strong,
+.product-search-copy small {
+  display: block;
+}
+
+.product-search-copy strong {
+  overflow: hidden;
+  color: #e4edf7;
+  font-size: 11px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-search-copy small {
+  margin-top: 4px;
+  color: #8094ad;
+  font-size: 9px;
+}
+
+.field-hint.warning {
+  color: var(--warn);
+}
+
+@media (max-width: 620px) {
+  .product-search-results {
+    position: static;
+    max-height: 300px;
+    margin-top: 6px;
+  }
+
+  .product-search-option {
+    grid-template-columns: 36px minmax(0,1fr);
+    padding: 9px 10px;
+  }
+
+  .product-search-option img,
+  .product-search-thumb {
+    width: 36px;
+    height: 36px;
+  }
+}

@@ -142,7 +142,14 @@ export async function GET(request: Request) {
           recent.profitKnownRevenue > 0
             ? (recent.realizedProfit / recent.profitKnownRevenue) * 100
             : null;
-        const unitCost = item.sku ? costBySku.get(item.sku) ?? null : null;
+        const directUnitCost =
+          item.supplierPrice == null
+            ? null
+            : Number(item.supplierPrice) *
+              (1 - Number(item.discountPercent) / 100);
+        const unitCost =
+          directUnitCost ??
+          (item.sku ? costBySku.get(item.sku) ?? null : null);
 
         let healthAction:
           | "ADD_COST"
@@ -191,6 +198,11 @@ export async function GET(request: Request) {
           permalink: item.permalink,
           thumbnail: item.thumbnail,
           freeShipping: item.freeShipping,
+          supplier: item.supplier,
+          supplierPrice:
+            item.supplierPrice == null ? null : Number(item.supplierPrice),
+          discountPercent: Number(item.discountPercent),
+          netUnitCost: unitCost,
           lastSyncedAt: item.lastSyncedAt,
           health: {
             periodDays: 30,

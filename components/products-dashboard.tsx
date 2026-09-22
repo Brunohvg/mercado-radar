@@ -36,6 +36,7 @@ type ProductRow = {
     dailyVelocity: number;
     coverageDays: number | null;
     realizedMarginPercent: number | null;
+    decisionMarginPercent: number | null;
     unitCost: number | null;
     grossMarkupPercent: number | null;
     inventoryCapital: number | null;

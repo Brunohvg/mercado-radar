@@ -468,3 +468,48 @@ Não antecipar complexidade SaaS antes do core provar valor.
 11. avaliar multi-tenant/SaaS.
 
 A ordem pode mudar somente quando uma dependência técnica ou dado real justificar a mudança.
+
+
+---
+
+## F4A — Smart Product Discovery
+
+Status: **implementado / aguardando validação real**
+
+Objetivo: reduzir ao mínimo a digitação no analisador.
+
+Recursos:
+- [x] busca por nome;
+- [x] busca por EAN/GTIN/código de barras;
+- [x] consulta ao catálogo do Mercado Livre;
+- [x] detecção automática de categoria;
+- [x] pesquisa de anúncios semelhantes;
+- [x] faixa de preço praticada;
+- [x] inferência de peso e dimensões por embalagens de anúncios semelhantes;
+- [x] nível de confiança e tamanho da amostra;
+- [x] preenchimento automático no analisador;
+- [x] fallback manual somente quando não houver evidência suficiente.
+
+Regra: dimensões inferidas são estimativas. A embalagem real do usuário continua sendo a referência para publicação e logística.
+
+---
+
+## F8A — Weekly Opportunity Radar
+
+Status: **implementado / aguardando validação real**
+
+Objetivo: descobrir candidatos antes de procurar manualmente produtos.
+
+Recursos:
+- [x] tendências semanais do Mercado Livre;
+- [x] categoria automática;
+- [x] mediana de preço;
+- [x] inferência de embalagem;
+- [x] tarifa e frete da conta;
+- [x] teto preliminar de compra para 20% margem e 30% ROI;
+- [x] enviar candidato direto ao analisador;
+- [ ] adicionar ranking de mais vendidos por categoria como evidência complementar;
+- [ ] histórico semanal das oportunidades;
+- [ ] filtros por categoria e capital disponível.
+
+O Radar não deve chamar tendência de busca de "mais vendido". Ranking de mais vendidos é uma evidência separada.

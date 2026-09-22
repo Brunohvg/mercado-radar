@@ -394,3 +394,25 @@ h1 em {
   font-size: 10px;
   line-height: 1.4;
 }
+
+
+.optional-label {
+  margin-left: 6px;
+  color: #667b95;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.field-hint.neutral {
+  color: var(--muted);
+}
+
+.empty-limit {
+  grid-template-columns: 1fr;
+}
+
+.empty-limit div strong {
+  color: var(--accent-2);
+}

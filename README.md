@@ -104,3 +104,10 @@ Esses limites serão configuráveis.
 - [ ] Estoque e alertas
 - [x] Inteligência de mercado e fit score
 - [ ] Dashboard de oportunidades e histórico
+
+
+## Próxima feature: Sales Intelligence
+
+Depois da validação do motor de mercado, o próximo módulo será **Sales Intelligence**: sincronização de pedidos reais da conta conectada, custos reais da venda, lucro por pedido/SKU, margem realizada, ranking de produtos e base para reposição inteligente.
+
+A camada de IA do MVP terá custo zero: apenas provedor gratuito ou modelo self-hosted, sempre opcional e desacoplado do motor financeiro.

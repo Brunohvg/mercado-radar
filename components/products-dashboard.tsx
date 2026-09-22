@@ -90,12 +90,13 @@ export function ProductsDashboard() {
     <section className="module-section" id="produtos">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Produtos conectados</p>
-          <h2>Seus anúncios reais em uma visão operacional.</h2>
+          <p className="eyebrow">Capital & estoque</p>
+          <h2>Quais produtos merecem mais capital — e quais não?</h2>
         </div>
         <div className="module-heading-actions">
           <p>
-            Preço, estoque, vendas acumuladas e visitas vêm da conta conectada.
+            Os anúncios da conta são a base para decidir reposição, cobertura,
+            preço e capital. Não queremos apenas repetir o Seller Center.
           </p>
           <button
             type="button"

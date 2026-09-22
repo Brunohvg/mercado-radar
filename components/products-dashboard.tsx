@@ -30,7 +30,9 @@ type ProductRow = {
     coverageDays: number | null;
     realizedMarginPercent: number | null;
     unitCost: number | null;
-    action: "ADD_COST" | "STOP_BUYING" | "RESTOCK" | "WATCH" | "MAINTAIN" | "OBSERVE";
+    grossMarkupPercent: number | null;
+    inventoryCapital: number | null;
+    action: "ADD_COST" | "STOP_BUYING" | "RESTOCK" | "WATCH" | "MAINTAIN" | "VALIDATE_PROFIT" | "OBSERVE";
     suggestedReorder: number;
     capitalNeeded: number | null;
   };
@@ -65,12 +67,18 @@ function healthLabel(value: ProductRow["health"]["action"]) {
   if (value === "MAINTAIN") return "Manter";
   if (value === "STOP_BUYING") return "Parar compra";
   if (value === "ADD_COST") return "Vincular custo";
+  if (value === "VALIDATE_PROFIT") return "Validar lucro";
   return "Observar";
 }
 
 function healthTone(value: ProductRow["health"]["action"]) {
   if (value === "RESTOCK" || value === "MAINTAIN") return "good";
-  if (value === "WATCH" || value === "ADD_COST") return "tight";
+  if (
+    value === "WATCH" ||
+    value === "ADD_COST" ||
+    value === "VALIDATE_PROFIT"
+  )
+    return "tight";
   if (value === "STOP_BUYING") return "bad";
   return "neutral";
 }
@@ -275,6 +283,10 @@ export function ProductsDashboard() {
                       </strong>
                     </div>
                     <div>
+                      <span>Estoque atual</span>
+                      <strong>{product.availableQuantity}</strong>
+                    </div>
+                    <div>
                       <span>Vendas 30d</span>
                       <strong>{product.health.unitsSold}</strong>
                     </div>
@@ -298,7 +310,7 @@ export function ProductsDashboard() {
 
                   <div className="product-cost-summary">
                     <div>
-                      <span>Custo tabela</span>
+                      <span>Custo de tabela</span>
                       <strong>
                         {product.supplierPrice == null
                           ? "Não informado"
@@ -315,6 +327,22 @@ export function ProductsDashboard() {
                         {product.netUnitCost == null
                           ? "Aguardando"
                           : money.format(product.netUnitCost)}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Markup bruto</span>
+                      <strong>
+                        {product.health.grossMarkupPercent == null
+                          ? "—"
+                          : `${product.health.grossMarkupPercent.toFixed(1)}%`}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Capital em estoque</span>
+                      <strong>
+                        {product.health.inventoryCapital == null
+                          ? "—"
+                          : money.format(product.health.inventoryCapital)}
                       </strong>
                     </div>
                     <button
@@ -422,19 +450,6 @@ export function ProductsDashboard() {
                     </div>
                   )}
 
-                  <div className="product-actions">
-                    <span className="data-origin">Dados Mercado Livre</span>
-                    {product.permalink && (
-                      <a
-                        href={product.permalink}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Abrir anúncio
-                      </a>
-                    )}
-                  </div>
-
                   <div className={"product-health-card " + healthTone(product.health.action)}>
                     <div>
                       <span>Ação do Radar</span>
@@ -446,20 +461,34 @@ export function ProductsDashboard() {
                             ? "Margem realizada abaixo do mínimo."
                             : product.health.action === "ADD_COST"
                               ? "Sem custo do produto, não dá para calcular margem nem decidir capital."
-                              : product.health.action === "WATCH"
-                                ? "Cobertura abaixo de 14 dias."
-                                : product.health.action === "MAINTAIN"
-                                  ? "Giro ativo com cobertura confortável."
-                                  : "Ainda não há vendas suficientes no período."}
+                              : product.health.action === "VALIDATE_PROFIT"
+                                ? "O custo já está salvo, mas ainda faltam tarifa ou frete realizados para concluir a margem real."
+                                : product.health.action === "WATCH"
+                                  ? "Cobertura abaixo de 14 dias."
+                                  : product.health.action === "MAINTAIN"
+                                    ? "Margem conhecida e cobertura confortável."
+                                    : "Ainda não há vendas suficientes no período."}
                       </small>
                     </div>
-                    <div className="product-capital">
-                      <span>Capital para reposição</span>
-                      <strong>
-                        {product.health.capitalNeeded == null
-                          ? "—"
-                          : money.format(product.health.capitalNeeded)}
-                      </strong>
+                    <div className="product-health-side">
+                      <div className="product-capital">
+                        <span>Capital para reposição</span>
+                        <strong>
+                          {product.health.capitalNeeded == null
+                            ? "—"
+                            : money.format(product.health.capitalNeeded)}
+                        </strong>
+                      </div>
+                      {product.permalink && (
+                        <a
+                          className="table-action"
+                          href={product.permalink}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Abrir anúncio
+                        </a>
+                      )}
                     </div>
                   </div>
 

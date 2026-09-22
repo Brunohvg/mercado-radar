@@ -26,22 +26,28 @@ export async function GET(request: Request) {
       : null;
 
     let catalogUnavailable = false;
-    const catalog = await searchCatalogProducts({
-      accessToken: session.accessToken,
-      ...(barcode
-        ? { productIdentifier: barcode }
-        : { query }),
-      limit: 6,
-    }).catch(() => {
-      catalogUnavailable = true;
-      return [];
-    });
+    let marketplaceUnavailable = false;
 
-    const marketplace = await searchMarketplace({
-      accessToken: session.accessToken,
-      query,
-      limit: 12,
-    }).catch(() => []);
+    const [catalog, marketplace] = await Promise.all([
+      searchCatalogProducts({
+        accessToken: session.accessToken,
+        ...(barcode
+          ? { productIdentifier: barcode }
+          : { query }),
+        limit: 6,
+      }).catch(() => {
+        catalogUnavailable = true;
+        return [];
+      }),
+      searchMarketplace({
+        accessToken: session.accessToken,
+        query,
+        limit: 12,
+      }).catch(() => {
+        marketplaceUnavailable = true;
+        return [];
+      }),
+    ]);
 
     const suggestions = [
       ...catalog.map((item) => ({
@@ -78,6 +84,7 @@ export async function GET(request: Request) {
       query,
       barcode,
       catalogUnavailable,
+      marketplaceUnavailable,
       suggestions: unique.slice(0, 10),
     });
   } catch (error) {

@@ -800,3 +800,55 @@ export async function getOrderShipment(input: {
       raw.order_cost == null ? null : Number(raw.order_cost),
   };
 }
+
+
+export async function getCatalogProductDetails(input: {
+  accessToken: string;
+  productId: string;
+}) {
+  return jsonFetch<{
+    id?: string;
+    name?: string;
+    family_name?: string;
+    domain_id?: string;
+    status?: string;
+    sold_quantity?: number;
+    permalink?: string;
+    attributes?: Array<{
+      id?: string;
+      name?: string;
+      value_name?: string;
+      value_struct?: {
+        number?: number;
+        unit?: string;
+      } | null;
+      values?: Array<{
+        name?: string;
+        struct?: {
+          number?: number;
+          unit?: string;
+        } | null;
+      }>;
+    }>;
+    buy_box_winner?: {
+      item_id?: string;
+      category_id?: string;
+      seller_id?: number | string;
+      price?: number;
+      currency_id?: string;
+      available_quantity?: number;
+      sold_quantity?: number;
+      shipping?: {
+        free_shipping?: boolean;
+        logistic_type?: string;
+      };
+    } | null;
+  }>(
+    `${API}/products/${input.productId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+      },
+    },
+  );
+}

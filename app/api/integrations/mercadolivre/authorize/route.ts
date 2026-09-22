@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { randomUrlSafe, sha256UrlSafe } from "@/lib/security";
+import { getPublicOrigin } from "@/lib/public-url";
 
 export async function GET(request: Request) {
   const clientId = process.env.MERCADO_LIVRE_CLIENT_ID;
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const origin = new URL(request.url).origin;
+  const origin = getPublicOrigin(request);
   const redirectUri =
     process.env.MERCADO_LIVRE_REDIRECT_URI ||
     `${origin}/api/integrations/mercadolivre/callback`;

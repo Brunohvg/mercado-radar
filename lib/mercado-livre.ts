@@ -777,13 +777,15 @@ export async function getOrderShipment(input: {
   accessToken: string;
   orderId: string;
 }) {
-  const raw = await jsonFetch<{
+  type ShipmentRecord = {
     id?: number | string;
     order_cost?: number;
     base_cost?: number;
     status?: string;
     substatus?: string | null;
-  }>(
+  };
+
+  const raw = await jsonFetch<ShipmentRecord | ShipmentRecord[]>(
     `${API}/orders/${input.orderId}/shipments`,
     {
       headers: {
@@ -793,11 +795,16 @@ export async function getOrderShipment(input: {
     },
   );
 
+  const shipment = Array.isArray(raw) ? raw[0] ?? null : raw;
+
   return {
     raw,
-    shipmentId: raw.id == null ? null : String(raw.id),
+    shipmentId:
+      shipment?.id == null ? null : String(shipment.id),
     orderCost:
-      raw.order_cost == null ? null : Number(raw.order_cost),
+      shipment?.order_cost == null
+        ? null
+        : Number(shipment.order_cost),
   };
 }
 

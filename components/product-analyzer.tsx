@@ -50,6 +50,48 @@ type CategorySuggestion = {
   categoryName: string;
 };
 
+type MarketScan = {
+  verdict: string;
+  verdictLabel: string;
+  fitScore: number;
+  market: {
+    resultCount: number;
+    minimumPrice: number;
+    p25Price: number;
+    medianPrice: number;
+    p75Price: number;
+    maximumPrice: number;
+    averagePrice: number;
+    marketGapPercent: number;
+  };
+  finance: {
+    profit: number;
+    marginPercent: number;
+    roiPercent: number;
+    minimumSuggestedPrice: number;
+  };
+  buyingPower: {
+    currentNetUnitCost: number;
+    maxNetUnitCostAtMedian: number;
+    maxSupplierPriceAtMedian: number;
+    costReductionNeeded: number;
+  };
+  evidence: {
+    averageSimilarityPercent: number;
+    comparableCount: number;
+  };
+  competitors: Array<{
+    id: string;
+    title: string;
+    price: number;
+    similarity: number;
+    permalink: string | null;
+    freeShipping: boolean;
+    listingTypeId: string | null;
+    priceSource: string;
+  }>;
+};
+
 const initial: FormState = {
   productName: "",
   supplierName: "",
@@ -122,6 +164,8 @@ export function ProductAnalyzer() {
   const [comparison, setComparison] = useState<ComparedQuote[]>([]);
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [priceLoading, setPriceLoading] = useState(false);
+  const [marketLoading, setMarketLoading] = useState(false);
+  const [marketScan, setMarketScan] = useState<MarketScan | null>(null);
   const [categorySuggestion, setCategorySuggestion] =
     useState<CategorySuggestion | null>(null);
 
@@ -327,6 +371,51 @@ export function ProductAnalyzer() {
       );
     } finally {
       setPriceLoading(false);
+    }
+  }
+
+  async function scanMarket(nextForm = form) {
+    setMarketLoading(true);
+    setQuoteMessage("");
+    setError("");
+
+    try {
+      const response = await fetch("/api/ml/market-scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productName: nextForm.productName,
+          supplierPrice: number(nextForm.supplierPrice),
+          discountPercent: number(nextForm.discountPercent),
+          kitQuantity: number(nextForm.kitQuantity),
+          salePrice: number(nextForm.salePrice),
+          listingType: nextForm.listingType,
+          categoryId: nextForm.categoryId.trim(),
+          weightGrams: number(nextForm.weightGrams),
+          heightCm: number(nextForm.heightCm),
+          widthCm: number(nextForm.widthCm),
+          lengthCm: number(nextForm.lengthCm),
+          operatingCost: number(nextForm.operatingCost),
+          targetMarginPercent: number(nextForm.targetMarginPercent),
+          targetRoiPercent: number(nextForm.targetRoiPercent),
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Falha ao analisar o mercado.");
+      }
+
+      setMarketScan(payload);
+      setQuoteMessage(
+        `Mercado analisado: ${payload.market.resultCount} comparáveis · ${payload.verdictLabel}.`,
+      );
+    } catch (caught) {
+      setQuoteMessage(
+        caught instanceof Error ? caught.message : "Falha ao analisar mercado.",
+      );
+    } finally {
+      setMarketLoading(false);
     }
   }
 
@@ -770,6 +859,19 @@ export function ProductAnalyzer() {
           >
             {quoteLoading ? "Consultando..." : "Atualizar custos da API"}
           </button>
+          <button
+            type="button"
+            className="secondary market-action"
+            disabled={
+              marketLoading ||
+              !form.categoryId ||
+              number(form.salePrice) <= 0 ||
+              number(form.supplierPrice) <= 0
+            }
+            onClick={() => scanMarket()}
+          >
+            {marketLoading ? "Lendo mercado..." : "4. Analisar mercado"}
+          </button>
         </div>
 
         {quoteMessage && (
@@ -821,6 +923,163 @@ export function ProductAnalyzer() {
           </div>
         )}
       </section>
+
+      {marketScan && (
+        <section className="market-intelligence-panel" id="mercado">
+          <div className="market-decision-head">
+            <div>
+              <p className="eyebrow">Decisão de mercado</p>
+              <h2>{marketScan.verdictLabel}</h2>
+              <p>
+                O Radar cruza sua rentabilidade com anúncios comparáveis reais.
+                O score mede aderência financeira e de preço — não é previsão de vendas.
+              </p>
+            </div>
+            <div className={"fit-score " + (
+              marketScan.fitScore >= 75
+                ? "good"
+                : marketScan.fitScore >= 55
+                  ? "tight"
+                  : "bad"
+            )}>
+              <span>Fit score</span>
+              <strong>{marketScan.fitScore}</strong>
+              <small>/100</small>
+            </div>
+          </div>
+
+          <div className="market-kpis">
+            <div>
+              <span>Seu preço</span>
+              <strong>{money.format(number(form.salePrice))}</strong>
+              <small>
+                {marketScan.market.marketGapPercent > 0 ? "+" : ""}
+                {marketScan.market.marketGapPercent.toFixed(1)}% vs. mediana
+              </small>
+            </div>
+            <div>
+              <span>Mediana mercado</span>
+              <strong>{money.format(marketScan.market.medianPrice)}</strong>
+              <small>{marketScan.market.resultCount} comparáveis</small>
+            </div>
+            <div>
+              <span>Faixa central</span>
+              <strong>
+                {money.format(marketScan.market.p25Price)} — {money.format(marketScan.market.p75Price)}
+              </strong>
+              <small>P25 a P75</small>
+            </div>
+            <div>
+              <span>Lucro no seu preço</span>
+              <strong>{money.format(marketScan.finance.profit)}</strong>
+              <small>
+                {marketScan.finance.marginPercent.toFixed(1)}% margem · {marketScan.finance.roiPercent.toFixed(1)}% ROI
+              </small>
+            </div>
+          </div>
+
+          <div className="price-ladder">
+            <div className="ladder-labels">
+              <span>Mín. {money.format(marketScan.market.minimumPrice)}</span>
+              <span>Mediana {money.format(marketScan.market.medianPrice)}</span>
+              <span>Máx. {money.format(marketScan.market.maximumPrice)}</span>
+            </div>
+            <div className="ladder-track">
+              <span
+                className="ladder-market-band"
+                style={{
+                  left: `${Math.max(
+                    0,
+                    Math.min(
+                      100,
+                      ((marketScan.market.p25Price - marketScan.market.minimumPrice) /
+                        Math.max(0.01, marketScan.market.maximumPrice - marketScan.market.minimumPrice)) *
+                        100,
+                    ),
+                  )}%`,
+                  width: `${Math.max(
+                    2,
+                    Math.min(
+                      100,
+                      ((marketScan.market.p75Price - marketScan.market.p25Price) /
+                        Math.max(0.01, marketScan.market.maximumPrice - marketScan.market.minimumPrice)) *
+                        100,
+                    ),
+                  )}%`,
+                }}
+              />
+              <span
+                className="ladder-own-price"
+                style={{
+                  left: `${Math.max(
+                    0,
+                    Math.min(
+                      100,
+                      ((number(form.salePrice) - marketScan.market.minimumPrice) /
+                        Math.max(0.01, marketScan.market.maximumPrice - marketScan.market.minimumPrice)) *
+                        100,
+                    ),
+                  )}%`,
+                }}
+              >
+                <i />
+                <b>Você</b>
+              </span>
+            </div>
+          </div>
+
+          <div className="buying-power">
+            <div>
+              <span>Seu custo líquido/un.</span>
+              <strong>{money.format(marketScan.buyingPower.currentNetUnitCost)}</strong>
+            </div>
+            <div>
+              <span>Custo líquido máximo na mediana</span>
+              <strong>{money.format(marketScan.buyingPower.maxNetUnitCostAtMedian)}</strong>
+            </div>
+            <div>
+              <span>Preço máximo de tabela no fornecedor</span>
+              <strong>{money.format(marketScan.buyingPower.maxSupplierPriceAtMedian)}</strong>
+            </div>
+            <div className={marketScan.buyingPower.costReductionNeeded > 0 ? "danger-value" : "good-value"}>
+              <span>Ajuste de custo necessário</span>
+              <strong>
+                {marketScan.buyingPower.costReductionNeeded > 0
+                  ? "-" + money.format(marketScan.buyingPower.costReductionNeeded)
+                  : "Dentro da meta"}
+              </strong>
+            </div>
+          </div>
+
+          <div className="competitor-head">
+            <div>
+              <strong>Comparáveis encontrados</strong>
+              <small>
+                Similaridade média {marketScan.evidence.averageSimilarityPercent}% · preços atuais quando disponíveis
+              </small>
+            </div>
+          </div>
+
+          <div className="competitor-grid">
+            {marketScan.competitors.map((item) => (
+              <article className="competitor-card" key={item.id}>
+                <div className="competitor-top">
+                  <span>{item.similarity}% similar</span>
+                  {item.freeShipping && <b>Frete grátis</b>}
+                </div>
+                <h3>{item.title}</h3>
+                <strong>{money.format(item.price)}</strong>
+                <small>{item.id}</small>
+                {item.permalink && (
+                  <a href={item.permalink} target="_blank" rel="noreferrer">
+                    Ver anúncio
+                  </a>
+                )}
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       {kitRows.length > 0 && (
       <section className="kit-panel" id="kits">

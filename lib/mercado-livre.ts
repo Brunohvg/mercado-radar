@@ -771,3 +771,32 @@ export async function getShipmentCosts(input: {
     grossAmount: Number(raw.gross_amount ?? 0),
   };
 }
+
+
+export async function getOrderShipment(input: {
+  accessToken: string;
+  orderId: string;
+}) {
+  const raw = await jsonFetch<{
+    id?: number | string;
+    order_cost?: number;
+    base_cost?: number;
+    status?: string;
+    substatus?: string | null;
+  }>(
+    `${API}/orders/${input.orderId}/shipments`,
+    {
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+        "x-format-new": "true",
+      },
+    },
+  );
+
+  return {
+    raw,
+    shipmentId: raw.id == null ? null : String(raw.id),
+    orderCost:
+      raw.order_cost == null ? null : Number(raw.order_cost),
+  };
+}

@@ -445,7 +445,7 @@ export function ProductsDashboard() {
                           : product.health.action === "STOP_BUYING"
                             ? "Margem realizada abaixo do mínimo."
                             : product.health.action === "ADD_COST"
-                              ? "Sem custo do SKU, não dá para decidir capital."
+                              ? "Sem custo do produto, não dá para calcular margem nem decidir capital."
                               : product.health.action === "WATCH"
                                 ? "Cobertura abaixo de 14 dias."
                                 : product.health.action === "MAINTAIN"

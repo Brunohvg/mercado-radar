@@ -357,7 +357,7 @@ export function ProductAnalyzer() {
       } finally {
         setProductSearchLoading(false);
       }
-    }, 350);
+    }, 220);
 
     return () => {
       window.clearTimeout(timeout);

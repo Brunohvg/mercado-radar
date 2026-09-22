@@ -2775,3 +2775,47 @@ h1 em {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+
+.listing-economics {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(5,minmax(0,1fr));
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(105,184,255,.14);
+  border-radius: 11px;
+  background: rgba(105,184,255,.025);
+}
+
+.listing-economics > div {
+  min-width: 0;
+}
+
+.listing-economics span,
+.listing-economics strong {
+  display: block;
+}
+
+.listing-economics span {
+  color: var(--muted);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.listing-economics strong {
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+@media (max-width: 900px) {
+  .listing-economics {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .listing-economics {
+    grid-template-columns: 1fr;
+  }
+}

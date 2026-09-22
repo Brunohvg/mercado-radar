@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  getCategoryHighlights,
   getItemCurrentPrice,
   getItemFullDetails,
   getListingPriceQuote,
@@ -91,6 +92,27 @@ async function analyzeTrend(input: {
     )
     .slice(0, 8);
 
+  const highlights = await getCategoryHighlights({
+    accessToken: input.accessToken,
+    categoryId: category.categoryId,
+  }).catch(() => null);
+
+  const highlightContent = highlights?.content ?? [];
+  const directBestSellerPositions = marketItems
+    .map((item) => {
+      const match = highlightContent.find(
+        (highlight) =>
+          highlight.type === "ITEM" && highlight.id === item.id,
+      );
+      return match?.position ?? null;
+    })
+    .filter((position): position is number => position != null);
+
+  const bestSellerPosition =
+    directBestSellerPositions.length > 0
+      ? Math.min(...directBestSellerPositions)
+      : null;
+
   if (marketItems.length < 3) return null;
 
   const currentPrices = await Promise.all(
@@ -153,6 +175,9 @@ async function analyzeTrend(input: {
       targetPurchasePrice: null,
       dimensionsConfidence: "NONE",
       comparableCount: marketItems.length,
+      bestSellerPosition,
+      bestSellerEvidence:
+        bestSellerPosition != null ? "DIRECT_ITEM_MATCH" : "CATEGORY_ONLY",
       status: "NEEDS_DIMENSIONS",
     };
   }
@@ -219,6 +244,9 @@ async function analyzeTrend(input: {
           ? "MEDIUM"
           : "LOW",
     comparableCount: marketItems.length,
+    bestSellerPosition,
+    bestSellerEvidence:
+      bestSellerPosition != null ? "DIRECT_ITEM_MATCH" : "CATEGORY_ONLY",
     feeAmount: fee.saleFeeAmount,
     shippingCost: shipping.shippingCost,
     status:

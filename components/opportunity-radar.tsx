@@ -8,6 +8,7 @@ type Opportunity = {
   categoryId: string;
   categoryName: string;
   marketMedian: number;
+  marketAverage: number | null;
   targetPurchasePrice: number | null;
   dimensions?: {
     heightCm: number;
@@ -140,11 +141,13 @@ export function OpportunityRadar() {
 
                 <div className="opportunity-numbers">
                   <div>
-                    <span>Mediana de venda</span>
-                    <strong>{money.format(item.marketMedian)}</strong>
+                    <span>Preço médio encontrado</span>
+                    <strong>
+                      {money.format(item.marketAverage ?? item.marketMedian)}
+                    </strong>
                   </div>
                   <div>
-                    <span>Comprar até</span>
+                    <span>Teto preliminar de compra</span>
                     <strong>
                       {item.targetPurchasePrice == null
                         ? "Precisa validar"
@@ -154,7 +157,7 @@ export function OpportunityRadar() {
                 </div>
 
                 <div className="opportunity-foot">
-                  <span>{item.comparableCount} comparáveis</span>
+                  <span>{item.comparableCount} referência(s) de preço</span>
                   <span>
                     {item.bestSellerPosition != null
                       ? `#${item.bestSellerPosition} entre mais vendidos`

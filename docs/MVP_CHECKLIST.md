@@ -132,3 +132,32 @@ A versão pode ser marcada como `v0.1.0-test` quando:
 - [ ] Validar comparáveis do Ilhós nº54
 - [ ] Validar comparáveis do Arame encapado
 - [ ] Ajustar heurísticas após os primeiros testes reais
+
+
+## 9. Próxima feature oficial — Sales Intelligence
+
+Após validar a inteligência de mercado com produtos reais, a próxima feature será transformar a conta conectada em um painel operacional de vendas.
+
+Escopo:
+- [ ] sincronizar pedidos existentes da conta conectada;
+- [ ] processar notificações `orders_v2`;
+- [ ] buscar detalhes completos do pedido;
+- [ ] relacionar pedido, item, variação e envio;
+- [ ] capturar tarifa e custo real de envio da venda;
+- [ ] cadastrar/vincular custo de compra por SKU;
+- [ ] calcular lucro real por venda;
+- [ ] calcular margem real por produto;
+- [ ] dashboard Hoje / 7 dias / 30 dias;
+- [ ] produtos mais lucrativos e menos lucrativos;
+- [ ] alertas de margem ruim;
+- [ ] base para reposição inteligente de estoque.
+
+Objetivo da feature: responder não apenas "vale vender?", mas também "o que realmente está dando dinheiro depois que vendeu?".
+
+## 10. IA no MVP
+
+- [ ] camada `AIProvider` desacoplada;
+- [ ] usar somente opção gratuita ou self-hosted;
+- [ ] IA para enriquecer entrada e explicar análises;
+- [ ] nenhuma tarifa, frete, custo ou venda pode ser inventada pela IA;
+- [ ] aplicação deve continuar 100% funcional sem IA.

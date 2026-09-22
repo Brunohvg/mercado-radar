@@ -42,6 +42,13 @@ type ComparedQuote = MlQuote & {
   analysis: ProfitabilityResult;
 };
 
+type CategorySuggestion = {
+  domainId: string | null;
+  domainName: string | null;
+  categoryId: string;
+  categoryName: string;
+};
+
 const initial: FormState = {
   productName: "Arame encapado 10m",
   supplierPrice: "4.40",
@@ -111,6 +118,9 @@ export function ProductAnalyzer() {
   const [error, setError] = useState("");
   const [quoteMessage, setQuoteMessage] = useState("");
   const [comparison, setComparison] = useState<ComparedQuote[]>([]);
+  const [categoryLoading, setCategoryLoading] = useState(false);
+  const [categorySuggestion, setCategorySuggestion] =
+    useState<CategorySuggestion | null>(null);
 
   const tone = useMemo(() => {
     if (!analysis) return "neutral";
@@ -219,6 +229,44 @@ export function ProductAnalyzer() {
     }
 
     return payload;
+  }
+
+  async function detectCategory() {
+    setCategoryLoading(true);
+    setQuoteMessage("");
+    setError("");
+
+    try {
+      const response = await fetch("/api/ml/category-predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: form.productName }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Falha ao detectar categoria.");
+      }
+
+      const best = payload.best as CategorySuggestion | null;
+      if (!best) {
+        throw new Error("Nenhuma categoria sugerida para esse produto.");
+      }
+
+      setCategorySuggestion(best);
+      field("categoryId", best.categoryId);
+      setQuoteMessage(
+        `Categoria sugerida: ${best.categoryName} (${best.categoryId}).`,
+      );
+    } catch (caught) {
+      setQuoteMessage(
+        caught instanceof Error
+          ? caught.message
+          : "Falha ao detectar categoria.",
+      );
+    } finally {
+      setCategoryLoading(false);
+    }
   }
 
   async function applyMlQuote() {
@@ -529,8 +577,8 @@ export function ProductAnalyzer() {
             <h2>Consultar Mercado Livre</h2>
           </div>
           <p>
-            Informe categoria, peso e dimensões da embalagem. O Radar usa
-            listing_prices e shipping_options/free.
+            Detecte a categoria pelo nome do produto e informe peso e dimensões.
+            O Radar consulta os custos da sua própria conta.
           </p>
         </div>
 
@@ -538,10 +586,18 @@ export function ProductAnalyzer() {
           <div className="field category">
             <label>Categoria ML</label>
             <input
-              placeholder="Ex.: MLB12345"
+              placeholder="Detecte pela descrição ou informe o ID"
               value={form.categoryId}
               onChange={(e) => field("categoryId", e.target.value.trim())}
             />
+            {categorySuggestion && (
+              <small className="field-hint">
+                {categorySuggestion.categoryName}
+                {categorySuggestion.domainName
+                  ? ` · ${categorySuggestion.domainName}`
+                  : ""}
+              </small>
+            )}
           </div>
           <div className="field">
             <label>Peso (g)</label>
@@ -581,6 +637,14 @@ export function ProductAnalyzer() {
         </div>
 
         <div className="quote-actions">
+          <button
+            type="button"
+            className="secondary"
+            disabled={categoryLoading || !form.productName.trim()}
+            onClick={detectCategory}
+          >
+            {categoryLoading ? "Detectando..." : "Detectar categoria"}
+          </button>
           <button
             type="button"
             className="secondary"

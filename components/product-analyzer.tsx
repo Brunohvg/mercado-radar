@@ -82,6 +82,7 @@ type DiscoveryPayload = {
   market: {
     comparableCount: number;
     minimumPrice: number | null;
+    averagePrice: number | null;
     medianPrice: number | null;
     maximumPrice: number | null;
     source: "MARKETPLACE_SEARCH" | "CATALOG_WINNER" | "UNAVAILABLE";
@@ -1176,21 +1177,20 @@ export function ProductAnalyzer() {
                   </small>
                 </div>
                 <div className="discovery-market-price">
-                  <span>
-                    {discovery.market.source === "CATALOG_WINNER"
-                      ? "Preço de referência do catálogo"
-                      : "Preço típico no mercado"}
-                  </span>
+                  <span>Preço médio encontrado</span>
                   <strong>
-                    {discovery.market.medianPrice == null
+                    {discovery.market.averagePrice == null
                       ? "Sem referência"
-                      : money.format(discovery.market.medianPrice)}
+                      : money.format(discovery.market.averagePrice)}
                   </strong>
                   <small>
-                    {discovery.market.comparableCount} anúncios comparáveis
+                    {discovery.market.comparableCount} referência(s)
                     {discovery.market.minimumPrice != null &&
                     discovery.market.maximumPrice != null
-                      ? ` · ${money.format(discovery.market.minimumPrice)} a ${money.format(discovery.market.maximumPrice)}`
+                      ? ` · faixa ${money.format(discovery.market.minimumPrice)} a ${money.format(discovery.market.maximumPrice)}`
+                      : ""}
+                    {discovery.market.medianPrice != null
+                      ? ` · mediana ${money.format(discovery.market.medianPrice)}`
                       : ""}
                   </small>
                 </div>

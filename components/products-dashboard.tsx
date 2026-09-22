@@ -17,6 +17,10 @@ type ProductRow = {
   permalink: string | null;
   thumbnail: string | null;
   freeShipping: boolean;
+  supplier: string | null;
+  supplierPrice: number | null;
+  discountPercent: number;
+  netUnitCost: number | null;
   lastSyncedAt: string;
   health: {
     periodDays: number;
@@ -83,6 +87,13 @@ export function ProductsDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [costEditorId, setCostEditorId] = useState<string | null>(null);
+  const [costDraft, setCostDraft] = useState({
+    supplier: "",
+    supplierPrice: "",
+    discountPercent: "0",
+  });
+  const [costSaving, setCostSaving] = useState(false);
 
   const load = useCallback(async (refresh = false) => {
     refresh ? setRefreshing(true) : setLoading(true);
@@ -113,6 +124,65 @@ export function ProductsDashboard() {
   useEffect(() => {
     void load(false);
   }, [load]);
+
+  function openCostEditor(product: ProductRow) {
+    setCostEditorId(product.mlItemId);
+    setCostDraft({
+      supplier: product.supplier ?? "",
+      supplierPrice:
+        product.supplierPrice == null ? "" : String(product.supplierPrice),
+      discountPercent: String(product.discountPercent ?? 0),
+    });
+  }
+
+  async function saveCost(product: ProductRow) {
+    const supplierPrice = Number(costDraft.supplierPrice);
+    const discountPercent = Number(costDraft.discountPercent);
+
+    if (!Number.isFinite(supplierPrice) || supplierPrice <= 0) {
+      setError("Informe quanto foi pago no produto.");
+      return;
+    }
+
+    if (
+      !Number.isFinite(discountPercent) ||
+      discountPercent < 0 ||
+      discountPercent > 100
+    ) {
+      setError("Informe um desconto entre 0% e 100%.");
+      return;
+    }
+
+    setCostSaving(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/ml/products/cost", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mlItemId: product.mlItemId,
+          supplier: costDraft.supplier.trim() || null,
+          supplierPrice,
+          discountPercent,
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Falha ao salvar custo.");
+      }
+
+      setCostEditorId(null);
+      await load(false);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Falha ao salvar custo.",
+      );
+    } finally {
+      setCostSaving(false);
+    }
+  }
 
   return (
     <section className="module-section" id="produtos">
@@ -225,6 +295,132 @@ export function ProductsDashboard() {
                       </strong>
                     </div>
                   </div>
+
+                  <div className="product-cost-summary">
+                    <div>
+                      <span>Custo tabela</span>
+                      <strong>
+                        {product.supplierPrice == null
+                          ? "Não informado"
+                          : money.format(product.supplierPrice)}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Desconto</span>
+                      <strong>{product.discountPercent.toFixed(1)}%</strong>
+                    </div>
+                    <div>
+                      <span>Custo líquido</span>
+                      <strong>
+                        {product.netUnitCost == null
+                          ? "Aguardando"
+                          : money.format(product.netUnitCost)}
+                      </strong>
+                    </div>
+                    <button
+                      type="button"
+                      className="table-action"
+                      onClick={() => openCostEditor(product)}
+                    >
+                      {product.netUnitCost == null
+                        ? "Informar custo"
+                        : "Editar custo"}
+                    </button>
+                  </div>
+
+                  {costEditorId === product.mlItemId && (
+                    <div className="product-cost-editor">
+                      <div className="product-cost-editor-head">
+                        <div>
+                          <span className="eyebrow">Custo do produto</span>
+                          <strong>Quanto este item realmente custou?</strong>
+                        </div>
+                        <button
+                          type="button"
+                          className="table-action"
+                          onClick={() => setCostEditorId(null)}
+                        >
+                          Fechar
+                        </button>
+                      </div>
+
+                      <div className="product-cost-editor-grid">
+                        <label>
+                          <span>Fornecedor (opcional)</span>
+                          <input
+                            value={costDraft.supplier}
+                            placeholder="Ex.: Bibelô"
+                            onChange={(event) =>
+                              setCostDraft((current) => ({
+                                ...current,
+                                supplier: event.target.value,
+                              }))
+                            }
+                          />
+                        </label>
+                        <label>
+                          <span>Preço pago / tabela</span>
+                          <input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            value={costDraft.supplierPrice}
+                            placeholder="Ex.: 27,90"
+                            onChange={(event) =>
+                              setCostDraft((current) => ({
+                                ...current,
+                                supplierPrice: event.target.value,
+                              }))
+                            }
+                          />
+                        </label>
+                        <label>
+                          <span>Desconto %</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            value={costDraft.discountPercent}
+                            onChange={(event) =>
+                              setCostDraft((current) => ({
+                                ...current,
+                                discountPercent: event.target.value,
+                              }))
+                            }
+                          />
+                        </label>
+                        <div className="product-cost-preview">
+                          <span>Custo líquido</span>
+                          <strong>
+                            {Number(costDraft.supplierPrice) > 0
+                              ? money.format(
+                                  Number(costDraft.supplierPrice) *
+                                    (1 -
+                                      Number(costDraft.discountPercent || 0) /
+                                        100),
+                                )
+                              : "—"}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <div className="product-cost-editor-actions">
+                        <small>
+                          Ao salvar, o Radar recalcula pedidos históricos deste
+                          anúncio que já tenham tarifa e frete realizados.
+                        </small>
+                        <button
+                          type="button"
+                          className="secondary"
+                          disabled={costSaving}
+                          onClick={() => void saveCost(product)}
+                        >
+                          {costSaving ? "Recalculando..." : "Salvar e recalcular"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="product-actions">
                     <span className="data-origin">Dados Mercado Livre</span>

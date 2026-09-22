@@ -2256,3 +2256,190 @@ h1 em {
   font-size: 9px;
   line-height: 1.45;
 }
+
+
+.inline-package-editor {
+  margin-top: 12px;
+  padding: 13px;
+  border: 1px solid rgba(105,184,255,.18);
+  border-radius: 12px;
+  background: rgba(105,184,255,.035);
+}
+
+.inline-package-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.inline-package-head span,
+.inline-package-head strong,
+.inline-package-head small {
+  display: block;
+}
+
+.inline-package-head span {
+  color: var(--muted);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.inline-package-head strong {
+  margin-top: 3px;
+  font-size: 12px;
+}
+
+.inline-package-head small {
+  color: #8396ad;
+  font-size: 8px;
+  text-align: right;
+}
+
+.inline-package-grid {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 8px;
+}
+
+.inline-package-grid label {
+  display: grid;
+  gap: 5px;
+}
+
+.inline-package-grid label > span {
+  color: var(--muted);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.inline-package-grid input {
+  width: 100%;
+  min-width: 0;
+}
+
+.inline-package-help {
+  display: block;
+  margin-top: 9px;
+  color: #8396ad;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.integration-diagnostics {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.integration-diagnostic-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.integration-diagnostic-head strong,
+.integration-diagnostic-head small {
+  display: block;
+}
+
+.integration-diagnostic-head strong {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.integration-diagnostic-head small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.integration-diagnostic-grid {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 8px;
+}
+
+.integration-diagnostic-item {
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: rgba(255,255,255,.016);
+}
+
+.integration-diagnostic-item.ok {
+  border-color: rgba(94,231,176,.16);
+}
+
+.integration-diagnostic-item.blocked {
+  border-color: rgba(255,125,144,.18);
+  background: rgba(255,125,144,.025);
+}
+
+.integration-diagnostic-item span,
+.integration-diagnostic-item strong,
+.integration-diagnostic-item small {
+  display: block;
+}
+
+.integration-diagnostic-item span {
+  color: var(--muted);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.integration-diagnostic-item strong {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.integration-diagnostic-item.ok strong {
+  color: var(--accent);
+}
+
+.integration-diagnostic-item.blocked strong {
+  color: var(--danger);
+}
+
+.integration-diagnostic-item small {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  color: #8396ad;
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.integration-note.warning {
+  margin-top: 10px;
+  border-color: rgba(255,210,122,.18);
+  color: #d5bd87;
+  background: rgba(255,210,122,.035);
+}
+
+@media (max-width: 760px) {
+  .inline-package-grid,
+  .integration-diagnostic-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .inline-package-head,
+  .integration-diagnostic-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .inline-package-head small {
+    text-align: left;
+  }
+}
+
+@media (max-width: 420px) {
+  .inline-package-grid,
+  .integration-diagnostic-grid {
+    grid-template-columns: 1fr;
+  }
+}

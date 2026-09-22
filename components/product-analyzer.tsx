@@ -54,6 +54,11 @@ type MarketScan = {
   verdict: string;
   verdictLabel: string;
   fitScore: number;
+  decision: {
+    headline: string;
+    reason: string;
+    nextAction: string;
+  };
   market: {
     resultCount: number;
     minimumPrice: number;
@@ -945,6 +950,18 @@ export function ProductAnalyzer() {
               <span>Fit score</span>
               <strong>{marketScan.fitScore}</strong>
               <small>/100</small>
+            </div>
+          </div>
+
+          <div className="decision-guidance">
+            <div>
+              <span>Leitura do Radar</span>
+              <strong>{marketScan.decision.headline}</strong>
+              <p>{marketScan.decision.reason}</p>
+            </div>
+            <div className="decision-next">
+              <span>Próxima ação</span>
+              <p>{marketScan.decision.nextAction}</p>
             </div>
           </div>
 

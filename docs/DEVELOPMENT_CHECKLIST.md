@@ -463,4 +463,46 @@ Se faltar qualquer item crítico, marcar como **implementado / aguardando valida
 - [ ] teto de compra usa tarifa/frete reais da conta;
 - [ ] candidato abre diretamente no analisador;
 - [ ] tendência não é rotulada como venda realizada;
-- [ ] preparar ranking de mais vendidos por categoria como evidência complementar.
+- [x] ranking de mais vendidos por categoria integrado como evidência;
+- [ ] validar correspondência do ranking com casos reais.
+
+
+## Reforma UX por rotas
+
+- [x] home não empilha todos os módulos;
+- [x] análise em rota própria;
+- [x] oportunidades em rota própria;
+- [x] produtos em rota própria;
+- [x] vendas em rota própria;
+- [x] integrações em rota própria;
+- [ ] smoke test mobile em iPhone/Android;
+- [ ] confirmar fechamento do menu após navegação.
+
+## Scanner EAN/GTIN
+
+- [x] câmera traseira;
+- [x] formatos EAN/UPC/Code128;
+- [x] preencher busca após leitura;
+- [x] fallback manual quando BarcodeDetector não existir;
+- [ ] testar Safari/iOS;
+- [ ] testar Chrome/Android.
+
+## Lucro realizado
+
+- [x] resolver shipment pela order quando necessário;
+- [x] consultar custo final do vendedor em /shipments/{id}/costs;
+- [x] calcular lucro e margem apenas quando custos estiverem completos;
+- [x] distribuir lucro por item proporcionalmente à receita;
+- [ ] comparar manualmente 5 pedidos com Mercado Livre.
+
+## Product Health
+
+- [x] vendas 30d;
+- [x] velocidade diária;
+- [x] cobertura em dias;
+- [x] margem realizada quando disponível;
+- [x] ações REPOR / ATENÇÃO / MANTER / PARAR / VINCULAR CUSTO;
+- [x] quantidade inicial sugerida para 21 dias;
+- [x] capital necessário quando custo está disponível;
+- [ ] validar regra com produtos reais;
+- [ ] adicionar lead time antes de considerar recomendação concluída.

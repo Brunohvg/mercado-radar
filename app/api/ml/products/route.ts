@@ -157,17 +157,28 @@ export async function GET(request: Request) {
           | "RESTOCK"
           | "WATCH"
           | "MAINTAIN"
+          | "VALIDATE_PROFIT"
           | "OBSERVE" = "OBSERVE";
 
         if (unitCost == null) {
           healthAction = "ADD_COST";
+        } else if (recent.units > 0 && realizedMargin == null) {
+          healthAction = "VALIDATE_PROFIT";
         } else if (realizedMargin != null && realizedMargin < 15) {
           healthAction = "STOP_BUYING";
-        } else if (recent.units > 0 && coverageDays != null && coverageDays <= 7) {
+        } else if (
+          recent.units > 0 &&
+          coverageDays != null &&
+          coverageDays <= 7
+        ) {
           healthAction = "RESTOCK";
-        } else if (recent.units > 0 && coverageDays != null && coverageDays <= 14) {
+        } else if (
+          recent.units > 0 &&
+          coverageDays != null &&
+          coverageDays <= 14
+        ) {
           healthAction = "WATCH";
-        } else if (recent.units > 0) {
+        } else if (recent.units > 0 && realizedMargin != null) {
           healthAction = "MAINTAIN";
         }
 
@@ -180,6 +191,14 @@ export async function GET(request: Request) {
         const capitalNeeded =
           unitCost != null && suggestedReorder > 0
             ? unitCost * suggestedReorder
+            : null;
+        const inventoryCapital =
+          unitCost != null ? unitCost * item.availableQuantity : null;
+        const grossMarkupPercent =
+          unitCost != null &&
+          item.currentPrice != null &&
+          unitCost > 0
+            ? ((Number(item.currentPrice) - unitCost) / unitCost) * 100
             : null;
 
         return {
@@ -212,6 +231,8 @@ export async function GET(request: Request) {
             coverageDays,
             realizedMarginPercent: realizedMargin,
             unitCost,
+            grossMarkupPercent,
+            inventoryCapital,
             action: healthAction,
             suggestedReorder,
             capitalNeeded,

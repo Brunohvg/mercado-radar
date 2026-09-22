@@ -72,6 +72,13 @@ export async function GET(request: Request) {
     const profitReadyCount = validOrders.filter(
       (order) => order.profit != null,
     ).length;
+    const profitReadyRevenue = validOrders
+      .filter((order) => order.profit != null)
+      .reduce((sum, order) => sum + Number(order.totalAmount), 0);
+    const realizedMarginPercent =
+      profitReadyRevenue > 0
+        ? (realizedProfit / profitReadyRevenue) * 100
+        : null;
 
     const byItem = new Map<
       string,
@@ -113,6 +120,7 @@ export async function GET(request: Request) {
         grossRevenue,
         knownFees,
         realizedProfit,
+        realizedMarginPercent,
         profitReadyCount,
         awaitingCostCount:
           validOrders.length - profitReadyCount,

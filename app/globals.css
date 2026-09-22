@@ -2017,3 +2017,216 @@ h1 em {
     height: 36px;
   }
 }
+
+
+.routed-content {
+  padding-top: 24px;
+}
+
+.brand-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.route-pillar {
+  text-decoration: none;
+  color: inherit;
+  transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+
+.route-pillar:hover {
+  transform: translateY(-2px);
+  border-color: rgba(105,184,255,.24);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(105,184,255,.08), transparent 12rem),
+    rgba(5,16,29,.62);
+}
+
+.route-pillar-action {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--accent-2);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.smart-product-input {
+  grid-template-columns: minmax(0,1fr) auto auto;
+}
+
+.scanner-button {
+  display: grid;
+  width: 42px;
+  min-width: 42px;
+  place-items: center;
+  border: 1px solid rgba(105,184,255,.18);
+  border-radius: 10px;
+  background: rgba(105,184,255,.055);
+  color: var(--accent-2);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.scanner-button:hover {
+  background: rgba(105,184,255,.09);
+}
+
+.barcode-scanner-modal {
+  position: fixed;
+  z-index: 140;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(1,8,15,.84);
+  backdrop-filter: blur(8px);
+}
+
+.barcode-scanner-card {
+  width: min(100%, 520px);
+  overflow: hidden;
+  border: 1px solid rgba(105,184,255,.2);
+  border-radius: 18px;
+  background: #071522;
+  box-shadow: 0 30px 100px rgba(0,0,0,.45);
+}
+
+.barcode-scanner-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 15px;
+  border-bottom: 1px solid var(--line);
+}
+
+.barcode-scanner-head strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+}
+
+.barcode-scanner-head button {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 7px 10px;
+  background: rgba(255,255,255,.025);
+  color: #c7d3df;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.barcode-video-shell {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #02080e;
+}
+
+.barcode-video-shell video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.barcode-target {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 76%;
+  height: 34%;
+  transform: translate(-50%,-50%);
+  border: 2px solid rgba(94,231,176,.82);
+  border-radius: 14px;
+  box-shadow: 0 0 0 999px rgba(1,8,15,.22);
+}
+
+.barcode-scanner-card > small {
+  display: block;
+  padding: 12px 15px 14px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.product-health-card {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: rgba(255,255,255,.014);
+}
+
+.product-health-card.good {
+  border-color: rgba(94,231,176,.18);
+  background: rgba(94,231,176,.035);
+}
+
+.product-health-card.tight {
+  border-color: rgba(255,210,122,.18);
+  background: rgba(255,210,122,.035);
+}
+
+.product-health-card.bad {
+  border-color: rgba(255,125,144,.18);
+  background: rgba(255,125,144,.035);
+}
+
+.product-health-card span,
+.product-health-card strong,
+.product-health-card small {
+  display: block;
+}
+
+.product-health-card span {
+  color: var(--muted);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.product-health-card strong {
+  margin-top: 3px;
+  font-size: 12px;
+}
+
+.product-health-card small {
+  margin-top: 3px;
+  color: #8295ac;
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.product-capital {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+@media (max-width: 620px) {
+  .routed-content {
+    padding-top: 8px;
+  }
+
+  .smart-product-input {
+    grid-template-columns: 1fr auto;
+  }
+
+  .smart-product-input .secondary {
+    grid-column: 1 / -1;
+  }
+
+  .product-health-card {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .product-capital {
+    text-align: left;
+  }
+}

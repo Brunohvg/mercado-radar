@@ -4,6 +4,7 @@ import {
   getItemsCurrentPrices,
   getItemsVisitTotals,
   getMlSession,
+  getShipmentCosts,
   getSellerItemIds,
   getSellerOrders,
 } from "@/lib/mercado-livre";
@@ -309,19 +310,113 @@ export async function syncMercadoLivreOrders(days = 30) {
 
       const persistedItems = await prisma.mercadoLivreOrderItem.findMany({
         where: { orderId: order.id },
-        select: { quantity: true, unitCost: true },
+        select: {
+          id: true,
+          quantity: true,
+          unitPrice: true,
+          unitCost: true,
+          saleFee: true,
+        },
       });
 
       const missingProductCost = persistedItems.some(
         (item) => item.unitCost == null,
       );
 
+      let realizedShippingCost: number | null = null;
+      if (order.shippingId) {
+        realizedShippingCost = await getShipmentCosts({
+          accessToken: session.accessToken,
+          shipmentId: order.shippingId,
+        })
+          .then((quote) => quote.sellerCost)
+          .catch(() => null);
+      }
+
+      const itemFeeTotal = persistedItems.reduce(
+        (sum, item) => sum + Number(item.saleFee ?? 0),
+        0,
+      );
+      const realizedFee =
+        marketplaceFeeTotal != null && marketplaceFeeTotal > 0
+          ? marketplaceFeeTotal
+          : itemFeeTotal > 0
+            ? itemFeeTotal
+            : null;
+
+      const totalProductCost = missingProductCost
+        ? null
+        : persistedItems.reduce(
+            (sum, item) =>
+              sum + Number(item.unitCost ?? 0) * item.quantity,
+            0,
+          );
+
+      const settings = await prisma.appSettings.findUnique({
+        where: { id: "default" },
+        select: { operatingCostDefault: true },
+      });
+      const operatingCost = Number(settings?.operatingCostDefault ?? 0);
+
+      const profitReady =
+        totalProductCost != null &&
+        realizedShippingCost != null &&
+        realizedFee != null;
+
+      const realizedProfit = profitReady
+        ? totalAmount -
+          realizedFee -
+          realizedShippingCost -
+          totalProductCost -
+          operatingCost
+        : null;
+      const realizedMargin =
+        realizedProfit != null && totalAmount > 0
+          ? (realizedProfit / totalAmount) * 100
+          : null;
+
+      if (profitReady && realizedProfit != null) {
+        const totalItemRevenue = persistedItems.reduce(
+          (sum, item) => sum + Number(item.unitPrice) * item.quantity,
+          0,
+        );
+
+        for (const item of persistedItems) {
+          const itemRevenue = Number(item.unitPrice) * item.quantity;
+          const share =
+            totalItemRevenue > 0 ? itemRevenue / totalItemRevenue : 0;
+          const allocatedFee = realizedFee * share;
+          const allocatedShipping = realizedShippingCost * share;
+          const allocatedOperating = operatingCost * share;
+          const itemCost = Number(item.unitCost ?? 0) * item.quantity;
+          const itemProfit =
+            itemRevenue -
+            allocatedFee -
+            allocatedShipping -
+            allocatedOperating -
+            itemCost;
+
+          await prisma.mercadoLivreOrderItem.update({
+            where: { id: item.id },
+            data: { profit: itemProfit },
+          });
+        }
+      }
+
       await prisma.mercadoLivreOrder.update({
         where: { id: order.id },
         data: {
+          shippingCost: realizedShippingCost,
+          marketplaceFeeTotal: realizedFee,
+          profit: realizedProfit,
+          marginPercent: realizedMargin,
           profitabilityStatus: missingProductCost
             ? "AWAITING_PRODUCT_COST"
-            : "AWAITING_SHIPPING_COST",
+            : realizedShippingCost == null
+              ? "AWAITING_SHIPPING_COST"
+              : realizedFee == null
+                ? "AWAITING_FEE"
+                : "REALIZED",
         },
       });
 

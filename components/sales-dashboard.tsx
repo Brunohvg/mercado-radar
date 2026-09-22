@@ -11,6 +11,7 @@ type SalesPayload = {
     grossRevenue: number;
     knownFees: number;
     realizedProfit: number;
+    realizedMarginPercent: number | null;
     profitReadyCount: number;
     awaitingCostCount: number;
     averageTicket: number;
@@ -162,9 +163,11 @@ export function SalesDashboard() {
                   : "Em preparação"}
               </strong>
               <small>
-                {data.summary.awaitingCostCount > 0
-                  ? `${data.summary.awaitingCostCount} pedido(s) aguardando custo/frete`
-                  : "custos completos"}
+                {data.summary.realizedMarginPercent != null
+                  ? `${data.summary.realizedMarginPercent.toFixed(1)}% de margem real`
+                  : data.summary.awaitingCostCount > 0
+                    ? `${data.summary.awaitingCostCount} pedido(s) aguardando custo/frete`
+                    : "custos completos"}
               </small>
             </article>
           </div>

@@ -3,11 +3,11 @@
 import { useState } from "react";
 
 const items = [
-  ["#analisar", "Analisar produto"],
-  ["#oportunidades", "Oportunidades"],
-  ["#produtos", "Produtos"],
-  ["#vendas", "Vendas"],
-  ["#kits", "Simular kits"],
+  ["#analisar", "Analisar oportunidade"],
+  ["#oportunidades", "Radar de oportunidades"],
+  ["#produtos", "Capital & estoque"],
+  ["#vendas", "Lucro realizado"],
+  ["#kits", "Estratégias de kit"],
   ["#integracoes", "Integrações"],
 ] as const;
 
@@ -42,7 +42,7 @@ export function AppNavigation() {
           <span className="brand-mark">MR</span>
           <div>
             <strong>Mercado Radar</strong>
-            <small>Commerce Intelligence</small>
+            <small>Revenda Intelligence</small>
           </div>
         </div>
 

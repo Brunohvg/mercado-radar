@@ -18,6 +18,18 @@ type ProductRow = {
   thumbnail: string | null;
   freeShipping: boolean;
   lastSyncedAt: string;
+  health: {
+    periodDays: number;
+    unitsSold: number;
+    revenue: number;
+    dailyVelocity: number;
+    coverageDays: number | null;
+    realizedMarginPercent: number | null;
+    unitCost: number | null;
+    action: "ADD_COST" | "STOP_BUYING" | "RESTOCK" | "WATCH" | "MAINTAIN" | "OBSERVE";
+    suggestedReorder: number;
+    capitalNeeded: number | null;
+  };
 };
 
 type ProductPayload = {
@@ -41,6 +53,22 @@ function listingLabel(value: string | null) {
   if (value === "gold_pro") return "Premium";
   if (value === "gold_special") return "Clássico";
   return value ?? "—";
+}
+
+function healthLabel(value: ProductRow["health"]["action"]) {
+  if (value === "RESTOCK") return "Repor";
+  if (value === "WATCH") return "Atenção";
+  if (value === "MAINTAIN") return "Manter";
+  if (value === "STOP_BUYING") return "Parar compra";
+  if (value === "ADD_COST") return "Vincular custo";
+  return "Observar";
+}
+
+function healthTone(value: ProductRow["health"]["action"]) {
+  if (value === "RESTOCK" || value === "MAINTAIN") return "good";
+  if (value === "WATCH" || value === "ADD_COST") return "tight";
+  if (value === "STOP_BUYING") return "bad";
+  return "neutral";
 }
 
 function statusLabel(value: string) {
@@ -177,19 +205,51 @@ export function ProductsDashboard() {
                       </strong>
                     </div>
                     <div>
-                      <span>Estoque</span>
-                      <strong>{product.availableQuantity}</strong>
+                      <span>Vendas 30d</span>
+                      <strong>{product.health.unitsSold}</strong>
                     </div>
                     <div>
-                      <span>Vendidos</span>
-                      <strong>{product.soldQuantity}</strong>
-                    </div>
-                    <div>
-                      <span>Visitas</span>
+                      <span>Cobertura</span>
                       <strong>
-                        {product.visitsTotal == null
+                        {product.health.coverageDays == null
+                          ? "Sem giro"
+                          : `${Math.round(product.health.coverageDays)} dias`}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Margem real</span>
+                      <strong>
+                        {product.health.realizedMarginPercent == null
+                          ? "Aguardando"
+                          : `${product.health.realizedMarginPercent.toFixed(1)}%`}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className={"product-health-card " + healthTone(product.health.action)}>
+                    <div>
+                      <span>Ação do Radar</span>
+                      <strong>{healthLabel(product.health.action)}</strong>
+                      <small>
+                        {product.health.action === "RESTOCK"
+                          ? `Sugestão: repor ${product.health.suggestedReorder} un.`
+                          : product.health.action === "STOP_BUYING"
+                            ? "Margem realizada abaixo do mínimo."
+                            : product.health.action === "ADD_COST"
+                              ? "Sem custo do SKU, não dá para decidir capital."
+                              : product.health.action === "WATCH"
+                                ? "Cobertura abaixo de 14 dias."
+                                : product.health.action === "MAINTAIN"
+                                  ? "Giro ativo com cobertura confortável."
+                                  : "Ainda não há vendas suficientes no período."}
+                      </small>
+                    </div>
+                    <div className="product-capital">
+                      <span>Capital para reposição</span>
+                      <strong>
+                        {product.health.capitalNeeded == null
                           ? "—"
-                          : product.visitsTotal.toLocaleString("pt-BR")}
+                          : money.format(product.health.capitalNeeded)}
                       </strong>
                     </div>
                   </div>

@@ -50,6 +50,42 @@ type CategorySuggestion = {
   categoryName: string;
 };
 
+type DiscoveryPayload = {
+  identification: {
+    input: string;
+    barcode: string | null;
+    source: "CATALOG" | "MARKETPLACE";
+    catalogProductId: string | null;
+    name: string;
+    categoryId: string | null;
+    categoryName: string | null;
+    domainName: string | null;
+  };
+  market: {
+    comparableCount: number;
+    minimumPrice: number | null;
+    medianPrice: number | null;
+    maximumPrice: number | null;
+  };
+  dimensions: {
+    heightCm: number;
+    widthCm: number;
+    lengthCm: number;
+    weightGrams: number;
+    source: string;
+    sampleSize: number;
+    confidence: "HIGH" | "MEDIUM" | "LOW";
+  } | null;
+  comparables: Array<{
+    id: string;
+    title: string;
+    price: number;
+    permalink: string | null;
+    thumbnail: string | null;
+    freeShipping: boolean;
+  }>;
+};
+
 type MarketScan = {
   verdict: string;
   verdictLabel: string;
@@ -204,6 +240,8 @@ export function ProductAnalyzer() {
   const [quoteMessage, setQuoteMessage] = useState("");
   const [comparison, setComparison] = useState<ComparedQuote[]>([]);
   const [categoryLoading, setCategoryLoading] = useState(false);
+  const [discoveryLoading, setDiscoveryLoading] = useState(false);
+  const [discovery, setDiscovery] = useState<DiscoveryPayload | null>(null);
   const [priceLoading, setPriceLoading] = useState(false);
   const [marketLoading, setMarketLoading] = useState(false);
   const [marketScan, setMarketScan] = useState<MarketScan | null>(null);
@@ -425,6 +463,76 @@ export function ProductAnalyzer() {
       },
       25000,
     );
+  }
+
+  async function identifyProduct() {
+    if (!form.productName.trim()) {
+      setError("Informe o nome, EAN ou GTIN do produto.");
+      return;
+    }
+
+    setDiscoveryLoading(true);
+    setError("");
+    setQuoteMessage("");
+
+    try {
+      const payload = await fetchJsonWithTimeout<DiscoveryPayload>(
+        "/api/ml/product-discovery",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: form.productName.trim() }),
+        },
+        35000,
+      );
+
+      const next = {
+        ...form,
+        productName: payload.identification.name || form.productName,
+        categoryId:
+          payload.identification.categoryId ?? form.categoryId,
+        weightGrams: payload.dimensions
+          ? String(payload.dimensions.weightGrams)
+          : form.weightGrams,
+        heightCm: payload.dimensions
+          ? String(payload.dimensions.heightCm)
+          : form.heightCm,
+        widthCm: payload.dimensions
+          ? String(payload.dimensions.widthCm)
+          : form.widthCm,
+        lengthCm: payload.dimensions
+          ? String(payload.dimensions.lengthCm)
+          : form.lengthCm,
+      };
+
+      setForm(next);
+      setDiscovery(payload);
+
+      if (payload.identification.categoryId) {
+        setCategorySuggestion({
+          domainId: null,
+          domainName: payload.identification.domainName,
+          categoryId: payload.identification.categoryId,
+          categoryName:
+            payload.identification.categoryName ??
+            payload.identification.categoryId,
+        });
+      }
+
+      setQuoteMessage(
+        payload.dimensions
+          ? "Produto identificado. Categoria, preço de mercado e embalagem estimada foram carregados."
+          : "Produto identificado e faixa de mercado carregada. Confirme peso e dimensões da embalagem.",
+      );
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Falha ao identificar produto.",
+      );
+    } finally {
+      setDiscoveryLoading(false);
+    }
   }
 
   async function detectCategory() {
@@ -659,14 +767,79 @@ export function ProductAnalyzer() {
 
       <div className="analyzer-grid">
         <form className="panel form-panel" onSubmit={submit}>
-          <div className="field wide">
-            <label>Produto</label>
-            <input
-              placeholder="Ex.: Ilhós nº54 alumínio pacote 1.000 unidades"
-              value={form.productName}
-              onChange={(e) => field("productName", e.target.value)}
-            />
+          <div className="field wide smart-product-field">
+            <label>Produto, EAN ou GTIN</label>
+            <div className="smart-product-input">
+              <input
+                placeholder="Digite o nome ou leia/digite o código de barras"
+                value={form.productName}
+                onChange={(e) => {
+                  field("productName", e.target.value);
+                  setDiscovery(null);
+                }}
+              />
+              <button
+                type="button"
+                className="secondary"
+                disabled={discoveryLoading || !form.productName.trim()}
+                onClick={identifyProduct}
+              >
+                {discoveryLoading ? "Identificando..." : "Identificar produto"}
+              </button>
+            </div>
+            <small className="field-hint neutral">
+              O Radar procura no catálogo e em anúncios semelhantes para preencher
+              categoria, estimar embalagem e mostrar a faixa de preço praticada.
+            </small>
           </div>
+
+          {discovery && (
+            <div className="discovery-card wide">
+              <div className="discovery-main">
+                <div>
+                  <span className="data-origin">
+                    {discovery.identification.barcode
+                      ? "Identificado por código de barras"
+                      : "Identificado pelo Mercado Livre"}
+                  </span>
+                  <strong>{discovery.identification.name}</strong>
+                  <small>
+                    {discovery.identification.categoryName ?? "Categoria detectada"}
+                    {discovery.identification.catalogProductId
+                      ? ` · Catálogo ${discovery.identification.catalogProductId}`
+                      : ""}
+                  </small>
+                </div>
+                <div className="discovery-market-price">
+                  <span>Preço típico no mercado</span>
+                  <strong>
+                    {discovery.market.medianPrice == null
+                      ? "Sem referência"
+                      : money.format(discovery.market.medianPrice)}
+                  </strong>
+                  <small>
+                    {discovery.market.comparableCount} anúncios comparáveis
+                    {discovery.market.minimumPrice != null &&
+                    discovery.market.maximumPrice != null
+                      ? ` · ${money.format(discovery.market.minimumPrice)} a ${money.format(discovery.market.maximumPrice)}`
+                      : ""}
+                  </small>
+                </div>
+              </div>
+
+              {discovery.dimensions && (
+                <div className="discovery-dimensions">
+                  <span>Embalagem estimada</span>
+                  <strong>
+                    {discovery.dimensions.lengthCm} × {discovery.dimensions.widthCm} × {discovery.dimensions.heightCm} cm · {discovery.dimensions.weightGrams} g
+                  </strong>
+                  <small>
+                    Baseada em {discovery.dimensions.sampleSize} anúncio(s) semelhante(s) · confiança {discovery.dimensions.confidence.toLowerCase()}
+                  </small>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="field">
             <label>Fornecedor <span className="optional-label">opcional</span></label>
@@ -914,8 +1087,9 @@ export function ProductAnalyzer() {
             <h2>Consultar Mercado Livre</h2>
           </div>
           <p>
-            Categoria e custos vêm do Mercado Livre. Peso e dimensões precisam
-            corresponder à embalagem real para o frete não ser estimado errado.
+            O Radar tenta preencher categoria, peso e dimensões por produtos
+            semelhantes. Quando houver estimativa, confirme antes de publicar
+            porque a embalagem real continua sendo a referência correta.
           </p>
         </div>
 

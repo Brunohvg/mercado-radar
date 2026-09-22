@@ -238,3 +238,38 @@ export async function getShippingQuote(input: {
     promotedAmount: Number(coverage.discount?.promoted_amount ?? 0),
   };
 }
+
+
+export async function predictCategory(input: {
+  accessToken: string;
+  title: string;
+  limit?: number;
+}) {
+  const query = new URLSearchParams({
+    q: input.title,
+    limit: String(input.limit ?? 3),
+  });
+
+  const raw = await jsonFetch<Array<{
+    domain_id?: string;
+    domain_name?: string;
+    category_id: string;
+    category_name: string;
+    attributes?: Array<{
+      id: string;
+      value_id?: string;
+      value_name?: string;
+    }>;
+  }>>(
+    `${API}/sites/MLB/domain_discovery/search?${query.toString()}`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+
+  return raw.map((item) => ({
+    domainId: item.domain_id ?? null,
+    domainName: item.domain_name ?? null,
+    categoryId: item.category_id,
+    categoryName: item.category_name,
+    attributes: item.attributes ?? [],
+  }));
+}

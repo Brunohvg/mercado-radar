@@ -131,3 +131,28 @@ model MercadoLivreNotification {
   @@index([userId, createdAt])
   @@index([status, createdAt])
 }
+
+
+model MarketSnapshot {
+  id                String   @id @default(cuid())
+  sellerUserId      String
+  query             String
+  categoryId        String?
+  resultCount       Int
+  minimumPrice      Decimal? @db.Decimal(12, 2)
+  p25Price          Decimal? @db.Decimal(12, 2)
+  medianPrice       Decimal? @db.Decimal(12, 2)
+  p75Price          Decimal? @db.Decimal(12, 2)
+  maximumPrice      Decimal? @db.Decimal(12, 2)
+  averagePrice      Decimal? @db.Decimal(12, 2)
+  testedPrice       Decimal? @db.Decimal(12, 2)
+  marketGapPercent  Decimal? @db.Decimal(8, 2)
+  opportunityScore  Int?
+  verdict           String?
+  competitors       Json
+  createdAt         DateTime @default(now())
+
+  @@index([sellerUserId, createdAt])
+  @@index([categoryId, createdAt])
+  @@index([verdict, createdAt])
+}

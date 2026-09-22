@@ -21,18 +21,35 @@ function credentials() {
 }
 
 async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, { ...init, cache: "no-store" });
-  const body = await response.json().catch(() => ({}));
+  try {
+    const response = await fetch(url, {
+      ...init,
+      cache: "no-store",
+      signal: AbortSignal.timeout(12000),
+    });
+    const body = await response.json().catch(() => ({}));
 
-  if (!response.ok) {
-    const message =
-      typeof body?.message === "string"
-        ? body.message
-        : `Mercado Livre respondeu HTTP ${response.status}`;
-    throw new Error(message);
+    if (!response.ok) {
+      const message =
+        typeof body?.message === "string"
+          ? body.message
+          : `Mercado Livre respondeu HTTP ${response.status}`;
+      throw new Error(message);
+    }
+
+    return body as T;
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.name === "TimeoutError" || error.name === "AbortError")
+    ) {
+      throw new Error(
+        "O Mercado Livre demorou demais para responder. Tente novamente em alguns segundos.",
+      );
+    }
+
+    throw error;
   }
-
-  return body as T;
 }
 
 export async function exchangeAuthorizationCode(input: {

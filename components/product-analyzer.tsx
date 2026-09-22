@@ -366,50 +366,95 @@ export function ProductAnalyzer() {
 
     try {
       if (!form.productName.trim()) {
-        throw new Error("Informe o nome do produto.");
+        throw new Error("Informe o nome, EAN ou GTIN do produto.");
       }
 
       if (number(form.supplierPrice) <= 0) {
         throw new Error("Informe o preço de compra do produto.");
       }
 
-      if (
-        number(form.weightGrams) <= 0 ||
-        number(form.heightCm) <= 0 ||
-        number(form.widthCm) <= 0 ||
-        number(form.lengthCm) <= 0
-      ) {
-        throw new Error(
-          "Informe peso, altura, largura e comprimento reais da embalagem.",
-        );
-      }
-
       let next = { ...form };
 
-      if (!next.categoryId.trim()) {
-        const categoryPayload = await fetchJsonWithTimeout<{
-          best: CategorySuggestion | null;
-        }>(
-          "/api/ml/category-predict",
+      const needsDiscovery =
+        !next.categoryId.trim() ||
+        number(next.weightGrams) <= 0 ||
+        number(next.heightCm) <= 0 ||
+        number(next.widthCm) <= 0 ||
+        number(next.lengthCm) <= 0;
+
+      if (needsDiscovery) {
+        const discoveryPayload = await fetchJsonWithTimeout<DiscoveryPayload>(
+          "/api/ml/product-discovery",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: next.productName }),
+            body: JSON.stringify({ query: next.productName.trim() }),
           },
-          20000,
+          35000,
         );
 
-        if (!categoryPayload.best) {
-          throw new Error(
-            "Não foi possível detectar a categoria automaticamente.",
-          );
-        }
+        setDiscovery(discoveryPayload);
 
-        setCategorySuggestion(categoryPayload.best);
         next = {
           ...next,
-          categoryId: categoryPayload.best.categoryId,
+          productName:
+            discoveryPayload.identification.name || next.productName,
+          categoryId:
+            discoveryPayload.identification.categoryId ??
+            next.categoryId,
+          weightGrams:
+            number(next.weightGrams) > 0
+              ? next.weightGrams
+              : discoveryPayload.dimensions
+                ? String(discoveryPayload.dimensions.weightGrams)
+                : "",
+          heightCm:
+            number(next.heightCm) > 0
+              ? next.heightCm
+              : discoveryPayload.dimensions
+                ? String(discoveryPayload.dimensions.heightCm)
+                : "",
+          widthCm:
+            number(next.widthCm) > 0
+              ? next.widthCm
+              : discoveryPayload.dimensions
+                ? String(discoveryPayload.dimensions.widthCm)
+                : "",
+          lengthCm:
+            number(next.lengthCm) > 0
+              ? next.lengthCm
+              : discoveryPayload.dimensions
+                ? String(discoveryPayload.dimensions.lengthCm)
+                : "",
         };
+
+        if (discoveryPayload.identification.categoryId) {
+          setCategorySuggestion({
+            domainId: null,
+            domainName: discoveryPayload.identification.domainName,
+            categoryId: discoveryPayload.identification.categoryId,
+            categoryName:
+              discoveryPayload.identification.categoryName ??
+              discoveryPayload.identification.categoryId,
+          });
+        }
+      }
+
+      if (!next.categoryId.trim()) {
+        throw new Error(
+          "Não consegui identificar a categoria automaticamente. Refine o nome do produto.",
+        );
+      }
+
+      if (
+        number(next.weightGrams) <= 0 ||
+        number(next.heightCm) <= 0 ||
+        number(next.widthCm) <= 0 ||
+        number(next.lengthCm) <= 0
+      ) {
+        throw new Error(
+          "Não encontrei embalagem confiável em produtos semelhantes. Informe peso e dimensões apenas para este caso.",
+        );
       }
 
       if (number(next.salePrice) <= 0) {
@@ -468,7 +513,7 @@ export function ProductAnalyzer() {
 
       setForm(next);
       setQuoteMessage(
-        "Categoria, tarifa, comissão e frete foram atualizados automaticamente pelo Mercado Livre.",
+        "Produto identificado, custos do Mercado Livre atualizados e análise concluída.",
       );
     } catch (caught) {
       setError(

@@ -53,24 +53,24 @@ Objetivo: colocar a primeira versão no Coolify e testar com a conta real do Mer
 
 ### No Coolify
 
-- [ ] Criar recurso Docker Compose para o repositório
-- [ ] Selecionar a branch `feature/ml-product-intelligence-mvp-v1`
+- [x] Criar recurso Docker Compose para o repositório
+- [x] Selecionar a branch `feature/ml-product-intelligence-mvp-v1`
 - [ ] Ativar Auto Deploy
-- [ ] Definir domínio HTTPS
+- [x] Definir domínio HTTPS
 - [ ] Confirmar PostgreSQL saudável
 - [ ] Confirmar `/api/health` retornando OK
 
 ### Aplicação Mercado Livre
 
-- [ ] Criar/configurar aplicação no DevCenter
+- [x] Criar/configurar aplicação no DevCenter
 - [ ] Habilitar leitura
 - [ ] Habilitar PKCE
-- [ ] Cadastrar Redirect URI HTTPS exata
-- [ ] Copiar Client ID
-- [ ] Copiar Client Secret
-- [ ] Configurar `MERCADO_LIVRE_CLIENT_ID` no Coolify
-- [ ] Configurar `MERCADO_LIVRE_CLIENT_SECRET` no Coolify
-- [ ] Configurar `MERCADO_LIVRE_REDIRECT_URI` no Coolify
+- [x] Cadastrar Redirect URI HTTPS exata
+- [x] Copiar Client ID
+- [x] Copiar Client Secret
+- [x] Configurar `MERCADO_LIVRE_CLIENT_ID` no Coolify
+- [x] Configurar `MERCADO_LIVRE_CLIENT_SECRET` no Coolify
+- [x] Configurar `MERCADO_LIVRE_REDIRECT_URI` no Coolify
 - [ ] Redeploy
 
 ## 5. Smoke test v0.1
@@ -81,7 +81,7 @@ Executar estes testes na ordem:
 - [ ] Abrir mobile e conferir responsividade
 - [ ] Testar análise real do Ilhós nº54
 - [ ] Testar análise real do Arame encapado 10 m
-- [ ] Conectar a conta Mercado Livre
+- [x] Conectar a conta Mercado Livre
 - [ ] Detectar categoria automaticamente
 - [ ] Consultar custos reais do Ilhós
 - [ ] Comparar Clássico × Premium do Ilhós

@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getMlSession } from "@/lib/mercado-livre";
+import {
+  getExistingItemShippingQuote,
+  getListingPriceQuote,
+  getMlSession,
+} from "@/lib/mercado-livre";
 import { syncMercadoLivreProducts } from "@/lib/ml-sync";
 
 export const dynamic = "force-dynamic";
+
+function listingTypeFromId(value: string | null) {
+  return value === "gold_pro" ? ("PREMIUM" as const) : ("CLASSIC" as const);
+}
 
 export async function GET(request: Request) {
   try {
@@ -115,18 +123,8 @@ export async function GET(request: Request) {
       0,
     );
 
-    return NextResponse.json({
-      sellerUserId,
-      nickname: session.account.nickname,
-      sync,
-      summary: {
-        total: products.length,
-        active: active.length,
-        paused: products.filter((item) => item.status === "paused").length,
-        stockUnits,
-        soldUnits,
-      },
-      products: products.map((item) => {
+    const productRows = await Promise.all(
+      products.map(async (item) => {
         const recent = salesByItem.get(item.mlItemId) ?? {
           units: 0,
           revenue: 0,
@@ -151,6 +149,61 @@ export async function GET(request: Request) {
           directUnitCost ??
           (item.sku ? costBySku.get(item.sku) ?? null : null);
 
+        let estimatedEconomics: {
+          saleFee: number;
+          shippingCost: number;
+          estimatedProfit: number;
+          estimatedMarginPercent: number;
+          amountReceived: number;
+        } | null = null;
+
+        const currentPrice =
+          item.currentPrice == null ? null : Number(item.currentPrice);
+
+        if (
+          unitCost != null &&
+          currentPrice != null &&
+          currentPrice > 0 &&
+          item.categoryId
+        ) {
+          const listingType = listingTypeFromId(item.listingTypeId);
+
+          const [feeQuote, shippingQuote] = await Promise.all([
+            getListingPriceQuote({
+              accessToken: session.accessToken,
+              price: currentPrice,
+              categoryId: item.categoryId,
+              listingType,
+            }).catch(() => null),
+            getExistingItemShippingQuote({
+              accessToken: session.accessToken,
+              userId: sellerUserId,
+              itemId: item.mlItemId,
+              price: currentPrice,
+              listingType,
+            }).catch(() => null),
+          ]);
+
+          if (feeQuote && shippingQuote) {
+            const saleFee = feeQuote.saleFeeAmount;
+            const shippingCost = shippingQuote.shippingCost;
+            const amountReceived = currentPrice - saleFee - shippingCost;
+            const estimatedProfit = amountReceived - unitCost;
+            const estimatedMarginPercent =
+              currentPrice > 0
+                ? (estimatedProfit / currentPrice) * 100
+                : 0;
+
+            estimatedEconomics = {
+              saleFee,
+              shippingCost,
+              estimatedProfit,
+              estimatedMarginPercent,
+              amountReceived,
+            };
+          }
+        }
+
         let healthAction:
           | "ADD_COST"
           | "STOP_BUYING"
@@ -160,11 +213,12 @@ export async function GET(request: Request) {
           | "VALIDATE_PROFIT"
           | "OBSERVE" = "OBSERVE";
 
+        const decisionMargin =
+          realizedMargin ?? estimatedEconomics?.estimatedMarginPercent ?? null;
+
         if (unitCost == null) {
           healthAction = "ADD_COST";
-        } else if (recent.units > 0 && realizedMargin == null) {
-          healthAction = "VALIDATE_PROFIT";
-        } else if (realizedMargin != null && realizedMargin < 15) {
+        } else if (decisionMargin != null && decisionMargin < 15) {
           healthAction = "STOP_BUYING";
         } else if (
           recent.units > 0 &&
@@ -178,8 +232,10 @@ export async function GET(request: Request) {
           coverageDays <= 14
         ) {
           healthAction = "WATCH";
-        } else if (recent.units > 0 && realizedMargin != null) {
+        } else if (recent.units > 0 && decisionMargin != null) {
           healthAction = "MAINTAIN";
+        } else if (unitCost != null && decisionMargin == null) {
+          healthAction = "VALIDATE_PROFIT";
         }
 
         const targetStock =
@@ -196,9 +252,9 @@ export async function GET(request: Request) {
           unitCost != null ? unitCost * item.availableQuantity : null;
         const grossMarkupPercent =
           unitCost != null &&
-          item.currentPrice != null &&
+          currentPrice != null &&
           unitCost > 0
-            ? ((Number(item.currentPrice) - unitCost) / unitCost) * 100
+            ? ((currentPrice - unitCost) / unitCost) * 100
             : null;
 
         return {
@@ -209,8 +265,7 @@ export async function GET(request: Request) {
           categoryId: item.categoryId,
           status: item.status,
           listingTypeId: item.listingTypeId,
-          currentPrice:
-            item.currentPrice == null ? null : Number(item.currentPrice),
+          currentPrice,
           availableQuantity: item.availableQuantity,
           soldQuantity: item.soldQuantity,
           visitsTotal: item.visitsTotal,
@@ -223,6 +278,7 @@ export async function GET(request: Request) {
           discountPercent: Number(item.discountPercent),
           netUnitCost: unitCost,
           lastSyncedAt: item.lastSyncedAt,
+          economics: estimatedEconomics,
           health: {
             periodDays: 30,
             unitsSold: recent.units,
@@ -230,6 +286,7 @@ export async function GET(request: Request) {
             dailyVelocity,
             coverageDays,
             realizedMarginPercent: realizedMargin,
+            decisionMarginPercent: decisionMargin,
             unitCost,
             grossMarkupPercent,
             inventoryCapital,
@@ -239,6 +296,20 @@ export async function GET(request: Request) {
           },
         };
       }),
+    );
+
+    return NextResponse.json({
+      sellerUserId,
+      nickname: session.account.nickname,
+      sync,
+      summary: {
+        total: products.length,
+        active: active.length,
+        paused: products.filter((item) => item.status === "paused").length,
+        stockUnits,
+        soldUnits,
+      },
+      products: productRows,
     });
   } catch (error) {
     const message =

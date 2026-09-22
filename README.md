@@ -1,8 +1,17 @@
 # Mercado Radar
 
-Painel próprio para decidir **o que comprar, quanto pagar, por quanto vender e quanto realmente sobra** em uma operação no Mercado Livre.
+**Copiloto de compra e rentabilidade para quem revende no Mercado Livre.** Decide o que comprar, quanto pagar, quanto cobrar, quanto realmente sobrou e onde vale colocar capital.
 
 ## Direção do produto
+
+O Mercado Radar não é um clone do Seller Center. Produtos e Vendas existem para gerar decisão, não para repetir telas do Mercado Livre.
+
+## Os quatro pilares
+
+1. **Sourcing** — o que comprar e quanto pagar;
+2. **Pricing** — por quanto vender sem destruir margem;
+3. **Profit** — quanto realmente sobrou;
+4. **Capital & Estoque** — repor, reduzir ou parar.
 
 O Mercado Radar é um sistema completo, não um conjunto de automações externas.
 
@@ -117,6 +126,7 @@ A camada de IA do MVP terá custo zero: apenas provedor gratuito ou modelo self-
 
 Antes de implementar qualquer feature, consulte:
 
+- `docs/PRODUCT_STRATEGY.md` — posicionamento, pilares e regra de priorização;
 - `docs/FEATURES.md` — catálogo e ordem oficial das features inteligentes;
 - `docs/DEVELOPMENT_CHECKLIST.md` — checklist obrigatório de implementação, teste e deploy;
 - `docs/QUALITY_GATES.md` — bloqueios de qualidade que impedem tratar uma feature como pronta;

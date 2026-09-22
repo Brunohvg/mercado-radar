@@ -1,38 +1,42 @@
-import { MercadoLivreIntegration } from "@/components/mercado-livre-integration";
-import { ProductAnalyzer } from "@/components/product-analyzer";
-import { ProductsDashboard } from "@/components/products-dashboard";
-import { SalesDashboard } from "@/components/sales-dashboard";
-import { OpportunityRadar } from "@/components/opportunity-radar";
+import Link from "next/link";
 import { AppNavigation } from "@/components/app-navigation";
 
 const pillars = [
   {
+    href: "/analisar",
     number: "01",
-    title: "Sourcing",
+    title: "Sourcing & Pricing",
     question: "O que comprar e quanto pagar?",
     description:
-      "Identifique produtos, leia o mercado e descubra o preço máximo de compra antes de colocar capital em estoque.",
+      "Busque por nome ou código de barras, descubra o preço praticado e calcule o teto de compra antes de colocar capital no produto.",
+    action: "Analisar produto",
   },
   {
+    href: "/oportunidades",
     number: "02",
-    title: "Pricing",
-    question: "Por quanto vender?",
+    title: "Oportunidades",
+    question: "O que merece investigação agora?",
     description:
-      "Cruze custo, tarifa, frete e concorrência para encontrar um preço saudável que ainda caiba no mercado.",
+      "Cruze tendências, mais vendidos, concorrência e custos da sua conta para encontrar candidatos de revenda.",
+    action: "Abrir Radar",
   },
   {
+    href: "/vendas",
     number: "03",
     title: "Profit",
     question: "Quanto realmente sobrou?",
     description:
-      "Compare o previsto com a venda realizada e enxergue margem real, taxas, frete e custo por produto.",
+      "Use custos realizados da venda para separar faturamento de lucro e entender quais produtos realmente geram retorno.",
+    action: "Ver lucro",
   },
   {
+    href: "/produtos",
     number: "04",
     title: "Capital & Estoque",
-    question: "Repor, reduzir ou parar?",
+    question: "Repor, manter ou parar?",
     description:
-      "Use giro, cobertura, margem e capital necessário para decidir onde vale continuar investindo.",
+      "Use giro, cobertura e margem para decidir onde colocar mais capital e quais produtos precisam de atenção.",
+    action: "Ver produtos",
   },
 ] as const;
 
@@ -46,27 +50,27 @@ export default function Home() {
           <div>
             <p className="eyebrow">Copiloto de compra e rentabilidade</p>
             <h1>
-              Decida <em>o que comprar, quanto pagar e quando repor.</em>
+              O Mercado Livre mostra dados. <em>O Radar transforma em decisão.</em>
             </h1>
             <p className="hero-copy">
-              O Mercado Livre mostra o que acontece dentro do marketplace. O
-              Radar junta mercado, fornecedor, custos e vendas reais para
-              transformar esses dados em decisão financeira.
+              Descubra o que comprar, o máximo que pode pagar, quanto realmente
+              lucrou e quando faz sentido repor estoque.
             </p>
           </div>
           <div className="pill">20% margem · 30% ROI · ajustável</div>
         </header>
 
-        <section className="value-pillars" aria-label="Pilares do Mercado Radar">
+        <section className="value-pillars route-pillars" aria-label="Áreas do Mercado Radar">
           {pillars.map((pillar) => (
-            <article className="value-pillar" key={pillar.title}>
+            <Link className="value-pillar route-pillar" href={pillar.href} key={pillar.href}>
               <span className="value-pillar-number">{pillar.number}</span>
               <div>
                 <span className="value-pillar-title">{pillar.title}</span>
                 <strong>{pillar.question}</strong>
                 <p>{pillar.description}</p>
+                <span className="route-pillar-action">{pillar.action} →</span>
               </div>
-            </article>
+            </Link>
           ))}
         </section>
 
@@ -77,16 +81,10 @@ export default function Home() {
             deve pedir que você digite.
           </strong>
           <p>
-            Categoria, tarifas, frete, faixa de mercado e embalagem estimada são
-            preenchidos automaticamente quando houver evidência suficiente.
+            Categoria, tarifas, frete, faixa de mercado e embalagem estimada
+            são preenchidos automaticamente quando houver evidência suficiente.
           </p>
         </section>
-
-        <ProductAnalyzer />
-        <OpportunityRadar />
-        <ProductsDashboard />
-        <SalesDashboard />
-        <MercadoLivreIntegration />
       </section>
     </main>
   );

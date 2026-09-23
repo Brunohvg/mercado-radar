@@ -174,6 +174,7 @@ export async function GET(request: Request) {
               price: currentPrice,
               categoryId: item.categoryId,
               listingType,
+              freeShipping: item.freeShipping,
             }).catch(() => null),
             getExistingItemShippingQuote({
               accessToken: session.accessToken,

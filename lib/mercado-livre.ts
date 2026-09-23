@@ -867,12 +867,14 @@ export async function getExistingItemShippingQuote(input: {
   itemId: string;
   price: number;
   listingType: MlListingType;
+  freeShipping: boolean;
 }) {
   const query = new URLSearchParams({
     item_id: input.itemId,
     verbose: "true",
     item_price: String(input.price),
     listing_type_id: listingTypeId(input.listingType),
+    free_shipping: input.freeShipping ? "True" : "False",
   });
 
   const raw = await jsonFetch<any>(

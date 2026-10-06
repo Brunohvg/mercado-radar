@@ -167,7 +167,7 @@ export async function GET(request: Request) {
     const dateFrom = dateOnly(from);
     const dateTo = dateOnly(now);
 
-    const [campaignPayload, adGroupPayload, orders, orderItems, products] =
+    const [campaignResult, adGroupResult, orders, orderItems, products] =
       await Promise.all([
       getProductAdsCampaigns({
         accessToken: session.accessToken,
@@ -176,10 +176,16 @@ export async function GET(request: Request) {
         dateFrom,
         dateTo,
         limit: 50,
-      }).catch(() => ({
-        results: [] as Array<Record<string, any>>,
-        metrics_summary: undefined,
-      })),
+      })
+        .then((payload) => ({ ok: true as const, payload, error: null }))
+        .catch((error) => ({
+          ok: false as const,
+          payload: null,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Falha ao carregar campanhas Product Ads.",
+        })),
       getProductAdsAdGroups({
         accessToken: session.accessToken,
         siteId: advertiser.siteId,
@@ -187,10 +193,16 @@ export async function GET(request: Request) {
         dateFrom,
         dateTo,
         limit: 100,
-      }).catch(() => ({
-        results: [] as Array<Record<string, any>>,
-        metrics_summary: undefined,
-      })),
+      })
+        .then((payload) => ({ ok: true as const, payload, error: null }))
+        .catch((error) => ({
+          ok: false as const,
+          payload: null,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Falha ao carregar Ad Groups Product Ads.",
+        })),
       prisma.mercadoLivreOrder.findMany({
         where: {
           sellerUserId,
@@ -231,12 +243,36 @@ export async function GET(request: Request) {
       }),
     ]);
 
-    const campaignRows = campaignPayload.results ?? [];
-    const adGroupRows = adGroupPayload.results ?? [];
+    const campaignPayload = campaignResult.payload;
+    const adGroupPayload = adGroupResult.payload;
+    const campaignRows = campaignPayload?.results ?? [];
+    const adGroupRows = adGroupPayload?.results ?? [];
+
+    const issues = [
+      !campaignResult.ok
+        ? {
+            source: "CAMPAIGNS",
+            message: campaignResult.error,
+          }
+        : null,
+      !adGroupResult.ok
+        ? {
+            source: "AD_GROUPS",
+            message: adGroupResult.error,
+          }
+        : null,
+    ].filter(
+      (
+        issue,
+      ): issue is {
+        source: string;
+        message: string;
+      } => Boolean(issue),
+    );
 
     const metrics = normalizeSummary(
-      campaignPayload.metrics_summary ??
-        adGroupPayload.metrics_summary,
+      campaignPayload?.metrics_summary ??
+        adGroupPayload?.metrics_summary,
       campaignRows.length > 0 ? campaignRows : adGroupRows,
     );
 
@@ -425,6 +461,13 @@ export async function GET(request: Request) {
       dateTo,
       advertiser,
       advertisers,
+      dataStatus:
+        issues.length === 0
+          ? "OK"
+          : issues.length === 2
+            ? "ERROR"
+            : "PARTIAL",
+      issues,
       summary: {
         ...metrics,
         realizedProfitBeforeAds,

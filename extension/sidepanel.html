@@ -95,6 +95,10 @@
           <input id="supplierPrice" type="number" min="0" step="0.01" placeholder="0,00" />
         </div>
         <div>
+          <label>Quantidade no kit</label>
+          <input id="kitQuantity" type="number" min="1" max="1000" step="1" value="1" />
+        </div>
+        <div>
           <label>Desconto fornecedor %</label>
           <input id="discountPercent" type="number" min="0" max="95" step="0.1" value="0" />
         </div>
@@ -116,6 +120,7 @@
         </div>
       </div>
       <button id="calculate">Calcular com taxas reais</button>
+      <button id="saveSimulation" class="secondary" hidden>Salvar simulação no Radar</button>
       <p id="calcStatus" class="muted"></p>
       <div id="calcResult" hidden>
         <div class="divider"></div>

@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feature/ml-product-intelligence-mvp-v1
+      - feature/chrome-extension-radar-v1
   pull_request:
     branches:
       - main

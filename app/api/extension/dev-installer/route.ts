@@ -11,6 +11,10 @@ const EXTENSION_FILES = [
   "content.css",
   "sidepanel.html",
   "sidepanel.js",
+  "icons/icon16.png",
+  "icons/icon32.png",
+  "icons/icon48.png",
+  "icons/icon128.png",
 ] as const;
 
 function psString(value: string) {
@@ -46,6 +50,8 @@ export async function GET() {
       "",
       "foreach ($entry in $files.GetEnumerator()) {",
       "  $target = Join-Path $installDir $entry.Key",
+      "  $parent = Split-Path $target -Parent",
+      "  New-Item -ItemType Directory -Force -Path $parent | Out-Null",
       "  [IO.File]::WriteAllBytes($target, [Convert]::FromBase64String($entry.Value))",
       "}",
       "",

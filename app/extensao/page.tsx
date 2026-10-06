@@ -56,8 +56,8 @@ export default function ExtensionPage() {
             <div className="extension-install-steps">
               <div>
                 <span>1</span>
-                <strong>Baixe e execute</strong>
-                <small>MercadoRadar-Instalar.ps1</small>
+                <strong>Baixe e execute com PowerShell</strong>
+                <small>Clique com o botão direito em MercadoRadar-Instalar.ps1 → Executar com PowerShell</small>
               </div>
               <div>
                 <span>2</span>

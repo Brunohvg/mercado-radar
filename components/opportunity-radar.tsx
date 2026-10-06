@@ -100,7 +100,8 @@ type Sort =
   | "REVENUE"
   | "NEWEST"
   | "PRICE_ASC"
-  | "SEARCH_POSITION";
+  | "SEARCH_POSITION"
+  | "BEST_SELLER";
 
 const money = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -167,11 +168,13 @@ export function OpportunityRadar() {
   const [evidence, setEvidence] = useState<EvidenceFilter>("ALL");
   const [logistics, setLogistics] = useState<LogisticsFilter>("ALL");
   const [scoreMin, setScoreMin] = useState(0);
+  const [relevanceMin, setRelevanceMin] = useState(0);
   const [salesMin, setSalesMin] = useState(0);
   const [revenueMin, setRevenueMin] = useState(0);
   const [ageMax, setAgeMax] = useState(99999);
   const [freeShippingOnly, setFreeShippingOnly] = useState(false);
   const [catalogOnly, setCatalogOnly] = useState(false);
+  const [bestSellerOnly, setBestSellerOnly] = useState(false);
   const [sort, setSort] = useState<Sort>("SCORE");
 
   const runSearch = useCallback(async (term: string) => {
@@ -303,11 +306,13 @@ export function OpportunityRadar() {
       }
 
       if (item.score < scoreMin) return false;
+      if (item.similarityPercent < relevanceMin) return false;
       if (Number(item.salesPerMonth ?? 0) < salesMin) return false;
       if (Number(item.revenuePerMonth ?? 0) < revenueMin) return false;
       if (Number(item.ageDays ?? 99999) > ageMax) return false;
       if (freeShippingOnly && !item.freeShipping) return false;
       if (catalogOnly && !item.catalogProductId) return false;
+      if (bestSellerOnly && item.bestSellerPosition == null) return false;
 
       return true;
     });
@@ -333,16 +338,25 @@ export function OpportunityRadar() {
         return a.searchPosition - b.searchPosition;
       }
 
+      if (sort === "BEST_SELLER") {
+        return (
+          Number(a.bestSellerPosition ?? 99999) -
+          Number(b.bestSellerPosition ?? 99999)
+        );
+      }
+
       return b.score - a.score;
     });
   }, [
     ageMax,
+    bestSellerOnly,
     catalogOnly,
     data,
     demand,
     evidence,
     freeShippingOnly,
     logistics,
+    relevanceMin,
     revenueMin,
     salesMin,
     scoreMin,
@@ -393,11 +407,13 @@ export function OpportunityRadar() {
     setEvidence("ALL");
     setLogistics("ALL");
     setScoreMin(0);
+    setRelevanceMin(0);
     setSalesMin(0);
     setRevenueMin(0);
     setAgeMax(99999);
     setFreeShippingOnly(false);
     setCatalogOnly(false);
+    setBestSellerOnly(false);
     setSort("SCORE");
   }
 
@@ -614,6 +630,21 @@ export function OpportunityRadar() {
               </label>
 
               <label>
+                <span>Relevância do comparável</span>
+                <select
+                  value={relevanceMin}
+                  onChange={(event) =>
+                    setRelevanceMin(Number(event.target.value))
+                  }
+                >
+                  <option value={0}>Qualquer</option>
+                  <option value={50}>50%+</option>
+                  <option value={70}>70%+</option>
+                  <option value={85}>85%+</option>
+                </select>
+              </label>
+
+              <label>
                 <span>Vendas estimadas / mês</span>
                 <select
                   value={salesMin}
@@ -696,6 +727,7 @@ export function OpportunityRadar() {
                   <option value="NEWEST">Mais novos</option>
                   <option value="PRICE_ASC">Menor preço</option>
                   <option value="SEARCH_POSITION">Posição da busca</option>
+                  <option value="BEST_SELLER">Ranking mais vendidos</option>
                 </select>
               </label>
 
@@ -717,6 +749,15 @@ export function OpportunityRadar() {
                   onChange={(event) => setCatalogOnly(event.target.checked)}
                 />
                 <span>Só catálogo</span>
+              </label>
+
+              <label className="opportunity-check">
+                <input
+                  type="checkbox"
+                  checked={bestSellerOnly}
+                  onChange={(event) => setBestSellerOnly(event.target.checked)}
+                />
+                <span>Só mais vendidos</span>
               </label>
 
               <div className="opportunity-filter-result">

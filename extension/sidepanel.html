@@ -6,23 +6,28 @@
   <title>Mercado Radar</title>
   <style>
     *{box-sizing:border-box}
-    body{font-family:"Segoe UI Variable Text","Inter","Segoe UI",system-ui,sans-serif;margin:0;background:#f6f9f8;color:#17342d;-webkit-font-smoothing:antialiased}
-    main{padding:14px}
-    .brand{display:flex;align-items:center;justify-content:space-between;font-size:20px;font-weight:700;letter-spacing:-.03em;margin-bottom:14px}
-    .pill{font-size:9px;padding:4px 7px;border-radius:999px;background:#e2f4ee;color:#14745f;font-weight:700}
-    .card{background:white;border:1px solid #dfe8e4;border-radius:13px;padding:13px;margin-bottom:11px;box-shadow:0 1px 1px rgba(20,55,45,.02)}
+    body{font-family:"Segoe UI Variable","Segoe UI",system-ui,sans-serif;margin:0;background:linear-gradient(180deg,#f8fbfa,#f2f8f5);color:#17342d;-webkit-font-smoothing:antialiased;font-size:13px}
+    main{padding:16px}
+    .brand{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .brand-copy{display:flex;align-items:center;gap:10px;min-width:0}
+    .brand-copy img{width:34px;height:34px;border-radius:9px;box-shadow:0 6px 14px rgba(14,128,99,.18)}
+    .brand-copy strong{display:block;font-size:16px;line-height:1.1;letter-spacing:-.02em}
+    .brand-copy small{display:block;margin-top:3px;color:#7f9188;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+    .pill{font-size:10px;padding:5px 8px;border-radius:999px;background:#ddf6ed;color:#0e755b;font-weight:800}
+    .card{background:white;border:1px solid #dbe7e2;border-radius:15px;padding:14px;margin-bottom:12px;box-shadow:0 5px 16px rgba(20,70,58,.045)}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .metric{background:#f6faf8;border-radius:9px;padding:9px}
-    .metric small{display:block;color:#68756d;font-size:10px}
-    .metric strong{display:block;margin-top:3px;font-size:15px}
-    label{display:block;font-size:11px;font-weight:700;margin:9px 0 4px}
-    input{width:100%;padding:9px;border:1px solid #ccd6d0;border-radius:8px;background:white}
-    button{width:100%;padding:10px;border:0;border-radius:9px;background:#168f74;color:#fff;font-weight:700;cursor:pointer;margin-top:11px}
-    button.secondary{background:#edf5f2;color:#315a4f}
-    .muted{font-size:11px;color:#68756d;line-height:1.45}
-    .title{font-size:13px;font-weight:800;margin-bottom:8px}
-    .product-title{font-size:13px;font-weight:700;line-height:1.35;margin-bottom:8px}
-    .error{color:#a32121;font-size:11px}
+    .metric{background:#f6faf8;border:1px solid #edf2ef;border-radius:10px;padding:10px}
+    .metric small{display:block;color:#6f8178;font-size:11px}
+    .metric strong{display:block;margin-top:4px;font-size:16px;color:#173d32}
+    label{display:block;font-size:12px;font-weight:700;margin:10px 0 5px;color:#5f746a}
+    input{width:100%;padding:10px 11px;border:1px solid #cbd9d3;border-radius:9px;background:white;font-size:13px;outline:0}
+    input:focus{border-color:#68bda3;box-shadow:0 0 0 3px rgba(22,164,125,.10)}
+    button{width:100%;padding:11px;border:0;border-radius:10px;background:linear-gradient(135deg,#17a57e,#0e8063);color:#fff;font-size:13px;font-weight:750;cursor:pointer;margin-top:11px}
+    button.secondary{background:#edf6f2;color:#285a4c}
+    .muted{font-size:12px;color:#708279;line-height:1.5}
+    .title{font-size:14px;font-weight:800;margin-bottom:9px;color:#29463b}
+    .product-title{font-size:14px;font-weight:700;line-height:1.4;margin-bottom:9px;color:#173d32}
+    .error{padding:9px 10px;border:1px solid #f1c9ce;border-radius:9px;background:#fff3f5;color:#a13f4b;font-size:12px}
     .good{color:#14745f}
     .bad{color:#a32121}
     details{margin-top:14px}
@@ -32,22 +37,28 @@
     .market-range{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
     .market-range>div{padding:8px;border-radius:8px;background:#f4f9f7}
     .market-range small,.market-range strong{display:block}
-    .market-range small{color:#68756d;font-size:9px}
-    .market-range strong{margin-top:3px;font-size:13px}
-    .competitor-row{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #f0f3f1;font-size:10px}
+    .market-range small{color:#68756d;font-size:10px}
+    .market-range strong{margin-top:3px;font-size:14px}
+    .competitor-row{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #f0f3f1;font-size:11px}
     .competitor-row>div:first-child{min-width:0;flex:1}
     .competitor-row>div:last-child{flex:0 0 auto;text-align:right}
     .competitor-row span,.competitor-row small,.competitor-row strong{display:block}
     .competitor-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .competitor-row small{margin-top:2px;color:#7d8b85;font-size:9px}
-    .competitor-row strong{color:#23463c;font-size:10px}
-    .compare-box{margin-top:10px;padding:9px;border-radius:9px;background:#f3f9f6;font-size:10px;border:1px solid #deece7}
+    .competitor-row small{margin-top:2px;color:#7d8b85;font-size:10px}
+    .competitor-row strong{color:#23463c;font-size:11px}
+    .compare-box{margin-top:10px;padding:10px;border-radius:10px;background:#f3f9f6;font-size:11px;border:1px solid #deece7}
   </style>
 </head>
 <body>
   <main>
     <div class="brand">
-      <span>Mercado Radar</span>
+      <div class="brand-copy">
+        <img src="icons/icon32.png" alt="" />
+        <div>
+          <strong>Mercado Radar</strong>
+          <small>Seller Intelligence</small>
+        </div>
+      </div>
       <span class="pill">beta</span>
     </div>
 

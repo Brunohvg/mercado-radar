@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { recommendAdsAction } from "@/lib/ads-strategy";
 import {
   getMlSession,
   getProductAdsAdGroups,
@@ -354,6 +355,15 @@ export async function GET(request: Request) {
             ? 0
             : (realized.readyUnits / realized.totalUnits) * 100;
 
+        const recommendation = recommendAdsAction({
+          cost,
+          attributedRevenue: numberValue(row, "total_amount"),
+          roas: numberValue(row, "roas"),
+          profitAfterAds: realizedProfitAfterAds,
+          profitCoveragePercent,
+          units: numberValue(row, "units_quantity"),
+        });
+
         return {
           id: row.id == null ? null : String(row.id),
           externalId,
@@ -390,10 +400,23 @@ export async function GET(request: Request) {
             realizedMarginAfterAds,
             profitCoveragePercent,
           },
+          recommendation,
         };
       })
       .sort((a, b) => b.metrics.cost - a.metrics.cost)
       .slice(0, 50);
+
+    const overallRecommendation = recommendAdsAction({
+      cost: adsCost,
+      attributedRevenue: Number(metrics.total_amount ?? 0),
+      roas: Number(metrics.roas ?? 0),
+      profitAfterAds: realizedProfitAfterAds,
+      profitCoveragePercent:
+        validOrders.length > 0
+          ? (profitReadyOrders.length / validOrders.length) * 100
+          : 0,
+      units: Number(metrics.units_quantity ?? 0),
+    });
 
     return NextResponse.json({
       enabled: true,
@@ -413,6 +436,7 @@ export async function GET(request: Request) {
             : 0,
         profitReadyOrders: profitReadyOrders.length,
         totalOrders: validOrders.length,
+        recommendation: overallRecommendation,
       },
       campaigns,
       adGroups,

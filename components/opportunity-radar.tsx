@@ -30,6 +30,7 @@ type Opportunity = {
   salesPerMonth: number | null;
   revenuePerMonth: number | null;
   ageDays: number | null;
+  bestSellerPosition: number | null;
   scoreComponents: {
     demand: number;
     velocity: number;
@@ -745,6 +746,9 @@ export function OpportunityRadar() {
                               : "Tradicional"}
                           </span>
                           {item.freeShipping && <span>Frete grátis</span>}
+                          {item.bestSellerPosition != null && (
+                            <span>#{item.bestSellerPosition} mais vendidos</span>
+                          )}
                           {item.visits != null && (
                             <span>
                               {item.visits.toLocaleString("pt-BR")} visitas

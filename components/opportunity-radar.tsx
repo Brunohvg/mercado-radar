@@ -151,6 +151,8 @@ export function OpportunityRadar() {
   const [loading, setLoading] = useState(false);
   const [trendsLoading, setTrendsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [monitored, setMonitored] = useState<Set<string>>(new Set());
+  const [monitoringId, setMonitoringId] = useState<string | null>(null);
 
   const [demand, setDemand] = useState<DemandFilter>("ALL");
   const [evidence, setEvidence] = useState<EvidenceFilter>("ALL");
@@ -210,6 +212,26 @@ export function OpportunityRadar() {
   useEffect(() => {
     let cancelled = false;
 
+    async function loadMonitored() {
+      try {
+        const response = await fetch("/api/monitoring/watchlist", {
+          cache: "no-store",
+        });
+        const payload = await response.json();
+        if (!cancelled && response.ok) {
+          setMonitored(
+            new Set(
+              (payload.items ?? []).map(
+                (item: { mlItemId: string }) => item.mlItemId,
+              ),
+            ),
+          );
+        }
+      } catch {
+        // Monitoring is optional for opportunity discovery.
+      }
+    }
+
     async function loadTrends() {
       setTrendsLoading(true);
       try {
@@ -226,6 +248,7 @@ export function OpportunityRadar() {
     }
 
     void loadTrends();
+    void loadMonitored();
 
     const initialQuery = new URLSearchParams(window.location.search)
       .get("q")
@@ -306,6 +329,45 @@ export function OpportunityRadar() {
     scoreMin,
     sort,
   ]);
+
+  async function monitorOpportunity(item: Opportunity) {
+    if (monitored.has(item.id)) return;
+
+    setMonitoringId(item.id);
+    setError("");
+
+    try {
+      const response = await fetch("/api/monitoring/watchlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemId: item.id,
+          referenceId: data?.query ?? item.title,
+        }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          payload.error ?? "Falha ao adicionar ao monitoramento.",
+        );
+      }
+
+      setMonitored((current) => {
+        const next = new Set(current);
+        next.add(item.id);
+        return next;
+      });
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Falha ao adicionar ao monitoramento.",
+      );
+    } finally {
+      setMonitoringId(null);
+    }
+  }
 
   function resetFilters() {
     setDemand("ALL");
@@ -789,6 +851,26 @@ export function OpportunityRadar() {
                           >
                             Analisar custo e margem
                           </a>
+
+                          <button
+                            type="button"
+                            className={
+                              "opportunity-monitor-action " +
+                              (monitored.has(item.id) ? "is-monitored" : "")
+                            }
+                            disabled={
+                              monitored.has(item.id) ||
+                              monitoringId === item.id
+                            }
+                            onClick={() => void monitorOpportunity(item)}
+                          >
+                            {monitored.has(item.id)
+                              ? "Monitorando"
+                              : monitoringId === item.id
+                                ? "Salvando..."
+                                : "Monitorar"}
+                          </button>
+
                           {item.permalink && (
                             <a
                               className="secondary-action"
@@ -796,7 +878,7 @@ export function OpportunityRadar() {
                               target="_blank"
                               rel="noreferrer"
                             >
-                              Abrir anúncio ↗
+                              Abrir ↗
                             </a>
                           )}
                         </div>

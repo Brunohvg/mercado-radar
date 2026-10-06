@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Mercado Radar",
+  "version": "0.1.0",
+  "description": "Inteligência de produto e rentabilidade dentro do Mercado Livre.",
+  "permissions": ["storage", "sidePanel", "tabs"],
+  "host_permissions": [
+    "https://*.mercadolivre.com.br/*",
+    "https://radar.optarys.com.br/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.mercadolivre.com.br/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "Abrir Mercado Radar"
+  }
+}

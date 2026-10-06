@@ -32,6 +32,15 @@ function pct(value) {
   }) + "%";
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 async function request(path, options = {}) {
   return chrome.runtime.sendMessage({
     type: "RADAR_FETCH",
@@ -182,10 +191,17 @@ async function renderContext(context) {
       '</p>' +
       (competitors.length
         ? '<div class="divider"></div><div class="title">Concorrentes próximos</div>' +
-          competitors.slice(0, 4).map((item) =>
-            '<div class="competitor-row"><span>' +
-              item.title +
-            '</span><strong>' + brl(item.price) + '</strong></div>'
+          competitors.slice(0, 5).map((item) =>
+            '<div class="competitor-row competitor-row--rich">' +
+              '<div><span>' + escapeHtml(item.title) + '</span>' +
+              '<small>' +
+                (item.demandLabel || "—") +
+                (item.salesPerMonth == null ? "" : " · ~" + Math.round(item.salesPerMonth) + "/mês") +
+                (item.ageDays == null ? "" : " · " + item.ageDays + " dias") +
+              '</small></div>' +
+              '<div><strong>' + brl(item.price) + '</strong>' +
+              '<small>Radar ' + (item.score ?? 0) + '/100</small></div>' +
+            '</div>'
           ).join('')
         : '');
   }
@@ -236,10 +252,15 @@ document.getElementById("calculate").addEventListener("click", async () => {
   calcStatus.textContent = "Calculando comissão, frete e rentabilidade...";
   calcResult.hidden = true;
 
+  const referencePrice =
+    currentBuyBoxPrice ||
+    (currentMarket?.p25 && currentMarket.p25 > 0 ? currentMarket.p25 : null);
+
   const response = await request("/api/extension/profitability", {
     method: "POST",
     body: {
       itemId: currentItem.id,
+      marketReferencePrice: referencePrice || undefined,
       supplierPrice,
       discountPercent: Number(document.getElementById("discountPercent").value || 0),
       taxPercent: Number(document.getElementById("taxPercent").value || 0),
@@ -279,11 +300,32 @@ document.getElementById("calculate").addEventListener("click", async () => {
   calcStatus.className =
     "muted " + (result.verdict === "GOOD" ? "good" : result.verdict === "BAD" ? "bad" : "");
 
-  const referencePrice =
-    currentBuyBoxPrice ||
-    (currentMarket?.p25 && currentMarket.p25 > 0 ? currentMarket.p25 : null);
+  const strategy = response.body.strategy || null;
 
   competitiveSimulation.hidden = true;
+
+  if (strategy) {
+    const actionLabel =
+      strategy.action === "REDUCE"
+        ? "REDUZIR COM LIMITE"
+        : strategy.action === "RAISE"
+          ? "SUBIR PREÇO"
+          : strategy.action === "RAISE_OR_EXIT"
+            ? "SUBIR OU SAIR"
+            : "MANTER";
+
+    competitiveSimulation.innerHTML =
+      '<strong>Preço competitivo saudável: ' + brl(strategy.recommendedPrice) + '</strong>' +
+      '<div class="muted" style="margin-top:4px">' +
+        actionLabel +
+        ' · piso saudável ' + brl(strategy.safeFloor) +
+        ' · referência ' + brl(strategy.marketReferencePrice) +
+      '</div>' +
+      '<div style="margin-top:6px;font-weight:700">' + escapeHtml(strategy.message) + '</div>' +
+      '<div class="muted" style="margin-top:5px">' + escapeHtml(strategy.caveat) + '</div>';
+
+    competitiveSimulation.hidden = false;
+  }
 
   if (referencePrice && Math.abs(referencePrice - currentItem.price) >= 0.01) {
     const competitiveResponse = await request("/api/extension/profitability", {
@@ -305,8 +347,9 @@ document.getElementById("calculate").addEventListener("click", async () => {
       const competitive = competitiveResponse.body.result;
       const source = currentBuyBoxPrice ? "Buy Box" : "P25 do mercado";
 
-      competitiveSimulation.innerHTML =
-        '<strong>Se competir em ' + brl(referencePrice) + '</strong>' +
+      competitiveSimulation.innerHTML +=
+        '<div class="divider"></div>' +
+        '<strong>Economia na referência: ' + brl(referencePrice) + '</strong>' +
         '<div class="muted">Referência: ' + source +
         ' · lucro ' + brl(competitive.profit) +
         ' · margem ' + pct(competitive.marginPercent) +

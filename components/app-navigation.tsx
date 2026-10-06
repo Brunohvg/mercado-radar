@@ -6,7 +6,9 @@ import { useEffect, useState } from "react";
 
 type IconName =
   | "dashboard"
+  | "listings"
   | "products"
+  | "suppliers"
   | "sales"
   | "analysis"
   | "radar"
@@ -26,7 +28,9 @@ const groups: Array<{ label: string; items: MenuItem[] }> = [
     label: "Visão geral",
     items: [
       { href: "/", label: "Dashboard", icon: "dashboard" },
+      { href: "/anuncios", label: "Anúncios", icon: "listings" },
       { href: "/produtos", label: "Produtos", icon: "products" },
+      { href: "/fornecedores", label: "Fornecedores", icon: "suppliers" },
       { href: "/vendas", label: "Vendas & lucro", icon: "sales" },
     ],
   },
@@ -70,11 +74,29 @@ function MenuIcon({ name }: { name: IconName }) {
     );
   }
 
+  if (name === "listings") {
+    return (
+      <svg {...common}>
+        <path d="M4 5.5h16v13H4z" />
+        <path d="M8 9h8M8 13h5" />
+      </svg>
+    );
+  }
+
   if (name === "products") {
     return (
       <svg {...common}>
         <path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5z" />
         <path d="m4 7.5 8 4.5 8-4.5M12 12v9" />
+      </svg>
+    );
+  }
+
+  if (name === "suppliers") {
+    return (
+      <svg {...common}>
+        <path d="M3 20h18M5 20V9h6v11M13 20V4h6v16" />
+        <path d="M7.5 12h1M7.5 15h1M15.5 8h1M15.5 11h1M15.5 14h1" />
       </svg>
     );
   }

@@ -164,16 +164,16 @@ export async function POST(request: Request) {
     }
 
     const candidates = searchResults
-      .filter(
-        (item) =>
-          item.price > 0 &&
-          item.sellerId !== session.account.mercadoLivreUserId,
-      )
       .map((item, index) => ({
         ...item,
         searchPosition: index + 1,
         similarity: similarity(query, item.title),
       }))
+      .filter(
+        (item) =>
+          item.price > 0 &&
+          item.sellerId !== session.account.mercadoLivreUserId,
+      )
       .sort((a, b) => {
         const relevance = b.similarity - a.similarity;
         if (Math.abs(relevance) > 0.08) return relevance;
@@ -347,13 +347,25 @@ export async function POST(request: Request) {
       .sort((a, b) => b.score - a.score)
       .slice(0, limit);
 
-    const knownMonthlySales = opportunities
+    const reliableOpportunities = opportunities.filter(
+      (item) => item.evidence !== "LOW",
+    );
+
+    const knownMonthlySales = reliableOpportunities
       .map((item) => item.salesPerMonth)
       .filter((value): value is number => value != null);
 
-    const knownRevenue = opportunities
+    const knownRevenue = reliableOpportunities
       .map((item) => item.revenuePerMonth)
       .filter((value): value is number => value != null);
+
+    const highEvidenceCount = opportunities.filter(
+      (item) => item.evidence === "HIGH",
+    ).length;
+
+    const exactPriceCount = opportunities.filter(
+      (item) => item.sources.price === "PRICES_API",
+    ).length;
 
     return NextResponse.json({
       generatedAt: new Date().toISOString(),
@@ -394,6 +406,11 @@ export async function POST(request: Request) {
                   relevant.length) *
                   100,
               )
+            : 0,
+        highEvidenceCount,
+        exactPricePercent:
+          opportunities.length > 0
+            ? Math.round((exactPriceCount / opportunities.length) * 100)
             : 0,
         medianEstimatedSalesPerMonth: round2(
           percentile(

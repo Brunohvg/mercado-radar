@@ -7,6 +7,8 @@ const watchCard = document.getElementById("watchCard");
 const watchButton = document.getElementById("watchButton");
 const watchStatus = document.getElementById("watchStatus");
 const calculatorCard = document.getElementById("calculatorCard");
+const myOperationCard = document.getElementById("myOperationCard");
+const myOperationBlock = document.getElementById("myOperationBlock");
 const marketCard = document.getElementById("marketCard");
 const marketRangeBlock = document.getElementById("marketRangeBlock");
 const buyBoxBlock = document.getElementById("buyBoxBlock");
@@ -82,6 +84,8 @@ async function renderContext(context) {
   analyticsCard.hidden = true;
   watchCard.hidden = true;
   watchStatus.textContent = "";
+  myOperationCard.hidden = true;
+  myOperationBlock.innerHTML = "";
   marketCard.hidden = true;
   calculatorCard.hidden = true;
   calcResult.hidden = true;
@@ -176,6 +180,65 @@ async function renderContext(context) {
       (winner.freeShipping ? "frete grátis" : "frete não grátis") +
       (delta == null ? "" : " · seu preço " + (delta >= 0 ? "+" : "") + pct(delta)) +
       "</span></div>";
+  }
+
+  const savedProfitSettings = await chrome.storage.sync.get([
+    "radarTaxPercent",
+    "radarOperatingCost",
+    "radarTargetMarginPercent",
+    "radarTargetRoiPercent",
+  ]);
+
+  const myOperationResponse = await request(
+    "/api/extension/search-profitability",
+    {
+      method: "POST",
+      body: {
+        query: currentItem.title,
+        items: [{ id: currentItem.id, price: currentItem.price }],
+        taxPercent: Number(savedProfitSettings.radarTaxPercent || 0),
+        operatingCost: Number(savedProfitSettings.radarOperatingCost || 0),
+        targetMarginPercent: Number(
+          savedProfitSettings.radarTargetMarginPercent || 20,
+        ),
+        targetRoiPercent: Number(savedProfitSettings.radarTargetRoiPercent || 30),
+      },
+    },
+  );
+
+  if (myOperationResponse?.ok && myOperationResponse.body?.matchedProduct) {
+    const mine = myOperationResponse.body.matchedProduct;
+    const economics = myOperationResponse.body.items?.[0] || null;
+
+    if (mine.hasCost !== false && mine.unitCost != null) {
+      document.getElementById("supplierPrice").value = String(mine.unitCost);
+      document.getElementById("discountPercent").value = "0";
+
+      myOperationBlock.innerHTML =
+        '<div class="product-title">' + escapeHtml(mine.title) + '</div>' +
+        '<p class="muted">Produto seu compatível · confiança ' +
+          (mine.similarityPercent ?? 0) + '% · custo conhecido ' +
+          brl(mine.unitCost) + '</p>' +
+        (economics
+          ? '<div class="grid">' +
+              '<div class="metric"><small>Lucro nesse preço</small><strong>' +
+                brl(economics.profit) + '</strong></div>' +
+              '<div class="metric"><small>Minha margem</small><strong>' +
+                pct(economics.marginPercent) + '</strong></div>' +
+              '<div class="metric"><small>Meu ROI</small><strong>' +
+                pct(economics.roiPercent) + '</strong></div>' +
+              '<div class="metric"><small>Piso saudável</small><strong>' +
+                brl(economics.minimumSuggestedPrice) + '</strong></div>' +
+            '</div>'
+          : '');
+
+      myOperationCard.hidden = false;
+    } else if (mine.hasCost === false) {
+      myOperationBlock.innerHTML =
+        '<div class="product-title">' + escapeHtml(mine.title) + '</div>' +
+        '<p class="muted">Encontrei seu produto, mas o custo ainda não está cadastrado no Radar.</p>';
+      myOperationCard.hidden = false;
+    }
   }
 
   const marketParams = new URLSearchParams({

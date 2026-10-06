@@ -28,6 +28,7 @@ model AppSettings {
   operatingCostDefault  Decimal  @default(1) @db.Decimal(10, 2)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+  extensionAccesses     RadarExtensionAccess[]
 }
 
 model Product {
@@ -302,4 +303,38 @@ model RadarAlert {
   @@index([sellerUserId, readAt, createdAt])
   @@index([watchItemId, createdAt])
   @@index([kind, createdAt])
+}
+
+
+model RadarExtensionAccess {
+  id                    String   @id @default(cuid())
+  mercadoLivreAccountId String
+  name                  String
+  tokenHash             String   @unique
+  plan                  String   @default("PRO")
+  dailyRequestLimit     Int      @default(5000)
+  capabilities          Json?
+  lastUsedAt            DateTime?
+  expiresAt             DateTime?
+  revokedAt             DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  account               MercadoLivreAccount @relation(fields: [mercadoLivreAccountId], references: [id], onDelete: Cascade)
+  usage                 RadarExtensionUsage[]
+
+  @@index([mercadoLivreAccountId, revokedAt])
+  @@index([plan, createdAt])
+}
+
+model RadarExtensionUsage {
+  id        String   @id @default(cuid())
+  accessId  String
+  day       DateTime @db.Date
+  requests  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  access    RadarExtensionAccess @relation(fields: [accessId], references: [id], onDelete: Cascade)
+
+  @@unique([accessId, day])
+  @@index([day, requests])
 }

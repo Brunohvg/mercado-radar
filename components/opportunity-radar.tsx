@@ -69,6 +69,8 @@ type SearchPayload = {
     maximum: number | null;
     average: number | null;
     freeShippingPercent: number;
+    fullPercent: number;
+    flexPercent: number;
     catalogPercent: number;
     highEvidenceCount: number;
     exactPricePercent: number;
@@ -537,7 +539,8 @@ export function OpportunityRadar() {
               <span>Logística do mercado</span>
               <strong>{data.summary.freeShippingPercent}%</strong>
               <small>
-                com frete grátis · {data.summary.catalogPercent}% catálogo
+                Full {data.summary.fullPercent}% · Flex {data.summary.flexPercent}% ·{" "}
+                {data.summary.catalogPercent}% catálogo
               </small>
             </article>
 

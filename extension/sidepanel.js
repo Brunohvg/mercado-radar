@@ -4,6 +4,9 @@ const status = document.getElementById("status");
 const contextCard = document.getElementById("contextCard");
 const analyticsCard = document.getElementById("analyticsCard");
 const calculatorCard = document.getElementById("calculatorCard");
+const marketCard = document.getElementById("marketCard");
+const buyBoxBlock = document.getElementById("buyBoxBlock");
+const trendsBlock = document.getElementById("trendsBlock");
 const calcResult = document.getElementById("calcResult");
 const calcStatus = document.getElementById("calcStatus");
 
@@ -40,6 +43,7 @@ async function loadSettings() {
 async function renderContext(context) {
   currentItem = null;
   analyticsCard.hidden = true;
+  marketCard.hidden = true;
   calculatorCard.hidden = true;
   calcResult.hidden = true;
   calcStatus.textContent = "";
@@ -105,6 +109,46 @@ async function renderContext(context) {
     intel.ageDays == null ? "—" : intel.ageDays + " dias";
 
   analyticsCard.hidden = false;
+
+  const catalog = response.body.catalog;
+  const trends = Array.isArray(response.body.trends) ? response.body.trends : [];
+
+  buyBoxBlock.innerHTML = "";
+  trendsBlock.innerHTML = "";
+
+  if (catalog?.buyBoxWinner) {
+    const winner = catalog.buyBoxWinner;
+    const delta =
+      winner.price && currentItem.price
+        ? ((currentItem.price - winner.price) / winner.price) * 100
+        : null;
+
+    buyBoxBlock.innerHTML =
+      '<div class="metric"><small>Buy Box</small><strong>' +
+      (winner.price ? brl(winner.price) : "—") +
+      '</strong><span class="muted">' +
+      (winner.logisticType ? winner.logisticType + " · " : "") +
+      (winner.freeShipping ? "frete grátis" : "frete não grátis") +
+      (delta == null ? "" : " · seu preço " + (delta >= 0 ? "+" : "") + pct(delta)) +
+      "</span></div>";
+  }
+
+  if (trends.length) {
+    trendsBlock.innerHTML =
+      '<div class="divider"></div><div class="title">Tendências da categoria</div>' +
+      trends
+        .slice(0, 6)
+        .map((trend, index) =>
+          '<div class="mercado-radar-trend"><strong>' +
+          (index + 1) +
+          ".</strong> " +
+          trend.keyword +
+          "</div>",
+        )
+        .join("");
+  }
+
+  marketCard.hidden = !(catalog?.buyBoxWinner || trends.length);
   calculatorCard.hidden = false;
 }
 

@@ -15,6 +15,8 @@ type Opportunity = {
   sellerId: string | null;
   listingTypeId: string | null;
   freeShipping: boolean;
+  logisticType: string | null;
+  shippingMode: string | null;
   catalogProductId: string | null;
   userProductId: string | null;
   searchPosition: number;
@@ -89,6 +91,7 @@ type Trend = {
 
 type DemandFilter = "ALL" | "HIGH" | "EXCELLENT";
 type EvidenceFilter = "ALL" | "HIGH";
+type LogisticsFilter = "ALL" | "FULL" | "FLEX";
 type Sort =
   | "SCORE"
   | "SALES"
@@ -160,6 +163,7 @@ export function OpportunityRadar() {
 
   const [demand, setDemand] = useState<DemandFilter>("ALL");
   const [evidence, setEvidence] = useState<EvidenceFilter>("ALL");
+  const [logistics, setLogistics] = useState<LogisticsFilter>("ALL");
   const [scoreMin, setScoreMin] = useState(0);
   const [salesMin, setSalesMin] = useState(0);
   const [revenueMin, setRevenueMin] = useState(0);
@@ -288,6 +292,14 @@ export function OpportunityRadar() {
         return false;
       }
 
+      if (logistics === "FULL" && item.logisticType !== "fulfillment") {
+        return false;
+      }
+
+      if (logistics === "FLEX" && item.logisticType !== "self_service") {
+        return false;
+      }
+
       if (item.score < scoreMin) return false;
       if (Number(item.salesPerMonth ?? 0) < salesMin) return false;
       if (Number(item.revenuePerMonth ?? 0) < revenueMin) return false;
@@ -328,6 +340,7 @@ export function OpportunityRadar() {
     demand,
     evidence,
     freeShippingOnly,
+    logistics,
     revenueMin,
     salesMin,
     scoreMin,
@@ -376,6 +389,7 @@ export function OpportunityRadar() {
   function resetFilters() {
     setDemand("ALL");
     setEvidence("ALL");
+    setLogistics("ALL");
     setScoreMin(0);
     setSalesMin(0);
     setRevenueMin(0);
@@ -654,6 +668,20 @@ export function OpportunityRadar() {
               </label>
 
               <label>
+                <span>Logística</span>
+                <select
+                  value={logistics}
+                  onChange={(event) =>
+                    setLogistics(event.target.value as LogisticsFilter)
+                  }
+                >
+                  <option value="ALL">Qualquer</option>
+                  <option value="FULL">Só Full</option>
+                  <option value="FLEX">Só Flex</option>
+                </select>
+              </label>
+
+              <label>
                 <span>Ordenar</span>
                 <select
                   value={sort}
@@ -846,6 +874,8 @@ export function OpportunityRadar() {
                               : "Tradicional"}
                           </span>
                           {item.freeShipping && <span>Frete grátis</span>}
+                          {item.logisticType === "fulfillment" && <span>Full</span>}
+                          {item.logisticType === "self_service" && <span>Flex</span>}
                           {item.bestSellerPosition != null && (
                             <span>#{item.bestSellerPosition} mais vendidos</span>
                           )}

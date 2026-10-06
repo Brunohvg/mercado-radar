@@ -51,7 +51,7 @@ Objetivo comercial futuro: vender acesso ao Radar como SaaS, com planos e recurs
 - [x] puxar preço automaticamente;
 - [x] custo de compra;
 - [x] desconto do fornecedor;
-- kit;
+- [x] kit;
 - [x] Clássico/Premium;
 - [x] comissão real;
 - [x] frete estimado;
@@ -62,8 +62,8 @@ Objetivo comercial futuro: vender acesso ao Radar como SaaS, com planos e recurs
 - [x] ROI;
 - [x] break-even no motor;
 - [x] preço mínimo saudável;
-- botão Usar preço;
-- salvar simulação.
+- [x] preço do anúncio puxado automaticamente;
+- [x] salvar simulação no histórico do Radar.
 
 ## Fase 4 — Inteligência de busca
 
@@ -97,8 +97,8 @@ Objetivo comercial futuro: vender acesso ao Radar como SaaS, com planos e recurs
 
 ## Fase 6 — Meus anúncios
 
-- posição;
-- histórico de posição;
+- [x] posição por consulta comparável;
+- [x] histórico de posição via MarketSnapshot;
 - preço;
 - vendas;
 - visitas;
@@ -110,7 +110,7 @@ Objetivo comercial futuro: vender acesso ao Radar como SaaS, com planos e recurs
 - [x] ACOS;
 - [x] lucro conhecido depois de Ads, com cobertura explícita;
 - [~] orgânico x patrocinado via métricas de Ad Group;
-- recomendação de preço.
+- [x] recomendação de preço saudável.
 
 ## Fase 7 — Monitoramento
 
@@ -246,3 +246,15 @@ Regra: replicar capacidades úteis, não código, identidade visual ou ativos de
 6. limites e rate limiting;
 7. billing;
 8. onboarding e publicação na Chrome Web Store.
+
+
+## Progresso — Anúncios e Ads
+
+- [x] painel inline por anúncio com posição, P25, mediana e gap de preço;
+- [x] histórico de posição e preço em MarketSnapshot;
+- [x] estratégia de preço saudável direto na tela de Anúncios;
+- [x] concorrentes próximos no detalhe do anúncio;
+- [x] Product Ads com lucro conhecido pós-Ads por operação;
+- [x] lucro pós-Ads por produto quando o Ad Group pode ser relacionado ao anúncio;
+- [x] recomendação de orçamento: escalar, manter, reduzir, revisar/pausar ou coletar mais dados;
+- [x] recomendação condicionada à cobertura de custos para evitar decisões com falsa precisão.

@@ -166,7 +166,8 @@ export async function GET(request: Request) {
     const dateFrom = dateOnly(from);
     const dateTo = dateOnly(now);
 
-    const [campaignPayload, adGroupPayload, orders] = await Promise.all([
+    const [campaignPayload, adGroupPayload, orders, orderItems, products] =
+      await Promise.all([
       getProductAdsCampaigns({
         accessToken: session.accessToken,
         siteId: advertiser.siteId,
@@ -201,6 +202,32 @@ export async function GET(request: Request) {
         },
         take: 1000,
       }),
+      prisma.mercadoLivreOrderItem.findMany({
+        where: {
+          order: {
+            sellerUserId,
+            status: { not: "cancelled" },
+            dateCreated: { gte: from },
+          },
+        },
+        select: {
+          mlItemId: true,
+          quantity: true,
+          unitPrice: true,
+          profit: true,
+        },
+        take: 5000,
+      }),
+      prisma.mercadoLivreProduct.findMany({
+        where: { sellerUserId },
+        select: {
+          mlItemId: true,
+          userProductId: true,
+          title: true,
+          thumbnail: true,
+        },
+        take: 500,
+      }),
     ]);
 
     const campaignRows = campaignPayload.results ?? [];
@@ -232,6 +259,52 @@ export async function GET(request: Request) {
         ? (realizedProfitAfterAds / profitReadyRevenue) * 100
         : null;
 
+    const productByExternalId = new Map<
+      string,
+      {
+        mlItemId: string;
+        userProductId: string | null;
+        title: string;
+        thumbnail: string | null;
+      }
+    >();
+
+    for (const product of products) {
+      productByExternalId.set(product.mlItemId, product);
+      if (product.userProductId) {
+        productByExternalId.set(product.userProductId, product);
+      }
+    }
+
+    const realizedByItem = new Map<
+      string,
+      {
+        profit: number;
+        revenue: number;
+        readyUnits: number;
+        totalUnits: number;
+      }
+    >();
+
+    for (const item of orderItems) {
+      const current = realizedByItem.get(item.mlItemId) ?? {
+        profit: 0,
+        revenue: 0,
+        readyUnits: 0,
+        totalUnits: 0,
+      };
+
+      current.totalUnits += item.quantity;
+      current.revenue += Number(item.unitPrice) * item.quantity;
+
+      if (item.profit != null) {
+        current.profit += Number(item.profit);
+        current.readyUnits += item.quantity;
+      }
+
+      realizedByItem.set(item.mlItemId, current);
+    }
+
     const campaigns = campaignRows.map((row) => ({
       id: row.id == null ? null : String(row.id),
       name: String(row.name ?? "Campanha"),
@@ -256,31 +329,69 @@ export async function GET(request: Request) {
     }));
 
     const adGroups = adGroupRows
-      .map((row) => ({
-        id: row.id == null ? null : String(row.id),
-        externalId:
+      .map((row) => {
+        const externalId =
           row.ad_group_external_id == null
             ? null
-            : String(row.ad_group_external_id),
-        campaignId:
-          row.campaign_id == null ? null : String(row.campaign_id),
-        status: String(row.status ?? "unknown").toLowerCase(),
-        title: row.title == null ? null : String(row.title),
-        catalogListing:
-          typeof row.catalog_listing === "boolean"
-            ? row.catalog_listing
-            : null,
-        metrics: {
-          cost: numberValue(row, "cost"),
-          roas: numberValue(row, "roas"),
-          tacos: numberValue(row, "tacos"),
-          clicks: numberValue(row, "clicks"),
-          prints: numberValue(row, "prints"),
-          totalAmount: numberValue(row, "total_amount"),
-          units: numberValue(row, "units_quantity"),
-          organicUnits: numberValue(row, "organic_units_quantity"),
-        },
-      }))
+            : String(row.ad_group_external_id);
+        const product =
+          externalId == null ? null : productByExternalId.get(externalId) ?? null;
+        const realized =
+          product == null ? null : realizedByItem.get(product.mlItemId) ?? null;
+        const cost = numberValue(row, "cost");
+
+        const realizedProfitBeforeAds = realized?.profit ?? null;
+        const realizedProfitAfterAds =
+          realizedProfitBeforeAds == null
+            ? null
+            : realizedProfitBeforeAds - cost;
+        const realizedMarginAfterAds =
+          realizedProfitAfterAds == null || !realized || realized.revenue <= 0
+            ? null
+            : (realizedProfitAfterAds / realized.revenue) * 100;
+        const profitCoveragePercent =
+          !realized || realized.totalUnits <= 0
+            ? 0
+            : (realized.readyUnits / realized.totalUnits) * 100;
+
+        return {
+          id: row.id == null ? null : String(row.id),
+          externalId,
+          campaignId:
+            row.campaign_id == null ? null : String(row.campaign_id),
+          status: String(row.status ?? "unknown").toLowerCase(),
+          title: row.title == null ? null : String(row.title),
+          catalogListing:
+            typeof row.catalog_listing === "boolean"
+              ? row.catalog_listing
+              : null,
+          product:
+            product == null
+              ? null
+              : {
+                  mlItemId: product.mlItemId,
+                  userProductId: product.userProductId,
+                  title: product.title,
+                  thumbnail: product.thumbnail,
+                },
+          metrics: {
+            cost,
+            roas: numberValue(row, "roas"),
+            tacos: numberValue(row, "tacos"),
+            clicks: numberValue(row, "clicks"),
+            prints: numberValue(row, "prints"),
+            totalAmount: numberValue(row, "total_amount"),
+            units: numberValue(row, "units_quantity"),
+            organicUnits: numberValue(row, "organic_units_quantity"),
+          },
+          profit: {
+            realizedProfitBeforeAds,
+            realizedProfitAfterAds,
+            realizedMarginAfterAds,
+            profitCoveragePercent,
+          },
+        };
+      })
       .sort((a, b) => b.metrics.cost - a.metrics.cost)
       .slice(0, 50);
 

@@ -105,11 +105,11 @@ Objetivo comercial futuro: vender acesso ao Radar como SaaS, com planos e recurs
 - conversão;
 - lucro;
 - margem;
-- Ads;
-- ROAS;
-- ACOS;
-- lucro depois de Ads;
-- orgânico x patrocinado;
+- [x] Ads — leitura inicial Product Ads;
+- [x] ROAS;
+- [x] ACOS;
+- [x] lucro conhecido depois de Ads, com cobertura explícita;
+- [~] orgânico x patrocinado via métricas de Ad Group;
 - recomendação de preço.
 
 ## Fase 7 — Monitoramento
@@ -224,6 +224,25 @@ Regra: replicar capacidades úteis, não código, identidade visual ou ativos de
 3. [x] concorrentes enriquecidos com score, demanda e velocidade;
 4. [x] Radar Momentum baseado em snapshots;
 5. [x] monitoramento automático e alertas;
-6. [ ] EAN em lote;
-7. [ ] Ads / lucro pós-Ads;
+6. [x] EAN em lote;
+7. [x] Ads / lucro pós-Ads inicial;
 8. [ ] multi-conta, autenticação individual e planos.
+
+### Entregas adicionais desta rodada
+- [x] EAN/GTIN em lote com validação de checksum;
+- [x] importação CSV/TXT no navegador;
+- [x] faixa de preços por EAN e exportação CSV;
+- [x] Product Ads no fluxo atual de campanhas + Ad Groups;
+- [x] ROAS, ACOS, TACOS, CTR, CVR e receita atribuída;
+- [x] lucro conhecido da operação após descontar investimento Ads;
+- [x] cobertura de lucro exibida para evitar falsa precisão.
+
+### Próxima sequência comercial
+1. autenticação individual da aplicação e extensão;
+2. workspaces;
+3. múltiplas contas Mercado Livre;
+4. capabilities/entitlements por plano;
+5. medição de uso;
+6. limites e rate limiting;
+7. billing;
+8. onboarding e publicação na Chrome Web Store.

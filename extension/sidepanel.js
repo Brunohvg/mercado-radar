@@ -117,7 +117,27 @@ async function renderContext(context) {
     params.set("visiblePrice", String(context.visiblePrice));
   }
 
+  if (!apiKey.value.trim()) {
+    contextCard.innerHTML =
+      '<div class="title">Extensão ainda não vinculada</div>' +
+      '<div class="product-title">' +
+        (context.title || context.referenceId) +
+      '</div>' +
+      '<p class="error">Configure a chave da extensão abaixo. Esta chave pertence ao Mercado Radar e não é o access token do Mercado Livre.</p>';
+    return;
+  }
+
   const response = await request("/api/extension/item?" + params.toString());
+
+  if (response?.status === 401) {
+    contextCard.innerHTML =
+      '<div class="title">Extensão não autorizada</div>' +
+      '<div class="product-title">' +
+        (context.title || context.referenceId) +
+      '</div>' +
+      '<p class="error">A chave salva na extensão não confere com RADAR_EXTENSION_API_KEY do servidor. Corrija a chave em Configuração da extensão e tente novamente.</p>';
+    return;
+  }
 
   if (!response?.ok || !response.body?.item) {
     contextCard.innerHTML =

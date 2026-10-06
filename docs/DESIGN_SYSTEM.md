@@ -134,3 +134,59 @@ A tela de produtos passa a usar tabela operacional como visual principal:
 ### Regra visual
 
 Nenhuma tela nova deve reintroduzir o estilo escuro legado. Componentes antigos devem ser migrados gradualmente para o Visual System v3.
+
+
+## Visual System v3.1 — identidade própria
+
+A referência externa ajudou a identificar problemas de hierarquia, mas o Mercado Radar não deve usar o mesmo verde-lima nem depender da mesma aparência.
+
+### Tipografia
+
+Stack sem download externo, priorizando qualidade no Windows e macOS:
+
+```text
+"Segoe UI Variable Text", "Inter", "Segoe UI", system-ui, sans-serif
+```
+
+Headings usam peso intermediário, tracking negativo leve e tamanhos maiores.
+O objetivo é leitura de produto SaaS, não aparência de painel técnico.
+
+### Cor principal
+
+A identidade migrou do verde-lima para **esmeralda/teal**:
+
+- accent: `#18967A`
+- accent strong: `#0F725E`
+- accent soft: `#E7F6F1`
+- text: `#17342D`
+- background: `#F7F9F8`
+
+O verde mais vivo fica restrito a sinais positivos e não domina toda a interface.
+
+### Página Anúncios
+
+A tela passa a ser uma central de decisão, com:
+
+- total de anúncios;
+- anúncios ativos;
+- ticket médio do período;
+- score médio operacional;
+- filtros de status/canal/score;
+- ordenação por score, vendas e preço;
+- canal Catálogo x Tradicional;
+- MLB + User Product;
+- margem;
+- Radar Score por anúncio.
+
+### Radar Score do anúncio
+
+Score transparente de 0 a 100:
+
+- status: 10;
+- custo cadastrado: 15;
+- margem: 30;
+- vendas recentes: 20;
+- cobertura de estoque: 15;
+- visibilidade: 10.
+
+A UI deve explicar o score e evitar métricas inventadas. Por exemplo, não calcular "conversão" usando visitas de vida inteira com vendas de somente 30 dias.

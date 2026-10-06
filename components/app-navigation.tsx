@@ -11,6 +11,7 @@ type IconName =
   | "analysis"
   | "radar"
   | "extension"
+  | "monitoring"
   | "integrations";
 
 type MenuItem = {
@@ -34,6 +35,7 @@ const groups: Array<{ label: string; items: MenuItem[] }> = [
     items: [
       { href: "/analisar", label: "Análise de produtos", icon: "analysis" },
       { href: "/oportunidades", label: "Radar de oportunidades", icon: "radar" },
+      { href: "/monitoramento", label: "Monitoramento", icon: "monitoring" },
       { href: "/extensao", label: "Extensão Radar", icon: "extension", badge: "BETA" },
     ],
   },
@@ -101,6 +103,16 @@ function MenuIcon({ name }: { name: IconName }) {
         <circle cx="12" cy="12" r="8" />
         <circle cx="12" cy="12" r="3" />
         <path d="M12 12 18 6M12 4v2M4 12h2" />
+      </svg>
+    );
+  }
+
+  if (name === "monitoring") {
+    return (
+      <svg {...common}>
+        <path d="M4 15a8 8 0 1 1 16 0" />
+        <path d="M12 15 17 8M7 19h10" />
+        <circle cx="12" cy="15" r="1.2" />
       </svg>
     );
   }

@@ -440,6 +440,10 @@ export type SellerItemDetail = {
   categoryId: string | null;
   status: string;
   listingTypeId: string | null;
+  currentPrice: number;
+  sellerId: string | null;
+  catalogProductId: string | null;
+  userProductId: string | null;
   availableQuantity: number;
   soldQuantity: number;
   dateCreated: string | null;
@@ -465,6 +469,10 @@ export async function getItemsBulk(input: {
       "body.category_id",
       "body.status",
       "body.listing_type_id",
+      "body.price",
+      "body.seller_id",
+      "body.catalog_product_id",
+      "body.user_product_id",
       "body.available_quantity",
       "body.sold_quantity",
       "body.date_created",
@@ -485,6 +493,10 @@ export async function getItemsBulk(input: {
       category_id?: string;
       status?: string;
       listing_type_id?: string;
+      price?: number;
+      seller_id?: string | number;
+      catalog_product_id?: string;
+      user_product_id?: string;
       available_quantity?: number;
       sold_quantity?: number;
       date_created?: string;
@@ -518,6 +530,10 @@ export async function getItemsBulk(input: {
         categoryId: body.category_id ?? null,
         status: String(body.status ?? "unknown"),
         listingTypeId: body.listing_type_id ?? null,
+        currentPrice: Number(body.price ?? 0),
+        sellerId: body.seller_id == null ? null : String(body.seller_id),
+        catalogProductId: body.catalog_product_id ?? null,
+        userProductId: body.user_product_id ?? null,
         availableQuantity: Number(body.available_quantity ?? 0),
         soldQuantity: Number(body.sold_quantity ?? 0),
         dateCreated: body.date_created ?? null,
@@ -898,4 +914,52 @@ export async function getExistingItemShippingQuote(input: {
     discountRate: Number(coverage.discount?.rate ?? 0),
     promotedAmount: Number(coverage.discount?.promoted_amount ?? 0),
   };
+}
+
+
+export async function getUserProductDetails(input: {
+  accessToken: string;
+  userProductId: string;
+}) {
+  return jsonFetch<{
+    id?: string;
+    user_id?: number | string;
+    family_id?: number | string;
+    family_name?: string;
+    domain_id?: string;
+    site_id?: string;
+    attributes?: Array<{
+      id?: string;
+      name?: string;
+      values?: Array<{ id?: string | null; name?: string | null }>;
+    }>;
+  }>(
+    `${API}/user-products/${input.userProductId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+        "X-API-Version": "2",
+      },
+    },
+  );
+}
+
+export async function getItemsByUserProduct(input: {
+  accessToken: string;
+  userId: string;
+  userProductId: string;
+}) {
+  const params = new URLSearchParams({
+    user_product_id: input.userProductId,
+    limit: "50",
+  });
+
+  const raw = await jsonFetch<{
+    results?: string[];
+  }>(
+    `${API}/users/${input.userId}/items/search?${params.toString()}`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+
+  return raw.results ?? [];
 }

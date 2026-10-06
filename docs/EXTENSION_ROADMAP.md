@@ -26,9 +26,9 @@ Objetivo comercial futuro: vender acesso ao Radar como SaaS, com planos e recurs
 - [x] Enriquecimento inicial dos cards de busca.
 - [x] Radar Score inicial.
 - [x] Demanda, velocidade de vendas e idade do anúncio.
-- [ ] Detectar preço visível do card e enviar para o motor.
-- [ ] Exibir faturamento estimado no card.
-- [ ] Tratar layouts alternativos e catálogo.
+- [x] Detectar preço visível do card e usar no enriquecimento.
+- [x] Exibir faturamento estimado no card.
+- [~] Tratar layouts alternativos e catálogo (fallback por título/preço + suporte inicial a MLBU no anúncio).
 - [ ] Testes de seletores do Mercado Livre.
 
 ## Fase 2 — Página do produto
@@ -74,12 +74,14 @@ Objetivo comercial futuro: vender acesso ao Radar como SaaS, com planos e recurs
 - idade do anúncio;
 - catálogo/tradicional;
 - frete grátis;
-- filtros Radar;
-- ordenar por oportunidade;
-- ordenar por vendas;
+- [x] filtros Radar iniciais;
+- [x] ordenar por oportunidade;
+- [x] ordenar por vendas;
 - ordenar por margem do usuário;
 - ordenar por menor concorrência;
 - Radar Momentum.
+- [x] ordenar por faturamento;
+- [x] ordenar por anúncios mais novos;
 
 ## Fase 5 — Concorrência
 
@@ -186,3 +188,10 @@ Mercado Livre
 → Dashboard web
 
 A extensão é um cliente do produto, não o produto inteiro.
+
+
+## Auditoria competitiva
+
+A matriz detalhada das capacidades públicas observadas no Cargoos e a evolução equivalente/mais inteligente do Radar está em `docs/CARGOOS_FEATURE_AUDIT.md`.
+
+Regra: replicar capacidades úteis, não código, identidade visual ou ativos de terceiros.

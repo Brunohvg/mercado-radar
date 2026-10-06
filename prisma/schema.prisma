@@ -136,6 +136,8 @@ model MercadoLivreNotification {
 model MarketSnapshot {
   id                String   @id @default(cuid())
   sellerUserId      String
+  mlItemId          String?
+  position          Int?
   query             String
   categoryId        String?
   resultCount       Int
@@ -153,6 +155,7 @@ model MarketSnapshot {
   createdAt         DateTime @default(now())
 
   @@index([sellerUserId, createdAt])
+  @@index([sellerUserId, mlItemId, createdAt])
   @@index([categoryId, createdAt])
   @@index([verdict, createdAt])
 }

@@ -33,35 +33,35 @@ Objetivo comercial futuro: vender acesso ao Radar como SaaS, com planos e recurs
 
 ## Fase 2 — Página do produto
 
-- analytics do anúncio;
-- preço atual;
-- vendas estimadas;
-- visitas;
-- idade do anúncio;
-- tipo do anúncio;
+- [x] analytics do anúncio;
+- [x] preço atual;
+- [x] vendas estimadas;
+- [x] visitas;
+- [x] idade do anúncio;
+- [x] tipo do anúncio;
 - frete;
 - seller;
-- comparação com faixa de mercado;
+- [x] comparação com faixa de mercado;
 - botão Adicionar ao Radar;
 - botão Eu vendo este produto;
-- abrir Side Panel já no produto atual.
+- [x] abrir Side Panel já no produto atual.
 
 ## Fase 3 — Calculadora no Side Panel
 
-- puxar preço automaticamente;
-- custo de compra;
-- desconto do fornecedor;
+- [x] puxar preço automaticamente;
+- [x] custo de compra;
+- [x] desconto do fornecedor;
 - kit;
-- Clássico/Premium;
-- comissão real;
-- frete estimado;
-- imposto configurável;
-- custo operacional;
-- lucro;
-- margem;
-- ROI;
-- break-even;
-- preço mínimo saudável;
+- [x] Clássico/Premium;
+- [x] comissão real;
+- [x] frete estimado;
+- [x] imposto configurável;
+- [x] custo operacional;
+- [x] lucro;
+- [x] margem;
+- [x] ROI;
+- [x] break-even no motor;
+- [x] preço mínimo saudável;
 - botão Usar preço;
 - salvar simulação.
 
@@ -114,15 +114,15 @@ Objetivo comercial futuro: vender acesso ao Radar como SaaS, com planos e recurs
 
 ## Fase 7 — Monitoramento
 
-- histórico de preço;
+- [x] histórico de preço via snapshots do monitoramento;
 - novos concorrentes;
 - queda de posição;
 - alteração de frete;
 - alteração de catálogo;
 - variação de demanda;
 - alertas;
-- watchlist;
-- snapshots periódicos.
+- [x] watchlist;
+- [x] snapshots manuais no MVP; automação periódica vem na etapa seguinte.
 
 ## Fase 8 — Produto comercial
 
@@ -195,3 +195,34 @@ A extensão é um cliente do produto, não o produto inteiro.
 A matriz detalhada das capacidades públicas observadas no Cargoos e a evolução equivalente/mais inteligente do Radar está em `docs/CARGOOS_FEATURE_AUDIT.md`.
 
 Regra: replicar capacidades úteis, não código, identidade visual ou ativos de terceiros.
+
+
+## Progresso adicional — 06/10/2026
+
+### Dashboard web
+- [x] Visual System v3 claro e unificado.
+- [x] Sidebar recolhível com persistência local.
+- [x] Dashboard executivo.
+- [x] Produtos em tabela operacional.
+- [x] Anúncios.
+- [x] Fornecedores.
+- [x] Monitoramento.
+
+### Extensão
+- [x] Instalação unpacked documentada em `extension/README.md`.
+- [x] Backend local permitido no Manifest para desenvolvimento.
+- [x] Botão Monitorar este anúncio.
+- [x] Faixa de mercado P25 / mediana / P75.
+- [x] Concorrentes próximos.
+- [x] Simulação financeira no preço da Buy Box ou P25.
+- [x] Recomendação para não entrar em guerra de preço quando a margem não fecha.
+
+### Próxima sequência
+1. margem personalizada diretamente nos cards de busca;
+2. Price to Win saudável com margem mínima;
+3. catálogo e concorrentes detalhados;
+4. Radar Momentum;
+5. monitoramento automático e alertas;
+6. EAN em lote;
+7. Ads / lucro pós-Ads;
+8. multi-conta, autenticação individual e planos.

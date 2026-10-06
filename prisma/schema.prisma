@@ -262,6 +262,7 @@ model RadarWatchItem {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   snapshots      RadarWatchSnapshot[]
+  alerts         RadarAlert[]
 
   @@unique([sellerUserId, mlItemId])
   @@index([sellerUserId, active, updatedAt])
@@ -279,4 +280,23 @@ model RadarWatchSnapshot {
   watchItem    RadarWatchItem @relation(fields: [watchItemId], references: [id], onDelete: Cascade)
 
   @@index([watchItemId, capturedAt])
+}
+
+
+model RadarAlert {
+  id           String          @id @default(cuid())
+  sellerUserId String
+  watchItemId  String?
+  kind         String
+  severity     String          @default("INFO")
+  title        String
+  message      String
+  metadata     Json?
+  readAt       DateTime?
+  createdAt    DateTime        @default(now())
+  watchItem    RadarWatchItem? @relation(fields: [watchItemId], references: [id], onDelete: Cascade)
+
+  @@index([sellerUserId, readAt, createdAt])
+  @@index([watchItemId, createdAt])
+  @@index([kind, createdAt])
 }

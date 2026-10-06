@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { prisma } from "@/lib/prisma";
 import { isExtensionAuthorized } from "@/lib/extension-auth";
 import {
   getItemsBulk,
@@ -8,6 +9,7 @@ import {
   searchMarketplace,
 } from "@/lib/mercado-livre";
 import { calculateRadarOpportunityScore } from "@/lib/radar-score";
+import { calculateRadarMomentum } from "@/lib/radar-momentum";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +38,7 @@ export async function GET(request: Request) {
     });
 
     const itemIds = marketplace.map((item) => item.id);
-    const [details, visits] = await Promise.all([
+    const [details, visits, watched] = await Promise.all([
       getItemsBulk({
         accessToken: session.accessToken,
         itemIds,
@@ -45,7 +47,38 @@ export async function GET(request: Request) {
         accessToken: session.accessToken,
         itemIds,
       }).catch(() => ({} as Record<string, number>)),
+      prisma.radarWatchItem.findMany({
+        where: {
+          sellerUserId: session.account.mercadoLivreUserId,
+          active: true,
+          mlItemId: { in: itemIds },
+        },
+        include: {
+          snapshots: {
+            orderBy: { capturedAt: "desc" },
+            take: 24,
+          },
+        },
+      }),
     ]);
+
+    const watchByItemId = new Map(
+      watched.map((watch) => [
+        watch.mlItemId,
+        {
+          id: watch.id,
+          momentum: calculateRadarMomentum(
+            watch.snapshots.map((snapshot) => ({
+              score: snapshot.score,
+              demandLabel: snapshot.demandLabel,
+              soldQuantity: snapshot.soldQuantity,
+              visits: snapshot.visits,
+              capturedAt: snapshot.capturedAt,
+            })),
+          ),
+        },
+      ]),
+    );
 
     const detailById = new Map(details.map((item) => [item.id, item]));
 
@@ -66,6 +99,8 @@ export async function GET(request: Request) {
         listingTypeId: searchItem.listingTypeId ?? detail?.listingTypeId ?? null,
       });
 
+      const watch = watchByItemId.get(searchItem.id) ?? null;
+
       return {
         id: searchItem.id,
         title: searchItem.title,
@@ -84,6 +119,8 @@ export async function GET(request: Request) {
         permalink: searchItem.permalink ?? detail?.permalink ?? null,
         thumbnail: searchItem.thumbnail ?? detail?.thumbnail ?? null,
         intelligence,
+        monitored: Boolean(watch),
+        momentum: watch?.momentum ?? null,
       };
     });
 

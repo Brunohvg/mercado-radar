@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 
 const schema = z.object({
   itemId: z.string().trim().regex(/^MLB\d+$/i),
+  salePrice: z.coerce.number().positive().optional(),
   supplierPrice: z.coerce.number().min(0),
   discountPercent: z.coerce.number().min(0).max(95).default(0),
   kitQuantity: z.coerce.number().int().min(1).max(1000).default(1),
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
     }
 
     const price =
+      parsed.data.salePrice ??
       (await getItemCurrentPrice({
         accessToken: session.accessToken,
         itemId,

@@ -442,6 +442,7 @@ export type SellerItemDetail = {
   listingTypeId: string | null;
   availableQuantity: number;
   soldQuantity: number;
+  dateCreated: string | null;
   permalink: string | null;
   thumbnail: string | null;
   freeShipping: boolean;
@@ -466,6 +467,7 @@ export async function getItemsBulk(input: {
       "body.listing_type_id",
       "body.available_quantity",
       "body.sold_quantity",
+      "body.date_created",
       "body.permalink",
       "body.thumbnail",
       "body.shipping",
@@ -485,6 +487,7 @@ export async function getItemsBulk(input: {
       listing_type_id?: string;
       available_quantity?: number;
       sold_quantity?: number;
+      date_created?: string;
       permalink?: string;
       thumbnail?: string;
       seller_custom_field?: string;
@@ -517,6 +520,7 @@ export async function getItemsBulk(input: {
         listingTypeId: body.listing_type_id ?? null,
         availableQuantity: Number(body.available_quantity ?? 0),
         soldQuantity: Number(body.sold_quantity ?? 0),
+        dateCreated: body.date_created ?? null,
         permalink: body.permalink ?? null,
         thumbnail: body.thumbnail ?? null,
         freeShipping: Boolean(body.shipping?.free_shipping),

@@ -11,6 +11,22 @@ type Snapshot = {
   capturedAt: string;
 };
 
+type AlertItem = {
+  id: string;
+  kind: string;
+  severity: string;
+  title: string;
+  message: string;
+  readAt: string | null;
+  createdAt: string;
+  watchItem: {
+    mlItemId: string;
+    title: string;
+    permalink: string | null;
+    thumbnail: string | null;
+  } | null;
+};
+
 type WatchItem = {
   id: string;
   mlItemId: string;
@@ -40,6 +56,8 @@ function delta(current: number | null, previous: number | null) {
 
 export function MonitoringDashboard() {
   const [items, setItems] = useState<WatchItem[]>([]);
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -47,14 +65,31 @@ export function MonitoringDashboard() {
   const load = useCallback(async () => {
     setError("");
     try {
-      const response = await fetch("/api/monitoring/watchlist", {
-        cache: "no-store",
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Falha ao carregar monitoramento.");
+      const [watchResponse, alertResponse] = await Promise.all([
+        fetch("/api/monitoring/watchlist", { cache: "no-store" }),
+        fetch("/api/monitoring/alerts?limit=12", { cache: "no-store" }),
+      ]);
+
+      const [watchPayload, alertPayload] = await Promise.all([
+        watchResponse.json(),
+        alertResponse.json(),
+      ]);
+
+      if (!watchResponse.ok) {
+        throw new Error(
+          watchPayload.error ?? "Falha ao carregar monitoramento.",
+        );
       }
-      setItems(payload.items ?? []);
+
+      if (!alertResponse.ok) {
+        throw new Error(
+          alertPayload.error ?? "Falha ao carregar alertas.",
+        );
+      }
+
+      setItems(watchPayload.items ?? []);
+      setAlerts(alertPayload.alerts ?? []);
+      setUnreadCount(alertPayload.unreadCount ?? 0);
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -110,6 +145,31 @@ export function MonitoringDashboard() {
 
     setItems((current) =>
       current.filter((entry) => entry.mlItemId !== item.mlItemId),
+    );
+  }
+
+  async function markAllRead() {
+    if (unreadCount <= 0) return;
+
+    const response = await fetch("/api/monitoring/alerts", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ all: true }),
+    });
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      setError(payload.error ?? "Falha ao marcar alertas como lidos.");
+      return;
+    }
+
+    setUnreadCount(0);
+    setAlerts((current) =>
+      current.map((alert) => ({
+        ...alert,
+        readAt: alert.readAt ?? payload.readAt ?? new Date().toISOString(),
+      })),
     );
   }
 
@@ -180,6 +240,60 @@ export function MonitoringDashboard() {
               <small>já possuem comparação de preço</small>
             </article>
           </section>
+
+          {alerts.length > 0 && (
+            <section className="clean-panel monitoring-alerts-panel">
+              <div className="clean-panel-head">
+                <div>
+                  <span>Alertas</span>
+                  <strong>Mudanças que merecem atenção</strong>
+                </div>
+                {unreadCount > 0 && (
+                  <button
+                    type="button"
+                    className="inline-link-button"
+                    onClick={() => void markAllRead()}
+                  >
+                    Marcar {unreadCount} como lido(s)
+                  </button>
+                )}
+              </div>
+
+              <div className="monitoring-alert-list">
+                {alerts.map((alert) => (
+                  <article
+                    className={
+                      "monitoring-alert " +
+                      (alert.readAt ? "is-read " : "") +
+                      alert.severity.toLowerCase()
+                    }
+                    key={alert.id}
+                  >
+                    <div className="monitoring-alert-indicator" />
+                    <div className="monitoring-alert-copy">
+                      <div>
+                        <strong>{alert.title}</strong>
+                        {!alert.readAt && <span>Novo</span>}
+                      </div>
+                      <p>{alert.message}</p>
+                      <small>
+                        {new Date(alert.createdAt).toLocaleString("pt-BR")}
+                      </small>
+                    </div>
+                    {alert.watchItem?.permalink && (
+                      <a
+                        href={alert.watchItem.permalink}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Abrir
+                      </a>
+                    )}
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section className="clean-panel monitoring-list-panel">
             <div className="clean-panel-head">

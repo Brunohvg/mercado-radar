@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 
 type ProductRow = {
   id: string;
@@ -40,7 +40,14 @@ type ProductRow = {
     unitCost: number | null;
     grossMarkupPercent: number | null;
     inventoryCapital: number | null;
-    action: "ADD_COST" | "STOP_BUYING" | "RESTOCK" | "WATCH" | "MAINTAIN" | "VALIDATE_PROFIT" | "OBSERVE";
+    action:
+      | "ADD_COST"
+      | "STOP_BUYING"
+      | "RESTOCK"
+      | "WATCH"
+      | "MAINTAIN"
+      | "VALIDATE_PROFIT"
+      | "OBSERVE";
     suggestedReorder: number;
     capitalNeeded: number | null;
   };
@@ -72,30 +79,17 @@ function listingLabel(value: string | null) {
 function healthLabel(value: ProductRow["health"]["action"]) {
   if (value === "RESTOCK") return "Repor";
   if (value === "WATCH") return "Atenção";
-  if (value === "MAINTAIN") return "Manter";
+  if (value === "MAINTAIN") return "Saudável";
   if (value === "STOP_BUYING") return "Parar compra";
-  if (value === "ADD_COST") return "Vincular custo";
+  if (value === "ADD_COST") return "Cadastrar custo";
   if (value === "VALIDATE_PROFIT") return "Validar lucro";
   return "Observar";
 }
 
 function healthTone(value: ProductRow["health"]["action"]) {
   if (value === "RESTOCK" || value === "MAINTAIN") return "good";
-  if (
-    value === "WATCH" ||
-    value === "ADD_COST" ||
-    value === "VALIDATE_PROFIT"
-  )
-    return "tight";
   if (value === "STOP_BUYING") return "bad";
-  return "neutral";
-}
-
-function statusLabel(value: string) {
-  if (value === "active") return "Ativo";
-  if (value === "paused") return "Pausado";
-  if (value === "closed") return "Encerrado";
-  return value;
+  return "attention";
 }
 
 export function ProductsDashboard() {
@@ -103,6 +97,8 @@ export function ProductsDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<"ALL" | "ATTENTION" | "NO_COST">("ALL");
   const [costEditorId, setCostEditorId] = useState<string | null>(null);
   const [costDraft, setCostDraft] = useState({
     supplier: "",
@@ -140,6 +136,61 @@ export function ProductsDashboard() {
   useEffect(() => {
     void load(false);
   }, [load]);
+
+  const products = useMemo(() => {
+    const rows = data?.products ?? [];
+    const normalized = query.trim().toLowerCase();
+
+    return rows.filter((product) => {
+      const textMatch =
+        !normalized ||
+        product.title.toLowerCase().includes(normalized) ||
+        product.mlItemId.toLowerCase().includes(normalized) ||
+        product.sku?.toLowerCase().includes(normalized) ||
+        product.supplier?.toLowerCase().includes(normalized);
+
+      if (!textMatch) return false;
+      if (filter === "NO_COST") return product.netUnitCost == null;
+      if (filter === "ATTENTION") {
+        return (
+          product.health.action === "STOP_BUYING" ||
+          product.health.action === "WATCH" ||
+          product.health.action === "ADD_COST" ||
+          product.health.action === "VALIDATE_PROFIT"
+        );
+      }
+      return true;
+    });
+  }, [data, filter, query]);
+
+  const summary = useMemo(() => {
+    const rows = data?.products ?? [];
+    const knownCost = rows.filter((product) => product.netUnitCost != null);
+    const inventoryCapital = knownCost.reduce(
+      (sum, product) => sum + Number(product.health.inventoryCapital ?? 0),
+      0,
+    );
+    const healthy = rows.filter(
+      (product) =>
+        product.health.action === "MAINTAIN" ||
+        product.health.action === "RESTOCK",
+    ).length;
+    const healthScore = rows.length
+      ? Math.round(
+          (knownCost.length / rows.length) * 40 +
+            (healthy / rows.length) * 35 +
+            (rows.filter((product) => product.health.unitsSold > 0).length /
+              rows.length) *
+              25,
+        )
+      : 0;
+
+    return {
+      knownCost: knownCost.length,
+      inventoryCapital,
+      healthScore,
+    };
+  }, [data]);
 
   function openCostEditor(product: ProductRow) {
     setCostEditorId(product.mlItemId);
@@ -201,345 +252,303 @@ export function ProductsDashboard() {
   }
 
   return (
-    <section className="module-section" id="produtos">
-      <div className="section-heading">
+    <section className="products-page">
+      <header className="page-header clean-page-header">
         <div>
-          <p className="eyebrow">Capital & estoque</p>
-          <h2>Quais produtos merecem mais capital — e quais não?</h2>
+          <p className="page-kicker">Overview · Produtos</p>
+          <h1>Produtos</h1>
+          <p>Quanto cada produto deixa, quanto capital está parado e quando repor.</p>
         </div>
-        <div className="module-heading-actions">
-          <p>
-            Os anúncios da conta são a base para decidir reposição, cobertura,
-            preço e capital. Não queremos apenas repetir o Seller Center.
-          </p>
+        <div className="page-header-actions">
           <button
             type="button"
-            className="secondary"
+            className="clean-secondary"
             disabled={refreshing}
             onClick={() => void load(true)}
           >
-            {refreshing ? "Sincronizando..." : "Sincronizar produtos"}
+            {refreshing ? "Atualizando..." : "Atualizar produtos"}
           </button>
         </div>
-      </div>
+      </header>
 
-      {loading && <div className="module-loading">Carregando produtos...</div>}
+      {loading && <div className="clean-loading">Carregando produtos...</div>}
       {error && <div className="error">{error}</div>}
 
       {data && (
         <>
-          <div className="module-kpis">
-            <article>
-              <span>Anúncios</span>
+          <section className="clean-kpi-grid product-overview-kpis">
+            <article className="clean-kpi-card">
+              <span>SKUs / anúncios</span>
               <strong>{data.summary.total}</strong>
               <small>{data.summary.active} ativos</small>
             </article>
-            <article>
-              <span>Estoque ativo</span>
+            <article className="clean-kpi-card">
+              <span>Unidades em estoque</span>
               <strong>{data.summary.stockUnits}</strong>
-              <small>unidades anunciadas</small>
+              <small>somando anúncios ativos</small>
             </article>
-            <article>
-              <span>Vendas acumuladas</span>
-              <strong>{data.summary.soldUnits}</strong>
-              <small>nos anúncios sincronizados</small>
+            <article className="clean-kpi-card">
+              <span>Capital conhecido</span>
+              <strong>{money.format(summary.inventoryCapital)}</strong>
+              <small>{summary.knownCost} produto(s) com custo</small>
             </article>
-            <article>
-              <span>Pausados</span>
-              <strong>{data.summary.paused}</strong>
-              <small>atenção operacional</small>
+            <article className="clean-kpi-card accent">
+              <span>Saúde do estoque</span>
+              <strong>{summary.healthScore}/100</strong>
+              <small>custo, giro e margem</small>
             </article>
-          </div>
+          </section>
 
-          {data.products.length === 0 ? (
-            <div className="module-empty">
-              Nenhum anúncio foi encontrado na conta conectada.
+          <section className="clean-panel products-table-panel">
+            <div className="products-table-toolbar">
+              <div>
+                <strong>Produtos</strong>
+                <span>{products.length} de {data.summary.total}</span>
+              </div>
+
+              <div className="products-table-actions">
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Buscar por nome, SKU, fornecedor..."
+                  aria-label="Buscar produtos"
+                />
+                <select
+                  value={filter}
+                  onChange={(event) =>
+                    setFilter(event.target.value as "ALL" | "ATTENTION" | "NO_COST")
+                  }
+                  aria-label="Filtrar produtos"
+                >
+                  <option value="ALL">Todos</option>
+                  <option value="ATTENTION">Precisam atenção</option>
+                  <option value="NO_COST">Sem custo</option>
+                </select>
+              </div>
             </div>
-          ) : (
-            <div className="product-list">
-              {data.products.map((product) => (
-                <article className="product-row-card" key={product.mlItemId}>
-                  <div className="product-identity">
-                    {product.thumbnail ? (
-                      <img src={product.thumbnail} alt="" loading="lazy" />
-                    ) : (
-                      <div className="product-thumb-placeholder">ML</div>
-                    )}
-                    <div>
-                      <div className="product-flags">
-                        <span className={"status-chip " + product.status}>
-                          {statusLabel(product.status)}
-                        </span>
-                        <span>{listingLabel(product.listingTypeId)}</span>
-                        {product.freeShipping && <span>Frete grátis</span>}
-                      </div>
-                      <strong>{product.title}</strong>
-                      <small>
-                        {product.mlItemId}
-                        {product.sku ? ` · SKU ${product.sku}` : ""}
-                      </small>
-                    </div>
-                  </div>
 
-                  <div className="product-metrics">
-                    <div>
-                      <span>Preço atual</span>
-                      <strong>
-                        {product.currentPrice == null
-                          ? "Consultar"
-                          : money.format(product.currentPrice)}
-                      </strong>
-                    </div>
-                    <div>
-                      <span>Estoque atual</span>
-                      <strong>{product.availableQuantity}</strong>
-                    </div>
-                    <div>
-                      <span>Vendas 30d</span>
-                      <strong>{product.health.unitsSold}</strong>
-                    </div>
-                    <div>
-                      <span>Cobertura</span>
-                      <strong>
-                        {product.health.coverageDays == null
-                          ? "Sem giro"
-                          : `${Math.round(product.health.coverageDays)} dias`}
-                      </strong>
-                    </div>
-                    <div>
-                      <span>
-                        {product.health.realizedMarginPercent != null
-                          ? "Margem real"
-                          : "Margem estimada"}
-                      </span>
-                      <strong>
-                        {product.health.decisionMarginPercent == null
-                          ? "Aguardando"
-                          : `${product.health.decisionMarginPercent.toFixed(1)}%`}
-                      </strong>
-                    </div>
-                  </div>
+            {products.length === 0 ? (
+              <div className="module-empty">Nenhum produto encontrado.</div>
+            ) : (
+              <div className="clean-table-wrap">
+                <table className="clean-table products-table">
+                  <thead>
+                    <tr>
+                      <th>Produto</th>
+                      <th>Tipo</th>
+                      <th>SKU</th>
+                      <th>Fornecedor</th>
+                      <th>Estoque</th>
+                      <th>Preço</th>
+                      <th>Margem</th>
+                      <th>Ação Radar</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {products.map((product) => (
+                      <Fragment key={product.mlItemId}>
+                        <tr>
+                          <td>
+                            <div className="clean-product-cell">
+                              {product.thumbnail ? (
+                                <img src={product.thumbnail} alt="" loading="lazy" />
+                              ) : (
+                                <span className="clean-product-thumb">MR</span>
+                              )}
+                              <div>
+                                <strong>{product.title}</strong>
+                                <small>{product.mlItemId}</small>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="neutral-chip">
+                              {listingLabel(product.listingTypeId)}
+                            </span>
+                          </td>
+                          <td>{product.sku ?? "Sem SKU"}</td>
+                          <td>
+                            {product.supplier ? (
+                              <span>{product.supplier}</span>
+                            ) : (
+                              <button
+                                type="button"
+                                className="inline-link-button"
+                                onClick={() => openCostEditor(product)}
+                              >
+                                + Vincular
+                              </button>
+                            )}
+                          </td>
+                          <td>
+                            <strong>{product.availableQuantity}</strong>
+                            {product.health.coverageDays != null && (
+                              <small className="table-subtext">
+                                {Math.round(product.health.coverageDays)} dias
+                              </small>
+                            )}
+                          </td>
+                          <td>
+                            {product.currentPrice == null
+                              ? "—"
+                              : money.format(product.currentPrice)}
+                          </td>
+                          <td>
+                            {product.health.decisionMarginPercent == null
+                              ? "—"
+                              : `${product.health.decisionMarginPercent.toFixed(1)}%`}
+                          </td>
+                          <td>
+                            <span
+                              className={
+                                "table-status " + healthTone(product.health.action)
+                              }
+                            >
+                              {healthLabel(product.health.action)}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="row-menu-button"
+                              aria-label={"Editar " + product.title}
+                              onClick={() =>
+                                costEditorId === product.mlItemId
+                                  ? setCostEditorId(null)
+                                  : openCostEditor(product)
+                              }
+                            >
+                              •••
+                            </button>
+                          </td>
+                        </tr>
 
-                  {product.netUnitCost == null ? (
-                    <div className="product-cost-empty">
-                      <div>
-                        <span>Custo ainda não informado</span>
-                        <small>
-                          Informe o preço pago e o desconto para liberar margem,
-                          capital e lucro real.
-                        </small>
-                      </div>
-                      <button
-                        type="button"
-                        className="table-action"
-                        onClick={() => openCostEditor(product)}
-                      >
-                        Informar custo
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="product-cost-summary compact">
-                      <div>
-                        <span>Custo líquido</span>
-                        <strong>{money.format(product.netUnitCost)}</strong>
-                        <small>
-                          tabela {money.format(product.supplierPrice ?? 0)}
-                          {product.discountPercent > 0
-                            ? ` · -${product.discountPercent.toFixed(1)}%`
-                            : ""}
-                        </small>
-                      </div>
-                      <div>
-                        <span>Markup bruto</span>
-                        <strong>
-                          {product.health.grossMarkupPercent == null
-                            ? "—"
-                            : `${product.health.grossMarkupPercent.toFixed(1)}%`}
-                        </strong>
-                      </div>
-                      <div>
-                        <span>Capital em estoque</span>
-                        <strong>
-                          {product.health.inventoryCapital == null
-                            ? "—"
-                            : money.format(product.health.inventoryCapital)}
-                        </strong>
-                      </div>
-                      <button
-                        type="button"
-                        className="table-action"
-                        onClick={() => openCostEditor(product)}
-                      >
-                        Editar custo
-                      </button>
-                    </div>
-                  )}
+                        {costEditorId === product.mlItemId && (
+                          <tr className="product-editor-row">
+                            <td colSpan={9}>
+                              <div className="product-inline-editor">
+                                <div className="product-inline-editor-head">
+                                  <div>
+                                    <strong>Custo e fornecedor</strong>
+                                    <small>
+                                      O Radar usa isso para margem, lucro real e capital.
+                                    </small>
+                                  </div>
+                                  {product.permalink && (
+                                    <a
+                                      href={product.permalink}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                    >
+                                      Abrir anúncio ↗
+                                    </a>
+                                  )}
+                                </div>
 
-                  {product.economics && (
-                    <div className="listing-economics">
-                      <div>
-                        <span>Tarifa do anúncio</span>
-                        <strong>{money.format(product.economics.saleFee)}</strong>
-                      </div>
-                      <div>
-                        <span>Frete estimado</span>
-                        <strong>{money.format(product.economics.shippingCost)}</strong>
-                      </div>
-                      <div>
-                        <span>Recebe do ML</span>
-                        <strong>{money.format(product.economics.amountReceived)}</strong>
-                      </div>
-                      <div>
-                        <span>Lucro estimado</span>
-                        <strong>{money.format(product.economics.estimatedProfit)}</strong>
-                      </div>
-                      <div>
-                        <span>Margem estimada</span>
-                        <strong>{product.economics.estimatedMarginPercent.toFixed(1)}%</strong>
-                      </div>
-                    </div>
-                  )}
+                                <div className="product-inline-editor-grid">
+                                  <label>
+                                    <span>Fornecedor</span>
+                                    <input
+                                      value={costDraft.supplier}
+                                      placeholder="Ex.: Bibelô"
+                                      onChange={(event) =>
+                                        setCostDraft((current) => ({
+                                          ...current,
+                                          supplier: event.target.value,
+                                        }))
+                                      }
+                                    />
+                                  </label>
+                                  <label>
+                                    <span>Preço tabela</span>
+                                    <input
+                                      type="number"
+                                      min="0.01"
+                                      step="0.01"
+                                      value={costDraft.supplierPrice}
+                                      onChange={(event) =>
+                                        setCostDraft((current) => ({
+                                          ...current,
+                                          supplierPrice: event.target.value,
+                                        }))
+                                      }
+                                    />
+                                  </label>
+                                  <label>
+                                    <span>Desconto %</span>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="100"
+                                      step="0.01"
+                                      value={costDraft.discountPercent}
+                                      onChange={(event) =>
+                                        setCostDraft((current) => ({
+                                          ...current,
+                                          discountPercent: event.target.value,
+                                        }))
+                                      }
+                                    />
+                                  </label>
+                                  <div className="product-inline-cost">
+                                    <span>Custo líquido</span>
+                                    <strong>
+                                      {Number(costDraft.supplierPrice) > 0
+                                        ? money.format(
+                                            Number(costDraft.supplierPrice) *
+                                              (1 -
+                                                Number(
+                                                  costDraft.discountPercent || 0,
+                                                ) /
+                                                  100),
+                                          )
+                                        : "—"}
+                                    </strong>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="primary inline"
+                                    disabled={costSaving}
+                                    onClick={() => void saveCost(product)}
+                                  >
+                                    {costSaving ? "Salvando..." : "Salvar custo"}
+                                  </button>
+                                </div>
 
-                  {costEditorId === product.mlItemId && (
-                    <div className="product-cost-editor">
-                      <div className="product-cost-editor-head">
-                        <div>
-                          <span className="eyebrow">Custo do produto</span>
-                          <strong>Quanto este item realmente custou?</strong>
-                        </div>
-                        <button
-                          type="button"
-                          className="table-action"
-                          onClick={() => setCostEditorId(null)}
-                        >
-                          Fechar
-                        </button>
-                      </div>
-
-                      <div className="product-cost-editor-grid">
-                        <label>
-                          <span>Fornecedor (opcional)</span>
-                          <input
-                            value={costDraft.supplier}
-                            placeholder="Ex.: Bibelô"
-                            onChange={(event) =>
-                              setCostDraft((current) => ({
-                                ...current,
-                                supplier: event.target.value,
-                              }))
-                            }
-                          />
-                        </label>
-                        <label>
-                          <span>Preço pago / tabela</span>
-                          <input
-                            type="number"
-                            min="0.01"
-                            step="0.01"
-                            value={costDraft.supplierPrice}
-                            placeholder="Ex.: 27,90"
-                            onChange={(event) =>
-                              setCostDraft((current) => ({
-                                ...current,
-                                supplierPrice: event.target.value,
-                              }))
-                            }
-                          />
-                        </label>
-                        <label>
-                          <span>Desconto %</span>
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.01"
-                            value={costDraft.discountPercent}
-                            onChange={(event) =>
-                              setCostDraft((current) => ({
-                                ...current,
-                                discountPercent: event.target.value,
-                              }))
-                            }
-                          />
-                        </label>
-                        <div className="product-cost-preview">
-                          <span>Custo líquido</span>
-                          <strong>
-                            {Number(costDraft.supplierPrice) > 0
-                              ? money.format(
-                                  Number(costDraft.supplierPrice) *
-                                    (1 -
-                                      Number(costDraft.discountPercent || 0) /
-                                        100),
-                                )
-                              : "—"}
-                          </strong>
-                        </div>
-                      </div>
-
-                      <div className="product-cost-editor-actions">
-                        <small>
-                          Ao salvar, o Radar recalcula pedidos históricos deste
-                          anúncio que já tenham tarifa e frete realizados.
-                        </small>
-                        <button
-                          type="button"
-                          className="secondary"
-                          disabled={costSaving}
-                          onClick={() => void saveCost(product)}
-                        >
-                          {costSaving ? "Recalculando..." : "Salvar e recalcular"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className={"product-health-card " + healthTone(product.health.action)}>
-                    <div>
-                      <span>Ação do Radar</span>
-                      <strong>{healthLabel(product.health.action)}</strong>
-                      <small>
-                        {product.health.action === "RESTOCK"
-                          ? `Sugestão: repor ${product.health.suggestedReorder} un.`
-                          : product.health.action === "STOP_BUYING"
-                            ? "Margem realizada abaixo do mínimo."
-                            : product.health.action === "ADD_COST"
-                              ? "Sem custo do produto, não dá para calcular margem nem decidir capital."
-                              : product.health.action === "VALIDATE_PROFIT"
-                                ? "O custo já está salvo, mas ainda faltam tarifa ou frete realizados para concluir a margem real."
-                                : product.health.action === "WATCH"
-                                  ? "Cobertura abaixo de 14 dias."
-                                  : product.health.action === "MAINTAIN"
-                                    ? "Margem conhecida e cobertura confortável."
-                                    : "Ainda não há vendas suficientes no período."}
-                      </small>
-                    </div>
-                    <div className="product-health-side">
-                      <div className="product-capital">
-                        <span>Capital para reposição</span>
-                        <strong>
-                          {product.health.capitalNeeded == null
-                            ? "—"
-                            : money.format(product.health.capitalNeeded)}
-                        </strong>
-                      </div>
-                      {product.permalink && (
-                        <a
-                          className="table-action"
-                          href={product.permalink}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Abrir anúncio
-                        </a>
-                      )}
-                    </div>
-                  </div>
-
-                </article>
-              ))}
-            </div>
-          )}
+                                {product.economics && (
+                                  <div className="product-inline-economics">
+                                    <span>
+                                      Tarifa {money.format(product.economics.saleFee)}
+                                    </span>
+                                    <span>
+                                      Frete {money.format(product.economics.shippingCost)}
+                                    </span>
+                                    <span>
+                                      Lucro estimado{" "}
+                                      <strong>
+                                        {money.format(product.economics.estimatedProfit)}
+                                      </strong>
+                                    </span>
+                                    <span>
+                                      Margem{" "}
+                                      <strong>
+                                        {product.economics.estimatedMarginPercent.toFixed(1)}%
+                                      </strong>
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
         </>
       )}
     </section>

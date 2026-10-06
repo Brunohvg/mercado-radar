@@ -5111,3 +5111,89 @@ h3,
     width: 100%;
   }
 }
+
+
+.monitoring-alerts-panel {
+  margin-bottom: 12px;
+}
+
+.monitoring-alert-list {
+  display: grid;
+  gap: 7px;
+}
+
+.monitoring-alert {
+  display: grid;
+  grid-template-columns: 5px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfdfc;
+}
+
+.monitoring-alert.is-read {
+  opacity: .68;
+  background: #fff;
+}
+
+.monitoring-alert-indicator {
+  width: 5px;
+  min-height: 44px;
+  border-radius: 999px;
+  background: #7ba998;
+}
+
+.monitoring-alert.warning .monitoring-alert-indicator {
+  background: #d39a35;
+}
+
+.monitoring-alert.critical .monitoring-alert-indicator {
+  background: #c8585e;
+}
+
+.monitoring-alert-copy {
+  min-width: 0;
+}
+
+.monitoring-alert-copy > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.monitoring-alert-copy strong {
+  color: #31453c;
+  font-size: 10px;
+}
+
+.monitoring-alert-copy > div > span {
+  display: inline-flex;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: #e2f4ee;
+  color: #14745f;
+  font-size: 7px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.monitoring-alert-copy p {
+  margin: 4px 0 3px;
+  color: #6f7e77;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.monitoring-alert-copy small {
+  color: #a0aaa5;
+  font-size: 7px;
+}
+
+.monitoring-alert > a {
+  color: #147b66;
+  font-size: 8px;
+  font-weight: 750;
+  text-decoration: none;
+}

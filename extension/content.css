@@ -9,14 +9,103 @@
   line-height: 1.35;
   color: #1f2937;
 }
-.mercado-radar-card strong {
+
+.mercado-radar-card strong,
+.mercado-radar-card b {
   color: #0f7a35;
 }
+
 .mercado-radar-card__row {
   display: flex;
   justify-content: space-between;
   gap: 8px;
+  margin-top: 3px;
 }
+
+.mercado-radar-card__header {
+  margin-top: 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e5efe8;
+}
+
 .mercado-radar-card__score {
   font-weight: 700;
+}
+
+.mercado-radar-filters {
+  box-sizing: border-box;
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid #dcefe2;
+  border-radius: 12px;
+  background: #fff;
+  color: #1f2937;
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  box-shadow: 0 4px 18px rgba(20, 80, 40, 0.06);
+}
+
+.mercado-radar-filters--fixed {
+  position: fixed;
+  z-index: 2147483000;
+  left: 12px;
+  top: 120px;
+  width: 220px;
+  max-height: calc(100vh - 140px);
+  overflow: auto;
+}
+
+.mercado-radar-filters__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f7a35;
+}
+
+.mercado-radar-filters__title button {
+  border: 0;
+  background: transparent;
+  color: #66736b;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.mercado-radar-filters label {
+  display: block;
+  margin-top: 10px;
+  font-weight: 600;
+}
+
+.mercado-radar-filters select {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px;
+  border: 1px solid #d8e1dc;
+  border-radius: 8px;
+  background: #fff;
+  color: #26312a;
+  font-size: 12px;
+}
+
+.mercado-radar-filters__check {
+  display: flex !important;
+  align-items: center;
+  gap: 7px;
+  font-weight: 500 !important;
+}
+
+.mercado-radar-filters__check input {
+  margin: 0;
+}
+
+@media (max-width: 1100px) {
+  .mercado-radar-filters--fixed {
+    left: 8px;
+    width: 190px;
+  }
 }

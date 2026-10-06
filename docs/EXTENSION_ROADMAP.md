@@ -77,9 +77,9 @@ Objetivo comercial futuro: vender acesso ao Radar como SaaS, com planos e recurs
 - [x] filtros Radar iniciais;
 - [x] ordenar por oportunidade;
 - [x] ordenar por vendas;
-- ordenar por margem do usuário;
+- [x] ordenar por margem do usuário;
 - ordenar por menor concorrência;
-- Radar Momentum.
+- [x] Radar Momentum baseado em histórico monitorado.
 - [x] ordenar por faturamento;
 - [x] ordenar por anúncios mais novos;
 
@@ -90,9 +90,9 @@ Objetivo comercial futuro: vender acesso ao Radar como SaaS, com planos e recurs
 - diferença de preço;
 - diferença de frete;
 - diferença de reputação;
-- impacto de igualar preço;
-- margem mínima;
-- recomendação de manter/reduzir/aumentar;
+- [x] impacto de igualar preço;
+- [x] margem mínima;
+- [x] recomendação de manter/reduzir/aumentar;
 - monitorar concorrente.
 
 ## Fase 6 — Meus anúncios
@@ -120,9 +120,10 @@ Objetivo comercial futuro: vender acesso ao Radar como SaaS, com planos e recurs
 - alteração de frete;
 - alteração de catálogo;
 - variação de demanda;
-- alertas;
+- [x] alertas de preço, score e demanda;
 - [x] watchlist;
-- [x] snapshots manuais no MVP; automação periódica vem na etapa seguinte.
+- [x] snapshots manuais;
+- [x] endpoint seguro para snapshots automáticos por cron.
 
 ## Fase 8 — Produto comercial
 
@@ -218,11 +219,11 @@ Regra: replicar capacidades úteis, não código, identidade visual ou ativos de
 - [x] Recomendação para não entrar em guerra de preço quando a margem não fecha.
 
 ### Próxima sequência
-1. margem personalizada diretamente nos cards de busca;
-2. Price to Win saudável com margem mínima;
-3. catálogo e concorrentes detalhados;
-4. Radar Momentum;
-5. monitoramento automático e alertas;
-6. EAN em lote;
-7. Ads / lucro pós-Ads;
-8. multi-conta, autenticação individual e planos.
+1. [x] margem personalizada diretamente nos cards de busca;
+2. [x] estratégia de preço competitivo saudável com margem mínima;
+3. [x] concorrentes enriquecidos com score, demanda e velocidade;
+4. [x] Radar Momentum baseado em snapshots;
+5. [x] monitoramento automático e alertas;
+6. [ ] EAN em lote;
+7. [ ] Ads / lucro pós-Ads;
+8. [ ] multi-conta, autenticação individual e planos.

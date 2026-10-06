@@ -66,6 +66,8 @@ type SearchPayload = {
     average: number | null;
     freeShippingPercent: number;
     catalogPercent: number;
+    highEvidenceCount: number;
+    exactPricePercent: number;
     medianEstimatedSalesPerMonth: number | null;
     medianEstimatedRevenuePerMonth: number | null;
   } | null;
@@ -520,6 +522,14 @@ export function OpportunityRadar() {
               <strong>{data.summary.freeShippingPercent}%</strong>
               <small>
                 com frete grátis · {data.summary.catalogPercent}% catálogo
+              </small>
+            </article>
+
+            <article>
+              <span>Qualidade dos dados</span>
+              <strong>{data.summary.exactPricePercent}%</strong>
+              <small>
+                preço atual confirmado · {data.summary.highEvidenceCount} com alta confiança
               </small>
             </article>
           </section>

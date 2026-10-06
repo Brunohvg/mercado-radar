@@ -3,6 +3,9 @@ const apiKey = document.getElementById("apiKey");
 const status = document.getElementById("status");
 const contextCard = document.getElementById("contextCard");
 const analyticsCard = document.getElementById("analyticsCard");
+const watchCard = document.getElementById("watchCard");
+const watchButton = document.getElementById("watchButton");
+const watchStatus = document.getElementById("watchStatus");
 const calculatorCard = document.getElementById("calculatorCard");
 const marketCard = document.getElementById("marketCard");
 const buyBoxBlock = document.getElementById("buyBoxBlock");
@@ -43,6 +46,8 @@ async function loadSettings() {
 async function renderContext(context) {
   currentItem = null;
   analyticsCard.hidden = true;
+  watchCard.hidden = true;
+  watchStatus.textContent = "";
   marketCard.hidden = true;
   calculatorCard.hidden = true;
   calcResult.hidden = true;
@@ -108,6 +113,7 @@ async function renderContext(context) {
   document.getElementById("age").textContent =
     intel.ageDays == null ? "—" : intel.ageDays + " dias";
 
+  watchCard.hidden = false;
   analyticsCard.hidden = false;
 
   const catalog = response.body.catalog;
@@ -223,6 +229,37 @@ document.getElementById("calculate").addEventListener("click", async () => {
     "muted " + (result.verdict === "GOOD" ? "good" : result.verdict === "BAD" ? "bad" : "");
 
   calcResult.hidden = false;
+});
+
+
+watchButton.addEventListener("click", async () => {
+  if (!currentItem?.id) return;
+
+  watchButton.disabled = true;
+  watchStatus.textContent = "Salvando no monitoramento...";
+
+  const context = await chrome.storage.session.get(["radarCurrentContext"]);
+  const response = await request("/api/extension/watchlist", {
+    method: "POST",
+    body: {
+      itemId: currentItem.id,
+      referenceId: context.radarCurrentContext?.referenceId || currentItem.id,
+    },
+  });
+
+  watchButton.disabled = false;
+
+  if (!response?.ok) {
+    watchStatus.textContent =
+      response?.body?.error || "Não foi possível monitorar este anúncio.";
+    watchStatus.className = "muted bad";
+    return;
+  }
+
+  watchStatus.textContent =
+    "Monitoramento ativado. O produto já está salvo no Radar.";
+  watchStatus.className = "muted good";
+  watchButton.textContent = "Monitorando";
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {

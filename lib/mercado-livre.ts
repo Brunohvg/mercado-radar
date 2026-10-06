@@ -30,11 +30,40 @@ async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
     const body = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      const message =
+      const apiMessage =
         typeof body?.message === "string"
           ? body.message
           : `Mercado Livre respondeu HTTP ${response.status}`;
-      throw new Error(message);
+
+      if (response.status === 401) {
+        throw new Error(
+          "A autorização do Mercado Livre expirou ou foi revogada. Reconecte a conta em Integrações.",
+        );
+      }
+
+      if (response.status === 403) {
+        throw new Error(
+          "O Mercado Livre negou acesso a este recurso. A conta está conectada, mas o aplicativo precisa da permissão correspondente. Revise a integração do Mercado Livre.",
+        );
+      }
+
+      if (response.status === 429) {
+        throw new Error(
+          "O Mercado Livre limitou temporariamente as consultas. O Radar tentará novamente quando o limite liberar.",
+        );
+      }
+
+      if (response.status >= 500) {
+        throw new Error(
+          "O Mercado Livre está temporariamente indisponível para esta consulta. Tente novamente em alguns instantes.",
+        );
+      }
+
+      throw new Error(
+        apiMessage === "forbidden"
+          ? "O Mercado Livre não autorizou esta consulta para o aplicativo conectado."
+          : apiMessage,
+      );
     }
 
     return body as T;

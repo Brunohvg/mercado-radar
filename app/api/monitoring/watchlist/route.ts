@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getMlSession } from "@/lib/mercado-livre";
+import { calculateRadarMomentum } from "@/lib/radar-momentum";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,15 @@ export async function GET() {
         visits: item.visits,
         lastCheckedAt: item.lastCheckedAt,
         createdAt: item.createdAt,
+        momentum: calculateRadarMomentum(
+          item.snapshots.map((snapshot) => ({
+            score: snapshot.score,
+            demandLabel: snapshot.demandLabel,
+            soldQuantity: snapshot.soldQuantity,
+            visits: snapshot.visits,
+            capturedAt: snapshot.capturedAt,
+          })),
+        ),
         snapshots: item.snapshots.map((snapshot) => ({
           price: snapshot.price == null ? null : Number(snapshot.price),
           score: snapshot.score,

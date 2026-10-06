@@ -28,7 +28,6 @@ model AppSettings {
   operatingCostDefault  Decimal  @default(1) @db.Decimal(10, 2)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
-  extensionAccesses     RadarExtensionAccess[]
 }
 
 model Product {

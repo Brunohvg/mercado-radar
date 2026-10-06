@@ -29,6 +29,14 @@
     summary{cursor:pointer;font-size:12px;font-weight:700}
     .divider{height:1px;background:#edf1ee;margin:10px 0}
     .mercado-radar-trend{padding:5px 0;border-bottom:1px solid #f0f3f1;font-size:11px}
+    .market-range{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+    .market-range>div{padding:8px;border-radius:8px;background:#f7faf8}
+    .market-range small,.market-range strong{display:block}
+    .market-range small{color:#68756d;font-size:9px}
+    .market-range strong{margin-top:3px;font-size:13px}
+    .competitor-row{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid #f0f3f1;font-size:10px}
+    .competitor-row span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .compare-box{margin-top:10px;padding:9px;border-radius:9px;background:#f7faf8;font-size:10px}
   </style>
 </head>
 <body>
@@ -64,6 +72,7 @@
 
     <div id="marketCard" class="card" hidden>
       <div class="title">Mercado & catálogo</div>
+      <div id="marketRangeBlock"></div>
       <div id="buyBoxBlock"></div>
       <div id="trendsBlock"></div>
     </div>

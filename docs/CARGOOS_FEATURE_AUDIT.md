@@ -47,6 +47,10 @@ A meta não é copiar código, identidade visual ou ativos. A meta é cobrir as 
 | Dashboard web | Já existe | central de histórico e gestão |
 | Extensão Chrome | Em desenvolvimento | principal interface operacional |
 | Plano Free/Pro | Arquitetura prevista | entitlements server-side |
+| Calculadora de importação | Observada na interface | módulo opcional de landed cost: produto + câmbio + imposto + frete + despacho |
+| Ferramentas Web/3D | Observadas na interface | não são núcleo do Radar; só entram se ajudarem sourcing/conversão |
+| Gerar EAN | Observado na interface | não gerar GTIN comercial arbitrário; oferecer validador de EAN/GTIN, checksum e consulta em lote |
+| Configurações/Suporte | Fundação existente | centralizar conta, fornecedores, metas, plano, suporte e diagnóstico |
 
 ## Diferenciais próprios do Radar
 
@@ -162,3 +166,23 @@ Para cada oportunidade:
 
 Toda feature competitiva deve responder a uma decisão prática.
 Se um dado não muda uma decisão de comprar, precificar, anunciar, repor ou parar, ele não deve ocupar espaço principal na interface.
+
+
+## Decisões sobre utilitários observados na interface
+
+### Calculadora de importação
+
+É útil se o Radar ampliar sourcing para importados. A implementação correta deve calcular landed cost e nunca misturar custo FOB/CIF, câmbio, frete internacional, tributos e despesas locais sem detalhamento.
+
+### EAN / GTIN
+
+O Radar não deve vender a ideia de que um número matematicamente válido é um GTIN oficial. Para produto comercial, GTIN deve vir da fonte legítima aplicável. O Radar terá:
+- validação de formato/checksum;
+- consulta individual;
+- pesquisa em lote;
+- detecção de duplicidade;
+- gerador apenas para dados fictícios de teste, claramente marcado como não comercial.
+
+### Ferramentas Web / 3D
+
+Não entram só para aumentar o menu. Primeiro serão avaliadas pelo impacto em sourcing, criação de anúncio ou conversão. Se não mudarem uma decisão operacional, ficam fora do núcleo.

@@ -193,7 +193,7 @@ export function OpportunityRadar() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           query: normalized,
-          limit: 32,
+          limit: 24,
         }),
       });
 

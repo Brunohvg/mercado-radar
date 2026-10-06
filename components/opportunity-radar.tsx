@@ -28,6 +28,8 @@ type Opportunity = {
   evidence: Evidence;
   salesPerDay: number | null;
   salesPerMonth: number | null;
+  visitsPerDay: number | null;
+  revenuePerDay: number | null;
   revenuePerMonth: number | null;
   ageDays: number | null;
   bestSellerPosition: number | null;
@@ -765,6 +767,32 @@ export function OpportunityRadar() {
 
                         <div className="opportunity-metric-grid">
                           <div>
+                            <span>Visitas / dia</span>
+                            <strong>
+                              {item.visitsPerDay == null
+                                ? "—"
+                                : "~" +
+                                  item.visitsPerDay.toLocaleString("pt-BR", {
+                                    maximumFractionDigits: 1,
+                                  })}
+                            </strong>
+                            <small>ritmo histórico</small>
+                          </div>
+
+                          <div>
+                            <span>Vendas / dia</span>
+                            <strong>
+                              {item.salesPerDay == null
+                                ? "—"
+                                : "~" +
+                                  item.salesPerDay.toLocaleString("pt-BR", {
+                                    maximumFractionDigits: 1,
+                                  })}
+                            </strong>
+                            <small>ritmo histórico</small>
+                          </div>
+
+                          <div>
                             <span>Vendas / mês</span>
                             <strong>
                               {item.salesPerMonth == null
@@ -789,7 +817,7 @@ export function OpportunityRadar() {
                           </div>
 
                           <div>
-                            <span>Vendidos</span>
+                            <span>Vendidos total</span>
                             <strong>
                               {item.soldQuantity.toLocaleString("pt-BR")}
                             </strong>

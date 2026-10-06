@@ -258,3 +258,31 @@ Regra: replicar capacidades úteis, não código, identidade visual ou ativos de
 - [x] lucro pós-Ads por produto quando o Ad Group pode ser relacionado ao anúncio;
 - [x] recomendação de orçamento: escalar, manter, reduzir, revisar/pausar ou coletar mais dados;
 - [x] recomendação condicionada à cobertura de custos para evitar decisões com falsa precisão.
+
+
+## Radar de Oportunidades v2
+
+A tela antiga baseada em tendências semanais deixou de ser o fluxo principal.
+
+### Implementado
+- [x] busca direta independente de trends;
+- [x] fallback quando a categoria prevista tem baixa aderência;
+- [x] matching com penalidade para modelo/medida/quantidade incompatível;
+- [x] preço atual com fallback controlado;
+- [x] vendidos, visitas e idade do anúncio;
+- [x] visitas/dia, vendas/dia, vendas/mês e faturamento/mês marcados como estimativa;
+- [x] P25, mediana e P75;
+- [x] concorrência por quantidade de vendedores;
+- [x] Full e Flex;
+- [x] catálogo/tradicional;
+- [x] posição real na busca;
+- [x] ranking de mais vendidos quando o highlight oficial permite relacionar o anúncio;
+- [x] Radar Score explicável;
+- [x] indicador de qualidade dos dados;
+- [x] filtros laterais completos;
+- [x] filtro de relevância do comparável;
+- [x] filtro de mais vendidos;
+- [x] monitoramento em um clique;
+- [x] degradação graciosa quando uma fonte secundária falha.
+
+Metodologia: `docs/OPPORTUNITY_RADAR.md`.

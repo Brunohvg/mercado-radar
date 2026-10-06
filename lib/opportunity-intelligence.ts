@@ -17,6 +17,8 @@ export type SearchOpportunityScore = {
   evidence: "LOW" | "MEDIUM" | "HIGH";
   salesPerDay: number | null;
   salesPerMonth: number | null;
+  visitsPerDay: number | null;
+  revenuePerDay: number | null;
   revenuePerMonth: number | null;
   ageDays: number | null;
   components: {
@@ -54,6 +56,12 @@ export function calculateSearchOpportunityScore(
     ageDays != null && soldQuantity > 0 ? soldQuantity / ageDays : null;
   const salesPerMonth =
     salesPerDay == null ? null : salesPerDay * 30;
+  const visitsPerDay =
+    ageDays != null && visits != null ? visits / ageDays : null;
+  const revenuePerDay =
+    salesPerDay == null
+      ? null
+      : salesPerDay * Math.max(0, input.price);
   const revenuePerMonth =
     salesPerMonth == null
       ? null
@@ -134,6 +142,8 @@ export function calculateSearchOpportunityScore(
     evidence: evidenceLabel,
     salesPerDay: salesPerDay == null ? null : round1(salesPerDay),
     salesPerMonth: salesPerMonth == null ? null : round1(salesPerMonth),
+    visitsPerDay: visitsPerDay == null ? null : round1(visitsPerDay),
+    revenuePerDay: revenuePerDay == null ? null : round1(revenuePerDay),
     revenuePerMonth:
       revenuePerMonth == null ? null : round1(revenuePerMonth),
     ageDays,

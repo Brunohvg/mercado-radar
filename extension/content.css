@@ -203,3 +203,84 @@
   font-size: 9px;
   line-height: 1.4;
 }
+
+
+/* Mercado Radar v4 brand + readable injected UI */
+.mercado-radar-card,
+.mercado-radar-filters {
+  font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  color: #23463b;
+}
+
+.mercado-radar-card {
+  border-color: #cfe3db;
+  border-radius: 13px;
+  background:
+    linear-gradient(145deg, #ffffff 0%, #f5fbf8 100%);
+  box-shadow: 0 7px 20px rgba(20, 78, 61, .07);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.mercado-radar-card__header {
+  padding-bottom: 7px;
+  color: #163d32;
+  font-size: 13px;
+}
+
+.mercado-radar-card__row {
+  margin-top: 5px;
+}
+
+.mercado-radar-filters {
+  border-color: #d4e4de;
+  border-radius: 15px;
+  background: rgba(255,255,255,.98);
+  box-shadow: 0 12px 34px rgba(20,70,58,.10);
+  font-size: 13px;
+}
+
+.mercado-radar-filters__title {
+  color: #116f57;
+  font-size: 16px;
+}
+
+.mercado-radar-filters__title::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: #16a47d;
+  box-shadow: 0 0 0 4px rgba(22,164,125,.12);
+}
+
+.mercado-radar-filters__title button {
+  font-size: 12px;
+}
+
+.mercado-radar-filters label {
+  font-size: 12px;
+}
+
+.mercado-radar-filters select {
+  min-height: 38px;
+  border-radius: 9px;
+  font-size: 12px;
+}
+
+.mercado-radar-filters__personal strong {
+  font-size: 12px;
+}
+
+.mercado-radar-filters__personal small {
+  font-size: 10px;
+}
+
+.mercado-radar-filters__personal button {
+  min-height: 37px;
+  border-radius: 9px;
+  background: linear-gradient(135deg,#17a57e,#0e8063);
+  font-size: 12px;
+}

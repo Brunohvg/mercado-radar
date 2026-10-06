@@ -1,0 +1,22 @@
+.mercado-radar-card {
+  margin-top: 8px;
+  border: 1px solid #dcefe2;
+  background: #f7fff9;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #1f2937;
+}
+.mercado-radar-card strong {
+  color: #0f7a35;
+}
+.mercado-radar-card__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.mercado-radar-card__score {
+  font-weight: 700;
+}

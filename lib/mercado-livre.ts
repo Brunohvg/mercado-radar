@@ -509,7 +509,11 @@ export async function getItemsBulk(input: {
       permalink?: string;
       thumbnail?: string;
       seller_custom_field?: string;
-      shipping?: { free_shipping?: boolean };
+      shipping?: {
+        free_shipping?: boolean;
+        logistic_type?: string;
+        mode?: string;
+      };
       attributes?: Array<{
         id?: string;
         value_name?: string;

@@ -31,10 +31,10 @@ export default function ExtensionPage() {
               <div className="extension-install-actions">
                 <a
                   className="extension-install-primary"
-                  href="/api/extension/dev-installer"
+                  href="/api/extension/dev-installer-cmd"
                   download
                 >
-                  Preparar extensão no Windows
+                  Instalar extensão no Windows
                 </a>
 
                 <a
@@ -56,19 +56,19 @@ export default function ExtensionPage() {
             <div className="extension-install-steps">
               <div>
                 <span>1</span>
-                <strong>Baixe e execute com PowerShell</strong>
-                <small>Clique com o botão direito em MercadoRadar-Instalar.ps1 → Executar com PowerShell</small>
+                <strong>Dê dois cliques no instalador</strong>
+                <small>Execute MercadoRadar-Instalar.cmd. Ele prepara a pasta correta automaticamente.</small>
               </div>
               <div>
                 <span>2</span>
-                <strong>Ative o modo desenvolvedor</strong>
-                <small>O instalador abre chrome://extensions</small>
+                <strong>O Chrome será aberto</strong>
+                <small>Deixe o Modo do desenvolvedor ativado, como já está no seu print.</small>
               </div>
               <div>
                 <span>3</span>
-                <strong>Carregue a pasta</strong>
+                <strong>Carregue a pasta gerada</strong>
                 <small>
-                  Selecione %LOCALAPPDATA%\MercadoRadar\ExtensionDev
+                  Clique em “Carregar sem compactação” e selecione somente a pasta %LOCALAPPDATA%\MercadoRadar\ExtensionDev — não selecione Downloads e não selecione o instalador.
                 </small>
               </div>
             </div>

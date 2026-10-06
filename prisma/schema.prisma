@@ -167,6 +167,9 @@ model MercadoLivreProduct {
   categoryId        String?
   status            String
   listingTypeId     String?
+  catalogProductId  String?
+  userProductId     String?
+  listingCreatedAt  DateTime?
   currentPrice      Decimal? @db.Decimal(12, 2)
   availableQuantity Int      @default(0)
   soldQuantity      Int      @default(0)

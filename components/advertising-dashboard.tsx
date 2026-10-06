@@ -50,6 +50,12 @@ type AdGroup = {
     realizedMarginAfterAds: number | null;
     profitCoveragePercent: number;
   };
+  recommendation: {
+    action: "SCALE" | "HOLD" | "REDUCE" | "PAUSE_REVIEW" | "LEARN";
+    confidence: "LOW" | "MEDIUM" | "HIGH";
+    label: string;
+    reason: string;
+  };
 };
 
 type Payload = {
@@ -97,6 +103,12 @@ type Payload = {
     profitCoveragePercent: number;
     profitReadyOrders: number;
     totalOrders: number;
+    recommendation: {
+      action: "SCALE" | "HOLD" | "REDUCE" | "PAUSE_REVIEW" | "LEARN";
+      confidence: "LOW" | "MEDIUM" | "HIGH";
+      label: string;
+      reason: string;
+    };
   };
   campaigns?: Campaign[];
   adGroups?: AdGroup[];
@@ -301,6 +313,15 @@ export function AdvertisingDashboard() {
               <strong>{insight.title}</strong>
               <p>{insight.text}</p>
             </div>
+            <div className="ads-insight-recommendation">
+              <span>Recomendação</span>
+              <strong>{summary.recommendation.label}</strong>
+              <small>
+                {summary.recommendation.reason} · confiança{" "}
+                {summary.recommendation.confidence.toLowerCase()}
+              </small>
+            </div>
+
             <div className="ads-insight-numbers">
               <div>
                 <span>Lucro antes de Ads</span>
@@ -431,6 +452,7 @@ export function AdvertisingDashboard() {
                       <th>Unidades orgânicas</th>
                       <th>Lucro pós-Ads</th>
                       <th>Cobertura</th>
+                      <th>Radar</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -496,6 +518,17 @@ export function AdvertisingDashboard() {
                         </td>
                         <td>
                           {pct(group.profit.profitCoveragePercent)}
+                        </td>
+                        <td>
+                          <span
+                            className={
+                              "ads-action-badge " +
+                              group.recommendation.action.toLowerCase()
+                            }
+                            title={group.recommendation.reason}
+                          >
+                            {group.recommendation.label}
+                          </span>
                         </td>
                       </tr>
                     ))}

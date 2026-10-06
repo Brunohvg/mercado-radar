@@ -963,3 +963,135 @@ export async function getItemsByUserProduct(input: {
 
   return raw.results ?? [];
 }
+
+
+export type ProductAdsAdvertiser = {
+  advertiserId: string;
+  siteId: string;
+  advertiserName: string | null;
+  accountName: string | null;
+};
+
+export async function getProductAdsAdvertisers(input: {
+  accessToken: string;
+}) {
+  const raw = await jsonFetch<{
+    advertisers?: Array<{
+      advertiser_id?: number | string;
+      site_id?: string;
+      advertiser_name?: string;
+      account_name?: string;
+    }>;
+  }>(`${API}/advertising/advertisers?product_id=PADS`, {
+    headers: {
+      Authorization: `Bearer ${input.accessToken}`,
+      "Content-Type": "application/json",
+      "Api-Version": "1",
+    },
+  });
+
+  return (raw.advertisers ?? [])
+    .filter((item) => item.advertiser_id != null && item.site_id)
+    .map<ProductAdsAdvertiser>((item) => ({
+      advertiserId: String(item.advertiser_id),
+      siteId: String(item.site_id),
+      advertiserName: item.advertiser_name ?? null,
+      accountName: item.account_name ?? null,
+    }));
+}
+
+const PRODUCT_ADS_METRICS = [
+  "clicks",
+  "prints",
+  "ctr",
+  "cost",
+  "cpc",
+  "acos",
+  "tacos",
+  "cvr",
+  "roas",
+  "sov",
+  "direct_amount",
+  "indirect_amount",
+  "total_amount",
+  "direct_units_quantity",
+  "indirect_units_quantity",
+  "units_quantity",
+  "advertising_items_quantity",
+  "organic_units_quantity",
+  "organic_units_amount",
+  "organic_items_quantity",
+  "impression_share",
+  "top_impression_share",
+  "lost_impression_share_by_budget",
+  "lost_impression_share_by_ad_rank",
+  "acos_benchmark",
+].join(",");
+
+export async function getProductAdsCampaigns(input: {
+  accessToken: string;
+  siteId: string;
+  advertiserId: string;
+  dateFrom: string;
+  dateTo: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const params = new URLSearchParams({
+    limit: String(Math.min(Math.max(input.limit ?? 50, 1), 50)),
+    offset: String(Math.max(input.offset ?? 0, 0)),
+    date_from: input.dateFrom,
+    date_to: input.dateTo,
+    metrics: PRODUCT_ADS_METRICS,
+    metrics_summary: "true",
+  });
+
+  return jsonFetch<{
+    paging?: { offset?: number; total?: number; limit?: number };
+    results?: Array<Record<string, any>>;
+    metrics_summary?: Record<string, number | null>;
+  }>(
+    `${API}/advertising/${input.siteId}/advertisers/${input.advertiserId}/product_ads/campaigns/search?${params.toString()}`,
+    {
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+        "api-version": "2",
+      },
+    },
+  );
+}
+
+export async function getProductAdsAdGroups(input: {
+  accessToken: string;
+  siteId: string;
+  advertiserId: string;
+  dateFrom: string;
+  dateTo: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const params = new URLSearchParams({
+    limit: String(Math.min(Math.max(input.limit ?? 50, 1), 800)),
+    offset: String(Math.max(input.offset ?? 0, 0)),
+    date_from: input.dateFrom,
+    date_to: input.dateTo,
+    metrics: PRODUCT_ADS_METRICS,
+    metrics_summary: "true",
+    sort: "desc",
+    sort_by: "cost",
+  });
+
+  return jsonFetch<{
+    paging?: { offset?: number; total?: number; limit?: number };
+    results?: Array<Record<string, any>>;
+    metrics_summary?: Record<string, number | null>;
+  }>(
+    `${API}/advertising/${input.siteId}/advertisers/${input.advertiserId}/product_ads/ad_groups/search?${params.toString()}`,
+    {
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+        "api-version": "2",
+      },
+    },
+  );
+}

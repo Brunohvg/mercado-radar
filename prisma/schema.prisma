@@ -187,6 +187,8 @@ model MercadoLivreProduct {
 
   @@index([sellerUserId, status])
   @@index([sellerUserId, soldQuantity])
+  @@index([catalogProductId])
+  @@index([userProductId])
   @@index([lastSyncedAt])
 }
 

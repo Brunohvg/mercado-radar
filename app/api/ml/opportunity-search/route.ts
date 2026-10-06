@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
+  getCategoryHighlights,
   getItemsBulk,
   getItemsCurrentPrices,
   getItemsVisitTotals,
@@ -59,36 +60,33 @@ function tokens(value: string) {
     .filter((token) => token.length >= 2 && !STOPWORDS.has(token));
 }
 
-function numericTokens(value: string) {
-  return normalize(value)
-    .split(/\s+/)
-    .filter((token) => /^\d+(?:\.\d+)?$/.test(token));
+function criticalTokens(value: string) {
+  return tokens(value).filter((token) => /\d/.test(token));
 }
 
 function similarity(query: string, title: string) {
   const queryTokens = [...new Set(tokens(query))];
   const titleTokens = new Set(tokens(title));
-  const queryNumbers = [...new Set(numericTokens(query))];
-  const titleNumbers = new Set(numericTokens(title));
+  const queryCritical = [...new Set(criticalTokens(query))];
+  const titleCritical = new Set(criticalTokens(title));
 
   if (!queryTokens.length) return 0;
 
   const matches = queryTokens.filter((token) => titleTokens.has(token)).length;
   const coverage = matches / queryTokens.length;
 
-  const numericCoverage =
-    queryNumbers.length === 0
+  const criticalCoverage =
+    queryCritical.length === 0
       ? 1
-      : queryNumbers.filter((token) => titleNumbers.has(token)).length /
-        queryNumbers.length;
+      : queryCritical.filter((token) => titleCritical.has(token)).length /
+        queryCritical.length;
 
-  const missingImportantNumber = queryNumbers.some(
-    (token) =>
-      (token.length >= 3 || Number(token) >= 50) && !titleNumbers.has(token),
+  const missingCritical = queryCritical.some(
+    (token) => !titleCritical.has(token),
   );
 
-  const base = coverage * 0.78 + numericCoverage * 0.22;
-  return Math.max(0, Math.min(1, missingImportantNumber ? base * 0.55 : base));
+  const base = coverage * 0.76 + criticalCoverage * 0.24;
+  return Math.max(0, Math.min(1, missingCritical ? base * 0.5 : base));
 }
 
 function percentile(sorted: number[], p: number) {
@@ -203,7 +201,7 @@ export async function POST(request: Request) {
     }
 
     const itemIds = selected.map((item) => item.id);
-    const [details, exactPrices, visits] = await Promise.all([
+    const [details, exactPrices, visits, highlights] = await Promise.all([
       getItemsBulk({
         accessToken: session.accessToken,
         itemIds,
@@ -216,9 +214,32 @@ export async function POST(request: Request) {
         accessToken: session.accessToken,
         itemIds,
       }).catch(() => ({} as Record<string, number>)),
+      categoryId
+        ? getCategoryHighlights({
+            accessToken: session.accessToken,
+            categoryId,
+          }).catch(() => null)
+        : Promise.resolve(null),
     ]);
 
     const detailById = new Map(details.map((item) => [item.id, item]));
+    const highlightContent = highlights?.content ?? [];
+
+    function bestSellerPosition(itemId: string) {
+      const detail = detailById.get(itemId);
+      const ids = [
+        itemId,
+        detail?.catalogProductId ?? null,
+        detail?.userProductId ?? null,
+      ].filter((value): value is string => Boolean(value));
+
+      const matches = highlightContent.filter((entry) =>
+        ids.includes(entry.id),
+      );
+
+      if (!matches.length) return null;
+      return Math.min(...matches.map((entry) => entry.position));
+    }
 
     const enriched = selected.map((item) => {
       const detail = detailById.get(item.id);
@@ -310,6 +331,7 @@ export async function POST(request: Request) {
           revenuePerMonth: intelligence.revenuePerMonth,
           ageDays: intelligence.ageDays,
           scoreComponents: intelligence.components,
+          bestSellerPosition: bestSellerPosition(item.id),
           sources: {
             price:
               exactPrices[item.id] != null

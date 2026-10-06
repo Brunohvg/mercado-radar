@@ -246,7 +246,7 @@ export function AppNavigation() {
         <div className="sidebar-brand-row">
           <Link className="brand brand-link" href="/" onClick={() => setOpen(false)}>
             <span className="brand-mark">
-              <span>R</span>
+              <img src="/brand/mark.svg" alt="" aria-hidden="true" />
             </span>
             <div className="brand-copy">
               <strong>mercado radar</strong>

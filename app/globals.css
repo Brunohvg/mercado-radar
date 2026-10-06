@@ -6743,3 +6743,174 @@ h3,
     grid-column: 1 / -1;
   }
 }
+
+
+.extension-install-page {
+  display: grid;
+  gap: 12px;
+}
+
+.extension-install-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr);
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid #cfe5dd;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(126, 211, 184, .18), transparent 34%),
+    linear-gradient(180deg, #f8fcfa, #ffffff);
+}
+
+.extension-install-kicker {
+  display: block;
+  color: #197661;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.extension-install-copy h2 {
+  max-width: 720px;
+  margin: 7px 0 0;
+  color: #173d32;
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: -.035em;
+}
+
+.extension-install-copy p {
+  max-width: 760px;
+  margin: 10px 0 0;
+  color: #6c7d75;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.extension-install-copy > small {
+  display: block;
+  margin-top: 10px;
+  color: #8f9b95;
+  font-size: 8px;
+}
+
+.extension-install-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.extension-install-primary,
+.extension-install-secondary {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 13px;
+  border-radius: 9px;
+  font-size: 9px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.extension-install-primary {
+  background: #168f74;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(22, 143, 116, .14);
+}
+
+.extension-install-primary:hover {
+  background: #117a63;
+}
+
+.extension-install-secondary {
+  border: 1px solid #d6e4df;
+  background: #fff;
+  color: #587068;
+}
+
+.extension-install-secondary:hover {
+  background: #f7faf9;
+}
+
+.extension-install-steps {
+  display: grid;
+  gap: 8px;
+  align-content: center;
+}
+
+.extension-install-steps > div {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  column-gap: 10px;
+  row-gap: 2px;
+  padding: 12px;
+  border: 1px solid #dce8e4;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .86);
+}
+
+.extension-install-steps > div > span {
+  grid-row: 1 / 3;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 9px;
+  background: #e4f4ef;
+  color: #126e5b;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.extension-install-steps strong {
+  color: #31483e;
+  font-size: 10px;
+}
+
+.extension-install-steps small {
+  overflow-wrap: anywhere;
+  color: #87948e;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.extension-install-note {
+  padding: 14px 16px;
+}
+
+.extension-install-note strong {
+  display: block;
+  color: #364c42;
+  font-size: 10px;
+}
+
+.extension-install-note p {
+  margin: 5px 0 0;
+  color: #7b8982;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+@media (max-width: 900px) {
+  .extension-install-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .extension-install-hero {
+    padding: 16px;
+  }
+
+  .extension-install-actions {
+    flex-direction: column;
+  }
+
+  .extension-install-primary,
+  .extension-install-secondary {
+    width: 100%;
+  }
+}

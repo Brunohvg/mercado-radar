@@ -8,12 +8,16 @@ const watchButton = document.getElementById("watchButton");
 const watchStatus = document.getElementById("watchStatus");
 const calculatorCard = document.getElementById("calculatorCard");
 const marketCard = document.getElementById("marketCard");
+const marketRangeBlock = document.getElementById("marketRangeBlock");
 const buyBoxBlock = document.getElementById("buyBoxBlock");
 const trendsBlock = document.getElementById("trendsBlock");
 const calcResult = document.getElementById("calcResult");
 const calcStatus = document.getElementById("calcStatus");
+const competitiveSimulation = document.getElementById("competitiveSimulation");
 
 let currentItem = null;
+let currentMarket = null;
+let currentBuyBoxPrice = null;
 
 function brl(value) {
   return Number(value || 0).toLocaleString("pt-BR", {
@@ -51,6 +55,9 @@ async function renderContext(context) {
   marketCard.hidden = true;
   calculatorCard.hidden = true;
   calcResult.hidden = true;
+  competitiveSimulation.hidden = true;
+  currentMarket = null;
+  currentBuyBoxPrice = null;
   calcStatus.textContent = "";
 
   if (!context?.referenceId) {
@@ -119,11 +126,13 @@ async function renderContext(context) {
   const catalog = response.body.catalog;
   const trends = Array.isArray(response.body.trends) ? response.body.trends : [];
 
+  marketRangeBlock.innerHTML = "";
   buyBoxBlock.innerHTML = "";
   trendsBlock.innerHTML = "";
 
   if (catalog?.buyBoxWinner) {
     const winner = catalog.buyBoxWinner;
+    currentBuyBoxPrice = winner.price || null;
     const delta =
       winner.price && currentItem.price
         ? ((currentItem.price - winner.price) / winner.price) * 100
@@ -137,6 +146,48 @@ async function renderContext(context) {
       (winner.freeShipping ? "frete grátis" : "frete não grátis") +
       (delta == null ? "" : " · seu preço " + (delta >= 0 ? "+" : "") + pct(delta)) +
       "</span></div>";
+  }
+
+  const marketParams = new URLSearchParams({
+    title: currentItem.title,
+    itemId: currentItem.id,
+    currentPrice: String(currentItem.price || 0),
+  });
+  if (currentItem.categoryId) {
+    marketParams.set("categoryId", currentItem.categoryId);
+  }
+
+  const marketResponse = await request(
+    "/api/extension/market?" + marketParams.toString(),
+  );
+
+  if (marketResponse?.ok && marketResponse.body?.market) {
+    currentMarket = marketResponse.body.market;
+    const market = currentMarket;
+    const competitors = Array.isArray(marketResponse.body.competitors)
+      ? marketResponse.body.competitors
+      : [];
+
+    marketRangeBlock.innerHTML =
+      '<div class="market-range">' +
+        '<div><small>P25</small><strong>' + brl(market.p25) + '</strong></div>' +
+        '<div><small>Mediana</small><strong>' + brl(market.median) + '</strong></div>' +
+        '<div><small>P75</small><strong>' + brl(market.p75) + '</strong></div>' +
+      '</div>' +
+      '<p class="muted">' +
+        market.count + ' comparáveis · seu preço ' +
+        (market.gapToMedian == null
+          ? 'sem comparação'
+          : (market.gapToMedian >= 0 ? '+' : '') + pct(market.gapToMedian) + ' vs mediana') +
+      '</p>' +
+      (competitors.length
+        ? '<div class="divider"></div><div class="title">Concorrentes próximos</div>' +
+          competitors.slice(0, 4).map((item) =>
+            '<div class="competitor-row"><span>' +
+              item.title +
+            '</span><strong>' + brl(item.price) + '</strong></div>'
+          ).join('')
+        : '');
   }
 
   if (trends.length) {
@@ -154,7 +205,7 @@ async function renderContext(context) {
         .join("");
   }
 
-  marketCard.hidden = !(catalog?.buyBoxWinner || trends.length);
+  marketCard.hidden = !(catalog?.buyBoxWinner || trends.length || currentMarket);
   calculatorCard.hidden = false;
 }
 
@@ -227,6 +278,52 @@ document.getElementById("calculate").addEventListener("click", async () => {
 
   calcStatus.className =
     "muted " + (result.verdict === "GOOD" ? "good" : result.verdict === "BAD" ? "bad" : "");
+
+  const referencePrice =
+    currentBuyBoxPrice ||
+    (currentMarket?.p25 && currentMarket.p25 > 0 ? currentMarket.p25 : null);
+
+  competitiveSimulation.hidden = true;
+
+  if (referencePrice && Math.abs(referencePrice - currentItem.price) >= 0.01) {
+    const competitiveResponse = await request("/api/extension/profitability", {
+      method: "POST",
+      body: {
+        itemId: currentItem.id,
+        salePrice: referencePrice,
+        supplierPrice,
+        discountPercent: Number(document.getElementById("discountPercent").value || 0),
+        taxPercent: Number(document.getElementById("taxPercent").value || 0),
+        operatingCost: Number(document.getElementById("operatingCost").value || 0),
+        targetMarginPercent: Number(document.getElementById("targetMargin").value || 20),
+        targetRoiPercent: Number(document.getElementById("targetRoi").value || 30),
+        kitQuantity: 1,
+      },
+    });
+
+    if (competitiveResponse?.ok && competitiveResponse.body?.result) {
+      const competitive = competitiveResponse.body.result;
+      const source = currentBuyBoxPrice ? "Buy Box" : "P25 do mercado";
+
+      competitiveSimulation.innerHTML =
+        '<strong>Se competir em ' + brl(referencePrice) + '</strong>' +
+        '<div class="muted">Referência: ' + source +
+        ' · lucro ' + brl(competitive.profit) +
+        ' · margem ' + pct(competitive.marginPercent) +
+        ' · ROI ' + pct(competitive.roiPercent) + '</div>' +
+        '<div class="' +
+          (competitive.verdict === "GOOD" ? "good" : competitive.verdict === "BAD" ? "bad" : "") +
+        '" style="margin-top:5px;font-weight:700">' +
+          (competitive.verdict === "GOOD"
+            ? "Você consegue competir sem romper suas metas."
+            : competitive.verdict === "TIGHT"
+              ? "Competir nesse preço deixa a operação apertada."
+              : "Não recomendamos acompanhar esse preço com o custo informado.") +
+        '</div>';
+
+      competitiveSimulation.hidden = false;
+    }
+  }
 
   calcResult.hidden = false;
 });

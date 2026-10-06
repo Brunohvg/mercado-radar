@@ -12,7 +12,7 @@ type AlertInput = {
   severity: "INFO" | "WARNING" | "CRITICAL";
   title: string;
   message: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, string | number | boolean | null>;
 };
 
 const round2 = (value: number) =>

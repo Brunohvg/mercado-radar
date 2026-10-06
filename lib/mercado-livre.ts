@@ -339,7 +339,11 @@ export async function searchMarketplace(input: {
       category_id?: string;
       seller?: { id?: number | string };
       listing_type_id?: string;
-      shipping?: { free_shipping?: boolean };
+      shipping?: {
+        free_shipping?: boolean;
+        logistic_type?: string;
+        mode?: string;
+      };
     }>;
   };
 
@@ -450,6 +454,8 @@ export type SellerItemDetail = {
   permalink: string | null;
   thumbnail: string | null;
   freeShipping: boolean;
+  logisticType: string | null;
+  shippingMode: string | null;
   sellerSku: string | null;
   raw: unknown;
 };
@@ -540,6 +546,8 @@ export async function getItemsBulk(input: {
         permalink: body.permalink ?? null,
         thumbnail: body.thumbnail ?? null,
         freeShipping: Boolean(body.shipping?.free_shipping),
+        logisticType: body.shipping?.logistic_type ?? null,
+        shippingMode: body.shipping?.mode ?? null,
         sellerSku,
         raw: entry,
       };

@@ -27,6 +27,21 @@ type AlertItem = {
   } | null;
 };
 
+type Momentum = {
+  status: "LEARNING" | "READY";
+  score: number | null;
+  confidence: number;
+  spanHours: number;
+  soldDelta: number;
+  visitsDelta: number | null;
+  salesPerDay: number | null;
+  visitsPerDay: number | null;
+  conversionProxyPercent: number | null;
+  scoreDelta: number | null;
+  demandDelta: number | null;
+  direction: "UP" | "STABLE" | "DOWN" | "LEARNING";
+} | null;
+
 type WatchItem = {
   id: string;
   mlItemId: string;
@@ -41,6 +56,7 @@ type WatchItem = {
   visits: number | null;
   lastCheckedAt: string;
   createdAt: string;
+  momentum: Momentum;
   snapshots: Snapshot[];
 };
 
@@ -182,12 +198,22 @@ export function MonitoringDashboard() {
     const excellent = items.filter(
       (item) => item.demandLabel === "EXCELENTE" || item.demandLabel === "ALTA",
     ).length;
+    const momentumReady = items.filter(
+      (item) => item.momentum?.status === "READY",
+    ).length;
+    const momentumStrong = items.filter(
+      (item) =>
+        item.momentum?.status === "READY" &&
+        Number(item.momentum.score ?? 0) >= 70,
+    ).length;
 
     return {
       total: items.length,
       highScore,
       excellent,
       priceChanges,
+      momentumReady,
+      momentumStrong,
     };
   }, [items]);
 
@@ -235,9 +261,11 @@ export function MonitoringDashboard() {
               <small>alta ou excelente</small>
             </article>
             <article className="clean-kpi-card accent">
-              <span>Com histórico</span>
-              <strong>{summary.priceChanges}</strong>
-              <small>já possuem comparação de preço</small>
+              <span>Momentum 70+</span>
+              <strong>{summary.momentumStrong}</strong>
+              <small>
+                {summary.momentumReady} com histórico suficiente
+              </small>
             </article>
           </section>
 
@@ -372,6 +400,21 @@ export function MonitoringDashboard() {
                             {soldDelta == null
                               ? "primeiro snapshot"
                               : `+${Math.max(0, soldDelta)} desde o anterior`}
+                          </small>
+                        </div>
+                        <div>
+                          <span>Momentum</span>
+                          <strong>
+                            {item.momentum?.status === "READY"
+                              ? `${item.momentum.score}/100`
+                              : "Aprendendo"}
+                          </strong>
+                          <small>
+                            {item.momentum == null
+                              ? "precisa de mais snapshots"
+                              : item.momentum.status === "LEARNING"
+                                ? `${item.momentum.confidence}% confiança · ${item.momentum.spanHours}h`
+                                : `${item.momentum.direction} · ${item.momentum.confidence}% confiança`}
                           </small>
                         </div>
                       </div>

@@ -109,3 +109,43 @@
     width: 190px;
   }
 }
+
+
+/* Mercado Radar brand pass */
+.mercado-radar-card,
+.mercado-radar-filters {
+  font-family: "Segoe UI Variable Text", "Inter", "Segoe UI", system-ui, sans-serif;
+}
+
+.mercado-radar-card {
+  border-color: #cfe5de;
+  background: #f7fcfa;
+  color: #244039;
+  box-shadow: 0 5px 16px rgba(20, 90, 73, .06);
+}
+
+.mercado-radar-card strong,
+.mercado-radar-card b,
+.mercado-radar-filters__title {
+  color: #147b66;
+}
+
+.mercado-radar-card__header {
+  border-bottom-color: #e1eeea;
+}
+
+.mercado-radar-filters {
+  border-color: #d9e6e2;
+  box-shadow: 0 8px 24px rgba(20, 70, 60, .07);
+}
+
+.mercado-radar-filters select {
+  border-color: #d8e3df;
+  color: #31463f;
+}
+
+.mercado-radar-filters select:focus {
+  outline: 0;
+  border-color: #7fc4b2;
+  box-shadow: 0 0 0 3px rgba(24, 150, 122, .10);
+}

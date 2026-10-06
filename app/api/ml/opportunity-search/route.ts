@@ -402,6 +402,26 @@ export async function POST(request: Request) {
                   100,
               )
             : 0,
+        fullPercent:
+          relevant.length > 0
+            ? Math.round(
+                (relevant.filter(
+                  (item) => item.detail?.logisticType === "fulfillment",
+                ).length /
+                  relevant.length) *
+                  100,
+              )
+            : 0,
+        flexPercent:
+          relevant.length > 0
+            ? Math.round(
+                (relevant.filter(
+                  (item) => item.detail?.logisticType === "self_service",
+                ).length /
+                  relevant.length) *
+                  100,
+              )
+            : 0,
         catalogPercent:
           relevant.length > 0
             ? Math.round(

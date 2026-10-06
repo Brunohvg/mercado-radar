@@ -4502,7 +4502,7 @@ body {
 
 .monitoring-card-metrics {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 7px;
   margin-top: 12px;
 }
@@ -4573,6 +4573,12 @@ body {
 @media (max-width: 900px) {
   .monitoring-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .monitoring-card-metrics {
+    grid-template-columns: 1fr 1fr;
   }
 }
 

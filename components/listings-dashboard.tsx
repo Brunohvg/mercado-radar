@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 
 type Listing = {
   mlItemId: string;
@@ -62,6 +62,63 @@ type SalesPayload = {
   };
 };
 
+type ListingInsight = {
+  item: {
+    mlItemId: string;
+    title: string;
+    currentPrice: number | null;
+    status: string;
+    listingTypeId: string | null;
+    channel: "CATALOG" | "TRADITIONAL";
+  };
+  ranking: {
+    position: number | null;
+    searched: number;
+    note: string | null;
+  };
+  market: {
+    count: number;
+    minimum: number | null;
+    p25: number | null;
+    median: number | null;
+    p75: number | null;
+    maximum: number | null;
+    average: number | null;
+    gapToMedian: number | null;
+  };
+  profitability: {
+    profit: number;
+    marginPercent: number;
+    roiPercent: number;
+    breakEvenPrice: number;
+    minimumSuggestedPrice: number;
+    verdict: "GOOD" | "TIGHT" | "BAD";
+  } | null;
+  strategy: {
+    action: "HOLD" | "RAISE" | "REDUCE" | "RAISE_OR_EXIT";
+    recommendedPrice: number;
+    safeFloor: number;
+    marketReferencePrice: number;
+    message: string;
+    caveat: string;
+  } | null;
+  competitors: Array<{
+    id: string;
+    title: string;
+    price: number | null;
+    freeShipping: boolean;
+    listingTypeId: string | null;
+    similarityPercent: number;
+  }>;
+  history: Array<{
+    position: number | null;
+    testedPrice: number | null;
+    medianPrice: number | null;
+    p25Price: number | null;
+    createdAt: string;
+  }>;
+};
+
 type Filter =
   | "ALL"
   | "ACTIVE"
@@ -110,6 +167,10 @@ export function ListingsDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [insightItemId, setInsightItemId] = useState<string | null>(null);
+  const [insightLoading, setInsightLoading] = useState<string | null>(null);
+  const [insightById, setInsightById] = useState<Record<string, ListingInsight>>({});
+  const [insightError, setInsightError] = useState("");
 
   const load = useCallback(
     async (refresh = false) => {
@@ -162,6 +223,56 @@ export function ListingsDashboard() {
   useEffect(() => {
     void load(false);
   }, [load]);
+
+  async function toggleInsight(item: Listing) {
+    if (insightItemId === item.mlItemId) {
+      setInsightItemId(null);
+      return;
+    }
+
+    setInsightItemId(item.mlItemId);
+    setInsightError("");
+
+    if (insightById[item.mlItemId]) return;
+
+    setInsightLoading(item.mlItemId);
+
+    try {
+      const response = await fetch(
+        "/api/ml/listing-insights?id=" + encodeURIComponent(item.mlItemId),
+        { cache: "no-store" },
+      );
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          payload.error ?? "Falha ao analisar posição e mercado.",
+        );
+      }
+
+      setInsightById((current) => ({
+        ...current,
+        [item.mlItemId]: payload,
+      }));
+    } catch (caught) {
+      setInsightError(
+        caught instanceof Error
+          ? caught.message
+          : "Falha ao analisar posição e mercado.",
+      );
+    } finally {
+      setInsightLoading(null);
+    }
+  }
+
+  function strategyLabel(
+    action: "HOLD" | "RAISE" | "REDUCE" | "RAISE_OR_EXIT",
+  ) {
+    if (action === "REDUCE") return "Reduzir com limite";
+    if (action === "RAISE") return "Subir preço";
+    if (action === "RAISE_OR_EXIT") return "Subir ou sair";
+    return "Manter";
+  }
 
   const listings = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -405,131 +516,386 @@ export function ListingsDashboard() {
                 </thead>
 
                 <tbody>
-                  {listings.map((item) => (
-                    <tr key={item.mlItemId}>
-                      <td>
-                        <div className="clean-product-cell">
-                          {item.thumbnail ? (
-                            <img src={item.thumbnail} alt="" loading="lazy" />
-                          ) : (
-                            <span className="clean-product-thumb">ML</span>
-                          )}
+                  {listings.map((item) => {
+                    const insight = insightById[item.mlItemId] ?? null;
+                    const isOpen = insightItemId === item.mlItemId;
+                    const isLoadingInsight =
+                      insightLoading === item.mlItemId;
 
-                          <div>
-                            <strong>{item.title}</strong>
-                            <small>
-                              {item.sku ? "SKU " + item.sku : "Sem SKU"}
-                              {item.listingCreatedAt
-                                ? " · desde " +
-                                  new Date(
-                                    item.listingCreatedAt,
-                                  ).toLocaleDateString("pt-BR")
-                                : ""}
-                            </small>
-                          </div>
-                        </div>
-                      </td>
+                    return (
+                      <Fragment key={item.mlItemId}>
+                        <tr>
+                          <td>
+                            <div className="clean-product-cell">
+                              {item.thumbnail ? (
+                                <img src={item.thumbnail} alt="" loading="lazy" />
+                              ) : (
+                                <span className="clean-product-thumb">ML</span>
+                              )}
 
-                      <td>
-                        <div className="listing-id-cell">
-                          <strong>{item.mlItemId}</strong>
-                          {item.userProductId && <small>{item.userProductId}</small>}
-                        </div>
-                      </td>
+                              <div>
+                                <strong>{item.title}</strong>
+                                <small>
+                                  {item.sku ? "SKU " + item.sku : "Sem SKU"}
+                                  {item.listingCreatedAt
+                                    ? " · desde " +
+                                      new Date(
+                                        item.listingCreatedAt,
+                                      ).toLocaleDateString("pt-BR")
+                                    : ""}
+                                </small>
+                              </div>
+                            </div>
+                          </td>
 
-                      <td>
-                        <span className={"listing-status " + item.status}>
-                          {statusLabel(item.status)}
-                        </span>
-                      </td>
+                          <td>
+                            <div className="listing-id-cell">
+                              <strong>{item.mlItemId}</strong>
+                              {item.userProductId && (
+                                <small>{item.userProductId}</small>
+                              )}
+                            </div>
+                          </td>
 
-                      <td>
-                        <span className="neutral-chip">
-                          {listingType(item.listingTypeId)}
-                        </span>
-                      </td>
+                          <td>
+                            <span className={"listing-status " + item.status}>
+                              {statusLabel(item.status)}
+                            </span>
+                          </td>
 
-                      <td>
-                        <span
-                          className={
-                            "channel-chip " +
-                            (item.channel === "CATALOG"
-                              ? "catalog"
-                              : "traditional")
-                          }
-                        >
-                          {channelLabel(item.channel)}
-                        </span>
-                      </td>
+                          <td>
+                            <span className="neutral-chip">
+                              {listingType(item.listingTypeId)}
+                            </span>
+                          </td>
 
-                      <td>
-                        <strong className="listing-price">
-                          {item.currentPrice == null
-                            ? "—"
-                            : money.format(item.currentPrice)}
-                        </strong>
-                      </td>
+                          <td>
+                            <span
+                              className={
+                                "channel-chip " +
+                                (item.channel === "CATALOG"
+                                  ? "catalog"
+                                  : "traditional")
+                              }
+                            >
+                              {channelLabel(item.channel)}
+                            </span>
+                          </td>
 
-                      <td>{item.availableQuantity}</td>
-                      <td>{item.health.unitsSold}</td>
+                          <td>
+                            <strong className="listing-price">
+                              {item.currentPrice == null
+                                ? "—"
+                                : money.format(item.currentPrice)}
+                            </strong>
+                          </td>
 
-                      <td>
-                        {item.health.decisionMarginPercent == null ? (
-                          <span className="table-muted">Sem custo</span>
-                        ) : (
-                          <span
-                            className={
-                              item.health.decisionMarginPercent >= 15
-                                ? "margin-good"
-                                : "margin-bad"
-                            }
-                          >
-                            {item.health.decisionMarginPercent.toFixed(1)}%
-                          </span>
+                          <td>{item.availableQuantity}</td>
+                          <td>{item.health.unitsSold}</td>
+
+                          <td>
+                            {item.health.decisionMarginPercent == null ? (
+                              <span className="table-muted">Sem custo</span>
+                            ) : (
+                              <span
+                                className={
+                                  item.health.decisionMarginPercent >= 15
+                                    ? "margin-good"
+                                    : "margin-bad"
+                                }
+                              >
+                                {item.health.decisionMarginPercent.toFixed(1)}%
+                              </span>
+                            )}
+                          </td>
+
+                          <td>
+                            <div
+                              className={
+                                "listing-score-pill " +
+                                scoreTone(item.score.total)
+                              }
+                              title={
+                                "Status " +
+                                item.score.breakdown.status +
+                                "/10 · Custo " +
+                                item.score.breakdown.cost +
+                                "/15 · Margem " +
+                                item.score.breakdown.margin +
+                                "/30 · Vendas " +
+                                item.score.breakdown.sales +
+                                "/20 · Estoque " +
+                                item.score.breakdown.inventory +
+                                "/15 · Visibilidade " +
+                                item.score.breakdown.visibility +
+                                "/10"
+                              }
+                            >
+                              <strong>{item.score.total}</strong>
+                              <span>/100</span>
+                            </div>
+                          </td>
+
+                          <td>
+                            <div className="listing-row-actions">
+                              <button
+                                type="button"
+                                className={
+                                  "row-insight-button " +
+                                  (isOpen ? "active" : "")
+                                }
+                                onClick={() => void toggleInsight(item)}
+                                disabled={isLoadingInsight}
+                                title="Analisar posição, mercado e preço"
+                              >
+                                {isLoadingInsight ? "…" : "Radar"}
+                              </button>
+
+                              {item.permalink && (
+                                <a
+                                  className="row-external-link"
+                                  href={item.permalink}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  aria-label={"Abrir " + item.title}
+                                >
+                                  ↗
+                                </a>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+
+                        {isOpen && (
+                          <tr className="listing-insight-row">
+                            <td colSpan={11}>
+                              <div className="listing-insight-panel">
+                                {isLoadingInsight && (
+                                  <div className="listing-insight-loading">
+                                    Analisando posição, concorrência e preço...
+                                  </div>
+                                )}
+
+                                {!isLoadingInsight && insightError && !insight && (
+                                  <div className="error">{insightError}</div>
+                                )}
+
+                                {!isLoadingInsight && insight && (
+                                  <>
+                                    <div className="listing-insight-summary">
+                                      <div>
+                                        <span>Posição na busca</span>
+                                        <strong>
+                                          {insight.ranking.position == null
+                                            ? "50+"
+                                            : "#" + insight.ranking.position}
+                                        </strong>
+                                        <small>
+                                          {insight.ranking.position == null
+                                            ? insight.ranking.note ??
+                                              "fora dos resultados analisados"
+                                            : "entre " +
+                                              insight.ranking.searched +
+                                              " resultados lidos"}
+                                        </small>
+                                      </div>
+
+                                      <div>
+                                        <span>P25 mercado</span>
+                                        <strong>
+                                          {insight.market.p25 == null
+                                            ? "—"
+                                            : money.format(insight.market.p25)}
+                                        </strong>
+                                        <small>
+                                          {insight.market.count} comparáveis
+                                        </small>
+                                      </div>
+
+                                      <div>
+                                        <span>Mediana</span>
+                                        <strong>
+                                          {insight.market.median == null
+                                            ? "—"
+                                            : money.format(
+                                                insight.market.median,
+                                              )}
+                                        </strong>
+                                        <small>
+                                          {insight.market.gapToMedian == null
+                                            ? "sem comparação"
+                                            : (insight.market.gapToMedian >= 0
+                                                ? "+"
+                                                : "") +
+                                              insight.market.gapToMedian.toFixed(
+                                                1,
+                                              ) +
+                                              "% seu preço"}
+                                        </small>
+                                      </div>
+
+                                      <div>
+                                        <span>Lucro atual</span>
+                                        <strong>
+                                          {insight.profitability == null
+                                            ? "Sem custo"
+                                            : money.format(
+                                                insight.profitability.profit,
+                                              )}
+                                        </strong>
+                                        <small>
+                                          {insight.profitability == null
+                                            ? "cadastre custo para liberar"
+                                            : "margem " +
+                                              insight.profitability.marginPercent.toFixed(
+                                                1,
+                                              ) +
+                                              "% · ROI " +
+                                              insight.profitability.roiPercent.toFixed(
+                                                1,
+                                              ) +
+                                              "%"}
+                                        </small>
+                                      </div>
+                                    </div>
+
+                                    {insight.strategy && (
+                                      <div
+                                        className={
+                                          "listing-price-strategy " +
+                                          insight.strategy.action.toLowerCase()
+                                        }
+                                      >
+                                        <div>
+                                          <span>Radar de preço</span>
+                                          <strong>
+                                            {strategyLabel(
+                                              insight.strategy.action,
+                                            )}
+                                          </strong>
+                                          <p>{insight.strategy.message}</p>
+                                          <small>{insight.strategy.caveat}</small>
+                                        </div>
+
+                                        <div className="listing-price-strategy-numbers">
+                                          <div>
+                                            <span>Preço recomendado</span>
+                                            <strong>
+                                              {money.format(
+                                                insight.strategy
+                                                  .recommendedPrice,
+                                              )}
+                                            </strong>
+                                          </div>
+                                          <div>
+                                            <span>Piso saudável</span>
+                                            <strong>
+                                              {money.format(
+                                                insight.strategy.safeFloor,
+                                              )}
+                                            </strong>
+                                          </div>
+                                          <div>
+                                            <span>Referência</span>
+                                            <strong>
+                                              {money.format(
+                                                insight.strategy
+                                                  .marketReferencePrice,
+                                              )}
+                                            </strong>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    <div className="listing-insight-grid">
+                                      <div className="listing-history-box">
+                                        <strong>Histórico de posição</strong>
+                                        {insight.history.length === 0 ? (
+                                          <p className="table-muted">
+                                            Primeiro snapshot criado agora.
+                                          </p>
+                                        ) : (
+                                          <div className="listing-history-list">
+                                            {insight.history
+                                              .slice(0, 6)
+                                              .map((point, index) => (
+                                                <div
+                                                  key={
+                                                    point.createdAt +
+                                                    "-" +
+                                                    String(index)
+                                                  }
+                                                >
+                                                  <span>
+                                                    {new Date(
+                                                      point.createdAt,
+                                                    ).toLocaleDateString(
+                                                      "pt-BR",
+                                                    )}
+                                                  </span>
+                                                  <strong>
+                                                    {point.position == null
+                                                      ? "50+"
+                                                      : "#" + point.position}
+                                                  </strong>
+                                                  <small>
+                                                    {point.testedPrice == null
+                                                      ? "—"
+                                                      : money.format(
+                                                          point.testedPrice,
+                                                        )}
+                                                  </small>
+                                                </div>
+                                              ))}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      <div className="listing-competitors-box">
+                                        <strong>Concorrentes próximos</strong>
+                                        {insight.competitors.length === 0 ? (
+                                          <p className="table-muted">
+                                            Nenhum comparável forte encontrado.
+                                          </p>
+                                        ) : (
+                                          <div className="listing-competitors-list">
+                                            {insight.competitors
+                                              .slice(0, 5)
+                                              .map((competitor) => (
+                                                <div key={competitor.id}>
+                                                  <span>
+                                                    {competitor.title}
+                                                  </span>
+                                                  <strong>
+                                                    {competitor.price == null
+                                                      ? "—"
+                                                      : money.format(
+                                                          competitor.price,
+                                                        )}
+                                                  </strong>
+                                                  <small>
+                                                    {competitor.similarityPercent}%
+                                                    compatível
+                                                    {competitor.freeShipping
+                                                      ? " · frete grátis"
+                                                      : ""}
+                                                  </small>
+                                                </div>
+                                              ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
                         )}
-                      </td>
-
-                      <td>
-                        <div
-                          className={
-                            "listing-score-pill " + scoreTone(item.score.total)
-                          }
-                          title={
-                            "Status " +
-                            item.score.breakdown.status +
-                            "/10 · Custo " +
-                            item.score.breakdown.cost +
-                            "/15 · Margem " +
-                            item.score.breakdown.margin +
-                            "/30 · Vendas " +
-                            item.score.breakdown.sales +
-                            "/20 · Estoque " +
-                            item.score.breakdown.inventory +
-                            "/15 · Visibilidade " +
-                            item.score.breakdown.visibility +
-                            "/10"
-                          }
-                        >
-                          <strong>{item.score.total}</strong>
-                          <span>/100</span>
-                        </div>
-                      </td>
-
-                      <td>
-                        {item.permalink && (
-                          <a
-                            className="row-external-link"
-                            href={item.permalink}
-                            target="_blank"
-                            rel="noreferrer"
-                            aria-label={"Abrir " + item.title}
-                          >
-                            ↗
-                          </a>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

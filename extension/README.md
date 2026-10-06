@@ -100,6 +100,7 @@ As migrations desta etapa incluem:
 202610061730_radar_watchlist
 202610061750_listing_metadata
 202610061820_radar_alerts
+202610061900_listing_position_history
 ```
 
 ## 6. Fluxo de teste
@@ -225,3 +226,14 @@ O Radar:
 6. libera filtros **Minha margem** e **Meu ROI**.
 
 Se a confiança for insuficiente, o Radar não aplica custo de outro produto silenciosamente.
+
+
+## 10. Simulações salvas
+
+O Side Panel permite:
+- informar quantidade no kit;
+- recalcular taxas para o kit;
+- salvar a simulação no histórico `ProductAnalysis`;
+- manter impostos, custo operacional, meta de margem e meta de ROI sincronizados entre Side Panel e busca enriquecida.
+
+A simulação salva usa `source=EXTENSION` e registra no metadata o MLB, imposto e referência competitiva usados na análise.

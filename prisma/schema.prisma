@@ -237,3 +237,41 @@ model MercadoLivreOrderItem {
   @@index([mlItemId])
   @@index([sku])
 }
+
+
+model RadarWatchItem {
+  id             String   @id @default(cuid())
+  sellerUserId   String
+  mlItemId       String
+  referenceId    String?
+  title          String
+  permalink      String?
+  thumbnail      String?
+  currentPrice   Decimal? @db.Decimal(12, 2)
+  score          Int?
+  demandLabel    String?
+  soldQuantity   Int      @default(0)
+  visits         Int?
+  active         Boolean  @default(true)
+  lastCheckedAt  DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  snapshots      RadarWatchSnapshot[]
+
+  @@unique([sellerUserId, mlItemId])
+  @@index([sellerUserId, active, updatedAt])
+}
+
+model RadarWatchSnapshot {
+  id           String         @id @default(cuid())
+  watchItemId  String
+  price        Decimal?       @db.Decimal(12, 2)
+  score        Int?
+  demandLabel  String?
+  soldQuantity Int            @default(0)
+  visits       Int?
+  capturedAt   DateTime       @default(now())
+  watchItem    RadarWatchItem @relation(fields: [watchItemId], references: [id], onDelete: Cascade)
+
+  @@index([watchItemId, capturedAt])
+}

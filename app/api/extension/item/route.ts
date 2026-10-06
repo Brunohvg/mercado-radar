@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isExtensionAuthorized } from "@/lib/extension-auth";
 import {
+  getCatalogProductDetails,
   getItemCurrentPrice,
   getItemsBulk,
   getItemsByUserProduct,
   getItemsVisitTotals,
   getMlSession,
+  getTrends,
   getUserProductDetails,
 } from "@/lib/mercado-livre";
 import { calculateRadarOpportunityScore } from "@/lib/radar-score";
@@ -127,6 +129,21 @@ export async function GET(request: Request) {
       listingTypeId: item.listingTypeId,
     });
 
+    const [catalog, trends] = await Promise.all([
+      item.catalogProductId
+        ? getCatalogProductDetails({
+            accessToken: session.accessToken,
+            productId: item.catalogProductId,
+          }).catch(() => null)
+        : Promise.resolve(null),
+      item.categoryId
+        ? getTrends({
+            accessToken: session.accessToken,
+            categoryId: item.categoryId,
+          }).catch(() => [])
+        : Promise.resolve([]),
+    ]);
+
     return NextResponse.json({
       referenceId: parsed.data.id.toUpperCase(),
       resolvedItemId: item.id,
@@ -148,6 +165,29 @@ export async function GET(request: Request) {
         thumbnail: item.thumbnail,
         intelligence,
       },
+      catalog: catalog
+        ? {
+            id: catalog.id ?? item.catalogProductId,
+            name: catalog.name ?? catalog.family_name ?? null,
+            soldQuantity: catalog.sold_quantity ?? null,
+            buyBoxWinner: catalog.buy_box_winner
+              ? {
+                  itemId: catalog.buy_box_winner.item_id ?? null,
+                  sellerId:
+                    catalog.buy_box_winner.seller_id == null
+                      ? null
+                      : String(catalog.buy_box_winner.seller_id),
+                  price: catalog.buy_box_winner.price ?? null,
+                  soldQuantity: catalog.buy_box_winner.sold_quantity ?? null,
+                  freeShipping:
+                    catalog.buy_box_winner.shipping?.free_shipping ?? null,
+                  logisticType:
+                    catalog.buy_box_winner.shipping?.logistic_type ?? null,
+                }
+              : null,
+          }
+        : null,
+      trends: trends.slice(0, 8),
     });
   } catch (error) {
     const message =

@@ -292,6 +292,7 @@ export async function POST(request: Request) {
           visits: item.visits,
           dateCreated: detail?.dateCreated ?? null,
           freeShipping: item.freeShipping || Boolean(detail?.freeShipping),
+          logisticType: detail?.logisticType ?? null,
           catalogProductId: detail?.catalogProductId ?? null,
           listingTypeId:
             detail?.listingTypeId ?? item.listingTypeId ?? null,
@@ -315,6 +316,8 @@ export async function POST(request: Request) {
             detail?.listingTypeId ?? item.listingTypeId ?? null,
           freeShipping:
             item.freeShipping || Boolean(detail?.freeShipping),
+          logisticType: detail?.logisticType ?? null,
+          shippingMode: detail?.shippingMode ?? null,
           catalogProductId: detail?.catalogProductId ?? null,
           userProductId: detail?.userProductId ?? null,
           searchPosition: item.searchPosition,

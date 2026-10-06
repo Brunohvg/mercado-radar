@@ -5742,3 +5742,75 @@ h3,
     grid-template-columns: 1fr;
   }
 }
+
+
+.ads-insight-recommendation {
+  min-width: 210px;
+  padding: 10px 12px;
+  border: 1px solid #d9e7e2;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.ads-insight-recommendation span,
+.ads-insight-recommendation strong,
+.ads-insight-recommendation small {
+  display: block;
+}
+
+.ads-insight-recommendation span {
+  color: #87948e;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.ads-insight-recommendation strong {
+  margin-top: 4px;
+  color: #2c4339;
+  font-size: 12px;
+}
+
+.ads-insight-recommendation small {
+  margin-top: 4px;
+  max-width: 250px;
+  color: #7d8a84;
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.ads-action-badge {
+  display: inline-flex;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.ads-action-badge.scale {
+  background: #e1f4ed;
+  color: #14745f;
+}
+
+.ads-action-badge.hold {
+  background: #edf3f0;
+  color: #617269;
+}
+
+.ads-action-badge.reduce,
+.ads-action-badge.pause_review {
+  background: #fff0f1;
+  color: #ad4d54;
+}
+
+.ads-action-badge.learn {
+  background: #fff5df;
+  color: #a56d1d;
+}
+
+@media (max-width: 980px) {
+  .ads-insight-recommendation {
+    min-width: 0;
+  }
+}

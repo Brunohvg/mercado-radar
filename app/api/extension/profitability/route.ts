@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { isExtensionAuthorized } from "@/lib/extension-auth";
 import {
@@ -24,6 +25,7 @@ const schema = z.object({
   operatingCost: z.coerce.number().min(0).default(0),
   targetMarginPercent: z.coerce.number().min(0).max(80).default(20),
   targetRoiPercent: z.coerce.number().min(0).max(500).default(30),
+  save: z.boolean().default(false),
 });
 
 export async function POST(request: Request) {
@@ -118,6 +120,55 @@ export async function POST(request: Request) {
         })
       : null;
 
+    let savedAnalysisId: string | null = null;
+
+    if (parsed.data.save) {
+      const localProduct = item.sellerSku
+        ? await prisma.product.findUnique({
+            where: { sku: item.sellerSku },
+            select: { id: true },
+          })
+        : null;
+
+      const saved = await prisma.productAnalysis.create({
+        data: {
+          productId: localProduct?.id ?? null,
+          productName: item.title,
+          listingType,
+          kitQuantity: parsed.data.kitQuantity,
+          supplierPrice: parsed.data.supplierPrice,
+          discountPercent: parsed.data.discountPercent,
+          unitCost: analysis.unitCost,
+          purchaseCost: analysis.purchaseCost,
+          salePrice: analysis.salePrice,
+          commissionPercent: analysis.commissionPercent,
+          commissionAmount: analysis.commissionAmount,
+          fixedFee: analysis.fixedFee,
+          shippingCost: analysis.shippingCost,
+          operatingCost: analysis.operatingCost,
+          amountReceived: analysis.amountReceived,
+          profit: analysis.profit,
+          marginPercent: analysis.marginPercent,
+          roiPercent: analysis.roiPercent,
+          targetMarginPercent: analysis.targetMarginPercent,
+          targetRoiPercent: analysis.targetRoiPercent,
+          minimumSuggestedPrice: analysis.minimumSuggestedPrice,
+          verdict: analysis.verdict,
+          source: "EXTENSION",
+          metadata: {
+            mlItemId: item.id,
+            taxPercent: parsed.data.taxPercent,
+            taxAmount: analysis.taxAmount,
+            marketReferencePrice:
+              parsed.data.marketReferencePrice ?? null,
+            strategy,
+          },
+        },
+      });
+
+      savedAnalysisId = saved.id;
+    }
+
     return NextResponse.json({
       item: {
         id: item.id,
@@ -136,6 +187,7 @@ export async function POST(request: Request) {
       },
       result: analysis,
       strategy,
+      savedAnalysisId,
     });
   } catch (error) {
     const message =

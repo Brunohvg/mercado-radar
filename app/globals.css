@@ -5203,3 +5203,128 @@ h3,
   font-weight: 750;
   text-decoration: none;
 }
+
+
+.ean-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ean-input-panel textarea {
+  width: 100%;
+  min-height: 210px;
+  resize: vertical;
+  padding: 13px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: #fbfdfc;
+  color: #31453c;
+  font: inherit;
+  line-height: 1.55;
+  outline: 0;
+}
+
+.ean-input-panel textarea:focus {
+  border-color: #7cc9b4;
+  box-shadow: 0 0 0 3px rgba(24, 150, 122, .10);
+}
+
+.ean-input-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ean-input-actions .primary,
+.ean-input-actions .clean-secondary {
+  width: auto;
+}
+
+.ean-file-button {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.ean-file-button input {
+  display: none;
+}
+
+.ean-helper {
+  margin: 10px 0 0;
+  color: #84928b;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.ean-summary-panel .clean-mini-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.ean-results-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.ean-results-table {
+  min-width: 1080px;
+}
+
+.ean-code {
+  color: #31453c;
+  font-size: 9px;
+  letter-spacing: .025em;
+}
+
+.ean-status {
+  display: inline-flex;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 750;
+}
+
+.ean-status.found {
+  background: #e2f4ee;
+  color: #14745f;
+}
+
+.ean-status.not_found {
+  background: #f1f3f2;
+  color: #6f7d76;
+}
+
+.ean-status.invalid {
+  background: #fff0f1;
+  color: #ad4d54;
+}
+
+.ean-product-cell {
+  min-width: 300px;
+}
+
+@media (max-width: 940px) {
+  .ean-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .ean-input-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ean-input-actions .primary,
+  .ean-input-actions .clean-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .ean-summary-panel .clean-mini-grid {
+    grid-template-columns: 1fr;
+  }
+}

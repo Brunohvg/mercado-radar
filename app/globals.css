@@ -6508,7 +6508,7 @@ h3,
 
 .opportunity-card-actions {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 6px;
   margin-top: 10px;
 }
@@ -6702,5 +6702,44 @@ h3,
   .opportunity-methodology,
   .opportunity-filter-panel {
     grid-template-columns: 1fr;
+  }
+}
+
+
+.opportunity-monitor-action {
+  min-height: 31px;
+  padding: 7px 9px;
+  border: 1px solid #cfe2dc;
+  border-radius: 8px;
+  background: #f3f9f6;
+  color: #147b66;
+  font-size: 7px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.opportunity-monitor-action:hover {
+  background: #e9f6f1;
+}
+
+.opportunity-monitor-action.is-monitored,
+.opportunity-monitor-action:disabled {
+  cursor: default;
+  opacity: .75;
+}
+
+.opportunity-monitor-action.is-monitored {
+  border-color: #cde7de;
+  background: #e3f4ee;
+  color: #116e59;
+}
+
+@media (max-width: 420px) {
+  .opportunity-card-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .opportunity-card-actions > a:first-child {
+    grid-column: 1 / -1;
   }
 }

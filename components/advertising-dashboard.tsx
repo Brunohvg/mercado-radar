@@ -28,6 +28,12 @@ type AdGroup = {
   status: string;
   title: string | null;
   catalogListing: boolean | null;
+  product: {
+    mlItemId: string;
+    userProductId: string | null;
+    title: string;
+    thumbnail: string | null;
+  } | null;
   metrics: {
     cost: number;
     roas: number;
@@ -37,6 +43,12 @@ type AdGroup = {
     totalAmount: number;
     units: number;
     organicUnits: number;
+  };
+  profit: {
+    realizedProfitBeforeAds: number | null;
+    realizedProfitAfterAds: number | null;
+    realizedMarginAfterAds: number | null;
+    profitCoveragePercent: number;
   };
 };
 
@@ -417,6 +429,8 @@ export function AdvertisingDashboard() {
                       <th>Cliques</th>
                       <th>Unidades Ads</th>
                       <th>Unidades orgânicas</th>
+                      <th>Lucro pós-Ads</th>
+                      <th>Cobertura</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -430,14 +444,18 @@ export function AdvertisingDashboard() {
                       >
                         <td>
                           <strong className="supplier-name">
-                            {group.title ??
+                            {group.product?.title ??
+                              group.title ??
                               group.externalId ??
                               (group.id
                                 ? "Ad Group " + group.id
                                 : "Ad Group")}
                           </strong>
                           <small className="table-subtext">
-                            {group.externalId ?? group.id ?? "—"}
+                            {group.product?.mlItemId ??
+                              group.externalId ??
+                              group.id ??
+                              "—"}
                             {group.catalogListing === true
                               ? " · Catálogo"
                               : group.catalogListing === false
@@ -459,6 +477,26 @@ export function AdvertisingDashboard() {
                         <td>{group.metrics.clicks}</td>
                         <td>{group.metrics.units}</td>
                         <td>{group.metrics.organicUnits}</td>
+                        <td>
+                          {group.profit.realizedProfitAfterAds == null ? (
+                            <span className="table-muted">Sem custo</span>
+                          ) : (
+                            <span
+                              className={
+                                group.profit.realizedProfitAfterAds >= 0
+                                  ? "margin-good"
+                                  : "margin-bad"
+                              }
+                            >
+                              {money.format(
+                                group.profit.realizedProfitAfterAds,
+                              )}
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          {pct(group.profit.profitCoveragePercent)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

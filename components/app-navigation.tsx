@@ -9,6 +9,7 @@ type IconName =
   | "listings"
   | "products"
   | "suppliers"
+  | "ads"
   | "sales"
   | "analysis"
   | "ean"
@@ -32,6 +33,7 @@ const groups: Array<{ label: string; items: MenuItem[] }> = [
       { href: "/anuncios", label: "Anúncios", icon: "listings" },
       { href: "/produtos", label: "Produtos", icon: "products" },
       { href: "/fornecedores", label: "Fornecedores", icon: "suppliers" },
+      { href: "/publicidade", label: "Publicidade", icon: "ads" },
       { href: "/vendas", label: "Vendas & lucro", icon: "sales" },
     ],
   },
@@ -99,6 +101,15 @@ function MenuIcon({ name }: { name: IconName }) {
       <svg {...common}>
         <path d="M3 20h18M5 20V9h6v11M13 20V4h6v16" />
         <path d="M7.5 12h1M7.5 15h1M15.5 8h1M15.5 11h1M15.5 14h1" />
+      </svg>
+    );
+  }
+
+  if (name === "ads") {
+    return (
+      <svg {...common}>
+        <path d="m4 13 11-5v8L4 11z" />
+        <path d="M15 10h3l2 2-2 2h-3M6 13l1.5 6h3L9 12" />
       </svg>
     );
   }

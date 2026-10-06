@@ -13,6 +13,75 @@ function listingTypeFromId(value: string | null) {
   return value === "gold_pro" ? ("PREMIUM" as const) : ("CLASSIC" as const);
 }
 
+function clamp(value: number, min = 0, max = 100) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function listingScore(input: {
+  status: string;
+  unitCost: number | null;
+  decisionMargin: number | null;
+  recentUnits: number;
+  coverageDays: number | null;
+  visitsTotal: number | null;
+}) {
+  const statusScore = input.status === "active" ? 10 : input.status === "paused" ? 4 : 0;
+  const costScore = input.unitCost == null ? 0 : 15;
+
+  const marginScore =
+    input.decisionMargin == null
+      ? 0
+      : input.decisionMargin >= 20
+        ? 30
+        : input.decisionMargin >= 15
+          ? 23
+          : input.decisionMargin > 0
+            ? 10
+            : 0;
+
+  const salesScore =
+    input.recentUnits <= 0
+      ? 0
+      : Math.round(clamp((Math.log10(input.recentUnits + 1) / Math.log10(31)) * 20, 0, 20));
+
+  let inventoryScore = 5;
+  if (input.recentUnits > 0 && input.coverageDays != null) {
+    if (input.coverageDays >= 14 && input.coverageDays <= 45) inventoryScore = 15;
+    else if (input.coverageDays >= 7 && input.coverageDays < 14) inventoryScore = 11;
+    else if (input.coverageDays > 45 && input.coverageDays <= 75) inventoryScore = 10;
+    else if (input.coverageDays < 7) inventoryScore = 6;
+    else inventoryScore = 7;
+  }
+
+  const visits = Math.max(0, Number(input.visitsTotal ?? 0));
+  const visibilityScore =
+    visits <= 0
+      ? 0
+      : Math.round(clamp((Math.log10(visits + 1) / 5) * 10, 0, 10));
+
+  const total = Math.round(
+    statusScore +
+      costScore +
+      marginScore +
+      salesScore +
+      inventoryScore +
+      visibilityScore,
+  );
+
+  return {
+    total,
+    breakdown: {
+      status: statusScore,
+      cost: costScore,
+      margin: marginScore,
+      sales: salesScore,
+      inventory: inventoryScore,
+      visibility: visibilityScore,
+    },
+  };
+}
+
+
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
@@ -258,6 +327,15 @@ export async function GET(request: Request) {
             ? ((currentPrice - unitCost) / unitCost) * 100
             : null;
 
+        const score = listingScore({
+          status: item.status,
+          unitCost,
+          decisionMargin,
+          recentUnits: recent.units,
+          coverageDays,
+          visitsTotal: item.visitsTotal,
+        });
+
         return {
           id: item.id,
           mlItemId: item.mlItemId,
@@ -266,6 +344,10 @@ export async function GET(request: Request) {
           categoryId: item.categoryId,
           status: item.status,
           listingTypeId: item.listingTypeId,
+          channel: item.catalogProductId ? "CATALOG" : "TRADITIONAL",
+          catalogProductId: item.catalogProductId,
+          userProductId: item.userProductId,
+          listingCreatedAt: item.listingCreatedAt,
           currentPrice,
           availableQuantity: item.availableQuantity,
           soldQuantity: item.soldQuantity,
@@ -279,6 +361,7 @@ export async function GET(request: Request) {
           discountPercent: Number(item.discountPercent),
           netUnitCost: unitCost,
           lastSyncedAt: item.lastSyncedAt,
+          score,
           economics: estimatedEconomics,
           health: {
             periodDays: 30,

@@ -328,6 +328,8 @@ export async function POST(request: Request) {
           evidence: intelligence.evidence,
           salesPerDay: intelligence.salesPerDay,
           salesPerMonth: intelligence.salesPerMonth,
+          visitsPerDay: intelligence.visitsPerDay,
+          revenuePerDay: intelligence.revenuePerDay,
           revenuePerMonth: intelligence.revenuePerMonth,
           ageDays: intelligence.ageDays,
           scoreComponents: intelligence.components,

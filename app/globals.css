@@ -4586,3 +4586,56 @@ body {
     flex-direction: column;
   }
 }
+
+
+.listings-table {
+  min-width: 1120px;
+}
+
+.listing-status {
+  display: inline-flex;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 750;
+}
+
+.listing-status.active {
+  background: #e8fadd;
+  color: #338321;
+}
+
+.listing-status.paused {
+  background: #fff4d9;
+  color: #a46d14;
+}
+
+.listing-status.closed {
+  background: #fff0f0;
+  color: #b54d4d;
+}
+
+.row-external-link {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: #4a8f38;
+  text-decoration: none;
+  background: #fff;
+}
+
+.row-external-link:hover {
+  background: #f6f9f4;
+}
+
+.suppliers-table {
+  min-width: 820px;
+}
+
+.supplier-name {
+  color: #31433a;
+  font-size: 10px;
+}

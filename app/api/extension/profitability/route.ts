@@ -9,12 +9,14 @@ import {
   getMlSession,
 } from "@/lib/mercado-livre";
 import { analyzeProfitability } from "@/lib/profitability";
+import { buildCompetitivePriceStrategy } from "@/lib/price-strategy";
 
 export const dynamic = "force-dynamic";
 
 const schema = z.object({
   itemId: z.string().trim().regex(/^MLB\d+$/i),
   salePrice: z.coerce.number().positive().optional(),
+  marketReferencePrice: z.coerce.number().positive().optional(),
   supplierPrice: z.coerce.number().min(0),
   discountPercent: z.coerce.number().min(0).max(95).default(0),
   kitQuantity: z.coerce.number().int().min(1).max(1000).default(1),
@@ -107,6 +109,15 @@ export async function POST(request: Request) {
       targetRoiPercent: parsed.data.targetRoiPercent,
     });
 
+    const strategy = parsed.data.marketReferencePrice
+      ? buildCompetitivePriceStrategy({
+          currentPrice: price,
+          marketReferencePrice: parsed.data.marketReferencePrice,
+          minimumSuggestedPrice: analysis.minimumSuggestedPrice,
+          breakEvenPrice: analysis.breakEvenPrice,
+        })
+      : null;
+
     return NextResponse.json({
       item: {
         id: item.id,
@@ -124,6 +135,7 @@ export async function POST(request: Request) {
         taxAmount: analysis.taxAmount,
       },
       result: analysis,
+      strategy,
     });
   } catch (error) {
     const message =

@@ -11,6 +11,7 @@ type IconName =
   | "suppliers"
   | "sales"
   | "analysis"
+  | "ean"
   | "radar"
   | "extension"
   | "monitoring"
@@ -38,6 +39,7 @@ const groups: Array<{ label: string; items: MenuItem[] }> = [
     label: "Inteligência",
     items: [
       { href: "/analisar", label: "Análise de produtos", icon: "analysis" },
+      { href: "/ean", label: "EAN em lote", icon: "ean" },
       { href: "/oportunidades", label: "Radar de oportunidades", icon: "radar" },
       { href: "/monitoramento", label: "Monitoramento", icon: "monitoring" },
       { href: "/extensao", label: "Extensão Radar", icon: "extension", badge: "BETA" },
@@ -115,6 +117,15 @@ function MenuIcon({ name }: { name: IconName }) {
       <svg {...common}>
         <circle cx="11" cy="11" r="6" />
         <path d="m16 16 4 4M8.5 11h5M11 8.5v5" />
+      </svg>
+    );
+  }
+
+  if (name === "ean") {
+    return (
+      <svg {...common}>
+        <path d="M4 5v14M7 5v14M10 5v14M14 5v14M17 5v14M20 5v14" />
+        <path d="M3 3h18M3 21h18" />
       </svg>
     );
   }

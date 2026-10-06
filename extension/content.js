@@ -185,6 +185,9 @@ function ensureBadge(card, item, visiblePrice) {
   card.dataset.radarRevenue = String(revenuePerMonth ?? 0);
   card.dataset.radarAge = String(item.intelligence?.ageDays ?? 999999);
   card.dataset.radarFreeShipping = item.freeShipping ? "1" : "0";
+  card.dataset.radarMomentum = String(
+    item.momentum?.status === "READY" ? item.momentum.score ?? -1 : -1,
+  );
   card.dataset.radarItemId = item.id;
 
   const html = [
@@ -212,6 +215,15 @@ function ensureBadge(card, item, visiblePrice) {
       : '<div class="mercado-radar-card__row"><span>Idade</span><span>' +
         item.intelligence.ageDays +
         " dias</span></div>",
+    item.momentum?.status === "READY"
+      ? '<div class="mercado-radar-card__row"><span>Momentum</span><b>' +
+        item.momentum.score +
+        "/100 · " +
+        item.momentum.direction +
+        "</b></div>"
+      : item.monitored
+        ? '<div class="mercado-radar-card__row"><span>Momentum</span><span>Aprendendo</span></div>'
+        : "",
   ].join("");
 
   if (existing) {
@@ -434,6 +446,15 @@ function filterMarkup() {
         <option value="365">1 ano</option>
       </select>
     </label>
+    <label>Momentum monitorado
+      <select data-radar-filter="momentum">
+        <option value="-1">Qualquer</option>
+        <option value="50">50+</option>
+        <option value="70">70+</option>
+        <option value="85">85+</option>
+      </select>
+    </label>
+
     <label class="mercado-radar-filters__check">
       <input type="checkbox" data-radar-filter="freeShipping" />
       Só frete grátis
@@ -474,6 +495,7 @@ function filterMarkup() {
         <option value="sales">Mais vendidos</option>
         <option value="revenue">Maior faturamento</option>
         <option value="newest">Mais novos</option>
+        <option value="momentum">Maior Momentum</option>
         <option value="myMargin">Maior margem para mim</option>
         <option value="myRoi">Maior ROI para mim</option>
       </select>
@@ -493,6 +515,7 @@ function applyFilters() {
   const sales = Number(value("sales")?.value || 0);
   const revenue = Number(value("revenue")?.value || 0);
   const age = Number(value("age")?.value || 999999);
+  const momentum = Number(value("momentum")?.value ?? -1);
   const freeShipping = Boolean(value("freeShipping")?.checked);
   const myMargin = Number(value("myMargin")?.value ?? -999);
   const myRoi = Number(value("myRoi")?.value ?? -999);
@@ -509,6 +532,7 @@ function applyFilters() {
       Number(card.dataset.radarSales || 0) >= sales &&
       Number(card.dataset.radarRevenue || 0) >= revenue &&
       Number(card.dataset.radarAge || 999999) <= age &&
+      Number(card.dataset.radarMomentum ?? -1) >= momentum &&
       (!freeShipping || card.dataset.radarFreeShipping === "1") &&
       Number(card.dataset.radarMyMargin ?? -999) >= myMargin &&
       Number(card.dataset.radarMyRoi ?? -999) >= myRoi;
@@ -532,6 +556,9 @@ function applyFilters() {
     }
     if (sort === "newest") {
       return Number(a.dataset.radarAge || 999999) - Number(b.dataset.radarAge || 999999);
+    }
+    if (sort === "momentum") {
+      return Number(b.dataset.radarMomentum ?? -1) - Number(a.dataset.radarMomentum ?? -1);
     }
     if (sort === "myMargin") {
       return Number(b.dataset.radarMyMargin ?? -999) - Number(a.dataset.radarMyMargin ?? -999);

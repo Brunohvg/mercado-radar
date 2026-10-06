@@ -85,6 +85,8 @@ Esta branch adiciona:
 
 - `RadarWatchItem`
 - `RadarWatchSnapshot`
+- `RadarAlert`
+- metadados de catálogo/User Product nos anúncios
 
 Em ambiente implantado:
 
@@ -92,10 +94,12 @@ Em ambiente implantado:
 npm run db:deploy
 ```
 
-A migration criada é:
+As migrations desta etapa incluem:
 
 ```text
 202610061730_radar_watchlist
+202610061750_listing_metadata
+202610061820_radar_alerts
 ```
 
 ## 6. Fluxo de teste
@@ -111,7 +115,11 @@ A migration criada é:
    - vendas/mês;
    - faturamento/mês;
    - idade;
-   - filtros laterais Radar.
+   - filtros laterais Radar;
+   - botão **Calcular minha margem**;
+   - margem e lucro usando o custo do produto correspondente na sua operação;
+   - filtro/ordenação por margem e ROI;
+   - Momentum quando já houver histórico monitorado.
 
 ### Anúncio
 
@@ -126,7 +134,12 @@ A migration criada é:
    - faturamento estimado;
    - Buy Box quando disponível;
    - tendências;
-   - calculadora de rentabilidade.
+   - calculadora de rentabilidade;
+   - produto próprio compatível e custo conhecido, quando existir;
+   - P25, mediana e P75;
+   - concorrentes enriquecidos com score, demanda e velocidade;
+   - estratégia de preço competitivo saudável;
+   - alerta quando perseguir o concorrente quebraria sua margem.
 
 ### Monitoramento
 
@@ -166,3 +179,49 @@ A migration do monitoramento ainda não foi aplicada. Rode `npm run db:deploy`.
 - A extensão conversa somente com a API do Radar.
 - Regras financeiras permanecem no backend.
 - A chave global é provisória e não será usada na versão comercial.
+
+
+## 8. Monitoramento automático
+
+O Radar possui um endpoint protegido para criar snapshots sem abrir o dashboard:
+
+```text
+POST /api/cron/radar-monitoring
+```
+
+No servidor configure:
+
+```text
+RADAR_CRON_SECRET=<uma-chave-privada-diferente-da-chave-da-extensao>
+```
+
+Exemplo de chamada pelo agendador do servidor:
+
+```bash
+curl -fsS -X POST \
+  -H "Authorization: Bearer $RADAR_CRON_SECRET" \
+  https://radar.optarys.com.br/api/cron/radar-monitoring
+```
+
+Uma execução por hora é suficiente para o MVP.
+
+O monitoramento cria snapshots e alertas quando houver mudança relevante de:
+- preço;
+- Radar Score;
+- nível de demanda.
+
+O **Radar Momentum** só sai do estado `Aprendendo` quando existe janela histórica suficiente. Isso evita transformar duas leituras feitas em poucos minutos em uma falsa tendência.
+
+## 9. Margem personalizada na busca
+
+Na busca do Mercado Livre clique em **Calcular minha margem**.
+
+O Radar:
+1. procura entre seus anúncios o produto mais compatível com a pesquisa;
+2. exige confiança mínima no match;
+3. usa o custo real cadastrado;
+4. simula os preços encontrados usando a estrutura do seu próprio anúncio;
+5. adiciona margem/lucro aos cards;
+6. libera filtros **Minha margem** e **Meu ROI**.
+
+Se a confiança for insuficiente, o Radar não aplica custo de outro produto silenciosamente.

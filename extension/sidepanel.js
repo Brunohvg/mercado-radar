@@ -16,8 +16,10 @@ const trendsBlock = document.getElementById("trendsBlock");
 const calcResult = document.getElementById("calcResult");
 const calcStatus = document.getElementById("calcStatus");
 const competitiveSimulation = document.getElementById("competitiveSimulation");
+const saveSimulation = document.getElementById("saveSimulation");
 
 let currentItem = null;
+let lastCalculationInput = null;
 let currentMarket = null;
 let currentBuyBoxPrice = null;
 
@@ -90,6 +92,8 @@ async function renderContext(context) {
   calculatorCard.hidden = true;
   calcResult.hidden = true;
   competitiveSimulation.hidden = true;
+  saveSimulation.hidden = true;
+  lastCalculationInput = null;
   currentMarket = null;
   currentBuyBoxPrice = null;
   calcStatus.textContent = "";
@@ -331,6 +335,10 @@ document.getElementById("calculate").addEventListener("click", async () => {
   if (!currentItem?.id) return;
 
   const supplierPrice = Number(document.getElementById("supplierPrice").value || 0);
+  const kitQuantity = Math.max(
+    1,
+    Math.floor(Number(document.getElementById("kitQuantity").value || 1)),
+  );
   if (supplierPrice < 0) return;
 
   const taxPercent = Number(document.getElementById("taxPercent").value || 0);
@@ -358,19 +366,23 @@ document.getElementById("calculate").addEventListener("click", async () => {
     currentBuyBoxPrice ||
     (currentMarket?.p25 && currentMarket.p25 > 0 ? currentMarket.p25 : null);
 
+  lastCalculationInput = {
+    itemId: currentItem.id,
+    marketReferencePrice: referencePrice || undefined,
+    supplierPrice,
+    discountPercent: Number(
+      document.getElementById("discountPercent").value || 0,
+    ),
+    taxPercent,
+    operatingCost,
+    targetMarginPercent,
+    targetRoiPercent,
+    kitQuantity,
+  };
+
   const response = await request("/api/extension/profitability", {
     method: "POST",
-    body: {
-      itemId: currentItem.id,
-      marketReferencePrice: referencePrice || undefined,
-      supplierPrice,
-      discountPercent: Number(document.getElementById("discountPercent").value || 0),
-      taxPercent,
-      operatingCost,
-      targetMarginPercent,
-      targetRoiPercent,
-      kitQuantity: 1,
-    },
+    body: lastCalculationInput,
   });
 
   if (!response?.ok || !response.body?.result) {
@@ -441,7 +453,7 @@ document.getElementById("calculate").addEventListener("click", async () => {
         operatingCost: Number(document.getElementById("operatingCost").value || 0),
         targetMarginPercent: Number(document.getElementById("targetMargin").value || 20),
         targetRoiPercent: Number(document.getElementById("targetRoi").value || 30),
-        kitQuantity: 1,
+        kitQuantity,
       },
     });
 
@@ -470,7 +482,33 @@ document.getElementById("calculate").addEventListener("click", async () => {
     }
   }
 
+  saveSimulation.hidden = false;
+  saveSimulation.textContent = "Salvar simulação no Radar";
   calcResult.hidden = false;
+});
+
+saveSimulation.addEventListener("click", async () => {
+  if (!lastCalculationInput) return;
+
+  saveSimulation.disabled = true;
+  saveSimulation.textContent = "Salvando...";
+
+  const response = await request("/api/extension/profitability", {
+    method: "POST",
+    body: {
+      ...lastCalculationInput,
+      save: true,
+    },
+  });
+
+  saveSimulation.disabled = false;
+
+  if (!response?.ok || !response.body?.savedAnalysisId) {
+    saveSimulation.textContent = "Falha ao salvar — tentar novamente";
+    return;
+  }
+
+  saveSimulation.textContent = "Simulação salva";
 });
 
 

@@ -163,24 +163,46 @@ export async function POST(request: Request) {
       categorySource = "OPEN";
     }
 
-    const candidates = searchResults
-      .map((item, index) => ({
-        ...item,
-        searchPosition: index + 1,
-        similarity: similarity(query, item.title),
-      }))
-      .filter(
-        (item) =>
-          item.price > 0 &&
-          item.sellerId !== session.account.mercadoLivreUserId,
-      )
-      .sort((a, b) => {
-        const relevance = b.similarity - a.similarity;
-        if (Math.abs(relevance) > 0.08) return relevance;
-        return a.searchPosition - b.searchPosition;
+    function rankResults(
+      items: Awaited<ReturnType<typeof searchMarketplace>>,
+    ) {
+      return items
+        .map((item, index) => ({
+          ...item,
+          searchPosition: index + 1,
+          similarity: similarity(query, item.title),
+        }))
+        .filter(
+          (item) =>
+            item.price > 0 &&
+            item.sellerId !== session.account.mercadoLivreUserId,
+        )
+        .sort((a, b) => {
+          const relevance = b.similarity - a.similarity;
+          if (Math.abs(relevance) > 0.08) return relevance;
+          return a.searchPosition - b.searchPosition;
+        });
+    }
+
+    let candidates = rankResults(searchResults);
+    let strong = candidates.filter((item) => item.similarity >= 0.42);
+
+    if (
+      categorySource === "PREDICTED" &&
+      categoryId &&
+      strong.length < 6
+    ) {
+      searchResults = await searchMarketplace({
+        accessToken: session.accessToken,
+        query,
+        limit: 50,
       });
 
-    const strong = candidates.filter((item) => item.similarity >= 0.42);
+      categorySource = "OPEN";
+      candidates = rankResults(searchResults);
+      strong = candidates.filter((item) => item.similarity >= 0.42);
+    }
+
     const selected = (strong.length >= 8 ? strong : candidates)
       .slice(0, Math.min(40, Math.max(limit, 24)));
 

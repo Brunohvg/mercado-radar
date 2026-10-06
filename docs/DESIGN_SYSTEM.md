@@ -71,3 +71,66 @@ Venda → tarifa → frete → custo → lucro.
 - Vendas e lucro real
 - Integrações
 - Configurações de margem e fornecedor
+
+
+## Visual System v3 — decisão de 06/10/2026
+
+A direção visual anterior escura foi aposentada para o dashboard principal porque gerava excesso de contraste, muitos blocos competindo e pouca sensação de produto operacional.
+
+### Nova direção
+
+- base clara e neutra;
+- cards brancos;
+- bordas discretas;
+- verde vivo reservado para seleção, saúde e ação positiva;
+- tipografia escura de alto contraste;
+- hierarquia visual mais simples;
+- menos gradientes e menos efeitos decorativos;
+- tabelas compactas para operação;
+- cards apenas para resumo e decisão;
+- bastante espaço em branco;
+- menus e controles com aparência leve de SaaS moderno.
+
+### Sidebar
+
+A sidebar passa a ser peça estrutural do produto:
+
+- grupos de navegação;
+- ícones consistentes;
+- item ativo com fundo verde suave;
+- conta conectada no rodapé;
+- botão de recolher;
+- modo recolhido em aproximadamente 82 px;
+- no modo recolhido ficam logo, ícones, avatar e botão de expandir;
+- o estado recolhido é persistido localmente no navegador;
+- em mobile a sidebar continua abrindo completa, nunca em modo ícones.
+
+### Dashboard
+
+O dashboard principal deve abrir direto no operacional, não em uma landing page.
+
+Prioridade visual:
+1. pedidos;
+2. faturamento;
+3. ticket médio;
+4. lucro realizado;
+5. saúde do negócio;
+6. capital e estoque;
+7. produtos que exigem ação.
+
+### Produtos
+
+A tela de produtos passa a usar tabela operacional como visual principal:
+- produto;
+- tipo de anúncio;
+- SKU;
+- fornecedor;
+- estoque;
+- preço;
+- margem;
+- ação do Radar;
+- editor inline de custo e fornecedor.
+
+### Regra visual
+
+Nenhuma tela nova deve reintroduzir o estilo escuro legado. Componentes antigos devem ser migrados gradualmente para o Visual System v3.

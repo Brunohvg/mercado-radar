@@ -6,6 +6,7 @@ export type SearchOpportunityInput = {
   visits: number | null;
   dateCreated: string | null;
   freeShipping: boolean;
+  logisticType: string | null;
   catalogProductId: string | null;
   listingTypeId: string | null;
   similarity: number;
@@ -97,9 +98,14 @@ export function calculateSearchOpportunityScore(
   }
 
   const logistics = clamp(
-    (input.freeShipping ? 58 : 36) +
-      (input.catalogProductId ? 22 : 0) +
-      (input.listingTypeId === "gold_pro" ? 12 : 7),
+    (input.freeShipping ? 48 : 30) +
+      (input.logisticType === "fulfillment"
+        ? 28
+        : input.logisticType === "self_service"
+          ? 20
+          : 8) +
+      (input.catalogProductId ? 14 : 0) +
+      (input.listingTypeId === "gold_pro" ? 10 : 5),
   );
 
   const availableSignals = [

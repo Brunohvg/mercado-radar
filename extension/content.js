@@ -2,6 +2,8 @@ const state = {
   lastUrl: location.href,
   running: false,
   items: [],
+  searchMatches: [],
+  profitabilityLoaded: false,
 };
 
 function normalize(value) {
@@ -223,6 +225,166 @@ function ensureBadge(card, item, visiblePrice) {
   card.appendChild(box);
 }
 
+function applyMyEconomicsToCard(card, economics) {
+  card.dataset.radarMyMargin = String(economics.marginPercent ?? -999);
+  card.dataset.radarMyRoi = String(economics.roiPercent ?? -999);
+  card.dataset.radarMyProfit = String(economics.profit ?? 0);
+
+  const box = card.querySelector(".mercado-radar-card");
+  if (!box) return;
+
+  let row = box.querySelector(".mercado-radar-card__my-economics");
+  if (!row) {
+    row = document.createElement("div");
+    row.className =
+      "mercado-radar-card__row mercado-radar-card__my-economics";
+    box.appendChild(row);
+  }
+
+  const margin =
+    economics.marginPercent == null
+      ? "—"
+      : Number(economics.marginPercent).toLocaleString("pt-BR", {
+          maximumFractionDigits: 1,
+        }) + "%";
+  const profit =
+    economics.profit == null
+      ? "—"
+      : Number(economics.profit).toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        });
+
+  row.innerHTML =
+    "<span>Minha margem</span><b>" +
+    margin +
+    " · " +
+    profit +
+    "</b>";
+}
+
+async function loadSearchProfitability() {
+  const panel = document.getElementById("mercado-radar-filters");
+  if (!panel) return;
+
+  const button = panel.querySelector("[data-radar-my-economics]");
+  const status = panel.querySelector("[data-radar-my-economics-status]");
+  const query = extractSearchQuery();
+
+  if (!query || !state.searchMatches.length) return;
+
+  const items = state.searchMatches
+    .map((match) => ({
+      id: match.item.id,
+      price: match.cardPrice || match.item.price || 0,
+    }))
+    .filter((item) => item.price > 0)
+    .slice(0, 12);
+
+  if (!items.length) return;
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Calculando...";
+  }
+  if (status) status.textContent = "Procurando seu produto e custo no Radar...";
+
+  const settings = await chrome.storage.sync.get([
+    "radarTaxPercent",
+    "radarOperatingCost",
+    "radarTargetMarginPercent",
+    "radarTargetRoiPercent",
+  ]);
+
+  const response = await chrome.runtime.sendMessage({
+    type: "RADAR_FETCH",
+    path: "/api/extension/search-profitability",
+    method: "POST",
+    body: {
+      query,
+      items,
+      taxPercent: Number(settings.radarTaxPercent || 0),
+      operatingCost: Number(settings.radarOperatingCost || 0),
+      targetMarginPercent: Number(settings.radarTargetMarginPercent || 20),
+      targetRoiPercent: Number(settings.radarTargetRoiPercent || 30),
+    },
+  });
+
+  if (!response?.ok) {
+    if (status) {
+      status.textContent =
+        response?.body?.error || "Não foi possível calcular sua margem.";
+    }
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Calcular minha margem";
+    }
+    return;
+  }
+
+  if (response.body?.needsCost) {
+    if (status) {
+      status.textContent =
+        response.body.message ||
+        "Encontrei seu produto, mas falta cadastrar o custo.";
+    }
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Tentar novamente";
+    }
+    return;
+  }
+
+  if (!Array.isArray(response.body?.items) || !response.body.items.length) {
+    if (status) {
+      status.textContent =
+        response.body?.message ||
+        "Nenhum produto seu compatível foi encontrado para esta busca.";
+    }
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Calcular minha margem";
+    }
+    return;
+  }
+
+  const resultById = new Map(
+    response.body.items.map((item) => [item.id, item]),
+  );
+
+  for (const match of state.searchMatches) {
+    const economics = resultById.get(match.item.id);
+    if (economics) {
+      applyMyEconomicsToCard(match.card, economics);
+    }
+  }
+
+  state.profitabilityLoaded = true;
+
+  const marginFilter = panel.querySelector("[data-radar-filter='myMargin']");
+  const roiFilter = panel.querySelector("[data-radar-filter='myRoi']");
+  if (marginFilter) marginFilter.disabled = false;
+  if (roiFilter) roiFilter.disabled = false;
+
+  if (status) {
+    const matched = response.body.matchedProduct;
+    status.textContent = matched
+      ? "Usando custo de " +
+        matched.title +
+        " · confiança " +
+        matched.similarityPercent +
+        "%"
+      : "Margem personalizada carregada.";
+  }
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Minha margem carregada";
+  }
+
+  applyFilters();
+}
+
 function filterMarkup() {
   return `
     <div class="mercado-radar-filters__title">
@@ -276,6 +438,35 @@ function filterMarkup() {
       <input type="checkbox" data-radar-filter="freeShipping" />
       Só frete grátis
     </label>
+
+    <div class="mercado-radar-filters__personal">
+      <strong>Para minha operação</strong>
+      <button type="button" data-radar-my-economics>Calcular minha margem</button>
+      <small data-radar-my-economics-status>
+        Usa o custo cadastrado no seu produto mais compatível.
+      </small>
+    </div>
+
+    <label>Minha margem
+      <select data-radar-filter="myMargin" disabled>
+        <option value="-999">Qualquer</option>
+        <option value="10">10%+</option>
+        <option value="15">15%+</option>
+        <option value="20">20%+</option>
+        <option value="30">30%+</option>
+      </select>
+    </label>
+
+    <label>Meu ROI
+      <select data-radar-filter="myRoi" disabled>
+        <option value="-999">Qualquer</option>
+        <option value="20">20%+</option>
+        <option value="30">30%+</option>
+        <option value="50">50%+</option>
+        <option value="80">80%+</option>
+      </select>
+    </label>
+
     <label>Ordenar
       <select data-radar-filter="sort">
         <option value="original">Mercado Livre</option>
@@ -283,6 +474,8 @@ function filterMarkup() {
         <option value="sales">Mais vendidos</option>
         <option value="revenue">Maior faturamento</option>
         <option value="newest">Mais novos</option>
+        <option value="myMargin">Maior margem para mim</option>
+        <option value="myRoi">Maior ROI para mim</option>
       </select>
     </label>
   `;
@@ -301,6 +494,8 @@ function applyFilters() {
   const revenue = Number(value("revenue")?.value || 0);
   const age = Number(value("age")?.value || 999999);
   const freeShipping = Boolean(value("freeShipping")?.checked);
+  const myMargin = Number(value("myMargin")?.value ?? -999);
+  const myRoi = Number(value("myRoi")?.value ?? -999);
   const sort = value("sort")?.value || "original";
 
   cards.forEach((card, index) => {
@@ -314,7 +509,9 @@ function applyFilters() {
       Number(card.dataset.radarSales || 0) >= sales &&
       Number(card.dataset.radarRevenue || 0) >= revenue &&
       Number(card.dataset.radarAge || 999999) <= age &&
-      (!freeShipping || card.dataset.radarFreeShipping === "1");
+      (!freeShipping || card.dataset.radarFreeShipping === "1") &&
+      Number(card.dataset.radarMyMargin ?? -999) >= myMargin &&
+      Number(card.dataset.radarMyRoi ?? -999) >= myRoi;
 
     card.style.display = visible ? "" : "none";
   });
@@ -335,6 +532,12 @@ function applyFilters() {
     }
     if (sort === "newest") {
       return Number(a.dataset.radarAge || 999999) - Number(b.dataset.radarAge || 999999);
+    }
+    if (sort === "myMargin") {
+      return Number(b.dataset.radarMyMargin ?? -999) - Number(a.dataset.radarMyMargin ?? -999);
+    }
+    if (sort === "myRoi") {
+      return Number(b.dataset.radarMyRoi ?? -999) - Number(a.dataset.radarMyRoi ?? -999);
     }
     return Number(a.dataset.radarOriginalIndex || 0) - Number(b.dataset.radarOriginalIndex || 0);
   });
@@ -365,6 +568,10 @@ function mountFilterPanel() {
   }
 
   panel.addEventListener("change", applyFilters);
+  panel
+    .querySelector("[data-radar-my-economics]")
+    ?.addEventListener("click", () => void loadSearchProfitability());
+
   panel.querySelector("[data-radar-reset]")?.addEventListener("click", () => {
     panel.querySelectorAll("select").forEach((select) => {
       select.selectedIndex = 0;
@@ -414,6 +621,8 @@ async function enrichSearch() {
 
     state.items = response.body.items;
     const matches = matchItems(cards, state.items);
+    state.searchMatches = matches;
+    state.profitabilityLoaded = false;
 
     for (const match of matches) {
       ensureBadge(match.card, match.item, match.cardPrice);
@@ -431,6 +640,8 @@ const observer = new MutationObserver(() => {
   if (location.href !== state.lastUrl) {
     state.lastUrl = location.href;
     document.getElementById("mercado-radar-filters")?.remove();
+    state.searchMatches = [];
+    state.profitabilityLoaded = false;
     publishContext();
   }
 

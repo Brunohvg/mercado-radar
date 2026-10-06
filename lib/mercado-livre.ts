@@ -1108,7 +1108,7 @@ export async function getProductAdsAdGroups(input: {
     offset: String(Math.max(input.offset ?? 0, 0)),
     date_from: input.dateFrom,
     date_to: input.dateTo,
-    metrics: PRODUCT_ADS_METRICS,
+    metrics: PRODUCT_ADS_AD_GROUP_METRICS,
     metrics_summary: "true",
     sort: "desc",
     sort_by: "cost",

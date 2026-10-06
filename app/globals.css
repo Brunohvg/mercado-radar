@@ -3944,3 +3944,198 @@ body {
     grid-template-columns: 1fr 1fr 42px;
   }
 }
+
+
+/* v3 consistency pass — remove dark remnants from legacy modules */
+
+.decision-flow {
+  border-color: var(--line);
+  background: #fff;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.flow-number {
+  border-color: #d4edca;
+  background: #effbe9;
+  color: #428a31;
+}
+
+.flow-step strong {
+  color: #34423b;
+}
+
+.flow-arrow {
+  color: #a4ada8;
+}
+
+.metric-card,
+.panel,
+.ml-quote-panel,
+.kit-panel,
+.integration-panel {
+  backdrop-filter: none;
+}
+
+.metric-card {
+  border-color: var(--line);
+  background: #fff;
+}
+
+.metric-card:hover {
+  border-color: #d4ddd2;
+  background: #fff;
+}
+
+.metric-card span,
+.metric-card small {
+  color: #849088;
+}
+
+.metric-card strong {
+  color: #21372d;
+}
+
+.result-panel {
+  box-shadow: none;
+}
+
+.empty-result h3 {
+  color: #2c3e35;
+}
+
+.integration-panel,
+.market-intelligence-panel {
+  border-color: var(--line);
+  background: #fff;
+  box-shadow: none;
+}
+
+.market-action {
+  border-color: #cfe9c5;
+  color: #4b7f3e;
+}
+
+.market-decision-head h2,
+.fit-score strong,
+.market-kpis strong,
+.buying-power strong,
+.competitor-head strong {
+  color: #263a31;
+}
+
+.fit-score {
+  border-color: var(--line);
+  background: #fafbf9;
+}
+
+.fit-score.good {
+  border-color: #cee9c3;
+  background: #f1fbed;
+}
+
+.fit-score.tight {
+  border-color: #ecd9a9;
+  background: #fff8e8;
+}
+
+.fit-score.bad {
+  border-color: #efc8c8;
+  background: #fff3f3;
+}
+
+.market-kpis {
+  border-color: var(--line);
+  background: var(--line);
+}
+
+.market-kpis > div {
+  background: #fff;
+}
+
+.market-kpis small {
+  color: #909a94;
+}
+
+.price-ladder,
+.buying-power > div,
+.ml-costs-grid > div {
+  border-color: var(--line);
+  background: #fafbf9;
+}
+
+.ladder-track {
+  background: linear-gradient(90deg, #dff3d7, #e6efe3, #f4dfdf);
+}
+
+.ladder-market-band {
+  background: linear-gradient(90deg, #80da60, #4cc447);
+  box-shadow: none;
+}
+
+.ladder-own-price i {
+  background: #275b3f;
+  box-shadow: none;
+}
+
+.ladder-own-price b {
+  color: #435149;
+}
+
+.competitor-card {
+  border-color: var(--line);
+  background: #fff;
+}
+
+.competitor-card h3 {
+  color: #34423b;
+}
+
+.competitor-card > small,
+.optional-label,
+.ml-costs-auto > small,
+.discovery-dimensions small {
+  color: #87938d;
+}
+
+.api-source-badge {
+  border-color: #cfe9c5;
+  background: #effae9;
+  color: #428331;
+}
+
+.opportunity-explainer {
+  color: #7e8a83;
+}
+
+.opportunity-explainer strong {
+  color: #34423b;
+}
+
+.opportunity-card,
+.opportunity-card.candidate {
+  background: #fff;
+}
+
+.opportunity-card.candidate {
+  border-color: #ceeac3;
+}
+
+.barcode-scanner-modal {
+  background: rgba(32, 45, 38, .28);
+}
+
+.barcode-video-shell {
+  background: #e9eeea;
+}
+
+.barcode-scanner-head button {
+  border-color: var(--line);
+  background: #f7f9f6;
+  color: #526159;
+}
+
+.product-search-thumb {
+  background: #f3f5f2;
+  color: #7f8a84;
+}

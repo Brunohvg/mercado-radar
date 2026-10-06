@@ -149,3 +149,57 @@
   border-color: #7fc4b2;
   box-shadow: 0 0 0 3px rgba(24, 150, 122, .10);
 }
+
+
+.mercado-radar-card__my-economics {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #e1eeea;
+}
+
+.mercado-radar-card__my-economics b {
+  color: #126f5b;
+}
+
+.mercado-radar-filters__personal {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid #dceae5;
+  border-radius: 9px;
+  background: #f4faf7;
+}
+
+.mercado-radar-filters__personal strong,
+.mercado-radar-filters__personal small {
+  display: block;
+}
+
+.mercado-radar-filters__personal strong {
+  color: #24443a;
+  font-size: 11px;
+}
+
+.mercado-radar-filters__personal button {
+  width: 100%;
+  margin-top: 7px;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: #168f74;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.mercado-radar-filters__personal button:disabled {
+  cursor: default;
+  opacity: .72;
+}
+
+.mercado-radar-filters__personal small {
+  margin-top: 6px;
+  color: #75847d;
+  font-size: 9px;
+  line-height: 1.4;
+}

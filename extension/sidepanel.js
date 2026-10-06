@@ -51,9 +51,30 @@ async function request(path, options = {}) {
 }
 
 async function loadSettings() {
-  const settings = await chrome.storage.sync.get(["radarApiBase", "radarApiKey"]);
+  const settings = await chrome.storage.sync.get([
+    "radarApiBase",
+    "radarApiKey",
+    "radarTaxPercent",
+    "radarOperatingCost",
+    "radarTargetMarginPercent",
+    "radarTargetRoiPercent",
+  ]);
+
   apiBase.value = settings.radarApiBase || "https://radar.optarys.com.br";
   apiKey.value = settings.radarApiKey || "";
+
+  document.getElementById("taxPercent").value = String(
+    settings.radarTaxPercent ?? 0,
+  );
+  document.getElementById("operatingCost").value = String(
+    settings.radarOperatingCost ?? 0,
+  );
+  document.getElementById("targetMargin").value = String(
+    settings.radarTargetMarginPercent ?? 20,
+  );
+  document.getElementById("targetRoi").value = String(
+    settings.radarTargetRoiPercent ?? 30,
+  );
 }
 
 async function renderContext(context) {
@@ -249,6 +270,24 @@ document.getElementById("calculate").addEventListener("click", async () => {
   const supplierPrice = Number(document.getElementById("supplierPrice").value || 0);
   if (supplierPrice < 0) return;
 
+  const taxPercent = Number(document.getElementById("taxPercent").value || 0);
+  const operatingCost = Number(
+    document.getElementById("operatingCost").value || 0,
+  );
+  const targetMarginPercent = Number(
+    document.getElementById("targetMargin").value || 20,
+  );
+  const targetRoiPercent = Number(
+    document.getElementById("targetRoi").value || 30,
+  );
+
+  await chrome.storage.sync.set({
+    radarTaxPercent: taxPercent,
+    radarOperatingCost: operatingCost,
+    radarTargetMarginPercent: targetMarginPercent,
+    radarTargetRoiPercent: targetRoiPercent,
+  });
+
   calcStatus.textContent = "Calculando comissão, frete e rentabilidade...";
   calcResult.hidden = true;
 
@@ -263,10 +302,10 @@ document.getElementById("calculate").addEventListener("click", async () => {
       marketReferencePrice: referencePrice || undefined,
       supplierPrice,
       discountPercent: Number(document.getElementById("discountPercent").value || 0),
-      taxPercent: Number(document.getElementById("taxPercent").value || 0),
-      operatingCost: Number(document.getElementById("operatingCost").value || 0),
-      targetMarginPercent: Number(document.getElementById("targetMargin").value || 20),
-      targetRoiPercent: Number(document.getElementById("targetRoi").value || 30),
+      taxPercent,
+      operatingCost,
+      targetMarginPercent,
+      targetRoiPercent,
       kitQuantity: 1,
     },
   });

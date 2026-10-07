@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
+  getCatalogProductDetails,
   getCategoryHighlights,
   getItemsBulk,
-  getItemsCurrentPrices,
   getItemsVisitTotals,
   getMlSession,
   predictCategory,
-  searchMarketplace,
+  searchCatalogProducts,
 } from "@/lib/mercado-livre";
 import { calculateSearchOpportunityScore } from "@/lib/opportunity-intelligence";
 
@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 const schema = z.object({
   query: z.string().trim().min(2).max(180),
   categoryId: z.string().trim().min(3).max(40).optional(),
-  limit: z.coerce.number().int().min(8).max(40).default(24),
+  limit: z.coerce.number().int().min(8).max(24).default(16),
 });
 
 const STOPWORDS = new Set([
@@ -108,8 +108,8 @@ function round2(value: number | null) {
 }
 
 function competitionLevel(uniqueSellers: number) {
-  if (uniqueSellers >= 16) return "ALTA";
-  if (uniqueSellers >= 8) return "MEDIA";
+  if (uniqueSellers >= 12) return "ALTA";
+  if (uniqueSellers >= 6) return "MEDIA";
   return "BAIXA";
 }
 
@@ -129,9 +129,9 @@ export async function POST(request: Request) {
 
     let categoryId = parsed.data.categoryId ?? null;
     let categoryName: string | null = null;
-    let categorySource: "USER" | "PREDICTED" | "OPEN" = categoryId
+    let categorySource: "USER" | "PREDICTED" | "CATALOG" = categoryId
       ? "USER"
-      : "OPEN";
+      : "CATALOG";
 
     if (!categoryId) {
       const predicted = await predictCategory({
@@ -147,69 +147,31 @@ export async function POST(request: Request) {
       }
     }
 
-    let searchResults = await searchMarketplace({
+    const catalog = await searchCatalogProducts({
       accessToken: session.accessToken,
       query,
-      categoryId: categoryId ?? undefined,
-      limit: 50,
+      limit: Math.min(20, Math.max(limit, 12)),
     });
 
-    if (searchResults.length < 8 && categoryId) {
-      searchResults = await searchMarketplace({
-        accessToken: session.accessToken,
-        query,
-        limit: 50,
-      });
-      categorySource = "OPEN";
-    }
+    const rankedCatalog = catalog
+      .map((product, index) => ({
+        ...product,
+        catalogPosition: index + 1,
+        similarity: similarity(query, product.name),
+      }))
+      .filter((product) => product.similarity >= 0.28)
+      .sort((a, b) => {
+        const relevance = b.similarity - a.similarity;
+        if (Math.abs(relevance) > 0.08) return relevance;
+        return a.catalogPosition - b.catalogPosition;
+      })
+      .slice(0, Math.min(16, limit));
 
-    function rankResults(
-      items: Awaited<ReturnType<typeof searchMarketplace>>,
-    ) {
-      return items
-        .map((item, index) => ({
-          ...item,
-          searchPosition: index + 1,
-          similarity: similarity(query, item.title),
-        }))
-        .filter(
-          (item) =>
-            item.price > 0 &&
-            item.sellerId !== session.account.mercadoLivreUserId,
-        )
-        .sort((a, b) => {
-          const relevance = b.similarity - a.similarity;
-          if (Math.abs(relevance) > 0.08) return relevance;
-          return a.searchPosition - b.searchPosition;
-        });
-    }
-
-    let candidates = rankResults(searchResults);
-    let strong = candidates.filter((item) => item.similarity >= 0.42);
-
-    if (
-      categorySource === "PREDICTED" &&
-      categoryId &&
-      strong.length < 6
-    ) {
-      searchResults = await searchMarketplace({
-        accessToken: session.accessToken,
-        query,
-        limit: 50,
-      });
-
-      categorySource = "OPEN";
-      candidates = rankResults(searchResults);
-      strong = candidates.filter((item) => item.similarity >= 0.42);
-    }
-
-    const selected = (strong.length >= 8 ? strong : candidates)
-      .slice(0, Math.min(40, Math.max(limit, 24)));
-
-    if (!selected.length) {
+    if (!rankedCatalog.length) {
       return NextResponse.json({
         generatedAt: new Date().toISOString(),
         query,
+        source: "CATALOG_SEARCH",
         category: {
           id: categoryId,
           name: categoryName,
@@ -218,74 +180,105 @@ export async function POST(request: Request) {
         summary: null,
         opportunities: [],
         message:
-          "Nenhum anúncio comparável foi encontrado. Tente um termo mais específico.",
+          "O buscador oficial de produtos não encontrou comparáveis de catálogo. Para anúncios tradicionais e todos os resultados do marketplace, use a Extensão Radar diretamente na busca do Mercado Livre.",
       });
     }
 
-    const itemIds = selected.map((item) => item.id);
-    const [details, exactPrices, visits, highlights] = await Promise.all([
+    const productDetails = await Promise.all(
+      rankedCatalog.map(async (product) => {
+        const detail = await getCatalogProductDetails({
+          accessToken: session.accessToken,
+          productId: product.id,
+        }).catch(() => null);
+
+        return { product, detail };
+      }),
+    );
+
+    const winnerCandidates = productDetails
+      .map(({ product, detail }) => {
+        const winner = detail?.buy_box_winner;
+        const itemId = winner?.item_id
+          ? String(winner.item_id).toUpperCase()
+          : null;
+
+        if (!itemId || !/^MLB\d+$/i.test(itemId)) return null;
+
+        return {
+          product,
+          detail,
+          itemId,
+          title: detail?.name ?? product.name,
+          price: Number(winner?.price ?? 0),
+          sellerId:
+            winner?.seller_id == null ? null : String(winner.seller_id),
+          categoryId: winner?.category_id ?? categoryId,
+          soldQuantity: Number(
+            winner?.sold_quantity ?? detail?.sold_quantity ?? 0,
+          ),
+          freeShipping: Boolean(winner?.shipping?.free_shipping),
+          logisticType: winner?.shipping?.logistic_type ?? null,
+        };
+      })
+      .filter(
+        (
+          candidate,
+        ): candidate is NonNullable<typeof candidate> =>
+          Boolean(candidate),
+      );
+
+    if (!winnerCandidates.length) {
+      return NextResponse.json({
+        generatedAt: new Date().toISOString(),
+        query,
+        source: "CATALOG_SEARCH",
+        category: {
+          id: categoryId,
+          name: categoryName,
+          source: categorySource,
+        },
+        summary: null,
+        opportunities: [],
+        message:
+          "Produtos de catálogo foram encontrados, mas o Mercado Livre não retornou anúncios vencedores utilizáveis. Abra esta busca no Mercado Livre com a Extensão Radar para analisar os anúncios visíveis.",
+      });
+    }
+
+    const itemIds = [...new Set(winnerCandidates.map((item) => item.itemId))];
+    const [details, visits] = await Promise.all([
       getItemsBulk({
         accessToken: session.accessToken,
         itemIds,
       }).catch(() => []),
-      getItemsCurrentPrices({
-        accessToken: session.accessToken,
-        itemIds,
-      }).catch(() => ({} as Record<string, number | null>)),
       getItemsVisitTotals({
         accessToken: session.accessToken,
         itemIds,
       }).catch(() => ({} as Record<string, number>)),
-      categoryId
-        ? getCategoryHighlights({
-            accessToken: session.accessToken,
-            categoryId,
-          }).catch(() => null)
-        : Promise.resolve(null),
     ]);
 
     const detailById = new Map(details.map((item) => [item.id, item]));
-    const highlightContent = highlights?.content ?? [];
 
-    function bestSellerPosition(itemId: string) {
-      const detail = detailById.get(itemId);
-      const ids = [
-        itemId,
-        detail?.catalogProductId ?? null,
-        detail?.userProductId ?? null,
-      ].filter((value): value is string => Boolean(value));
+    const candidates = winnerCandidates
+      .map((candidate, index) => {
+        const item = detailById.get(candidate.itemId);
+        const price =
+          candidate.price > 0
+            ? candidate.price
+            : item?.currentPrice ?? 0;
 
-      const matches = highlightContent.filter((entry) =>
-        ids.includes(entry.id),
-      );
+        return {
+          ...candidate,
+          item,
+          price,
+          searchPosition: candidate.product.catalogPosition || index + 1,
+          visits: visits[candidate.itemId] ?? null,
+          similarity: candidate.product.similarity,
+        };
+      })
+      .filter((candidate) => candidate.price > 0);
 
-      if (!matches.length) return null;
-      return Math.min(...matches.map((entry) => entry.position));
-    }
-
-    const enriched = selected.map((item) => {
-      const detail = detailById.get(item.id);
-      const price =
-        exactPrices[item.id] ??
-        (detail?.currentPrice && detail.currentPrice > 0
-          ? detail.currentPrice
-          : item.price);
-
-      return {
-        ...item,
-        price,
-        detail,
-        visits: visits[item.id] ?? null,
-      };
-    });
-
-    const relevant = enriched.filter(
-      (item) => item.price > 0 && item.similarity >= 0.28,
-    );
-
-    const prices = relevant
+    const prices = candidates
       .map((item) => item.price)
-      .filter((price) => price > 0)
       .sort((a, b) => a - b);
 
     const minimum = round2(prices[0] ?? null);
@@ -300,53 +293,90 @@ export async function POST(request: Request) {
     );
 
     const uniqueSellers = new Set(
-      relevant.map((item) => item.sellerId).filter(Boolean),
+      candidates.map((item) => item.sellerId).filter(Boolean),
     ).size;
 
-    const opportunities = relevant
-      .map((item) => {
-        const detail = item.detail;
+    const effectiveCategoryId =
+      categoryId ??
+      candidates.find((item) => item.categoryId)?.categoryId ??
+      null;
+
+    const highlights = effectiveCategoryId
+      ? await getCategoryHighlights({
+          accessToken: session.accessToken,
+          categoryId: effectiveCategoryId,
+        }).catch(() => null)
+      : null;
+
+    const highlightContent = highlights?.content ?? [];
+
+    function bestSellerPosition(candidate: (typeof candidates)[number]) {
+      const ids = [
+        candidate.itemId,
+        candidate.product.id,
+        candidate.item?.userProductId ?? null,
+      ].filter((value): value is string => Boolean(value));
+
+      const matches = highlightContent.filter((entry) =>
+        ids.includes(entry.id),
+      );
+
+      if (!matches.length) return null;
+      return Math.min(...matches.map((entry) => entry.position));
+    }
+
+    const opportunities = candidates
+      .map((candidate) => {
+        const item = candidate.item;
         const intelligence = calculateSearchOpportunityScore({
-          price: item.price,
+          price: candidate.price,
           medianPrice: median,
-          searchPosition: item.searchPosition,
-          soldQuantity: detail?.soldQuantity ?? 0,
-          visits: item.visits,
-          dateCreated: detail?.dateCreated ?? null,
-          freeShipping: item.freeShipping || Boolean(detail?.freeShipping),
-          logisticType: detail?.logisticType ?? null,
-          catalogProductId: detail?.catalogProductId ?? null,
-          listingTypeId:
-            detail?.listingTypeId ?? item.listingTypeId ?? null,
-          similarity: item.similarity,
+          searchPosition: candidate.searchPosition,
+          soldQuantity:
+            item?.soldQuantity && item.soldQuantity > 0
+              ? item.soldQuantity
+              : candidate.soldQuantity,
+          visits: candidate.visits,
+          dateCreated: item?.dateCreated ?? null,
+          freeShipping:
+            candidate.freeShipping || Boolean(item?.freeShipping),
+          logisticType:
+            item?.logisticType ?? candidate.logisticType,
+          catalogProductId: candidate.product.id,
+          listingTypeId: item?.listingTypeId ?? null,
+          similarity: candidate.similarity,
         });
 
         const gapToMedian =
           median != null && median > 0
-            ? round2(((item.price - median) / median) * 100)
+            ? round2(((candidate.price - median) / median) * 100)
             : null;
 
         return {
-          id: item.id,
-          title: item.title,
-          price: round2(item.price),
-          thumbnail: item.thumbnail ?? detail?.thumbnail ?? null,
-          permalink: item.permalink ?? detail?.permalink ?? null,
-          categoryId: item.categoryId ?? detail?.categoryId ?? null,
-          sellerId: item.sellerId ?? detail?.sellerId ?? null,
-          listingTypeId:
-            detail?.listingTypeId ?? item.listingTypeId ?? null,
+          id: candidate.itemId,
+          title: candidate.title,
+          price: round2(candidate.price),
+          thumbnail: item?.thumbnail ?? null,
+          permalink:
+            item?.permalink ?? candidate.detail?.permalink ?? null,
+          categoryId: candidate.categoryId ?? item?.categoryId ?? null,
+          sellerId: candidate.sellerId ?? item?.sellerId ?? null,
+          listingTypeId: item?.listingTypeId ?? null,
           freeShipping:
-            item.freeShipping || Boolean(detail?.freeShipping),
-          logisticType: detail?.logisticType ?? null,
-          shippingMode: detail?.shippingMode ?? null,
-          catalogProductId: detail?.catalogProductId ?? null,
-          userProductId: detail?.userProductId ?? null,
-          searchPosition: item.searchPosition,
-          similarityPercent: Math.round(item.similarity * 100),
-          soldQuantity: detail?.soldQuantity ?? 0,
-          visits: item.visits,
-          dateCreated: detail?.dateCreated ?? null,
+            candidate.freeShipping || Boolean(item?.freeShipping),
+          logisticType:
+            item?.logisticType ?? candidate.logisticType,
+          shippingMode: item?.shippingMode ?? null,
+          catalogProductId: candidate.product.id,
+          userProductId: item?.userProductId ?? null,
+          searchPosition: candidate.searchPosition,
+          similarityPercent: Math.round(candidate.similarity * 100),
+          soldQuantity:
+            item?.soldQuantity && item.soldQuantity > 0
+              ? item.soldQuantity
+              : candidate.soldQuantity,
+          visits: candidate.visits,
+          dateCreated: item?.dateCreated ?? null,
           gapToMedian,
           score: intelligence.total,
           demandLabel: intelligence.demandLabel,
@@ -358,16 +388,18 @@ export async function POST(request: Request) {
           revenuePerMonth: intelligence.revenuePerMonth,
           ageDays: intelligence.ageDays,
           scoreComponents: intelligence.components,
-          bestSellerPosition: bestSellerPosition(item.id),
+          bestSellerPosition: bestSellerPosition(candidate),
           sources: {
-            price:
-              exactPrices[item.id] != null
-                ? "PRICES_API"
-                : detail?.currentPrice
-                  ? "ITEM_DETAIL"
-                  : "SEARCH",
-            soldQuantity: detail ? "ITEM_DETAIL" : "UNAVAILABLE",
-            visits: item.visits != null ? "VISITS_API" : "UNAVAILABLE",
+            discovery: "PRODUCTS_SEARCH",
+            price: "CATALOG_BUY_BOX_WINNER",
+            soldQuantity:
+              candidate.soldQuantity > 0
+                ? "CATALOG_PRODUCT"
+                : item?.soldQuantity
+                  ? "ITEMS_BULK"
+                  : "UNAVAILABLE",
+            visits:
+              candidate.visits != null ? "VISITS_API" : "UNAVAILABLE",
           },
         };
       })
@@ -390,20 +422,17 @@ export async function POST(request: Request) {
       (item) => item.evidence === "HIGH",
     ).length;
 
-    const exactPriceCount = opportunities.filter(
-      (item) => item.sources.price === "PRICES_API",
-    ).length;
-
     return NextResponse.json({
       generatedAt: new Date().toISOString(),
       query,
+      source: "CATALOG_SEARCH",
       category: {
-        id: categoryId,
+        id: effectiveCategoryId,
         name: categoryName,
         source: categorySource,
       },
       summary: {
-        comparableCount: relevant.length,
+        comparableCount: opportunities.length,
         uniqueSellers,
         competitionLevel: competitionLevel(uniqueSellers),
         minimum,
@@ -413,52 +442,36 @@ export async function POST(request: Request) {
         maximum,
         average,
         freeShippingPercent:
-          relevant.length > 0
+          opportunities.length > 0
             ? Math.round(
-                (relevant.filter(
-                  (item) =>
-                    item.freeShipping ||
-                    Boolean(item.detail?.freeShipping),
-                ).length /
-                  relevant.length) *
+                (opportunities.filter((item) => item.freeShipping).length /
+                  opportunities.length) *
                   100,
               )
             : 0,
         fullPercent:
-          relevant.length > 0
+          opportunities.length > 0
             ? Math.round(
-                (relevant.filter(
-                  (item) => item.detail?.logisticType === "fulfillment",
+                (opportunities.filter(
+                  (item) => item.logisticType === "fulfillment",
                 ).length /
-                  relevant.length) *
+                  opportunities.length) *
                   100,
               )
             : 0,
         flexPercent:
-          relevant.length > 0
-            ? Math.round(
-                (relevant.filter(
-                  (item) => item.detail?.logisticType === "self_service",
-                ).length /
-                  relevant.length) *
-                  100,
-              )
-            : 0,
-        catalogPercent:
-          relevant.length > 0
-            ? Math.round(
-                (relevant.filter(
-                  (item) => item.detail?.catalogProductId,
-                ).length /
-                  relevant.length) *
-                  100,
-              )
-            : 0,
-        highEvidenceCount,
-        exactPricePercent:
           opportunities.length > 0
-            ? Math.round((exactPriceCount / opportunities.length) * 100)
+            ? Math.round(
+                (opportunities.filter(
+                  (item) => item.logisticType === "self_service",
+                ).length /
+                  opportunities.length) *
+                  100,
+              )
             : 0,
+        catalogPercent: 100,
+        highEvidenceCount,
+        exactPricePercent: 100,
         medianEstimatedSalesPerMonth: round2(
           percentile(
             [...knownMonthlySales].sort((a, b) => a - b),
@@ -475,12 +488,15 @@ export async function POST(request: Request) {
       opportunities,
       methodology: {
         exact:
-          "Preço atual, vendidos acumulados, visitas, tipo de anúncio, frete grátis, catálogo e posição retornada pela busca.",
+          "A descoberta usa o buscador oficial de produtos do Mercado Livre. Preço e seller vêm do buy_box_winner quando disponíveis; detalhes adicionais usam Items Bulk.",
         estimated:
-          "Vendas/mês e faturamento/mês são estimados pela razão entre vendidos acumulados e idade do anúncio.",
+          "Vendas/mês e faturamento/mês continuam sendo estimativas baseadas nos sinais disponíveis e são identificadas como estimativas na interface.",
         score:
-          "Score combina demanda, velocidade, relevância da busca, posição de preço, logística e qualidade da evidência.",
+          "Score combina demanda, velocidade, relevância do produto, posição de preço, logística e qualidade da evidência.",
       },
+      extensionRecommended: true,
+      extensionMessage:
+        "A extensão complementa esta visão com todos os anúncios que aparecem na página de resultados, inclusive publicações tradicionais fora do catálogo.",
     });
   } catch (error) {
     const message =

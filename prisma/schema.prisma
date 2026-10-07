@@ -94,6 +94,7 @@ model MercadoLivreAccount {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   extensionAccesses     RadarExtensionAccess[]
+  extensionAuthCodes    RadarExtensionAuthCode[]
 }
 
 model SyncRun {
@@ -309,6 +310,7 @@ model RadarAlert {
 model RadarExtensionAccess {
   id                    String   @id @default(cuid())
   mercadoLivreAccountId String
+  deviceId              String
   name                  String
   tokenHash             String   @unique
   plan                  String   @default("PRO")
@@ -322,8 +324,26 @@ model RadarExtensionAccess {
   account               MercadoLivreAccount @relation(fields: [mercadoLivreAccountId], references: [id], onDelete: Cascade)
   usage                 RadarExtensionUsage[]
 
+  @@unique([mercadoLivreAccountId, deviceId])
   @@index([mercadoLivreAccountId, revokedAt])
   @@index([plan, createdAt])
+}
+
+model RadarExtensionAuthCode {
+  id                    String   @id @default(cuid())
+  codeHash              String   @unique
+  mercadoLivreAccountId String
+  codeChallenge         String
+  redirectUri           String
+  deviceId              String
+  deviceName            String?
+  expiresAt             DateTime
+  consumedAt            DateTime?
+  createdAt             DateTime @default(now())
+  account               MercadoLivreAccount @relation(fields: [mercadoLivreAccountId], references: [id], onDelete: Cascade)
+
+  @@index([mercadoLivreAccountId, expiresAt])
+  @@index([expiresAt, consumedAt])
 }
 
 model RadarExtensionUsage {

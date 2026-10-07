@@ -110,15 +110,11 @@ export async function GET(request: Request) {
       visiblePrice: parsed.data.visiblePrice,
     });
 
-    const [details, price, visits] = await Promise.all([
+    const [details, visits] = await Promise.all([
       getItemsBulk({
         accessToken: session.accessToken,
         itemIds: [itemId],
       }),
-      getItemCurrentPrice({
-        accessToken: session.accessToken,
-        itemId,
-      }).catch(() => null),
       getItemsVisitTotals({
         accessToken: session.accessToken,
         itemIds: [itemId],
@@ -130,12 +126,22 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Anúncio não encontrado." }, { status: 404 });
     }
 
+    const exactOwnPrice =
+      item.sellerId === session.account.mercadoLivreUserId
+        ? await getItemCurrentPrice({
+            accessToken: session.accessToken,
+            itemId,
+          }).catch(() => null)
+        : null;
+
     const currentPrice =
-      price && price > 0
-        ? price
-        : item.currentPrice > 0
-          ? item.currentPrice
-          : parsed.data.visiblePrice ?? 0;
+      exactOwnPrice && exactOwnPrice > 0
+        ? exactOwnPrice
+        : parsed.data.visiblePrice && parsed.data.visiblePrice > 0
+          ? parsed.data.visiblePrice
+          : item.currentPrice > 0
+            ? item.currentPrice
+            : 0;
 
     const intelligence = calculateRadarOpportunityScore({
       price: currentPrice,

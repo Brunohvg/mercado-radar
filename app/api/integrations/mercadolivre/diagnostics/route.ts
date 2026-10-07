@@ -162,7 +162,13 @@ export async function GET() {
         },
         marketplaceSearch: {
           ...marketplaceSearch,
-          hint: permissionHint(marketplaceSearch),
+          hint:
+            marketplaceSearch.status === 403
+              ? "LEGACY_KEYWORD_SEARCH_BLOCKED"
+              : permissionHint(marketplaceSearch),
+          required: false,
+          replacement:
+            "Use /products/search para descoberta por palavra-chave e a extensão para enriquecer os anúncios visíveis no marketplace.",
         },
         trends: {
           ...trends,
@@ -181,6 +187,9 @@ export async function GET() {
           businessMetrics.ok &&
           orders.ok &&
           productAds.ok,
+        marketplaceKeywordSearchRequired: false,
+        marketplaceKeywordSearchBlocked:
+          !marketplaceSearch.ok && marketplaceSearch.status === 403,
         permissionsMissing: [
           !listings.ok && listings.status === 403
             ? "Publicação e sincronização"

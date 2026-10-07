@@ -44,9 +44,10 @@ type Opportunity = {
     evidence: number;
   };
   sources: {
-    price: "PRICES_API" | "ITEM_DETAIL" | "SEARCH";
-    soldQuantity: "ITEM_DETAIL" | "UNAVAILABLE";
-    visits: "VISITS_API" | "UNAVAILABLE";
+    discovery?: string;
+    price: string;
+    soldQuantity: string;
+    visits: string;
   };
 };
 
@@ -56,7 +57,7 @@ type SearchPayload = {
   category: {
     id: string | null;
     name: string | null;
-    source: "USER" | "PREDICTED" | "OPEN";
+    source: "USER" | "PREDICTED" | "CATALOG";
   };
   summary: {
     comparableCount: number;
@@ -78,6 +79,9 @@ type SearchPayload = {
     medianEstimatedRevenuePerMonth: number | null;
   } | null;
   opportunities: Opportunity[];
+  source?: "CATALOG_SEARCH";
+  extensionRecommended?: boolean;
+  extensionMessage?: string;
   message?: string;
   methodology?: {
     exact: string;
@@ -581,7 +585,7 @@ export function OpportunityRadar() {
                   ? "categoria prevista pelo Mercado Livre"
                   : data.category.source === "USER"
                     ? "categoria informada"
-                    : "busca aberta"}
+                    : "busca oficial de produtos"}
               </span>
             </div>
             <span>
@@ -1001,6 +1005,17 @@ export function OpportunityRadar() {
               )}
             </div>
           </section>
+
+          {data.extensionRecommended && data.extensionMessage && (
+            <section className="opportunity-extension-banner">
+              <div>
+                <span>Visão completa do marketplace</span>
+                <strong>Use a Extensão Radar para analisar todos os anúncios visíveis</strong>
+                <p>{data.extensionMessage}</p>
+              </div>
+              <a href="/extensao">Abrir Extensão Radar</a>
+            </section>
+          )}
 
           {data.methodology && (
             <section className="opportunity-methodology">

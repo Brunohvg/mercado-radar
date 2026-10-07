@@ -8403,3 +8403,77 @@ textarea {
 .sidebar.is-collapsed .brand-mark img {
   box-shadow: 0 5px 12px rgba(15, 128, 99, .16);
 }
+
+
+.integration-diagnostic-item.optional {
+  border-color: #d7e2de;
+  background: #f7faf9;
+}
+
+.integration-diagnostic-item.optional strong {
+  color: #65776f;
+}
+
+.integration-diagnostic-item.optional small {
+  color: #8a9891;
+}
+
+.opportunity-extension-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 12px;
+  padding: 14px 16px;
+  border: 1px solid #cce7dd;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(22,164,125,.12), transparent 170px),
+    linear-gradient(135deg, #f7fcfa, #eef9f5);
+}
+
+.opportunity-extension-banner span,
+.opportunity-extension-banner strong,
+.opportunity-extension-banner p {
+  display: block;
+}
+
+.opportunity-extension-banner span {
+  color: #188367;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.opportunity-extension-banner strong {
+  margin-top: 4px;
+  color: #173d32;
+  font-size: 14px;
+}
+
+.opportunity-extension-banner p {
+  max-width: 760px;
+  margin: 4px 0 0;
+  color: #667a71;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.opportunity-extension-banner a {
+  flex: 0 0 auto;
+  padding: 9px 12px;
+  border-radius: 9px;
+  background: #168f74;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+@media (max-width: 720px) {
+  .opportunity-extension-banner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

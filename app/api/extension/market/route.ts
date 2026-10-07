@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getExtensionSession } from "@/lib/extension-auth";
 import {
+  getCatalogProductDetails,
   getItemsBulk,
   getItemsVisitTotals,
-  searchMarketplace,
+  searchCatalogProducts,
 } from "@/lib/mercado-livre";
 import { calculateRadarOpportunityScore } from "@/lib/radar-score";
 
@@ -41,11 +42,11 @@ function tokens(value: string) {
 function similarity(query: string, title: string) {
   const queryTokens = [...new Set(tokens(query))];
   const titleSet = new Set(tokens(title));
-
   if (!queryTokens.length) return 0;
-
-  const matches = queryTokens.filter((token) => titleSet.has(token)).length;
-  return matches / queryTokens.length;
+  return (
+    queryTokens.filter((token) => titleSet.has(token)).length /
+    queryTokens.length
+  );
 }
 
 function percentile(sorted: number[], p: number) {
@@ -102,55 +103,89 @@ export async function GET(request: Request) {
 
   try {
     const session = extensionSession.ml;
-    const results = await searchMarketplace({
+    const products = await searchCatalogProducts({
       accessToken: session.accessToken,
       query: parsed.data.title,
-      categoryId: parsed.data.categoryId,
-      limit: 50,
-    });
+      limit: 16,
+    }).catch(() => []);
 
-    const ranked = results
-      .filter(
-        (item) =>
-          item.price > 0 &&
-          item.id !== parsed.data.itemId?.toUpperCase() &&
-          item.sellerId !== session.account.mercadoLivreUserId,
-      )
-      .map((item) => ({
-        ...item,
-        similarity: similarity(parsed.data.title, item.title),
+    const productCandidates = products
+      .map((product) => ({
+        ...product,
+        similarity: similarity(parsed.data.title, product.name),
       }))
-      .filter((item) => item.similarity >= 0.35)
+      .filter((product) => product.similarity >= 0.3)
       .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, 20);
+      .slice(0, 12);
 
-    const source = ranked.length >= 5
-      ? ranked
-      : results
-          .filter(
-            (item) =>
-              item.price > 0 &&
-              item.id !== parsed.data.itemId?.toUpperCase() &&
-              item.sellerId !== session.account.mercadoLivreUserId,
-          )
-          .slice(0, 20)
-          .map((item) => ({ ...item, similarity: similarity(parsed.data.title, item.title) }));
+    const catalogDetails = await Promise.all(
+      productCandidates.map(async (product) => ({
+        product,
+        detail: await getCatalogProductDetails({
+          accessToken: session.accessToken,
+          productId: product.id,
+        }).catch(() => null),
+      })),
+    );
 
-    const competitorIds = source.map((item) => item.id).slice(0, 20);
+    const winners = catalogDetails
+      .map(({ product, detail }) => {
+        const winner = detail?.buy_box_winner;
+        const id = winner?.item_id
+          ? String(winner.item_id).toUpperCase()
+          : null;
+        const price = Number(winner?.price ?? 0);
+
+        if (
+          !id ||
+          !/^MLB\d+$/.test(id) ||
+          price <= 0 ||
+          id === parsed.data.itemId?.toUpperCase() ||
+          String(winner?.seller_id ?? "") === session.account.mercadoLivreUserId
+        ) {
+          return null;
+        }
+
+        return {
+          id,
+          title: detail?.name ?? product.name,
+          price,
+          sellerId:
+            winner?.seller_id == null ? null : String(winner.seller_id),
+          freeShipping: Boolean(winner?.shipping?.free_shipping),
+          logisticType: winner?.shipping?.logistic_type ?? null,
+          catalogProductId: product.id,
+          similarity: product.similarity,
+        };
+      })
+      .filter(
+        (
+          item,
+        ): item is NonNullable<typeof item> => Boolean(item),
+      );
+
+    const unique = [...new Map(winners.map((item) => [item.id, item])).values()]
+      .slice(0, 12);
+
+    const competitorIds = unique.map((item) => item.id);
     const [details, visits] = await Promise.all([
-      getItemsBulk({
-        accessToken: session.accessToken,
-        itemIds: competitorIds,
-      }).catch(() => []),
-      getItemsVisitTotals({
-        accessToken: session.accessToken,
-        itemIds: competitorIds,
-      }).catch(() => ({} as Record<string, number>)),
+      competitorIds.length
+        ? getItemsBulk({
+            accessToken: session.accessToken,
+            itemIds: competitorIds,
+          }).catch(() => [])
+        : Promise.resolve([]),
+      competitorIds.length
+        ? getItemsVisitTotals({
+            accessToken: session.accessToken,
+            itemIds: competitorIds,
+          }).catch(() => ({} as Record<string, number>))
+        : Promise.resolve({} as Record<string, number>),
     ]);
 
     const detailById = new Map(details.map((item) => [item.id, item]));
 
-    const enrichedSource = source.map((item) => {
+    const enriched = unique.map((item) => {
       const detail = detailById.get(item.id);
       const itemVisits = visits[item.id] ?? null;
       const intelligence = calculateRadarOpportunityScore({
@@ -159,7 +194,7 @@ export async function GET(request: Request) {
         visits: itemVisits,
         dateCreated: detail?.dateCreated ?? null,
         freeShipping: item.freeShipping || Boolean(detail?.freeShipping),
-        listingTypeId: item.listingTypeId ?? detail?.listingTypeId ?? null,
+        listingTypeId: detail?.listingTypeId ?? null,
       });
 
       return {
@@ -170,11 +205,18 @@ export async function GET(request: Request) {
       };
     });
 
-    const prices = enrichedSource.map((item) => item.price).sort((a, b) => a - b);
+    const prices = enriched
+      .map((item) => item.price)
+      .filter((price) => price > 0)
+      .sort((a, b) => a - b);
+
     if (!prices.length) {
       return NextResponse.json({
         market: null,
         competitors: [],
+        source: "PRODUCTS_SEARCH",
+        note:
+          "O catálogo não retornou comparáveis suficientes. Na página de busca, a Extensão Radar usa diretamente os anúncios visíveis.",
       });
     }
 
@@ -183,7 +225,9 @@ export async function GET(request: Request) {
     const median = round2(percentile(prices, 0.5));
     const p75 = round2(percentile(prices, 0.75));
     const maximum = round2(prices[prices.length - 1]);
-    const average = round2(prices.reduce((sum, price) => sum + price, 0) / prices.length);
+    const average = round2(
+      prices.reduce((sum, price) => sum + price, 0) / prices.length,
+    );
 
     const currentPrice = parsed.data.currentPrice ?? null;
     const gapToMedian =
@@ -192,6 +236,7 @@ export async function GET(request: Request) {
         : null;
 
     return NextResponse.json({
+      source: "PRODUCTS_SEARCH",
       market: {
         count: prices.length,
         minimum,
@@ -203,7 +248,7 @@ export async function GET(request: Request) {
         currentPrice,
         gapToMedian,
       },
-      competitors: enrichedSource
+      competitors: enriched
         .sort((a, b) => {
           const similarityGap = b.similarity - a.similarity;
           if (Math.abs(similarityGap) > 0.08) return similarityGap;
@@ -214,10 +259,10 @@ export async function GET(request: Request) {
           id: item.id,
           title: item.title,
           price: round2(item.price),
-          freeShipping: item.freeShipping || Boolean(item.detail?.freeShipping),
-          listingTypeId:
-            item.listingTypeId ?? item.detail?.listingTypeId ?? null,
-          permalink: item.permalink ?? item.detail?.permalink ?? null,
+          freeShipping:
+            item.freeShipping || Boolean(item.detail?.freeShipping),
+          listingTypeId: item.detail?.listingTypeId ?? null,
+          permalink: item.detail?.permalink ?? null,
           similarityPercent: Math.round(item.similarity * 100),
           soldQuantity: item.detail?.soldQuantity ?? 0,
           visits: item.visits,
@@ -227,13 +272,18 @@ export async function GET(request: Request) {
           revenuePerMonth: item.intelligence.revenuePerMonth,
           score: item.intelligence.score,
           demandLabel: item.intelligence.demandLabel,
-          catalogProductId: item.detail?.catalogProductId ?? null,
+          catalogProductId: item.catalogProductId,
           userProductId: item.detail?.userProductId ?? null,
+          logisticType:
+            item.detail?.logisticType ?? item.logisticType ?? null,
         })),
     });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Falha ao comparar o mercado.";
+      error instanceof Error
+        ? error.message
+        : "Falha ao comparar o mercado.";
+
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }

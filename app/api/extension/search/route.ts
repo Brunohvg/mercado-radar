@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { isExtensionAuthorized } from "@/lib/extension-auth";
+import { getExtensionSession } from "@/lib/extension-auth";
 import {
   getItemsBulk,
   getItemsVisitTotals,
-  getMlSession,
 } from "@/lib/mercado-livre";
 import { calculateRadarOpportunityScore } from "@/lib/radar-score";
 import { calculateRadarMomentum } from "@/lib/radar-momentum";
@@ -46,12 +45,24 @@ function round2(value: number | null) {
 }
 
 export async function POST(request: Request) {
-  if (!isExtensionAuthorized(request)) {
+  let extensionSession;
+  try {
+    extensionSession = await getExtensionSession(request);
+  } catch (error) {
     return NextResponse.json(
       {
         error:
-          "Extensão não autorizada. Confira a chave configurada no Mercado Radar.",
+          error instanceof Error
+            ? error.message
+            : "Falha ao validar sessão da extensão.",
       },
+      { status: 429 },
+    );
+  }
+
+  if (!extensionSession) {
+    return NextResponse.json(
+      { error: "Sessão da extensão inválida ou expirada." },
       { status: 401 },
     );
   }
@@ -70,7 +81,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const session = await getMlSession();
+    const session = extensionSession.ml;
     const observed = parsed.data.items;
     const itemIds = observed.map((item) => item.id.toUpperCase());
 

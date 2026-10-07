@@ -183,7 +183,7 @@ export function ExecutiveDashboard() {
     <section className="overview-dashboard">
       <header className="page-header clean-page-header">
         <div>
-          <p className="page-kicker">Overview</p>
+          <p className="page-kicker">Visão geral</p>
           <h1>Dashboard</h1>
           <p>
             Faturamento, lucro, estoque e saúde da operação em uma única visão.
@@ -277,7 +277,10 @@ export function ExecutiveDashboard() {
                   ["Margem saudável", health.marginScore],
                   ["Giro no período", health.giroScore],
                 ].map(([label, value]) => (
-                  <div key={String(label)}>
+                  <div
+                    key={String(label)}
+                    className={Number(value) < 60 ? "is-low" : undefined}
+                  >
                     <span>{label}</span>
                     <div>
                       <i style={{ width: `${Number(value)}%` }} />

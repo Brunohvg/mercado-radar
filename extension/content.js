@@ -1,15 +1,16 @@
 /**
- * Mercado Radar — content script (v0.4)
+ * Mercado Radar — content script (v0.5)
  *
- * Mudanças em relação à v0.3:
- *  - Toda UI vive em Shadow DOM (nenhum CSS vaza de/para o Mercado Livre).
- *  - O observer ignora mutações causadas pela própria extensão e usa dedupe:
- *    a API é chamada UMA vez por conjunto de anúncios visíveis (antes havia
- *    um ciclo mutação → chamada → mutação que repetia a cada ~700 ms).
- *  - Nenhum dado vindo da API entra via innerHTML (apenas textContent).
- *  - Widget no anúncio (coluna da compra, com fallback flutuante) e faixa de
- *    métricas sob cada card da busca, sem deformar o card do ML.
- *  - Leitura do DOM do ML isolada em selectors.js.
+ * Como os números aparecem para QUALQUER anúncio (não só os seus):
+ *  - A extensão lê apenas o que a página aberta por você mostra (preço, faixa
+ *    de vendidos, avaliações, nota, frete, Full, "mais vendido").
+ *  - Envia essa leitura ao seu Radar (/api/extension/observations), que guarda
+ *    o histórico e devolve vendas/dia, faturamento/dia e visitas/dia com
+ *    intervalo, método e grau de confiança. Nenhuma navegação automática,
+ *    nenhuma chamada a páginas que você não abriu.
+ *
+ * Mantido da v0.4: Shadow DOM, observer sem loop, nenhum dado em innerHTML,
+ * leitura do DOM isolada em selectors.js.
  */
 (() => {
   "use strict";
@@ -17,8 +18,9 @@
   if (globalThis.__mercadoRadarContent) return;
   globalThis.__mercadoRadarContent = true;
 
-  // Páginas de verificação do Mercado Livre (captcha/login): a extensão não deve aparecer nem fazer requisições.
+  // Páginas de verificação do Mercado Livre (captcha/login) e o site de desenvolvedores: nada aqui.
   if (/^\/(captcha|jms|gz)\b/.test(location.pathname)) return;
+  if (location.hostname.startsWith("developers.")) return;
 
   const S = globalThis.RadarSelectors;
   if (!S) return;
@@ -37,8 +39,8 @@
     reordered: false,
     status: "idle", // idle | loading | ok | auth | limit | error
     lastKey: "",
-    items: [],
-    matches: [],
+    insights: new Map(), // id → insight do Radar
+    observed: new Map(), // id → leitura da página
     economics: new Map(),
     dataVersion: 0,
     strips: new WeakMap(),
@@ -226,184 +228,186 @@
     }
   }
 
-  function titleScore(a, b) {
-    const left = new Set(S.normalize(a).split(" ").filter((t) => t.length > 1));
-    const right = new Set(S.normalize(b).split(" ").filter((t) => t.length > 1));
-    if (!left.size || !right.size) return 0;
-
-    let intersection = 0;
-    for (const token of left) if (right.has(token)) intersection += 1;
-    return intersection / Math.max(left.size, right.size);
+  function num(value, digits = 1) {
+    if (value == null || !Number.isFinite(Number(value))) return "—";
+    const n = Number(value);
+    if (n >= 1000) return Math.round(n).toLocaleString("pt-BR");
+    if (n >= 100) return n.toLocaleString("pt-BR", { maximumFractionDigits: 0 });
+    return n.toLocaleString("pt-BR", { maximumFractionDigits: digits });
   }
 
-  function matchItems(cards, items) {
-    const remaining = new Set(items.map((_, index) => index));
-    const matches = [];
+  function moneyRange(range) {
+    if (!range || range.low == null || range.high == null) return "";
+    if (Math.abs(range.high - range.low) < 1e-9) return "";
+    const { low, high } = range;
+    const short = (n, d) => n.toFixed(d).replace(".", ",").replace(/,0$/, "");
+    if (high >= 1e6) return "R$ " + short(low / 1e6, 1) + "–" + short(high / 1e6, 1) + " mi";
+    if (high >= 1e3 && low >= 1e3) return "R$ " + short(low / 1e3, 1) + "–" + short(high / 1e3, 1) + " mil";
+    if (high >= 1e3) return "R$ " + Math.round(low) + "–" + short(high / 1e3, 1) + " mil";
+    return "R$ " + Math.round(low) + "–" + Math.round(high);
+  }
 
-    for (const card of cards) {
-      const cardTitle = S.cardTitle(card);
-      const cardPrice = S.cardPrice(card);
-      const directRef = S.cardReference(card);
+  function rangeText(range, formatter) {
+    if (!range || range.low == null || range.high == null) return "";
+    if (Math.abs(range.high - range.low) < 1e-9) return "";
+    return formatter(range.low) + "–" + formatter(range.high);
+  }
 
-      let bestIndex = -1;
-      let bestScore = -1;
+  const METHOD = {
+    OFICIAL: { label: "Oficial", tone: "official", hint: "Pedidos e visitas reais da sua conta." },
+    HISTORICO: { label: "Histórico", tone: "history", hint: "Medido pela diferença entre leituras do Radar." },
+    VIDA: { label: "Estimativa", tone: "estimate", hint: "Vendidos acumulados ÷ idade do anúncio." },
+    PAGINA: { label: "Página", tone: "page", hint: "Só o acumulado que a página mostra." },
+  };
 
-      items.forEach((item, index) => {
-        if (!remaining.has(index)) return;
+  const CONFIDENCE = ["Sem medição", "Confiança baixa", "Confiança média", "Confiança alta"];
 
-        let score = titleScore(cardTitle, item.title);
-        if (directRef === item.id || directRef === item.userProductId) score += 2;
+  function signal(level) {
+    const el = h("span", { class: "signal", "data-level": String(level || 0), title: CONFIDENCE[level || 0] });
+    el.append(h("i"), h("i"), h("i"));
+    return el;
+  }
 
-        if (cardPrice && item.price) {
-          const gap =
-            Math.abs(cardPrice - item.price) / Math.max(cardPrice, item.price);
-          score += Math.max(0, 0.45 - gap);
-        }
+  function methodBadge(estimate) {
+    const m = METHOD[estimate?.method] || METHOD.PAGINA;
+    return h(
+      "span",
+      { class: "src src--" + m.tone, title: m.hint + " " + CONFIDENCE[estimate?.confidence || 0] + "." },
+      signal(estimate?.confidence || 0),
+      m.label,
+    );
+  }
 
-        if (score > bestScore) {
-          bestScore = score;
-          bestIndex = index;
-        }
-      });
-
-      if (bestIndex >= 0 && bestScore >= 0.48) {
-        remaining.delete(bestIndex);
-        matches.push({ card, item: items[bestIndex], cardPrice });
-      }
-    }
-
-    return matches;
+  function basisText(estimate) {
+    return (estimate?.basis || []).join("\n");
   }
 
   /* ------------------------------------------------------------------ */
   /* faixa sob cada card da busca                                        */
   /* ------------------------------------------------------------------ */
 
-  function stat(label, value, estimate, tone) {
+  function readout(label, value, range, tone) {
     return h(
       "div",
-      { class: "stat" },
+      { class: "ro" },
       h("small", { text: label }),
-      h("b", { class: tone || "" }, value, estimate ? h("span", { class: "est", text: "*" }) : null),
+      h("b", { class: tone || "", text: value }),
+      range ? h("span", { class: "ro__range", text: range }) : null,
     );
   }
 
-  function renderStrip(root, item, price, econ) {
-    const intel = item.intelligence || {};
-    const score = Number(intel.score ?? 0);
-    const sales = intel.salesPerMonth;
-    const unitPrice = price || item.price || 0;
-    const revenue = sales == null || !unitPrice ? null : sales * unitPrice;
+  function renderStrip(root, insight, observed, econ) {
+    const e = insight?.estimate;
+    const sales = e?.salesPerDay;
+    const revenue = e?.revenuePerDay;
+    const visits = e?.visitsPerDay;
+    const children = [];
 
-    const children = [
+    children.push(
       h(
         "div",
         { class: "strip__head" },
-        h("span", { class: "brand" }, markIcon(), "Radar"),
-        h("span", { class: "chip chip--" + scoreTone(score), text: "Score " + score }),
+        h("span", { class: "brand" }, markIcon(), "Radar", sales?.value != null ? h("span", { class: "brand__sub", text: "por dia" }) : null),
+        e ? methodBadge(e) : h("span", { class: "src src--page", text: "Lendo…" }),
       ),
-      h(
-        "div",
-        { class: "strip__grid" },
-        stat("Vendas/mês", sales == null ? "—" : "~" + Math.round(sales), true),
-        stat("Faturamento", moneyCompact(revenue), true),
-        stat("Demanda", demandText(intel.demandLabel), false, demandTone(intel.demandLabel)),
-      ),
-    ];
+    );
 
-    if (item.momentum?.status === "READY") {
+    if (e && sales?.value != null) {
       children.push(
         h(
           "div",
-          { class: "strip__mine" },
-          h("span", { text: "Momentum" }),
-          h("b", { text: item.momentum.score + "/100 · " + item.momentum.direction }),
+          { class: "strip__grid", title: basisText(e) },
+          readout("Vendas", num(sales.value), rangeText(sales, (v) => num(v))),
+          readout("Faturamento", moneyCompact(revenue?.value), moneyRange(revenue)),
+          readout("Visitas", num(visits?.value, 0), rangeText(visits, (v) => num(v, 0))),
+        ),
+      );
+    } else {
+      const soldLower = observed?.soldLower ?? e?.sold?.lower ?? null;
+      const price = observed?.price ?? insight?.price ?? null;
+      children.push(
+        h(
+          "div",
+          { class: "strip__grid", title: e ? basisText(e) : "" },
+          readout("Vendidos", soldLower == null ? "—" : num(soldLower, 0) + "+"),
+          readout("Receita", soldLower != null && price ? moneyCompact(soldLower * price) + "+" : "—"),
+          readout("Avaliações", observed?.reviews == null ? "—" : num(observed.reviews, 0)),
         ),
       );
     }
 
+    const foot = [];
+    if (insight) {
+      foot.push(h("span", { class: "chip chip--" + scoreTone(insight.score), text: "Score " + insight.score }));
+      if (insight.demand) foot.push(h("span", { class: "muted", text: "Demanda " + demandText(insight.demand).toLowerCase() }));
+    }
     if (econ) {
       const good = Number(econ.marginPercent) >= 15;
-      children.push(
-        h(
-          "div",
-          { class: "strip__mine" },
-          h("span", { text: "Minha margem" }),
-          h("span", {
-            class: "chip chip--" + (good ? "ok" : "risk"),
-            text: pct(econ.marginPercent) + " · " + brl(econ.profit),
-          }),
-        ),
+      foot.push(
+        h("span", {
+          class: "chip chip--" + (good ? "ok" : "risk"),
+          text: "Minha margem " + pct(econ.marginPercent),
+        }),
       );
     }
-
-    children.push(
-      h("div", { class: "strip__foot", text: "* estimativa pela faixa de vendas do anúncio" }),
-    );
+    if (foot.length) children.push(h("div", { class: "strip__foot" }, ...foot));
 
     root.replaceChildren(h("div", { class: "strip" }, ...children));
   }
 
-  function ensureStrip(card, item, price, econ) {
-    const signature = item.id + "|" + state.dataVersion;
+  function mountStrip(card, host) {
+    const anchor = S.cardStripAnchor(card);
+    if (anchor) anchor.insertAdjacentElement("afterend", host);
+    else card.appendChild(host);
+  }
+
+  function ensureStrip(card, signature, render) {
     let record = state.strips.get(card);
 
     if (!record) {
       const made = makeHost("strip");
-      record = {
-        host: made.host,
-        root: made.root,
-        mode: card.tagName === "LI" ? "inside" : "after",
-        signature: "",
-      };
+      record = { host: made.host, root: made.root, mode: "inline", signature: "" };
       state.strips.set(card, record);
     }
 
-    if (!record.host.isConnected) {
-      if (record.mode === "inside") card.appendChild(record.host);
-      else card.insertAdjacentElement("afterend", record.host);
-    }
+    if (!record.host.isConnected) mountStrip(card, record.host);
 
     if (record.signature !== signature) {
-      renderStrip(record.root, item, price, econ);
+      render(record.root);
       record.signature = signature;
     }
   }
 
-  function decorateCard(card, item, price, econ) {
-    const intel = item.intelligence || {};
-    const sales = intel.salesPerMonth;
-    const unitPrice = price || item.price || 0;
-    const revenue = sales == null || !unitPrice ? null : sales * unitPrice;
+  function decorateCard(card, observed) {
+    const insight = observed ? state.insights.get(observed.id) || null : null;
+    const econ = observed ? state.economics.get(observed.id) || null : null;
+    const e = insight?.estimate;
 
-    card.dataset.radarScore = String(intel.score ?? 0);
-    card.dataset.radarDemand = intel.demandLabel || "BAIXA";
-    card.dataset.radarSales = String(sales ?? 0);
-    card.dataset.radarRevenue = String(revenue ?? 0);
-    card.dataset.radarAge = String(intel.ageDays ?? 999999);
-    card.dataset.radarFreeShipping = item.freeShipping ? "1" : "0";
-    card.dataset.radarMomentum = String(
-      item.momentum?.status === "READY" ? (item.momentum.score ?? -1) : -1,
-    );
-    card.dataset.radarItemId = item.id;
+    card.dataset.radarItemId = observed?.id || "";
+    card.dataset.radarScore = String(insight?.score ?? 0);
+    card.dataset.radarDemand = insight?.demand || "";
+    card.dataset.radarSales = String(e?.salesPerDay?.value ?? 0);
+    card.dataset.radarRevenue = String(e?.revenuePerDay?.value ?? 0);
+    card.dataset.radarVisits = String(e?.visitsPerDay?.value ?? 0);
+    card.dataset.radarConfidence = String(e?.confidence ?? 0);
+    card.dataset.radarSold = String(observed?.soldLower ?? 0);
+    card.dataset.radarFreeShipping = observed?.freeShipping ? "1" : "0";
+    card.dataset.radarFull = observed?.fulfillment ? "1" : "0";
     card.dataset.radarMyMargin = String(econ?.marginPercent ?? -999);
     card.dataset.radarMyRoi = String(econ?.roiPercent ?? -999);
-    card.dataset.radarMyProfit = String(econ?.profit ?? 0);
 
-    ensureStrip(card, item, price, econ);
+    if (!observed) return;
+    const signature = [observed.id, state.dataVersion, insight ? 1 : 0, econ ? 1 : 0].join("|");
+    ensureStrip(card, signature, (root) => renderStrip(root, insight, observed, econ));
   }
 
   /* idempotente: pode rodar quantas vezes quiser sem chamar a API */
-  function applyMatches(cards) {
-    state.matches = matchItems(cards, state.items);
-    for (const match of state.matches) {
-      decorateCard(
-        match.card,
-        match.item,
-        match.cardPrice,
-        state.economics.get(match.item.id) || null,
-      );
-    }
+  function applyCards(cards) {
+    cards.forEach((card, index) => {
+      const observed = S.cardObservation(card, index);
+      if (observed) state.observed.set(observed.id, observed);
+      decorateCard(card, observed);
+    });
     applyFilters();
   }
 
@@ -412,13 +416,12 @@
   /* ------------------------------------------------------------------ */
 
   const FILTERS = {
-    score: ["Score mínimo", [["0", "Todas"], ["50", "Score 50+"], ["65", "Score 65+"], ["80", "Score 80+"]]],
-    demand: ["Demanda", [["", "Todas"], ["EXCELENTE", "Excelente"], ["ALTA", "Alta"], ["MEDIA", "Média"], ["BAIXA", "Baixa"]]],
-    sort: ["Ordenar", [["original", "Ordem do Mercado Livre"], ["score", "Melhor oportunidade"], ["sales", "Mais vendidos"], ["revenue", "Maior faturamento"], ["newest", "Mais novos"], ["momentum", "Maior momentum"], ["myMargin", "Maior margem para mim"], ["myRoi", "Maior ROI para mim"]]],
-    sales: ["Vendas estimadas/mês", [["0", "Todas"], ["10", "10+"], ["50", "50+"], ["100", "100+"], ["300", "300+"]]],
-    revenue: ["Faturamento estimado", [["0", "Todos"], ["1000", "R$ 1 mil+"], ["5000", "R$ 5 mil+"], ["10000", "R$ 10 mil+"], ["50000", "R$ 50 mil+"]]],
-    age: ["Idade máxima", [["999999", "Qualquer"], ["30", "30 dias"], ["90", "90 dias"], ["365", "1 ano"]]],
-    momentum: ["Momentum monitorado", [["-1", "Qualquer"], ["50", "50+"], ["70", "70+"], ["85", "85+"]]],
+    sort: ["Ordenar", [["original", "Ordem do Mercado Livre"], ["revenue", "Maior faturamento/dia"], ["sales", "Mais vendas/dia"], ["visits", "Mais visitas/dia"], ["score", "Melhor score"], ["sold", "Mais vendidos (total)"], ["myMargin", "Maior margem para mim"], ["myRoi", "Maior ROI para mim"]]],
+    sales: ["Vendas/dia", [["0", "Qualquer"], ["0.5", "0,5+"], ["1", "1+"], ["3", "3+"], ["10", "10+"]]],
+    revenue: ["Faturamento/dia", [["0", "Qualquer"], ["100", "R$ 100+"], ["500", "R$ 500+"], ["2000", "R$ 2 mil+"], ["10000", "R$ 10 mil+"]]],
+    confidence: ["Confiança da medição", [["0", "Qualquer"], ["1", "Com estimativa"], ["2", "Média ou alta"]]],
+    score: ["Score mínimo", [["0", "Qualquer"], ["50", "50+"], ["65", "65+"], ["80", "80+"]]],
+    demand: ["Demanda", [["", "Qualquer"], ["EXCELENTE", "Excelente"], ["ALTA", "Alta"], ["MEDIA", "Média"], ["BAIXA", "Baixa"]]],
     myMargin: ["Minha margem", [["-999", "Qualquer"], ["10", "10%+"], ["15", "15%+"], ["20", "20%+"], ["30", "30%+"]]],
     myRoi: ["Meu ROI", [["-999", "Qualquer"], ["20", "20%+"], ["30", "30%+"], ["50", "50%+"], ["80", "80%+"]]],
   };
@@ -439,7 +442,7 @@
 
     const count = h("span", { class: "panel__count" });
     const notice = h("div", { class: "notice", hidden: true });
-    const mineStatus = h("small", { text: "Usa o custo cadastrado no seu produto mais compatível." });
+    const mineStatus = h("small", { text: "Usa o custo cadastrado no seu produto mais parecido." });
     const mineButton = h("button", {
       class: "btn btn--block",
       type: "button",
@@ -461,20 +464,25 @@
       h(
         "div",
         { class: "panel__body" },
-        section("Oportunidade", true, filterSelect("score"), filterSelect("demand"), filterSelect("sort")),
-        section("Volume e idade", false, filterSelect("sales"), filterSelect("revenue"), filterSelect("age"), filterSelect("momentum")),
+        section("Desempenho", true, filterSelect("sort"), filterSelect("revenue"), filterSelect("sales"), filterSelect("confidence")),
+        section("Oportunidade", false, filterSelect("score"), filterSelect("demand")),
         section(
           "Logística",
           false,
           h("label", { class: "check" }, h("input", { type: "checkbox", "data-f": "freeShipping" }), "Só frete grátis"),
+          h("label", { class: "check" }, h("input", { type: "checkbox", "data-f": "full" }), "Só Full"),
         ),
         section(
           "Para minha operação",
-          true,
+          false,
           h("div", { class: "mine-box" }, mineButton, mineStatus),
           filterSelect("myMargin", true),
           filterSelect("myRoi", true),
         ),
+        h("p", {
+          class: "panel__legend",
+          text: "Oficial: dados da sua conta · Histórico: medido entre leituras · Estimativa: acumulado ÷ idade · Página: só o que o anúncio mostra.",
+        }),
       ),
     );
 
@@ -518,7 +526,6 @@
     const tone = kind === "error" ? " notice--risk" : kind === "limit" ? " notice--warn" : "";
     notice.className = "notice" + tone;
     notice.hidden = false;
-    // replaceChildren(null) inseriria o texto "null": monta só com nós reais.
     const nodes = [h("div", { text: message })];
     if (actionLabel) {
       nodes.push(h("button", { class: "btn btn--block", type: "button", text: actionLabel, onClick: action }));
@@ -532,8 +539,9 @@
     root.querySelectorAll("select").forEach((select) => {
       select.selectedIndex = 0;
     });
-    const free = root.querySelector("[data-f='freeShipping']");
-    if (free) free.checked = false;
+    root.querySelectorAll("input[type='checkbox']").forEach((box) => {
+      box.checked = false;
+    });
     applyFilters();
   }
 
@@ -542,17 +550,19 @@
     if (!root) return;
 
     const control = (name) => root.querySelector(`[data-f="${name}"]`);
-    const num = (name, fallback) => Number(control(name)?.value ?? fallback);
+    const value = (name, fallback) => Number(control(name)?.value ?? fallback);
 
-    const score = num("score", 0);
+    const min = {
+      sales: value("sales", 0),
+      revenue: value("revenue", 0),
+      confidence: value("confidence", 0),
+      score: value("score", 0),
+      myMargin: value("myMargin", -999),
+      myRoi: value("myRoi", -999),
+    };
     const demand = control("demand")?.value || "";
-    const sales = num("sales", 0);
-    const revenue = num("revenue", 0);
-    const age = num("age", 999999);
-    const momentum = num("momentum", -1);
-    const myMargin = num("myMargin", -999);
-    const myRoi = num("myRoi", -999);
     const freeShipping = Boolean(control("freeShipping")?.checked);
+    const full = Boolean(control("full")?.checked);
     const sort = control("sort")?.value || "original";
 
     const cards = S.findCards();
@@ -568,15 +578,15 @@
 
         const d = card.dataset;
         const visible =
-          Number(d.radarScore || 0) >= score &&
+          Number(d.radarSales || 0) >= min.sales &&
+          Number(d.radarRevenue || 0) >= min.revenue &&
+          Number(d.radarConfidence || 0) >= min.confidence &&
+          Number(d.radarScore || 0) >= min.score &&
           (!demand || d.radarDemand === demand) &&
-          Number(d.radarSales || 0) >= sales &&
-          Number(d.radarRevenue || 0) >= revenue &&
-          Number(d.radarAge || 999999) <= age &&
-          Number(d.radarMomentum ?? -1) >= momentum &&
           (!freeShipping || d.radarFreeShipping === "1") &&
-          Number(d.radarMyMargin ?? -999) >= myMargin &&
-          Number(d.radarMyRoi ?? -999) >= myRoi;
+          (!full || d.radarFull === "1") &&
+          Number(d.radarMyMargin ?? -999) >= min.myMargin &&
+          Number(d.radarMyRoi ?? -999) >= min.myRoi;
 
         card.style.display = visible ? "" : "none";
         const strip = state.strips.get(card);
@@ -594,26 +604,23 @@
       if (mustSort && parents.size === 1) {
         const parent = [...parents][0];
         const read = (card, key, fallback) => Number(card.dataset[key] ?? fallback);
+        const keyBySort = {
+          revenue: "radarRevenue",
+          sales: "radarSales",
+          visits: "radarVisits",
+          score: "radarScore",
+          sold: "radarSold",
+          myMargin: "radarMyMargin",
+          myRoi: "radarMyRoi",
+        };
 
         const sorted = [...cards].sort((a, b) => {
-          switch (sort) {
-            case "score": return read(b, "radarScore", 0) - read(a, "radarScore", 0);
-            case "sales": return read(b, "radarSales", 0) - read(a, "radarSales", 0);
-            case "revenue": return read(b, "radarRevenue", 0) - read(a, "radarRevenue", 0);
-            case "newest": return read(a, "radarAge", 999999) - read(b, "radarAge", 999999);
-            case "momentum": return read(b, "radarMomentum", -1) - read(a, "radarMomentum", -1);
-            case "myMargin": return read(b, "radarMyMargin", -999) - read(a, "radarMyMargin", -999);
-            case "myRoi": return read(b, "radarMyRoi", -999) - read(a, "radarMyRoi", -999);
-            default: return read(a, "radarOriginalIndex", 0) - read(b, "radarOriginalIndex", 0);
-          }
+          const key = keyBySort[sort];
+          if (!key) return read(a, "radarOriginalIndex", 0) - read(b, "radarOriginalIndex", 0);
+          return read(b, key, -999) - read(a, key, -999);
         });
 
-        for (const card of sorted) {
-          parent.appendChild(card);
-          const strip = state.strips.get(card);
-          if (strip && strip.mode === "after") parent.appendChild(strip.host);
-        }
-
+        for (const card of sorted) parent.appendChild(card);
         state.reordered = sort !== "original";
       }
     } finally {
@@ -632,19 +639,16 @@
     if (!panel) return;
 
     const query = S.extractQuery();
-    const items = state.matches
-      .map((match) => ({
-        id: match.item.id,
-        price: match.cardPrice || match.item.price || 0,
-      }))
+    const items = [...state.observed.values()]
       .filter((item) => item.price > 0)
-      .slice(0, 12);
+      .slice(0, 12)
+      .map((item) => ({ id: item.id, price: item.price }));
 
     if (!query || !items.length) return;
 
     panel.mineButton.disabled = true;
-    panel.mineButton.textContent = "Calculando...";
-    panel.mineStatus.textContent = "Procurando seu produto e custo no Radar...";
+    panel.mineButton.textContent = "Calculando…";
+    panel.mineStatus.textContent = "Procurando seu produto e custo no Radar…";
 
     const settings = await getSettings();
     const response = await send("/api/extension/search-profitability", "POST", {
@@ -662,31 +666,24 @@
     };
 
     if (!response?.ok) {
-      panel.mineStatus.textContent =
-        response?.body?.error || "Não foi possível calcular sua margem.";
+      panel.mineStatus.textContent = response?.body?.error || "Não foi possível calcular sua margem.";
       retry("Calcular minha margem");
       return;
     }
 
     if (response.body?.needsCost) {
-      panel.mineStatus.textContent =
-        response.body.message ||
-        "Encontrei seu produto, mas falta cadastrar o custo.";
-      retry("Tentar novamente");
+      panel.mineStatus.textContent = response.body.message || "Encontrei seu produto, mas falta cadastrar o custo.";
+      retry("Tentar de novo");
       return;
     }
 
     if (!Array.isArray(response.body?.items) || !response.body.items.length) {
-      panel.mineStatus.textContent =
-        response.body?.message ||
-        "Nenhum produto seu compatível foi encontrado para esta busca.";
+      panel.mineStatus.textContent = response.body?.message || "Nenhum produto seu parecido com esta busca.";
       retry("Calcular minha margem");
       return;
     }
 
-    for (const economics of response.body.items) {
-      state.economics.set(economics.id, economics);
-    }
+    for (const economics of response.body.items) state.economics.set(economics.id, economics);
     state.dataVersion += 1;
 
     panel.root.querySelectorAll("[data-f='myMargin'], [data-f='myRoi']").forEach((el) => {
@@ -695,37 +692,16 @@
 
     const matched = response.body.matchedProduct;
     panel.mineStatus.textContent = matched
-      ? "Usando custo de " + matched.title + " · confiança " + matched.similarityPercent + "%"
-      : "Margem personalizada carregada.";
-    panel.mineButton.textContent = "Minha margem carregada";
+      ? "Usando o custo de " + matched.title + " (" + matched.similarityPercent + "% parecido)"
+      : "Margem carregada.";
+    panel.mineButton.textContent = "Margem carregada";
 
-    applyMatches(S.findCards());
+    applyCards(S.findCards());
   }
 
   /* ------------------------------------------------------------------ */
-  /* busca: enriquecimento com dedupe                                    */
+  /* busca: leitura da página → Radar                                    */
   /* ------------------------------------------------------------------ */
-
-  function buildObserved(cards) {
-    return cards
-      .map((card, index) => {
-        const id = S.cardReference(card);
-        if (!id || !/^MLB\d+$/i.test(id)) return null;
-
-        const shipping = S.cardShipping(card);
-        return {
-          id,
-          title: S.cardTitle(card),
-          price: S.cardPrice(card),
-          position: index + 1,
-          soldQuantityLowerBound: S.cardSoldLowerBound(card),
-          freeShipping: shipping.freeShipping,
-          logisticType: shipping.logisticType,
-        };
-      })
-      .filter(Boolean)
-      .slice(0, 50);
-  }
 
   function forceRefresh() {
     state.lastKey = "";
@@ -739,21 +715,24 @@
     const cards = S.findCards();
     const query = S.extractQuery();
 
-    if (!query || cards.length < 2) {
+    // Página de anúncio (mesmo com carrossel de relacionados) nunca é busca.
+    if (S.isProductPage() || !query || cards.length < 2) {
       await enrichProduct();
       return;
     }
 
-    const observed = buildObserved(cards);
+    const observed = cards
+      .map((card, index) => S.cardObservation(card, index))
+      .filter(Boolean)
+      .slice(0, 60);
     if (!observed.length) return;
 
-    const key = query + "|" + observed.map((item) => item.id).join(",");
+    const key = (query || location.pathname) + "|" + observed.map((item) => item.id).join(",");
 
     if (key === state.lastKey) {
-      // Mesmo conjunto de anúncios: nunca chama a API de novo. Só garante que a
-      // interface continue montada (o ML pode ter re-renderizado os cards).
+      // Mesmo conjunto de anúncios: nunca chama a API de novo; só remonta a UI.
       if (cards.length >= 3) mountPanel();
-      if (state.status === "ok") applyMatches(cards);
+      applyCards(cards);
       return;
     }
 
@@ -761,14 +740,17 @@
     state.lastKey = key;
     state.status = "loading";
     state.economics.clear();
+    for (const item of observed) state.observed.set(item.id, item);
     publishContext();
 
     try {
       if (cards.length >= 3) mountPanel();
-      setNotice("loading", "Analisando anúncios...");
+      setNotice("loading", "Medindo os anúncios desta página…");
+      applyCards(cards); // mostra os dados da página enquanto o Radar responde
 
-      const response = await send("/api/extension/search", "POST", {
-        query,
+      const response = await send("/api/extension/observations", "POST", {
+        page: "search",
+        query: query || null,
         items: observed,
       });
 
@@ -778,7 +760,7 @@
         state.status = "auth";
         setNotice(
           "auth",
-          "Entre no Mercado Radar para ver score, vendas e margem nesta busca.",
+          "Entre no Mercado Radar para ver vendas, faturamento e visitas por dia.",
           "Entrar no Mercado Radar",
           async () => {
             const result = await login();
@@ -797,20 +779,15 @@
 
       if (!response.ok || !Array.isArray(response.body?.items)) {
         state.status = "error";
-        setNotice(
-          "error",
-          response.body?.error || "Não foi possível analisar esta busca.",
-          "Tentar de novo",
-          forceRefresh,
-        );
+        setNotice("error", response.body?.error || "Não foi possível medir esta busca.", "Tentar de novo", forceRefresh);
         return;
       }
 
       state.status = "ok";
-      state.items = response.body.items;
+      for (const insight of response.body.items) state.insights.set(insight.id, insight);
       state.dataVersion += 1;
       setNotice("ok");
-      applyMatches(cards);
+      applyCards(S.findCards());
     } finally {
       state.running = false;
     }
@@ -820,11 +797,7 @@
   /* anúncio: widget                                                     */
   /* ------------------------------------------------------------------ */
 
-  function kpi(label, value, tone) {
-    return h("div", { class: "kpi" }, h("small", { text: label }), h("b", { class: tone || "", text: value }));
-  }
-
-  function createPdp(ref) {
+  function createPdp(observation) {
     const { host, root } = makeHost("widget");
     const body = h("div", { class: "widget__body" });
     const chip = h("span", { class: "chip", hidden: true });
@@ -832,14 +805,9 @@
 
     const head = h(
       "div",
-      {
-        class: "widget__head",
-        role: "button",
-        tabindex: "0",
-        "aria-expanded": "true",
-      },
+      { class: "widget__head", role: "button", tabindex: "0", "aria-expanded": "true" },
       h("span", { class: "brand" }, markIcon(), "Mercado Radar"),
-      h("span", { style: "display:flex;gap:8px;align-items:center" }, chip, chevron),
+      h("span", { class: "widget__head-right" }, chip, chevron),
     );
 
     const toggle = () => {
@@ -858,7 +826,23 @@
     const wrap = h("section", { class: "widget", "aria-label": "Análise do Mercado Radar" }, head, body);
     root.append(wrap);
 
-    return { ref, host, root, wrap, body, chip, item: null, cost: null, floating: false };
+    return {
+      ref: observation.id,
+      observation,
+      host,
+      root,
+      wrap,
+      body,
+      chip,
+      insight: null,
+      apiItem: null,
+      catalog: null,
+      calc: null,
+      calcError: null,
+      cost: null,
+      floating: false,
+      slots: {},
+    };
   }
 
   function mountPdp() {
@@ -877,21 +861,114 @@
     }
   }
 
-  function pdpMessage(pdp, tone, message, actionLabel, action) {
-    pdp.body.replaceChildren(
+  function pdpMessage(target, tone, message, actionLabel, action) {
+    target.replaceChildren(
       h(
         "div",
-        { class: "notice" + (tone === "error" ? " notice--risk" : tone === "limit" ? " notice--warn" : ""), style: "margin:0" },
+        { class: "notice notice--inline" + (tone === "error" ? " notice--risk" : tone === "limit" ? " notice--warn" : "") },
         h("div", { text: message }),
         actionLabel ? h("button", { class: "btn btn--block", type: "button", text: actionLabel, onClick: action }) : null,
       ),
     );
   }
 
-  function payoutBlock(pdp, calc) {
-    const { fees, result } = calc;
-    const hasCost = pdp.cost != null;
+  function bigReadout(label, value, range, note) {
+    return h(
+      "div",
+      { class: "big" },
+      h("small", { text: label }),
+      h("b", { text: value }),
+      h("span", { class: "big__range", text: range || note || "" }),
+    );
+  }
 
+  function renderPerformance(pdp) {
+    const slot = pdp.slots.performance;
+    const insight = pdp.insight;
+    const obs = pdp.observation;
+    if (!slot) return;
+
+    if (!insight) {
+      slot.replaceChildren(h("div", { class: "skeleton" }), h("div", { class: "skeleton", style: "width:70%" }));
+      return;
+    }
+
+    const e = insight.estimate;
+    pdp.chip.hidden = false;
+    pdp.chip.className = "chip chip--" + scoreTone(insight.score);
+    pdp.chip.textContent = "Score " + insight.score;
+
+    const hasRate = e.salesPerDay?.value != null;
+    const readouts = hasRate
+      ? [
+          bigReadout("Vendas/dia", num(e.salesPerDay.value), rangeText(e.salesPerDay, (v) => num(v))),
+          bigReadout("Faturamento/dia", moneyCompact(e.revenuePerDay.value), moneyRange(e.revenuePerDay)),
+          bigReadout("Visitas/dia", num(e.visitsPerDay.value, 0), rangeText(e.visitsPerDay, (v) => num(v, 0))),
+        ]
+      : [
+          bigReadout("Vendidos", e.sold?.lower == null ? "—" : num(e.sold.lower, 0) + "+", "", "total do anúncio"),
+          bigReadout(
+            "Receita total",
+            e.sold?.lower != null && insight.price ? moneyCompact(e.sold.lower * insight.price) + "+" : "—",
+            "",
+            "acumulado × preço",
+          ),
+          bigReadout("Avaliações", obs.reviews == null ? "—" : num(obs.reviews, 0), "", obs.rating ? "nota " + num(obs.rating) : ""),
+        ];
+
+    const facts = [];
+    if (hasRate) {
+      facts.push(["Vendidos (total)", e.sold?.lower == null ? "—" : e.sold.exact ? num(e.sold.lower, 0) : num(e.sold.lower, 0) + "–" + num(e.sold.upper, 0)]);
+      facts.push(["Vendas/mês", num((e.salesPerDay.value || 0) * 30, 0)]);
+    }
+    facts.push(["Conversão usada", pct((e.conversion?.value || 0) * 100)]);
+    if (e.ageDays?.value != null) facts.push(["Idade do anúncio", num(e.ageDays.value, 0) + " dias" + (e.ageDays.source === "ID_ESTIMADO" ? " (est.)" : "")]);
+    facts.push(["Leituras do Radar", String(e.observations || 1)]);
+    if (insight.bestSellerLabel) facts.push(["Destaque", insight.bestSellerLabel]);
+
+    const how = h(
+      "details",
+      { class: "how" },
+      h("summary", { text: "Como o Radar calculou" }),
+      h("ul", {}, ...(e.basis || []).map((line) => h("li", { text: line }))),
+    );
+
+    slot.replaceChildren(
+      h(
+        "div",
+        { class: "perf__head" },
+        h("span", { class: "block__title", text: "Desempenho do anúncio" }),
+        methodBadge(e),
+      ),
+      h("div", { class: "bigs" }, ...readouts),
+      h(
+        "div",
+        { class: "facts" },
+        ...facts.map(([label, value]) => h("div", { class: "fact" }, h("span", { text: label }), h("b", { text: value }))),
+      ),
+      how,
+    );
+  }
+
+  function payoutBlock(pdp) {
+    const slot = pdp.slots.payout;
+    if (!slot) return;
+
+    if (pdp.calcError) {
+      slot.replaceChildren(
+        h("div", { class: "block__title", text: "Quanto você recebe" }),
+        h("div", { class: "muted", text: pdp.calcError }),
+      );
+      return;
+    }
+
+    if (!pdp.calc) {
+      slot.replaceChildren(h("div", { class: "block__title", text: "Quanto você recebe" }), h("div", { class: "skeleton" }));
+      return;
+    }
+
+    const { fees, result, shippingKnown } = pdp.calc;
+    const hasCost = pdp.cost != null;
     const line = (label, value, className) =>
       h("div", { class: "line" + (className ? " " + className : "") }, h("span", { text: label }), h("b", { text: value }));
 
@@ -900,7 +977,11 @@
       line("Comissão (" + pct(fees.commissionPercent) + ")", "− " + brl(fees.commissionAmount), "neg"),
     ];
     if (Number(fees.fixedFee) > 0) lines.push(line("Tarifa fixa", "− " + brl(fees.fixedFee), "neg"));
-    lines.push(line("Frete", "− " + brl(fees.shippingCost), "neg"));
+    lines.push(
+      shippingKnown
+        ? line("Frete", "− " + brl(fees.shippingCost), "neg")
+        : line("Frete", "não incluído", "dim"),
+    );
     if (Number(fees.taxAmount) > 0) lines.push(line("Imposto (" + pct(fees.taxPercent) + ")", "− " + brl(fees.taxAmount), "neg"));
     lines.push(line("Você recebe", brl(result.amountReceived), "total"));
 
@@ -925,76 +1006,64 @@
         const value = Number(costInput.value);
         if (!Number.isFinite(value) || value < 0 || costInput.value === "") return;
         costButton.disabled = true;
-        costButton.textContent = "Calculando...";
+        costButton.textContent = "Calculando…";
         pdp.cost = value;
         await loadPdpCalculation(pdp);
       },
     });
 
-    return h(
-      "div",
-      { class: "block" },
-      h("div", { class: "block__title", text: "Quanto você recebe" }),
+    slot.replaceChildren(
+      h("div", { class: "block__title", text: "Quanto você recebe vendendo a este preço" }),
       h("div", { class: "payout" }, ...lines),
       h("div", { class: "cost-row" }, costInput, costButton),
       hasCost
-        ? h("div", { class: "muted", style: "margin-top:8px", text: "Margem " + pct(result.marginPercent) + " · ROI " + pct(result.roiPercent) + " · preço mínimo saudável " + brl(result.minimumSuggestedPrice) })
-        : h("div", { class: "muted", style: "margin-top:8px", text: "Informe seu custo para ver lucro, margem e ROI." }),
+        ? h("div", { class: "muted mt", text: "Margem " + pct(result.marginPercent) + " · ROI " + pct(result.roiPercent) + " · preço mínimo saudável " + brl(result.minimumSuggestedPrice) })
+        : h("div", { class: "muted mt", text: "Informe seu custo para ver lucro, margem e ROI." }),
+      shippingKnown
+        ? null
+        : h("div", { class: "muted mt", text: "Anúncio de outro vendedor: o frete depende do peso e da sua reputação; some o seu frete médio ao custo." }),
     );
   }
 
-  function renderPdp(pdp, calc) {
-    const item = pdp.item;
-    const intel = item.intelligence || {};
-    const score = Number(intel.score ?? 0);
-
-    pdp.chip.hidden = false;
-    pdp.chip.className = "chip chip--" + scoreTone(score);
-    pdp.chip.textContent = "Score " + score;
-
-    const margin = calc && pdp.cost != null ? calc.result.marginPercent : null;
-    const marginTone = margin == null ? "" : margin >= 15 ? "ok" : "risk";
-
-    const blocks = [
-      h(
-        "div",
-        { class: "kpis" },
-        kpi("Score", score + "/100", scoreTone(score)),
-        kpi("Vendas/mês*", intel.salesPerMonth == null ? "—" : "~" + Math.round(intel.salesPerMonth)),
-        kpi("Demanda", demandText(intel.demandLabel), demandTone(intel.demandLabel)),
-        kpi("Minha margem", margin == null ? "—" : pct(margin), marginTone),
-      ),
-    ];
-
-    if (calc) blocks.push(payoutBlock(pdp, calc));
-
+  function renderBuyBox(pdp) {
+    const slot = pdp.slots.buybox;
     const winner = pdp.catalog?.buyBoxWinner;
-    if (winner?.price) {
-      const delta = item.price ? ((item.price - winner.price) / winner.price) * 100 : null;
-      blocks.push(
-        h(
-          "div",
-          { class: "block rows" },
-          h("div", { class: "block__title", text: "Buy Box do catálogo" }),
-          h("div", { class: "row" }, h("span", { text: "Vencedor" }), h("b", { text: brl(winner.price) })),
-          h("div", {
-            class: "muted",
-            text:
-              (winner.logisticType ? logisticText(winner.logisticType) + " · " : "") +
-              (winner.freeShipping ? "frete grátis" : "frete não grátis") +
-              (delta == null ? "" : " · este anúncio " + (delta >= 0 ? "+" : "") + pct(delta)),
-          }),
-        ),
-      );
+    if (!slot) return;
+    if (!winner?.price) {
+      slot.replaceChildren();
+      return;
     }
+    const price = pdp.observation.price;
+    const delta = price ? ((price - winner.price) / winner.price) * 100 : null;
+    slot.replaceChildren(
+      h("div", { class: "block__title", text: "Buy Box do catálogo" }),
+      h("div", { class: "rows" }, h("div", { class: "row" }, h("span", { text: "Vencedor" }), h("b", { text: brl(winner.price) }))),
+      h("div", {
+        class: "muted",
+        text:
+          (winner.logisticType ? logisticText(winner.logisticType) + " · " : "") +
+          (winner.freeShipping ? "frete grátis" : "frete pago") +
+          (delta == null ? "" : " · este anúncio " + (delta >= 0 ? "+" : "") + pct(delta)),
+      }),
+    );
+  }
 
-    pdp.marketSlot = h("div", { class: "block" });
-    blocks.push(pdp.marketSlot);
-    blocks.push(
-      h("div", { class: "muted", style: "margin-top:10px", text: "* estimativa pela faixa de vendas do anúncio" }),
+  function renderPdp(pdp) {
+    pdp.slots = {
+      performance: h("div", { class: "block block--first" }),
+      payout: h("div", { class: "block" }),
+      buybox: h("div", { class: "block" }),
+      market: h("div", { class: "block" }),
+    };
+
+    pdp.body.replaceChildren(
+      pdp.slots.performance,
+      pdp.slots.payout,
+      pdp.slots.buybox,
+      pdp.slots.market,
       h(
         "div",
-        { style: "margin-top:10px" },
+        { class: "block actions" },
         h("button", {
           class: "btn btn--ghost btn--block",
           type: "button",
@@ -1002,34 +1071,36 @@
           onClick: async (event) => {
             const button = event.currentTarget;
             button.disabled = true;
-            button.textContent = "Salvando...";
+            button.textContent = "Salvando…";
             const response = await send("/api/extension/watchlist", "POST", {
-              itemId: item.id,
-              referenceId: pdp.ref || item.id,
+              itemId: pdp.observation.id,
+              referenceId: pdp.ref,
             });
             button.disabled = false;
             button.textContent = response?.ok
-              ? "Monitorando ✓"
-              : response?.body?.error || "Falha ao salvar — tentar novamente";
+              ? "Monitorando"
+              : response?.body?.error || "Não foi possível monitorar. Tente de novo.";
           },
         }),
       ),
     );
 
-    pdp.body.replaceChildren(...blocks);
+    renderPerformance(pdp);
+    payoutBlock(pdp);
+    renderBuyBox(pdp);
     renderMarketButton(pdp);
   }
 
   function renderMarketButton(pdp) {
-    pdp.marketSlot.replaceChildren(
+    pdp.slots.market.replaceChildren(
       h("button", {
         class: "btn btn--ghost btn--block",
         type: "button",
-        text: "Ver faixa de preço e concorrentes",
+        text: "Ver faixa de preço do mercado",
         onClick: async (event) => {
           const button = event.currentTarget;
           button.disabled = true;
-          button.textContent = "Carregando...";
+          button.textContent = "Carregando…";
           await loadPdpMarket(pdp);
         },
       }),
@@ -1037,38 +1108,37 @@
   }
 
   async function loadPdpMarket(pdp) {
-    const item = pdp.item;
+    const obs = pdp.observation;
     const params = new URLSearchParams({
-      title: item.title,
-      itemId: item.id,
-      currentPrice: String(item.price || 0),
+      title: obs.title,
+      itemId: obs.id,
+      currentPrice: String(obs.price || 0),
     });
-    if (item.categoryId) params.set("categoryId", item.categoryId);
+    const categoryId = pdp.apiItem?.categoryId || obs.categoryId;
+    if (categoryId) params.set("categoryId", categoryId);
 
     const response = await send("/api/extension/market?" + params.toString());
+    const slot = pdp.slots.market;
 
     if (!response?.ok || !response.body?.market) {
-      pdp.marketSlot.replaceChildren(
-        h("div", { class: "muted", text: response?.body?.error || "Sem dados de mercado para este anúncio." }),
-      );
+      slot.replaceChildren(h("div", { class: "muted", text: response?.body?.error || "Sem dados de mercado para este anúncio." }));
       return;
     }
 
     const market = response.body.market;
     const competitors = Array.isArray(response.body.competitors) ? response.body.competitors : [];
 
-    pdp.marketSlot.replaceChildren(
+    slot.replaceChildren(
       h("div", { class: "block__title", text: "Faixa de preço do mercado" }),
       h(
         "div",
-        { class: "kpis", style: "grid-template-columns:repeat(3,minmax(0,1fr))" },
-        kpi("P25", brl(market.p25, 0)),
-        kpi("Mediana", brl(market.median, 0)),
-        kpi("P75", brl(market.p75, 0)),
+        { class: "facts facts--3" },
+        h("div", { class: "fact" }, h("span", { text: "25% mais baratos" }), h("b", { text: brl(market.p25, 0) })),
+        h("div", { class: "fact" }, h("span", { text: "Mediana" }), h("b", { text: brl(market.median, 0) })),
+        h("div", { class: "fact" }, h("span", { text: "25% mais caros" }), h("b", { text: brl(market.p75, 0) })),
       ),
       h("div", {
-        class: "muted",
-        style: "margin-top:6px",
+        class: "muted mt",
         text:
           market.count +
           " comparáveis · " +
@@ -1079,10 +1149,8 @@
       competitors.length
         ? h(
             "div",
-            { class: "rows", style: "margin-top:8px" },
-            ...competitors.slice(0, 4).map((c) =>
-              h("div", { class: "row" }, h("span", { text: c.title }), h("b", { text: brl(c.price) })),
-            ),
+            { class: "rows mt" },
+            ...competitors.slice(0, 4).map((c) => h("div", { class: "row" }, h("span", { text: c.title }), h("b", { text: brl(c.price) }))),
           )
         : null,
     );
@@ -1090,8 +1158,10 @@
 
   async function loadPdpCalculation(pdp) {
     const settings = await getSettings();
+    const obs = pdp.observation;
     const response = await send("/api/extension/profitability", "POST", {
-      itemId: pdp.item.id,
+      itemId: obs.id,
+      salePrice: obs.price || undefined,
       supplierPrice: pdp.cost ?? 0,
       discountPercent: 0,
       kitQuantity: 1,
@@ -1099,67 +1169,74 @@
       operatingCost: pdp.cost == null ? 0 : settings.operatingCost,
       targetMarginPercent: settings.targetMarginPercent,
       targetRoiPercent: settings.targetRoiPercent,
+      title: obs.title || undefined,
+      categoryId: obs.categoryId || undefined,
+      listingType: obs.listingTypeHint || undefined,
+      freeShipping: Boolean(obs.freeShipping),
     });
 
     if (!response?.ok || !response.body?.result) {
-      renderPdp(pdp, null);
-      pdp.body.append(
-        h("div", { class: "muted", style: "margin-top:10px", text: response?.body?.error || "Não foi possível calcular taxas deste anúncio." }),
-      );
-      return;
+      pdp.calc = null;
+      pdp.calcError = response?.body?.error || "Não foi possível calcular as tarifas deste anúncio.";
+    } else {
+      pdp.calc = response.body;
+      pdp.calcError = null;
     }
-
-    renderPdp(pdp, response.body);
+    payoutBlock(pdp);
   }
 
   async function loadPdp(pdp) {
-    pdp.body.replaceChildren(
-      h("div", { class: "skeleton" }),
-      h("div", { class: "skeleton", style: "width:70%" }),
-      h("div", { class: "skeleton", style: "width:85%" }),
-    );
+    renderPdp(pdp);
 
-    const params = new URLSearchParams({ id: pdp.ref });
-    const price = S.pagePrice();
-    if (price) params.set("visiblePrice", String(price));
-
-    const response = await send("/api/extension/item?" + params.toString());
+    // 1) desempenho: funciona para qualquer anúncio (leitura da página + histórico)
+    const response = await send("/api/extension/observations", "POST", {
+      page: "product",
+      query: null,
+      items: [pdp.observation],
+    });
     if (response.contextLost) return;
 
     if (response.status === 401) {
-      pdpMessage(pdp, "info", "Entre no Mercado Radar para ver margem, demanda e concorrência deste anúncio.", "Entrar no Mercado Radar", async () => {
+      pdpMessage(pdp.body, "info", "Entre no Mercado Radar para ver vendas, faturamento, visitas e sua margem neste anúncio.", "Entrar no Mercado Radar", async () => {
         const result = await login();
         if (result?.authenticated) void loadPdp(pdp);
-        else pdpMessage(pdp, "error", result?.error || "Não foi possível entrar.", "Tentar de novo", () => void loadPdp(pdp));
+        else pdpMessage(pdp.body, "error", result?.error || "Não foi possível entrar.", "Tentar de novo", () => void loadPdp(pdp));
       });
       return;
     }
 
     if (response.status === 429) {
-      pdpMessage(pdp, "limit", response.body?.error || "Limite diário da extensão atingido.");
+      pdpMessage(pdp.body, "limit", response.body?.error || "Limite diário da extensão atingido.");
       return;
     }
 
-    if (!response.ok || !response.body?.item) {
-      pdpMessage(pdp, "error", response.body?.error || "Não foi possível analisar este anúncio.", "Tentar de novo", () => void loadPdp(pdp));
-      return;
+    if (response.ok && Array.isArray(response.body?.items) && response.body.items[0]) {
+      pdp.insight = response.body.items[0];
+      renderPerformance(pdp);
+    } else {
+      pdpMessage(pdp.slots.performance, "error", response.body?.error || "Não foi possível medir este anúncio.", "Tentar de novo", () => void loadPdp(pdp));
     }
 
-    pdp.item = response.body.item;
-    pdp.catalog = response.body.catalog || null;
-    renderPdp(pdp, null);
+    // 2) detalhes oficiais (só existem para anúncios liberados pela API, ex.: os seus)
+    const params = new URLSearchParams({ id: pdp.observation.id });
+    if (pdp.observation.price) params.set("visiblePrice", String(pdp.observation.price));
+    const item = await send("/api/extension/item?" + params.toString());
+    if (item?.ok && item.body?.item) {
+      pdp.apiItem = item.body.item;
+      pdp.catalog = item.body.catalog || null;
+      renderBuyBox(pdp);
+    }
 
-    // Custo cadastrado no Radar (produto seu mais compatível), se existir.
+    // 3) custo cadastrado no Radar (produto seu mais parecido), se existir
     const settings = await getSettings();
     const mine = await send("/api/extension/search-profitability", "POST", {
-      query: pdp.item.title,
-      items: [{ id: pdp.item.id, price: pdp.item.price }],
+      query: pdp.observation.title,
+      items: [{ id: pdp.observation.id, price: pdp.observation.price }],
       taxPercent: settings.taxPercent,
       operatingCost: settings.operatingCost,
       targetMarginPercent: settings.targetMarginPercent,
       targetRoiPercent: settings.targetRoiPercent,
     });
-
     const matched = mine?.ok ? mine.body?.matchedProduct : null;
     if (matched && matched.hasCost !== false && matched.unitCost != null) {
       pdp.cost = Number(matched.unitCost);
@@ -1170,11 +1247,12 @@
 
   async function enrichProduct() {
     publishContext();
+    if (!S.isProductPage()) return;
 
-    const ref = S.currentReference();
-    if (!ref || !S.isProductPage()) return;
+    const observation = S.pageObservation();
+    if (!observation) return;
 
-    if (state.pdp && state.pdp.ref === ref) {
+    if (state.pdp && state.pdp.ref === observation.id) {
       mountPdp(); // idempotente: só recoloca se o ML removeu o widget
       return;
     }
@@ -1184,7 +1262,7 @@
 
     try {
       state.pdp?.host.remove();
-      state.pdp = createPdp(ref);
+      state.pdp = createPdp(observation);
       mountPdp();
       await loadPdp(state.pdp);
     } finally {
@@ -1400,8 +1478,8 @@
     state.pdp = null;
     state.lastKey = "";
     state.status = "idle";
-    state.items = [];
-    state.matches = [];
+    state.insights.clear();
+    state.observed.clear();
     state.economics.clear();
     state.reordered = false;
     publishContext();

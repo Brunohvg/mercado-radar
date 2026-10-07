@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import "./styles/radar-theme.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://radar.optarys.com.br"),
@@ -44,7 +43,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0E8063",
+  themeColor: "#0A231E",
   colorScheme: "light",
 };
 

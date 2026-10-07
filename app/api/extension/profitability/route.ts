@@ -7,6 +7,7 @@ import {
   getItemCurrentPrice,
   getItemsBulk,
   getListingPriceQuote,
+  predictCategory,
 } from "@/lib/mercado-livre";
 import { analyzeProfitability } from "@/lib/profitability";
 import { buildCompetitivePriceStrategy } from "@/lib/price-strategy";
@@ -25,6 +26,12 @@ const schema = z.object({
   targetMarginPercent: z.coerce.number().min(0).max(80).default(20),
   targetRoiPercent: z.coerce.number().min(0).max(500).default(30),
   save: z.boolean().default(false),
+  // Anúncio de outro vendedor: a API não libera os detalhes, então a página
+  // informa título/categoria/tipo e o Radar calcula as tarifas mesmo assim.
+  title: z.string().trim().min(3).max(300).optional(),
+  categoryId: z.string().trim().regex(/^MLB\d+$/i).optional(),
+  listingType: z.enum(["CLASSIC", "PREMIUM"]).optional(),
+  freeShipping: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -61,22 +68,49 @@ export async function POST(request: Request) {
     const details = await getItemsBulk({
       accessToken: session.accessToken,
       itemIds: [itemId],
-    });
-    const item = details[0];
+    }).catch(() => []);
+    const apiItem = details[0] ?? null;
+    const isOwnItem =
+      apiItem?.sellerId != null &&
+      apiItem.sellerId === session.account.mercadoLivreUserId;
 
-    if (!item?.categoryId) {
+    let categoryId = apiItem?.categoryId ?? parsed.data.categoryId ?? null;
+    if (!categoryId && parsed.data.title) {
+      const predicted = await predictCategory({
+        accessToken: session.accessToken,
+        title: parsed.data.title,
+        limit: 1,
+      }).catch(() => []);
+      categoryId = predicted[0]?.categoryId ?? null;
+    }
+
+    if (!categoryId) {
       return NextResponse.json(
-        { error: "Categoria do anúncio não encontrada." },
+        { error: "Não foi possível identificar a categoria deste anúncio." },
         { status: 422 },
       );
     }
 
+    const item = {
+      id: itemId,
+      title: apiItem?.title ?? parsed.data.title ?? itemId,
+      categoryId,
+      currentPrice: apiItem?.currentPrice ?? 0,
+      listingTypeId:
+        apiItem?.listingTypeId ??
+        (parsed.data.listingType === "PREMIUM" ? "gold_pro" : "gold_special"),
+      freeShipping: apiItem?.freeShipping ?? Boolean(parsed.data.freeShipping),
+      sellerSku: apiItem?.sellerSku ?? null,
+    };
+
     const price =
       parsed.data.salePrice ??
-      (await getItemCurrentPrice({
-        accessToken: session.accessToken,
-        itemId,
-      }).catch(() => null)) ??
+      (isOwnItem
+        ? await getItemCurrentPrice({
+            accessToken: session.accessToken,
+            itemId,
+          }).catch(() => null)
+        : null) ??
       item.currentPrice;
 
     if (!price || price <= 0) {
@@ -96,14 +130,17 @@ export async function POST(request: Request) {
         categoryId: item.categoryId,
         listingType,
       }),
-      getExistingItemShippingQuote({
+      (isOwnItem
+        ? getExistingItemShippingQuote({
         accessToken: session.accessToken,
         userId: session.account.mercadoLivreUserId,
         itemId,
         price,
         listingType,
         freeShipping: item.freeShipping,
-      }).catch(() => ({
+      })
+        : Promise.reject(new Error("frete de terceiro"))
+      ).catch(() => ({
         shippingCost: 0,
         billableWeight: 0,
         discountRate: 0,
@@ -111,6 +148,7 @@ export async function POST(request: Request) {
         raw: null,
       })),
     ]);
+    const shippingKnown = isOwnItem && shipping.raw != null;
 
     const analysis = analyzeProfitability({
       productName: item.title,
@@ -193,7 +231,9 @@ export async function POST(request: Request) {
         price,
         listingType,
         freeShipping: item.freeShipping,
+        isOwn: isOwnItem,
       },
+      shippingKnown,
       fees: {
         commissionPercent: fee.commissionPercent,
         commissionAmount: analysis.commissionAmount,

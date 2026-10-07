@@ -255,7 +255,7 @@ export function ProductsDashboard() {
     <section className="products-page">
       <header className="page-header clean-page-header">
         <div>
-          <p className="page-kicker">Overview · Produtos</p>
+          <p className="page-kicker">Operação</p>
           <h1>Produtos</h1>
           <p>Quanto cada produto deixa, quanto capital está parado e quando repor.</p>
         </div>
@@ -294,23 +294,29 @@ export function ProductsDashboard() {
             </article>
             <article className="clean-kpi-card accent">
               <span>Saúde do estoque</span>
-              <strong>{summary.healthScore}/100</strong>
+              <strong>
+                {summary.healthScore}
+                <small className="products-kpi-scale">/100</small>
+              </strong>
               <small>custo, giro e margem</small>
             </article>
           </section>
 
           <section className="clean-panel products-table-panel">
             <div className="products-table-toolbar">
-              <div>
-                <strong>Produtos</strong>
-                <span>{products.length} de {data.summary.total}</span>
+              <div className="products-table-title">
+                <strong>Catálogo</strong>
+                <span className="products-table-count">
+                  {products.length} de {data.summary.total}
+                </span>
               </div>
 
               <div className="products-table-actions">
                 <input
+                  type="search"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Buscar por nome, SKU, fornecedor..."
+                  placeholder="Buscar por nome, SKU ou fornecedor"
                   aria-label="Buscar produtos"
                 />
                 <select
@@ -328,7 +334,10 @@ export function ProductsDashboard() {
             </div>
 
             {products.length === 0 ? (
-              <div className="module-empty">Nenhum produto encontrado.</div>
+              <div className="module-empty products-empty">
+                <strong>Nenhum produto encontrado</strong>
+                <span>Ajuste a busca ou o filtro, ou atualize os produtos do Mercado Livre.</span>
+              </div>
             ) : (
               <div className="clean-table-wrap">
                 <table className="clean-table products-table">
@@ -338,17 +347,23 @@ export function ProductsDashboard() {
                       <th>Tipo</th>
                       <th>SKU</th>
                       <th>Fornecedor</th>
-                      <th>Estoque</th>
-                      <th>Preço</th>
-                      <th>Margem</th>
-                      <th>Ação Radar</th>
-                      <th />
+                      <th className="is-num">Estoque</th>
+                      <th className="is-num">Preço</th>
+                      <th className="is-num">Margem</th>
+                      <th>Ação do Radar</th>
+                      <th>
+                        <span className="sr-only">Ações</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {products.map((product) => (
                       <Fragment key={product.mlItemId}>
-                        <tr>
+                        <tr
+                          className={
+                            costEditorId === product.mlItemId ? "is-editing" : undefined
+                          }
+                        >
                           <td>
                             <div className="clean-product-cell">
                               {product.thumbnail ? (
@@ -367,7 +382,11 @@ export function ProductsDashboard() {
                               {listingLabel(product.listingTypeId)}
                             </span>
                           </td>
-                          <td>{product.sku ?? "Sem SKU"}</td>
+                          <td className="products-sku">
+                            {product.sku ?? (
+                              <span className="table-muted">Sem SKU</span>
+                            )}
+                          </td>
                           <td>
                             {product.supplier ? (
                               <span>{product.supplier}</span>
@@ -377,24 +396,32 @@ export function ProductsDashboard() {
                                 className="inline-link-button"
                                 onClick={() => openCostEditor(product)}
                               >
-                                + Vincular
+                                Vincular
                               </button>
                             )}
                           </td>
-                          <td>
-                            <strong>{product.availableQuantity}</strong>
+                          <td className="is-num products-stock">
+                            <strong className="num">{product.availableQuantity}</strong>
                             {product.health.coverageDays != null && (
                               <small className="table-subtext">
-                                {Math.round(product.health.coverageDays)} dias
+                                cobre {Math.round(product.health.coverageDays)} dias
                               </small>
                             )}
                           </td>
-                          <td>
+                          <td className="is-num num">
                             {product.currentPrice == null
                               ? "—"
                               : money.format(product.currentPrice)}
                           </td>
-                          <td>
+                          <td
+                            className={
+                              "is-num num" +
+                              (product.health.decisionMarginPercent != null &&
+                              product.health.decisionMarginPercent < 15
+                                ? " danger-value"
+                                : "")
+                            }
+                          >
                             {product.health.decisionMarginPercent == null
                               ? "—"
                               : `${product.health.decisionMarginPercent.toFixed(1)}%`}
@@ -412,14 +439,15 @@ export function ProductsDashboard() {
                             <button
                               type="button"
                               className="row-menu-button"
-                              aria-label={"Editar " + product.title}
+                              aria-label={"Editar custo de " + product.title}
+                              aria-expanded={costEditorId === product.mlItemId}
                               onClick={() =>
                                 costEditorId === product.mlItemId
                                   ? setCostEditorId(null)
                                   : openCostEditor(product)
                               }
                             >
-                              •••
+                              {costEditorId === product.mlItemId ? "Fechar" : "Editar"}
                             </button>
                           </td>
                         </tr>
@@ -437,6 +465,7 @@ export function ProductsDashboard() {
                                   </div>
                                   {product.permalink && (
                                     <a
+                                      className="inline-link-button"
                                       href={product.permalink}
                                       target="_blank"
                                       rel="noreferrer"
@@ -461,7 +490,7 @@ export function ProductsDashboard() {
                                     />
                                   </label>
                                   <label>
-                                    <span>Preço tabela</span>
+                                    <span>Preço de tabela (R$)</span>
                                     <input
                                       type="number"
                                       min="0.01"
@@ -476,7 +505,7 @@ export function ProductsDashboard() {
                                     />
                                   </label>
                                   <label>
-                                    <span>Desconto %</span>
+                                    <span>Desconto (%)</span>
                                     <input
                                       type="number"
                                       min="0"
@@ -518,24 +547,28 @@ export function ProductsDashboard() {
 
                                 {product.economics && (
                                   <div className="product-inline-economics">
-                                    <span>
-                                      Tarifa {money.format(product.economics.saleFee)}
-                                    </span>
-                                    <span>
-                                      Frete {money.format(product.economics.shippingCost)}
-                                    </span>
-                                    <span>
-                                      Lucro estimado{" "}
+                                    <div>
+                                      <span>Tarifa de venda</span>
+                                      <strong>{money.format(product.economics.saleFee)}</strong>
+                                    </div>
+                                    <div>
+                                      <span>Frete</span>
+                                      <strong>
+                                        {money.format(product.economics.shippingCost)}
+                                      </strong>
+                                    </div>
+                                    <div>
+                                      <span>Lucro estimado</span>
                                       <strong>
                                         {money.format(product.economics.estimatedProfit)}
                                       </strong>
-                                    </span>
-                                    <span>
-                                      Margem{" "}
+                                    </div>
+                                    <div>
+                                      <span>Margem estimada</span>
                                       <strong>
                                         {product.economics.estimatedMarginPercent.toFixed(1)}%
                                       </strong>
-                                    </span>
+                                    </div>
                                   </div>
                                 )}
                               </div>

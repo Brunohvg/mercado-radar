@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { refreshRadarWatchlist } from "@/lib/radar-monitoring";
+import { syncMercadoLivreProducts } from "@/lib/ml-sync";
+import { pruneMarketSnapshots } from "@/lib/market-intel";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +30,21 @@ async function run(request: Request) {
   try {
     const result = await refreshRadarWatchlist({ limit: 200 });
 
+    // Série oficial dos seus anúncios (vendidos + visitas da API): calibra
+    // conversão e idade usadas nas estimativas de concorrentes.
+    const ownListings = await syncMercadoLivreProducts()
+      .then((sync) => ({ ok: true, ...sync }))
+      .catch((error: unknown) => ({
+        ok: false,
+        error: error instanceof Error ? error.message : "Falha ao sincronizar anúncios.",
+      }));
+    const prunedSnapshots = await pruneMarketSnapshots().catch(() => 0);
+
     return NextResponse.json({
       ok: true,
       ...result,
+      ownListings,
+      prunedSnapshots,
       executedAt: new Date().toISOString(),
     });
   } catch (error) {

@@ -75,7 +75,7 @@ const CACHE_RULES: Array<{ test: RegExp; ttlMs: number }> = [
   { test: /\/products\/search\?/, ttlMs: 5 * 60_000 },
   { test: /\/products\/[A-Z0-9]+(\?|$)/, ttlMs: 5 * 60_000 },
   { test: /\/visits\/items\?/, ttlMs: 5 * 60_000 },
-  { test: /\/items\?ids=/, ttlMs: 60_000 },
+  { test: /\/items(\/bulk)?\?ids=/, ttlMs: 60_000 },
 ];
 const CACHE_MAX_ENTRIES = 500;
 const responseCache = new Map<string, { expiresAt: number; body: unknown }>();
@@ -759,13 +759,17 @@ export type SellerItemDetail = {
 };
 
 /**
- * Multiget oficial: GET /items?ids=ID1,ID2 (máx. 20 por chamada). Cada entrada
- * vem como { code, body }. Itens que o Mercado Livre não libera para o app
- * (code 403/404) são omitidos do resultado e listados em `restrictedIds`.
+ * Multiget oficial. O Mercado Livre está deprecando GET /items?ids= (migração
+ * pedida até 25/10/2026) em favor de GET /items/bulk?ids=, que responde
+ * [{ id, status_code, body }] (sem body quando o item não existe). Usamos o
+ * bulk e só caímos no legado ({ code, body }) se o bulk não existir na conta.
+ * Máximo de 20 IDs por chamada. Itens que o Mercado Livre não libera para o
+ * app (403/404) são omitidos do resultado e listados em `restrictedIds`.
  */
 const ITEMS_MULTIGET_LIMIT = 20;
 
 type MultigetEntry = {
+  id?: string;
   code?: number;
   status_code?: number;
   body?: Record<string, any> & {
@@ -808,6 +812,36 @@ function toSellerItemDetail(entry: MultigetEntry): SellerItemDetail | null {
   };
 }
 
+// Quando o bulk falha por indisponibilidade, usa o legado por 30 min e tenta de novo.
+let bulkRetryAt = 0;
+const BULK_RETRY_MS = 30 * 60 * 1000;
+
+async function fetchMultigetChunk(accessToken: string, chunk: string[]) {
+  const params = new URLSearchParams({ ids: chunk.join(",") });
+  const init = { headers: { Authorization: `Bearer ${accessToken}` } };
+
+  if (Date.now() >= bulkRetryAt) {
+    try {
+      return await jsonFetch<MultigetEntry[]>(
+        `${API}/items/bulk?${params.toString()}`,
+        init,
+      );
+    } catch (error) {
+      // 400/403/404/405: bulk indisponível para esta conta/região agora.
+      if (
+        error instanceof MlApiError &&
+        [400, 403, 404, 405].includes(error.status)
+      ) {
+        bulkRetryAt = Date.now() + BULK_RETRY_MS;
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  return jsonFetch<MultigetEntry[]>(`${API}/items?${params.toString()}`, init);
+}
+
 export async function getItemsBulkDetailed(input: {
   accessToken: string;
   itemIds: string[];
@@ -818,18 +852,14 @@ export async function getItemsBulkDetailed(input: {
 
   for (let offset = 0; offset < ids.length; offset += ITEMS_MULTIGET_LIMIT) {
     const chunk = ids.slice(offset, offset + ITEMS_MULTIGET_LIMIT);
-    const params = new URLSearchParams({ ids: chunk.join(",") });
-
-    const raw = await jsonFetch<MultigetEntry[]>(
-      `${API}/items?${params.toString()}`,
-      { headers: { Authorization: `Bearer ${input.accessToken}` } },
-    );
+    const raw = await fetchMultigetChunk(input.accessToken, chunk);
 
     (Array.isArray(raw) ? raw : []).forEach((entry, index) => {
-      const code = entry.code ?? entry.status_code ?? 200;
+      const code =
+        entry.status_code ?? entry.code ?? (entry.body?.id ? 200 : 404);
       const detail = code === 200 ? toSellerItemDetail(entry) : null;
       if (detail) items.push(detail);
-      else restrictedIds.push(entry.body?.id ?? chunk[index]);
+      else restrictedIds.push(entry.id ?? entry.body?.id ?? chunk[index]);
     });
   }
 

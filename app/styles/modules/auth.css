@@ -1,0 +1,347 @@
+/* Login e primeiros passos. */
+
+/* ---------- login ---------- */
+.rd-auth {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(380px, 0.9fr);
+  background: var(--paper);
+  color: var(--ink-900);
+}
+
+.rd-auth__aside {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--s-8);
+  padding: var(--s-10) clamp(32px, 6vw, 88px);
+  background:
+    radial-gradient(90% 70% at 70% 30%, rgba(125, 239, 195, 0.1), transparent 70%),
+    var(--night);
+  color: var(--night-text);
+  overflow: hidden;
+}
+
+.rd-auth__scope {
+  position: absolute;
+  top: 50%;
+  left: 58%;
+  width: min(58vh, 520px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -62%);
+}
+
+.rd-auth__scope svg {
+  width: 100%;
+  height: 100%;
+  stroke: rgba(125, 239, 195, 0.18);
+  stroke-width: 0.6;
+}
+
+.rd-auth__sweep {
+  transform-origin: 100px 100px;
+  animation: rd-sweep 6s linear infinite;
+}
+
+.rd-auth__sweep path {
+  fill: rgba(125, 239, 195, 0.1);
+  stroke: none;
+}
+
+.rd-auth__blip {
+  fill: var(--signal);
+  stroke: none;
+  animation: rd-blip 6s ease-out infinite;
+}
+
+.rd-auth__blip--2 { animation-delay: 3.4s; }
+.rd-auth__blip--3 { animation-delay: 4.6s; }
+
+@keyframes rd-sweep {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes rd-blip {
+  0%, 100% { opacity: 0.15; }
+  8% { opacity: 1; }
+  40% { opacity: 0.35; }
+}
+
+.rd-auth__pitch {
+  position: relative;
+  max-width: 30ch;
+}
+
+.rd-auth__pitch strong {
+  display: block;
+  color: #fff;
+  font-size: clamp(28px, 3.2vw, 40px);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+}
+
+.rd-auth__pitch p {
+  margin-top: var(--s-4);
+  max-width: 44ch;
+  color: var(--night-text);
+  font-size: var(--fs-16);
+  line-height: 1.55;
+}
+
+.rd-auth__card {
+  align-self: center;
+  justify-self: center;
+  width: 100%;
+  max-width: 420px;
+  padding: var(--s-10) var(--s-8);
+}
+
+.rd-auth__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-bottom: var(--s-10);
+}
+
+.rd-auth__brand img {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+}
+
+.rd-auth__brand strong {
+  display: block;
+  font-size: var(--fs-18);
+  letter-spacing: -0.01em;
+}
+
+.rd-auth__brand small {
+  display: block;
+  color: var(--ink-500);
+  font-size: var(--fs-12);
+}
+
+.rd-auth h1 {
+  font-size: var(--fs-28);
+  letter-spacing: -0.02em;
+}
+
+.rd-auth__card > p {
+  margin-top: var(--s-1);
+  color: var(--ink-500);
+}
+
+.rd-auth form {
+  margin-top: var(--s-6);
+}
+
+.rd-label {
+  display: block;
+  margin: var(--s-4) 0 6px;
+}
+
+.rd-input {
+  min-height: 44px !important;
+}
+
+.rd-auth__error {
+  margin-top: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border-left: 3px solid var(--risk);
+  border-radius: var(--r-sm);
+  background: var(--risk-tint);
+  color: var(--risk-ink);
+  font-size: var(--fs-13);
+}
+
+.rd-auth form .rd-btn {
+  width: 100%;
+  min-height: 44px;
+  margin-top: var(--s-6);
+}
+
+@media (max-width: 880px) {
+  .rd-auth {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rd-auth__aside {
+    min-height: 220px;
+    padding: var(--s-6);
+  }
+
+  .rd-auth__scope {
+    left: 80%;
+    width: 300px;
+    transform: translate(-50%, -50%);
+  }
+
+  .rd-auth__pitch strong {
+    font-size: var(--fs-22);
+  }
+
+  .rd-auth__pitch p {
+    display: none;
+  }
+
+  .rd-auth__card {
+    padding: var(--s-8) var(--s-5);
+  }
+
+  .rd-auth__brand {
+    margin-bottom: var(--s-6);
+  }
+}
+
+/* ---------- primeiros passos ---------- */
+.rd-onb {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  max-width: 880px;
+}
+
+.rd-onb__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.rd-onb__head h1 {
+  font-size: var(--fs-28);
+  letter-spacing: -0.02em;
+}
+
+.rd-onb__head p {
+  color: var(--ink-500);
+}
+
+.rd-onb__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+
+.rd-onb__track {
+  flex: 1;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.rd-onb__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand);
+  transition: width 0.3s;
+}
+
+.rd-onb__count {
+  font-family: var(--font-num);
+  font-size: var(--fs-16);
+  font-weight: 600;
+  color: var(--ink-700);
+}
+
+.rd-onb__list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.rd-step {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+  border-top: 1px solid var(--line);
+}
+
+.rd-step:first-child {
+  border-top: 0;
+}
+
+.rd-step__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-strong);
+  color: var(--ink-500);
+  font-family: var(--font-num);
+  font-weight: 600;
+}
+
+.rd-step--done .rd-step__icon {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #fff;
+}
+
+.rd-step__copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.rd-step__copy strong {
+  display: block;
+  font-size: var(--fs-16);
+  font-weight: 600;
+}
+
+.rd-step__copy span {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+}
+
+.rd-onb__done {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-2);
+  padding: var(--s-5);
+  border: 1px solid var(--brand-tint);
+  border-radius: var(--r-lg);
+  background: var(--brand-tint-2);
+}
+
+.rd-onb__done strong {
+  font-size: var(--fs-16);
+}
+
+.rd-onb__done p {
+  color: var(--ink-500);
+}
+
+.rd-onb__error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border-left: 3px solid var(--risk);
+  border-radius: var(--r-sm);
+  background: var(--risk-tint);
+  color: var(--risk-ink);
+}
+
+@media (max-width: 640px) {
+  .rd-step {
+    flex-wrap: wrap;
+  }
+
+  .rd-step .rd-btn,
+  .rd-step .rd-badge {
+    margin-left: 48px;
+  }
+}

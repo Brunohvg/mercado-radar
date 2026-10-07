@@ -357,11 +357,11 @@ export function ListingsDashboard() {
     <section className="listings-page">
       <header className="page-header clean-page-header">
         <div>
-          <p className="page-kicker">Overview · Anúncios</p>
+          <p className="page-kicker">Operação</p>
           <h1>Anúncios</h1>
           <p>
-            Descubra qual anúncio merece preço, estoque ou atenção — e qual está
-            consumindo capital sem retorno.
+            Veja qual anúncio pede ajuste de preço, estoque ou atenção — e qual
+            está prendendo capital sem retorno.
           </p>
         </div>
 
@@ -420,15 +420,6 @@ export function ListingsDashboard() {
                     : "aguardando vendas"}
                 </small>
               </div>
-              <div className="listing-ticket-spark" aria-hidden="true">
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
-              </div>
             </article>
 
             <article className="clean-kpi-card listing-score-card">
@@ -469,15 +460,17 @@ export function ListingsDashboard() {
           <section className="clean-panel products-table-panel listings-panel">
             <div className="products-table-toolbar">
               <div>
-                <strong>Anúncios</strong>
-                <span>{listings.length}</span>
+                <strong>Lista de anúncios</strong>
+                <span className="num">{listings.length}</span>
               </div>
 
               <div className="products-table-actions listings-toolbar-actions">
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Buscar anúncio, ID, SKU ou User Product..."
+                  placeholder="Buscar título, ID ou SKU"
+                  aria-label="Buscar anúncios"
+                  type="search"
                 />
 
                 <select
@@ -527,12 +520,30 @@ export function ListingsDashboard() {
                     <th>Estoque</th>
                     <th>Vendas 30d</th>
                     <th>Margem</th>
-                    <th>Radar</th>
-                    <th />
+                    <th>Score</th>
+                    <th aria-label="Ações" />
                   </tr>
                 </thead>
 
                 <tbody>
+                  {listings.length === 0 && (
+                    <tr className="listing-empty-row">
+                      <td colSpan={11}>
+                        <div className="empty-result">
+                          <strong>
+                            {data.products.length === 0
+                              ? "Nenhum anúncio sincronizado"
+                              : "Nenhum anúncio com esses filtros"}
+                          </strong>
+                          <span>
+                            {data.products.length === 0
+                              ? "Conecte a conta do Mercado Livre ou use Atualizar dados para importar seus anúncios."
+                              : "Ajuste a busca, o filtro ou a ordenação para ver mais resultados."}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                   {listings.map((item) => {
                     const insight = insightById[item.mlItemId] ?? null;
                     const isOpen = insightItemId === item.mlItemId;
@@ -581,7 +592,7 @@ export function ListingsDashboard() {
                           </td>
 
                           <td>
-                            <span className="neutral-chip">
+                            <span className="listing-plan">
                               {listingType(item.listingTypeId)}
                             </span>
                           </td>
@@ -607,8 +618,8 @@ export function ListingsDashboard() {
                             </strong>
                           </td>
 
-                          <td>{item.availableQuantity}</td>
-                          <td>{item.health.unitsSold}</td>
+                          <td className="num">{item.availableQuantity}</td>
+                          <td className="num">{item.health.unitsSold}</td>
 
                           <td>
                             {item.health.decisionMarginPercent == null ? (
@@ -662,10 +673,11 @@ export function ListingsDashboard() {
                                   (isOpen ? "active" : "")
                                 }
                                 onClick={() => void toggleInsight(item)}
+                                aria-expanded={isOpen}
                                 disabled={isLoadingInsight}
                                 title="Analisar posição, mercado e preço"
                               >
-                                {isLoadingInsight ? "…" : "Radar"}
+                                {isLoadingInsight ? "Abrindo…" : isOpen ? "Fechar" : "Analisar"}
                               </button>
 
                               {item.permalink && (
@@ -930,9 +942,9 @@ export function ListingsDashboard() {
 
             <footer className="table-footer-note">
               <span>
-                Score Radar usa status, custo cadastrado, margem, vendas recentes,
-                cobertura de estoque e visibilidade. Não mistura períodos
-                incompatíveis para inventar conversão.
+                O score Radar combina status, custo cadastrado, margem, vendas
+                recentes, cobertura de estoque e visibilidade. Não mistura
+                períodos incompatíveis para estimar conversão.
               </span>
             </footer>
           </section>

@@ -106,11 +106,14 @@ export async function GET(request: Request) {
 
   const probes: Probe[] = [
     { name: "item", path: `/items/${item}` },
-    { name: "multiget", path: `/items?ids=${item}` },
+    { name: "multiget_bulk", path: `/items/bulk?ids=${item}` },
+    { name: "multiget_legado", path: `/items?ids=${item}` },
     { name: "visitas_total", path: `/visits/items?ids=${item}` },
     { name: "visitas_30d", path: `/items/${item}/visits/time_window?last=30&unit=day` },
     { name: "price_to_win", path: `/items/${item}/price_to_win?siteId=MLB&version=v2` },
     { name: "busca_publica", path: `/sites/MLB/search?q=ilhos&limit=1` },
+    { name: "mais_vendidos_item", path: `/highlights/MLB/item/${item}` },
+    { name: "tendencias", path: `/trends/MLB` },
   ];
 
   if (product) {

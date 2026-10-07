@@ -17,7 +17,9 @@ type IconName =
   | "radar"
   | "extension"
   | "monitoring"
-  | "integrations";
+  | "integrations"
+  | "market"
+  | "steps";
 
 type MenuItem = {
   href: string;
@@ -28,32 +30,33 @@ type MenuItem = {
 
 const groups: Array<{ label: string; items: MenuItem[] }> = [
   {
-    label: "Visão geral",
+    label: "Operação",
     items: [
       { href: "/", label: "Dashboard", icon: "dashboard" },
-      { href: "/onboarding", label: "Primeiros passos", icon: "radar" },
       { href: "/anuncios", label: "Anúncios", icon: "listings" },
       { href: "/produtos", label: "Produtos", icon: "products" },
-      { href: "/fornecedores", label: "Fornecedores", icon: "suppliers" },
+      { href: "/vendas", label: "Vendas e lucro", icon: "sales" },
       { href: "/publicidade", label: "Publicidade", icon: "ads" },
-      { href: "/vendas", label: "Vendas & lucro", icon: "sales" },
+      { href: "/fornecedores", label: "Fornecedores", icon: "suppliers" },
     ],
   },
   {
     label: "Inteligência",
     items: [
-      { href: "/analisar", label: "Análise de produtos", icon: "analysis" },
-      { href: "/historico", label: "Histórico de análises", icon: "history" },
-      { href: "/ean", label: "EAN em lote", icon: "ean" },
+      { href: "/mercado", label: "Mercado", icon: "market", badge: "Novo" },
       { href: "/oportunidades", label: "Radar de oportunidades", icon: "radar" },
       { href: "/monitoramento", label: "Monitoramento", icon: "monitoring" },
-      { href: "/extensao", label: "Extensão Radar", icon: "extension", badge: "BETA" },
+      { href: "/analisar", label: "Análise de produto", icon: "analysis" },
+      { href: "/ean", label: "EAN em lote", icon: "ean" },
+      { href: "/historico", label: "Histórico de análises", icon: "history" },
     ],
   },
   {
-    label: "Sistema",
+    label: "Configuração",
     items: [
       { href: "/integracoes", label: "Integrações", icon: "integrations" },
+      { href: "/extensao", label: "Extensão", icon: "extension" },
+      { href: "/onboarding", label: "Primeiros passos", icon: "steps" },
     ],
   },
 ];
@@ -173,6 +176,25 @@ function MenuIcon({ name }: { name: IconName }) {
     );
   }
 
+  if (name === "market") {
+    return (
+      <svg {...common}>
+        <path d="M3 17.5 8.5 12l3.5 3.5L20.5 7" />
+        <path d="M15 7h5.5v5.5" />
+        <path d="M3 21h18" />
+      </svg>
+    );
+  }
+
+  if (name === "steps") {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="8.5" />
+        <path d="m8.5 12 2.5 2.5 4.5-5" />
+      </svg>
+    );
+  }
+
   if (name === "extension") {
     return (
       <svg {...common}>
@@ -282,8 +304,8 @@ export function AppNavigation() {
               <img src="/brand/mark.svg" alt="" aria-hidden="true" />
             </span>
             <div className="brand-copy">
-              <strong>mercado radar</strong>
-              <small>seller intelligence</small>
+              <strong>Mercado Radar</strong>
+              <small>Inteligência de mercado</small>
             </div>
           </Link>
 
@@ -357,14 +379,6 @@ export function AppNavigation() {
           </svg>
         </button>
 
-        <button
-          type="button"
-          className="sidebar-collapse"
-          onClick={toggleCollapsed}
-        >
-          <span>{collapsed ? "›" : "‹"}</span>
-          <strong>{collapsed ? "Expandir" : "Recolher sidebar"}</strong>
-        </button>
       </aside>
     </>
   );

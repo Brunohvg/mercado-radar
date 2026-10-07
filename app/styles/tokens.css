@@ -1,36 +1,106 @@
 /*
- * Tokens do Mercado Radar (painel web).
- * Prefixo --rd- de propósito: o globals.css legado ainda tem 4 blocos :root
- * com --bg/--text/--line etc. Sem prefixo, estes valores brigariam com eles.
- * Quando o globals.css for consolidado (Prompt 02), o prefixo pode cair.
+ * Tokens do Mercado Radar — fonte única de cor, tipo, espaço e forma do painel.
+ * Regra: nenhum arquivo de estilo usa cor/tamanho "solto"; tudo sai daqui.
  */
 :root {
-  --rd-brand-700: #0b5a49;
-  --rd-brand-600: #0f725e;
-  --rd-brand-500: #18967a;
-  --rd-brand-100: #e7f6f1;
-  --rd-brand-50: #f3fbf8;
+  /* tipo */
+  --font-ui: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-num: "IBM Plex Sans Condensed", "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
 
-  --rd-bg: #f7f9f8;
-  --rd-surface: #ffffff;
-  --rd-surface-2: #f2f6f4;
-  --rd-line: #e3eae7;
-  --rd-line-strong: #cfdad6;
+  --fs-11: 11px;
+  --fs-12: 12px;
+  --fs-13: 13px;
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-18: 18px;
+  --fs-22: 22px;
+  --fs-28: 28px;
+  --fs-36: 36px;
 
-  --rd-text: #17342d;
-  --rd-text-2: #51665f;
-  --rd-text-3: #7f918a;
+  /* tinta (texto) */
+  --ink-900: #0f2a24;
+  --ink-700: #2d4841;
+  --ink-500: #5a716a;
+  --ink-400: #7d908a;
+  --ink-300: #a7b6b1;
 
-  --rd-ok: #18967a;
-  --rd-warn: #b87408;
-  --rd-risk: #c8402f;
-  --rd-risk-bg: #fdebe8;
+  /* papel e superfícies */
+  --paper: #f2f5f4;
+  --surface: #ffffff;
+  --surface-2: #f7faf9;
+  --surface-3: #edf2f0;
+  --line: #e0e8e5;
+  --line-strong: #c8d4d0;
 
-  --rd-r-sm: 8px;
-  --rd-r-md: 12px;
-  --rd-r-lg: 16px;
-  --rd-r-pill: 999px;
-  --rd-shadow-1: 0 1px 2px rgba(23, 52, 45, 0.06);
-  --rd-shadow-2: 0 8px 24px rgba(23, 52, 45, 0.1);
-  --rd-font: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  /* marca */
+  --brand: #18967a;
+  --brand-600: #117f67;
+  --brand-700: #0b5f4d;
+  --brand-tint: #e3f4ee;
+  --brand-tint-2: #f1faf7;
+  --signal: #7defc3;
+
+  /* barra lateral (noite do radar) */
+  --night: #0a231e;
+  --night-2: #0f2f28;
+  --night-3: #163b33;
+  --night-line: rgba(255, 255, 255, 0.07);
+  --night-text: #d3e4de;
+  --night-muted: #82a099;
+
+  /* estados */
+  --ok: #1a8a6b;
+  --ok-tint: #e3f4ee;
+  --warn: #9c6400;
+  --warn-strong: #c98a0b;
+  --warn-tint: #fbf0d9;
+  --risk: #b93a2b;
+  --risk-tint: #fbe8e4;
+  --risk-line: #f2c9c1;
+  --risk-ink: #7f2a1f;
+  --warn-line: #f0d9a6;
+  --warn-ink: #6b4500;
+  --info: #2c6a88;
+  --info-tint: #e4eff5;
+
+  /* forma */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-pill: 999px;
+
+  /* espaço */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+
+  /* profundidade: só para o que flutua (menus, modais, toasts) */
+  --shadow-pop: 0 14px 36px rgba(10, 35, 30, 0.16), 0 2px 6px rgba(10, 35, 30, 0.06);
+  --shadow-hair: 0 1px 0 rgba(10, 35, 30, 0.04);
+
+  --focus: 0 0 0 3px rgba(24, 150, 122, 0.28);
+  --sidebar-w: 248px;
+  --sidebar-w-collapsed: 72px;
+  --content-max: 1360px;
+
+  /* aliases do sistema anterior (login/onboarding usam --rd-*) */
+  --rd-brand-500: var(--brand);
+  --rd-brand-600: var(--brand-600);
+  --rd-brand-100: var(--brand-tint);
+  --rd-surface: var(--surface);
+  --rd-surface-2: var(--surface-2);
+  --rd-line: var(--line);
+  --rd-line-strong: var(--line-strong);
+  --rd-text: var(--ink-900);
+  --rd-text-2: var(--ink-500);
+  --rd-text-3: var(--ink-400);
+  --rd-risk: var(--risk);
+  --rd-risk-bg: var(--risk-tint);
+  --rd-font: var(--font-ui);
 }

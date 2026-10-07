@@ -44,12 +44,36 @@ export function LoginForm({ configured }: { configured: boolean }) {
 
   return (
     <main className="rd-auth">
+      <aside className="rd-auth__aside" aria-hidden="true">
+        <div className="rd-auth__scope">
+          <svg viewBox="0 0 200 200" fill="none">
+            <circle cx="100" cy="100" r="96" />
+            <circle cx="100" cy="100" r="66" />
+            <circle cx="100" cy="100" r="36" />
+            <path d="M100 4v192M4 100h192" />
+            <g className="rd-auth__sweep">
+              <path d="M100 100 L100 4 A96 96 0 0 1 183 52 Z" />
+            </g>
+            <circle className="rd-auth__blip" cx="146" cy="62" r="4" />
+            <circle className="rd-auth__blip rd-auth__blip--2" cx="58" cy="128" r="3" />
+            <circle className="rd-auth__blip rd-auth__blip--3" cx="128" cy="148" r="3" />
+          </svg>
+        </div>
+        <div className="rd-auth__pitch">
+          <strong>Veja o que vende antes de investir.</strong>
+          <p>
+            Vendas, faturamento e visitas estimadas de qualquer anúncio do Mercado Livre,
+            com a sua margem calculada na hora.
+          </p>
+        </div>
+      </aside>
+
       <div className="rd-auth__card">
         <div className="rd-auth__brand">
           <img src="/brand/mark.svg" alt="" aria-hidden="true" />
           <div>
             <strong>Mercado Radar</strong>
-            <small>Seller intelligence</small>
+            <small>Inteligência para vender no Mercado Livre</small>
           </div>
         </div>
 

@@ -425,12 +425,12 @@ export function OpportunityRadar() {
     <section className="opportunity-page">
       <header className="page-header clean-page-header opportunity-page-header">
         <div>
-          <p className="page-kicker">Inteligência · Descoberta</p>
+          <p className="page-kicker">Inteligência</p>
           <h1>Radar de oportunidades</h1>
           <p>
-            Pesquise um produto e veja demanda, velocidade, faturamento estimado,
-            preço, concorrência e qualidade da evidência sem depender de uma
-            tendência genérica para a tela funcionar.
+            Pesquise um produto e veja demanda, velocidade de vendas, faturamento
+            estimado, faixa de preço e concorrência — com a confiança de cada
+            número.
           </p>
         </div>
       </header>
@@ -464,12 +464,12 @@ export function OpportunityRadar() {
             />
           </div>
           <button type="submit" className="primary" disabled={loading}>
-            {loading ? "Lendo mercado..." : "Pesquisar oportunidade"}
+            {loading ? "Lendo mercado..." : "Pesquisar"}
           </button>
         </form>
 
         <div className="opportunity-trends">
-          <span>{trendsLoading ? "Lendo tendências..." : "Tendências:"}</span>
+          <span>{trendsLoading ? "Lendo tendências..." : "Em alta no Mercado Livre"}</span>
           {!trendsLoading &&
             trends.slice(0, 8).map((trend) => (
               <button
@@ -477,12 +477,13 @@ export function OpportunityRadar() {
                 key={trend.keyword}
                 onClick={() => void runSearch(trend.keyword)}
               >
-                #{trend.position} {trend.keyword}
+                <b>{trend.position}</b>
+                {trend.keyword}
               </button>
             ))}
           {!trendsLoading && trends.length === 0 && (
             <small>
-              Tendências indisponíveis agora — a pesquisa continua funcionando normalmente.
+              Tendências indisponíveis agora — a pesquisa funciona normalmente.
             </small>
           )}
         </div>
@@ -500,82 +501,9 @@ export function OpportunityRadar() {
 
       {!loading && data?.summary && (
         <>
-          <section className="opportunity-market-summary">
-            <article>
-              <span>Mediana do mercado</span>
-              <strong>
-                {data.summary.median == null
-                  ? "—"
-                  : money.format(data.summary.median)}
-              </strong>
-              <small>
-                P25{" "}
-                {data.summary.p25 == null
-                  ? "—"
-                  : money.format(data.summary.p25)}{" "}
-                · P75{" "}
-                {data.summary.p75 == null
-                  ? "—"
-                  : money.format(data.summary.p75)}
-              </small>
-            </article>
-
-            <article>
-              <span>Vendas estimadas / mês</span>
-              <strong>
-                {data.summary.medianEstimatedSalesPerMonth == null
-                  ? "—"
-                  : "~" +
-                    Math.round(
-                      data.summary.medianEstimatedSalesPerMonth,
-                    ).toLocaleString("pt-BR")}
-              </strong>
-              <small>mediana entre anúncios com histórico suficiente</small>
-            </article>
-
-            <article>
-              <span>Faturamento estimado / mês</span>
-              <strong>
-                {data.summary.medianEstimatedRevenuePerMonth == null
-                  ? "—"
-                  : "~" +
-                    compactMoney.format(
-                      data.summary.medianEstimatedRevenuePerMonth,
-                    )}
-              </strong>
-              <small>estimativa por velocidade histórica</small>
-            </article>
-
-            <article>
-              <span>Concorrência observada</span>
-              <strong>{data.summary.competitionLevel}</strong>
-              <small>
-                {data.summary.uniqueSellers} vendedores ·{" "}
-                {data.summary.comparableCount} comparáveis
-              </small>
-            </article>
-
-            <article>
-              <span>Logística do mercado</span>
-              <strong>{data.summary.freeShippingPercent}%</strong>
-              <small>
-                Full {data.summary.fullPercent}% · Flex {data.summary.flexPercent}% ·{" "}
-                {data.summary.catalogPercent}% catálogo
-              </small>
-            </article>
-
-            <article>
-              <span>Qualidade dos dados</span>
-              <strong>{data.summary.exactPricePercent}%</strong>
-              <small>
-                preço atual confirmado · {data.summary.highEvidenceCount} com alta confiança
-              </small>
-            </article>
-          </section>
-
           <div className="opportunity-context-line">
             <div>
-              <strong>{data.query}</strong>
+              <h2>{data.query}</h2>
               <span>
                 {data.category.name ??
                   data.category.id ??
@@ -594,13 +522,83 @@ export function OpportunityRadar() {
             </span>
           </div>
 
+          <section className="clean-kpi-grid opportunity-market-summary">
+            <article className="clean-kpi-card accent">
+              <span>Mediana do mercado</span>
+              <strong>
+                {data.summary.median == null
+                  ? "—"
+                  : money.format(data.summary.median)}
+              </strong>
+              <small>
+                P25{" "}
+                {data.summary.p25 == null
+                  ? "—"
+                  : money.format(data.summary.p25)}{" "}
+                · P75{" "}
+                {data.summary.p75 == null
+                  ? "—"
+                  : money.format(data.summary.p75)}
+              </small>
+            </article>
+
+            <article className="clean-kpi-card">
+              <span>Vendas estimadas / mês</span>
+              <strong>
+                {data.summary.medianEstimatedSalesPerMonth == null
+                  ? "—"
+                  : "~" +
+                    Math.round(
+                      data.summary.medianEstimatedSalesPerMonth,
+                    ).toLocaleString("pt-BR")}
+              </strong>
+              <small>mediana dos anúncios com histórico</small>
+            </article>
+
+            <article className="clean-kpi-card">
+              <span>Faturamento estimado / mês</span>
+              <strong>
+                {data.summary.medianEstimatedRevenuePerMonth == null
+                  ? "—"
+                  : "~" +
+                    compactMoney.format(
+                      data.summary.medianEstimatedRevenuePerMonth,
+                    )}
+              </strong>
+              <small>pela velocidade histórica</small>
+            </article>
+
+            <article className="clean-kpi-card">
+              <span>Concorrência</span>
+              <strong>{demandLabel(data.summary.competitionLevel)}</strong>
+              <small>
+                {data.summary.uniqueSellers} vendedores ·{" "}
+                {data.summary.comparableCount} comparáveis
+              </small>
+            </article>
+
+            <article className="clean-kpi-card">
+              <span>Frete grátis</span>
+              <strong>{data.summary.freeShippingPercent}%</strong>
+              <small>
+                Full {data.summary.fullPercent}% · Flex {data.summary.flexPercent}% ·
+                Catálogo {data.summary.catalogPercent}%
+              </small>
+            </article>
+
+            <article className="clean-kpi-card">
+              <span>Preço confirmado</span>
+              <strong>{data.summary.exactPricePercent}%</strong>
+              <small>
+                {data.summary.highEvidenceCount} anúncios com alta confiança
+              </small>
+            </article>
+          </section>
+
           <section className="opportunity-workspace">
-            <aside className="opportunity-filter-panel">
+            <aside className="opportunity-filter-panel" aria-label="Filtros">
               <div className="opportunity-filter-head">
-                <div>
-                  <span>Filtros Radar</span>
-                  <strong>Refine a oportunidade</strong>
-                </div>
+                <strong>Filtros</strong>
                 <button type="button" onClick={resetFilters}>
                   Limpar
                 </button>
@@ -634,7 +632,7 @@ export function OpportunityRadar() {
               </label>
 
               <label>
-                <span>Relevância do comparável</span>
+                <span>Relevância</span>
                 <select
                   value={relevanceMin}
                   onChange={(event) =>
@@ -649,7 +647,7 @@ export function OpportunityRadar() {
               </label>
 
               <label>
-                <span>Vendas estimadas / mês</span>
+                <span>Vendas / mês</span>
                 <select
                   value={salesMin}
                   onChange={(event) => setSalesMin(Number(event.target.value))}
@@ -663,7 +661,7 @@ export function OpportunityRadar() {
               </label>
 
               <label>
-                <span>Faturamento estimado / mês</span>
+                <span>Faturamento / mês</span>
                 <select
                   value={revenueMin}
                   onChange={(event) =>
@@ -679,7 +677,7 @@ export function OpportunityRadar() {
               </label>
 
               <label>
-                <span>Idade máxima</span>
+                <span>Idade do anúncio</span>
                 <select
                   value={ageMax}
                   onChange={(event) => setAgeMax(Number(event.target.value))}
@@ -693,7 +691,7 @@ export function OpportunityRadar() {
               </label>
 
               <label>
-                <span>Qualidade da evidência</span>
+                <span>Evidência</span>
                 <select
                   value={evidence}
                   onChange={(event) =>
@@ -719,62 +717,66 @@ export function OpportunityRadar() {
                 </select>
               </label>
 
-              <label>
-                <span>Ordenar</span>
-                <select
-                  value={sort}
-                  onChange={(event) => setSort(event.target.value as Sort)}
-                >
-                  <option value="SCORE">Melhor oportunidade</option>
-                  <option value="SALES">Mais vendas / mês</option>
-                  <option value="REVENUE">Maior faturamento / mês</option>
-                  <option value="NEWEST">Mais novos</option>
-                  <option value="PRICE_ASC">Menor preço</option>
-                  <option value="SEARCH_POSITION">Posição da busca</option>
-                  <option value="BEST_SELLER">Ranking mais vendidos</option>
-                </select>
-              </label>
+              <div className="opportunity-check-group">
+                <label className="opportunity-check">
+                  <input
+                    type="checkbox"
+                    checked={freeShippingOnly}
+                    onChange={(event) =>
+                      setFreeShippingOnly(event.target.checked)
+                    }
+                  />
+                  <span>Só frete grátis</span>
+                </label>
 
-              <label className="opportunity-check">
-                <input
-                  type="checkbox"
-                  checked={freeShippingOnly}
-                  onChange={(event) =>
-                    setFreeShippingOnly(event.target.checked)
-                  }
-                />
-                <span>Só frete grátis</span>
-              </label>
+                <label className="opportunity-check">
+                  <input
+                    type="checkbox"
+                    checked={catalogOnly}
+                    onChange={(event) => setCatalogOnly(event.target.checked)}
+                  />
+                  <span>Só catálogo</span>
+                </label>
 
-              <label className="opportunity-check">
-                <input
-                  type="checkbox"
-                  checked={catalogOnly}
-                  onChange={(event) => setCatalogOnly(event.target.checked)}
-                />
-                <span>Só catálogo</span>
-              </label>
-
-              <label className="opportunity-check">
-                <input
-                  type="checkbox"
-                  checked={bestSellerOnly}
-                  onChange={(event) => setBestSellerOnly(event.target.checked)}
-                />
-                <span>Só mais vendidos</span>
-              </label>
-
-              <div className="opportunity-filter-result">
-                <strong>{filtered.length}</strong>
-                <span>resultado(s) após filtros</span>
+                <label className="opportunity-check">
+                  <input
+                    type="checkbox"
+                    checked={bestSellerOnly}
+                    onChange={(event) => setBestSellerOnly(event.target.checked)}
+                  />
+                  <span>Só mais vendidos</span>
+                </label>
               </div>
             </aside>
 
             <div className="opportunity-results">
+              <div className="opportunity-results-toolbar">
+                <div className="opportunity-filter-result" aria-live="polite">
+                  <strong>{filtered.length}</strong>
+                  <span>anúncio(s) após filtros</span>
+                </div>
+
+                <label className="opportunity-sort">
+                  <span>Ordenar por</span>
+                  <select
+                    value={sort}
+                    onChange={(event) => setSort(event.target.value as Sort)}
+                  >
+                    <option value="SCORE">Melhor oportunidade</option>
+                    <option value="SALES">Mais vendas / mês</option>
+                    <option value="REVENUE">Maior faturamento / mês</option>
+                    <option value="NEWEST">Mais novos</option>
+                    <option value="PRICE_ASC">Menor preço</option>
+                    <option value="SEARCH_POSITION">Posição na busca</option>
+                    <option value="BEST_SELLER">Ranking mais vendidos</option>
+                  </select>
+                </label>
+              </div>
+
               {filtered.length === 0 ? (
                 <div className="module-empty opportunity-empty">
-                  Nenhum anúncio passou pelos filtros atuais. Reduza os filtros
-                  ou pesquise outro termo.
+                  <strong>Nenhum anúncio passou pelos filtros</strong>
+                  <span>Afrouxe algum filtro ou pesquise outro termo.</span>
                 </div>
               ) : (
                 <div className="opportunity-result-grid">
@@ -784,39 +786,47 @@ export function OpportunityRadar() {
                         {item.thumbnail ? (
                           <img src={item.thumbnail} alt="" loading="lazy" />
                         ) : (
-                          <div className="opportunity-image-fallback">MR</div>
+                          <div className="opportunity-image-fallback">
+                            Sem foto
+                          </div>
                         )}
 
                         <div className="opportunity-result-rank">
                           #{item.searchPosition} na busca
                         </div>
-
-                        <div
-                          className={
-                            "opportunity-score " + scoreTone(item.score)
-                          }
-                        >
-                          <strong>{item.score}</strong>
-                          <span>/100</span>
-                        </div>
                       </div>
 
-                      <div className="opportunity-result-body">
+                      <div className="opportunity-result-main">
                         <div className="opportunity-card-heading">
-                          <div>
+                          <span
+                            className={
+                              "opportunity-demand " +
+                              item.demandLabel.toLowerCase()
+                            }
+                          >
+                            Demanda {demandLabel(item.demandLabel).toLowerCase()}
+                          </span>
+                          <span className="opportunity-evidence">
                             <span
-                              className={
-                                "opportunity-demand " +
-                                item.demandLabel.toLowerCase()
+                              className="signal"
+                              data-level={
+                                item.evidence === "HIGH"
+                                  ? 3
+                                  : item.evidence === "MEDIUM"
+                                    ? 2
+                                    : 1
                               }
+                              aria-hidden="true"
                             >
-                              {demandLabel(item.demandLabel)}
+                              <i />
+                              <i />
+                              <i />
                             </span>
-                            <span className="opportunity-evidence">
-                              {evidenceLabel(item.evidence)}
-                            </span>
-                          </div>
-                          <span>{item.similarityPercent}% relevante</span>
+                            {evidenceLabel(item.evidence)}
+                          </span>
+                          <span className="opportunity-relevance">
+                            {item.similarityPercent}% relevante
+                          </span>
                         </div>
 
                         <h3>{item.title}</h3>
@@ -836,102 +846,29 @@ export function OpportunityRadar() {
                               }
                             >
                               {item.gapToMedian >= 0 ? "+" : ""}
-                              {item.gapToMedian.toFixed(1)}% vs mediana
+                              {item.gapToMedian.toLocaleString("pt-BR", {
+                                minimumFractionDigits: 1,
+                                maximumFractionDigits: 1,
+                              })}
+                              % vs mediana
                             </span>
                           )}
                         </div>
+                      </div>
 
-                        <div className="opportunity-metric-grid">
-                          <div>
-                            <span>Visitas / dia</span>
-                            <strong>
-                              {item.visitsPerDay == null
-                                ? "—"
-                                : "~" +
-                                  item.visitsPerDay.toLocaleString("pt-BR", {
-                                    maximumFractionDigits: 1,
-                                  })}
-                            </strong>
-                            <small>ritmo histórico</small>
-                          </div>
-
-                          <div>
-                            <span>Vendas / dia</span>
-                            <strong>
-                              {item.salesPerDay == null
-                                ? "—"
-                                : "~" +
-                                  item.salesPerDay.toLocaleString("pt-BR", {
-                                    maximumFractionDigits: 1,
-                                  })}
-                            </strong>
-                            <small>ritmo histórico</small>
-                          </div>
-
-                          <div>
-                            <span>Vendas / mês</span>
-                            <strong>
-                              {item.salesPerMonth == null
-                                ? "Sem histórico"
-                                : "~" +
-                                  Math.round(
-                                    item.salesPerMonth,
-                                  ).toLocaleString("pt-BR")}
-                            </strong>
-                            <small>estimado</small>
-                          </div>
-
-                          <div>
-                            <span>Faturamento / mês</span>
-                            <strong>
-                              {item.revenuePerMonth == null
-                                ? "—"
-                                : "~" +
-                                  compactMoney.format(item.revenuePerMonth)}
-                            </strong>
-                            <small>estimado</small>
-                          </div>
-
-                          <div>
-                            <span>Vendidos total</span>
-                            <strong>
-                              {item.soldQuantity.toLocaleString("pt-BR")}
-                            </strong>
-                            <small>dado do anúncio</small>
-                          </div>
-
-                          <div>
-                            <span>Idade</span>
-                            <strong>
-                              {item.ageDays == null
-                                ? "—"
-                                : item.ageDays.toLocaleString("pt-BR") +
-                                  " dias"}
-                            </strong>
-                            <small>dado do anúncio</small>
-                          </div>
-                        </div>
-
-                        <div className="opportunity-tags">
-                          <span>
-                            {listingLabel(item.listingTypeId)}
-                          </span>
-                          <span>
-                            {item.catalogProductId
-                              ? "Catálogo"
-                              : "Tradicional"}
-                          </span>
-                          {item.freeShipping && <span>Frete grátis</span>}
-                          {item.logisticType === "fulfillment" && <span>Full</span>}
-                          {item.logisticType === "self_service" && <span>Flex</span>}
-                          {item.bestSellerPosition != null && (
-                            <span>#{item.bestSellerPosition} mais vendidos</span>
-                          )}
-                          {item.visits != null && (
-                            <span>
-                              {item.visits.toLocaleString("pt-BR")} visitas
-                            </span>
-                          )}
+                      <div
+                        className={
+                          "opportunity-score-panel " + scoreTone(item.score)
+                        }
+                      >
+                        <span>Radar Score</span>
+                        <div
+                          className={
+                            "opportunity-score " + scoreTone(item.score)
+                          }
+                        >
+                          <strong>{item.score}</strong>
+                          <span>/100</span>
                         </div>
 
                         <details className="opportunity-score-details">
@@ -957,21 +894,120 @@ export function OpportunityRadar() {
                             ))}
                           </div>
                         </details>
+                      </div>
+
+                      <dl className="opportunity-metric-grid">
+                        <div className="is-key">
+                          <dt>Vendas / mês</dt>
+                          <dd>
+                            {item.salesPerMonth == null
+                              ? "Sem histórico"
+                              : "~" +
+                                Math.round(
+                                  item.salesPerMonth,
+                                ).toLocaleString("pt-BR")}
+                          </dd>
+                          <small>estimado</small>
+                        </div>
+
+                        <div className="is-key">
+                          <dt>Faturamento / mês</dt>
+                          <dd>
+                            {item.revenuePerMonth == null
+                              ? "—"
+                              : "~" +
+                                compactMoney.format(item.revenuePerMonth)}
+                          </dd>
+                          <small>estimado</small>
+                        </div>
+
+                        <div>
+                          <dt>Vendas / dia</dt>
+                          <dd>
+                            {item.salesPerDay == null
+                              ? "—"
+                              : "~" +
+                                item.salesPerDay.toLocaleString("pt-BR", {
+                                  maximumFractionDigits: 1,
+                                })}
+                          </dd>
+                          <small>ritmo histórico</small>
+                        </div>
+
+                        <div>
+                          <dt>Visitas / dia</dt>
+                          <dd>
+                            {item.visitsPerDay == null
+                              ? "—"
+                              : "~" +
+                                item.visitsPerDay.toLocaleString("pt-BR", {
+                                  maximumFractionDigits: 1,
+                                })}
+                          </dd>
+                          <small>ritmo histórico</small>
+                        </div>
+
+                        <div>
+                          <dt>Vendidos</dt>
+                          <dd>{item.soldQuantity.toLocaleString("pt-BR")}</dd>
+                          <small>total do anúncio</small>
+                        </div>
+
+                        <div>
+                          <dt>Idade</dt>
+                          <dd>
+                            {item.ageDays == null
+                              ? "—"
+                              : item.ageDays.toLocaleString("pt-BR") +
+                                " dias"}
+                          </dd>
+                          <small>dado do anúncio</small>
+                        </div>
+                      </dl>
+
+                      <div className="opportunity-result-foot">
+                        <div className="opportunity-tags">
+                          <span>{listingLabel(item.listingTypeId)}</span>
+                          <span>
+                            {item.catalogProductId
+                              ? "Catálogo"
+                              : "Tradicional"}
+                          </span>
+                          {item.freeShipping && <span>Frete grátis</span>}
+                          {item.logisticType === "fulfillment" && (
+                            <span className="is-full">Full</span>
+                          )}
+                          {item.logisticType === "self_service" && (
+                            <span>Flex</span>
+                          )}
+                          {item.bestSellerPosition != null && (
+                            <span className="is-best">
+                              {item.bestSellerPosition}º mais vendido
+                            </span>
+                          )}
+                          {item.visits != null && (
+                            <span>
+                              {item.visits.toLocaleString("pt-BR")} visitas
+                            </span>
+                          )}
+                        </div>
 
                         <div className="opportunity-card-actions">
-                          <a
-                            href={
-                              "/analisar?q=" +
-                              encodeURIComponent(item.title)
-                            }
-                          >
-                            Analisar custo e margem
-                          </a>
+                          {item.permalink && (
+                            <a
+                              className="inline-link-button secondary-action"
+                              href={item.permalink}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Abrir anúncio
+                            </a>
+                          )}
 
                           <button
                             type="button"
                             className={
-                              "opportunity-monitor-action " +
+                              "secondary inline opportunity-monitor-action " +
                               (monitored.has(item.id) ? "is-monitored" : "")
                             }
                             disabled={
@@ -987,16 +1023,15 @@ export function OpportunityRadar() {
                                 : "Monitorar"}
                           </button>
 
-                          {item.permalink && (
-                            <a
-                              className="secondary-action"
-                              href={item.permalink}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Abrir ↗
-                            </a>
-                          )}
+                          <a
+                            className="primary inline"
+                            href={
+                              "/analisar?q=" +
+                              encodeURIComponent(item.title)
+                            }
+                          >
+                            Analisar custo e margem
+                          </a>
                         </div>
                       </div>
                     </article>
@@ -1010,15 +1045,17 @@ export function OpportunityRadar() {
             <section className="opportunity-extension-banner">
               <div>
                 <span>Visão completa do marketplace</span>
-                <strong>Use a Extensão Radar para analisar todos os anúncios visíveis</strong>
+                <strong>Analise todos os anúncios visíveis com a Extensão Radar</strong>
                 <p>{data.extensionMessage}</p>
               </div>
-              <a href="/extensao">Abrir Extensão Radar</a>
+              <a className="secondary" href="/extensao">
+                Abrir Extensão Radar
+              </a>
             </section>
           )}
 
           {data.methodology && (
-            <section className="opportunity-methodology">
+            <section className="opportunity-methodology" aria-label="Como os números são calculados">
               <div>
                 <strong>Dados reais</strong>
                 <p>{data.methodology.exact}</p>
@@ -1037,28 +1074,52 @@ export function OpportunityRadar() {
       )}
 
       {!loading && data && !data.summary && (
-        <div className="module-empty opportunity-empty">
-          {data.message ??
-            "Nenhuma oportunidade comparável foi encontrada nessa pesquisa."}
+        <div className="module-empty opportunity-empty opportunity-no-result">
+          <strong>Nenhum comparável para “{data.query}”</strong>
+          <span>
+            {data.message ??
+              "Nenhuma oportunidade comparável foi encontrada nessa pesquisa."}
+          </span>
+          {data.extensionRecommended && (
+            <a className="secondary inline" href="/extensao">
+              Abrir Extensão Radar
+            </a>
+          )}
         </div>
       )}
 
       {!loading && !data && (
         <section className="opportunity-first-state">
-          <div className="opportunity-first-state-icon">
+          <div className="opportunity-first-state-icon" aria-hidden="true">
             <span />
             <span />
             <span />
           </div>
-          <h2>Comece por um produto real</h2>
-          <p>
-            O Radar agora analisa a busca diretamente. Ele não precisa esperar
-            uma lista semanal de tendências para funcionar.
-          </p>
-          <small>
-            Quanto mais específico o termo — marca, modelo, quantidade ou medida —
-            melhor a qualidade dos comparáveis.
-          </small>
+          <div className="opportunity-first-state-copy">
+            <h2>Comece por um produto real</h2>
+            <p>
+              Digite um termo ou toque numa tendência. O Radar lê os anúncios
+              comparáveis do Mercado Livre na hora e mostra:
+            </p>
+            <ul>
+              <li>
+                <strong>Faixa de preço</strong>
+                <span>mediana, P25 e P75 do mercado</span>
+              </li>
+              <li>
+                <strong>Demanda por anúncio</strong>
+                <span>vendas e faturamento estimados por mês</span>
+              </li>
+              <li>
+                <strong>Radar Score</strong>
+                <span>nota de 0 a 100 com a confiança de cada dado</span>
+              </li>
+            </ul>
+            <small>
+              Quanto mais específico o termo — marca, modelo, quantidade ou
+              medida — melhores os comparáveis.
+            </small>
+          </div>
         </section>
       )}
     </section>

@@ -513,7 +513,7 @@ export async function POST(request: Request) {
       opportunities,
       methodology: {
         exact:
-          "A descoberta usa o buscador oficial de produtos do Mercado Livre. Preço e seller vêm do buy_box_winner; sem ele, da oferta mais barata em /products/{id}/items. Detalhes adicionais usam o multiget /items?ids=.",
+          "A descoberta usa o buscador oficial de produtos do Mercado Livre. Preço e seller vêm do buy_box_winner; sem ele, da oferta mais barata em /products/{id}/items. Detalhes adicionais usam o multiget /items/bulk?ids=.",
         estimated:
           "Vendas/mês e faturamento/mês continuam sendo estimativas baseadas nos sinais disponíveis e são identificadas como estimativas na interface.",
         score:

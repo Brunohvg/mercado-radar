@@ -91,88 +91,110 @@ export function MercadoLivreIntegration() {
 
   return (
     <section className="integration-panel" id="integracoes">
-      <div className="integration-head">
+      <header className="page-header clean-page-header integration-head">
         <div>
-          <p className="eyebrow">Integrações</p>
-          <h2>Mercado Livre API</h2>
+          <p className="page-kicker">Configuração</p>
+          <h1>Integrações</h1>
           <p>
             Conecte sua conta para o Radar buscar tarifa e frete da sua operação,
             em vez de depender de estimativas manuais.
           </p>
         </div>
-        <span className={"connection-badge " + (status?.connected ? "online" : "")}>
-          {status?.connected ? "Conectado" : "Não conectado"}
-        </span>
-      </div>
+      </header>
 
-      <div className="integration-grid">
-        <div>
-          <span>Aplicação</span>
-          <strong>{status?.configured ? "Configurada" : "Falta configurar env"}</strong>
+      <section className="clean-panel integration-account">
+        <div className="integration-account-head">
+          <span className="integration-logo" aria-hidden="true">ML</span>
+          <div>
+            <strong>Mercado Livre</strong>
+            <span>Pedidos, anúncios, métricas e publicidade da sua conta de vendedor</span>
+          </div>
+          <span
+            className={
+              "connection-badge status-chip " +
+              (status?.connected ? "good online" : "neutral")
+            }
+          >
+            {status?.connected ? "Conectado" : "Não conectado"}
+          </span>
         </div>
-        <div>
-          <span>Conta</span>
-          <strong>{status?.nickname ?? "—"}</strong>
-        </div>
-        <div>
-          <span>Seller ID</span>
-          <strong>{status?.userId ?? "—"}</strong>
-        </div>
-      </div>
 
-      {error && <div className="error">{error}</div>}
-
-      {status && !status.configured && (
-        <div className="integration-note">
-          Configure <code>MERCADO_LIVRE_CLIENT_ID</code>,{" "}
-          <code>MERCADO_LIVRE_CLIENT_SECRET</code>,{" "}
-          <code>MERCADO_LIVRE_REDIRECT_URI</code> e{" "}
-          <code>APP_ENCRYPTION_KEY</code> no ambiente do deploy.
+        <div className="clean-mini-grid integration-grid">
+          <div>
+            <span>Aplicação</span>
+            <strong>{status?.configured ? "Configurada" : "Pendente"}</strong>
+            <small>
+              {status?.configured
+                ? "credenciais no ambiente"
+                : "faltam variáveis de ambiente"}
+            </small>
+          </div>
+          <div>
+            <span>Conta</span>
+            <strong>{status?.nickname ?? "—"}</strong>
+            <small>{status?.connected ? "vendedor autorizado" : "nenhuma conta ligada"}</small>
+          </div>
+          <div>
+            <span>ID do vendedor</span>
+            <strong>{status?.userId ?? "—"}</strong>
+            <small>identificador no Mercado Livre</small>
+          </div>
         </div>
-      )}
 
-      <div className="integration-actions">
-        <a className="primary-link" href="/api/integrations/mercadolivre/authorize">
-          {status?.connected ? "Reconectar conta" : "Conectar Mercado Livre"}
-        </a>
-        <button
-          type="button"
-          className="secondary"
-          disabled={!status?.connected || diagnosticsLoading}
-          onClick={runDiagnostics}
-        >
-          {diagnosticsLoading
-            ? "Testando permissões..."
-            : "Diagnóstico da integração"}
-        </button>
-        <small>
-          OAuth 2.0 + PKCE. Tokens ficam criptografados no PostgreSQL.
-        </small>
-      </div>
+        {error && <div className="error">{error}</div>}
+
+        {status && !status.configured && (
+          <div className="integration-note">
+            Configure <code>MERCADO_LIVRE_CLIENT_ID</code>,{" "}
+            <code>MERCADO_LIVRE_CLIENT_SECRET</code>,{" "}
+            <code>MERCADO_LIVRE_REDIRECT_URI</code> e{" "}
+            <code>APP_ENCRYPTION_KEY</code> no ambiente do deploy.
+          </div>
+        )}
+
+        <div className="integration-actions">
+          <a
+            className={"primary-link " + (status?.connected ? "secondary" : "primary")}
+            href="/api/integrations/mercadolivre/authorize"
+          >
+            {status?.connected ? "Reconectar conta" : "Conectar Mercado Livre"}
+          </a>
+          <button
+            type="button"
+            className={status?.connected ? "primary" : "secondary"}
+            disabled={!status?.connected || diagnosticsLoading}
+            onClick={runDiagnostics}
+          >
+            {diagnosticsLoading ? "Testando permissões..." : "Testar permissões"}
+          </button>
+          <small>
+            Autorização OAuth 2.0 com PKCE. Os tokens ficam criptografados no banco
+            de dados.
+          </small>
+        </div>
+      </section>
 
       {diagnostics && (
-        <div className="integration-diagnostics">
-          <div className="integration-diagnostic-head">
+        <section className="clean-panel integration-diagnostics">
+          <div className="clean-panel-head integration-diagnostic-head">
             <div>
-              <span className="eyebrow">Diagnóstico</span>
+              <span>Diagnóstico</span>
               <strong>
                 {diagnostics.summary.healthy
                   ? "Integração principal saudável"
                   : "Há recursos bloqueados"}
               </strong>
             </div>
-            <small>
-              Teste feito com a conta atualmente conectada.
-            </small>
+            <small>Teste feito com a conta conectada agora.</small>
           </div>
 
           <div className="integration-diagnostic-grid">
             {[
-              ["Conta / OAuth", diagnostics.account],
+              ["Conta e autorização", diagnostics.account],
               ["Publicações", diagnostics.capabilities.listings],
               ["Métricas", diagnostics.capabilities.businessMetrics],
               ["Pedidos", diagnostics.capabilities.orders],
-              ["Product Ads", diagnostics.capabilities.productAds],
+              ["Publicidade", diagnostics.capabilities.productAds],
               ["Catálogo", diagnostics.capabilities.catalogSearch],
               ["Categorias", diagnostics.capabilities.categoryDiscovery],
               ["Tendências", diagnostics.capabilities.trends],
@@ -187,7 +209,9 @@ export function MercadoLivreIntegration() {
                   key={String(label)}
                 >
                   <span>{String(label)}</span>
-                  <strong>
+                  <strong
+                    className={"status-chip " + (item.ok ? "good" : "bad")}
+                  >
                     {item.ok ? "OK" : `HTTP ${item.status || "—"}`}
                   </strong>
                   {!item.ok && (
@@ -201,9 +225,7 @@ export function MercadoLivreIntegration() {
               );
             })}
           </div>
-
-
-        </div>
+        </section>
       )}
     </section>
   );

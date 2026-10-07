@@ -70,6 +70,20 @@ function delta(current: number | null, previous: number | null) {
   return ((current - previous) / previous) * 100;
 }
 
+const demandText: Record<string, string> = {
+  BAIXA: "Baixa",
+  MEDIA: "Média",
+  ALTA: "Alta",
+  EXCELENTE: "Excelente",
+};
+
+const directionText: Record<string, string> = {
+  UP: "Em alta",
+  STABLE: "Estável",
+  DOWN: "Em queda",
+  LEARNING: "Aprendendo",
+};
+
 export function MonitoringDashboard() {
   const [items, setItems] = useState<WatchItem[]>([]);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
@@ -221,10 +235,10 @@ export function MonitoringDashboard() {
     <section className="monitoring-page">
       <header className="page-header clean-page-header">
         <div>
-          <p className="page-kicker">Inteligência · Monitoramento</p>
+          <p className="page-kicker">Inteligência</p>
           <h1>Monitoramento</h1>
           <p>
-            Acompanhe preço, demanda, score e evolução das oportunidades salvas pela extensão.
+            Preço, demanda, score e evolução dos anúncios que você salvou pela extensão.
           </p>
         </div>
         <div className="page-header-actions">
@@ -248,20 +262,20 @@ export function MonitoringDashboard() {
             <article className="clean-kpi-card">
               <span>Monitorados</span>
               <strong>{summary.total}</strong>
-              <small>oportunidades ativas</small>
+              <small>anúncios acompanhados</small>
             </article>
             <article className="clean-kpi-card">
-              <span>Score 70+</span>
+              <span>Score 70 ou mais</span>
               <strong>{summary.highScore}</strong>
               <small>maior aderência atual</small>
             </article>
             <article className="clean-kpi-card">
               <span>Demanda alta</span>
               <strong>{summary.excellent}</strong>
-              <small>alta ou excelente</small>
+              <small>demanda alta ou excelente</small>
             </article>
             <article className="clean-kpi-card accent">
-              <span>Momentum 70+</span>
+              <span>Momentum 70 ou mais</span>
               <strong>{summary.momentumStrong}</strong>
               <small>
                 {summary.momentumReady} com histórico suficiente
@@ -274,7 +288,7 @@ export function MonitoringDashboard() {
               <div className="clean-panel-head">
                 <div>
                   <span>Alertas</span>
-                  <strong>Mudanças que merecem atenção</strong>
+                  <strong>Mudanças recentes</strong>
                 </div>
                 {unreadCount > 0 && (
                   <button
@@ -282,7 +296,7 @@ export function MonitoringDashboard() {
                     className="inline-link-button"
                     onClick={() => void markAllRead()}
                   >
-                    Marcar {unreadCount} como lido(s)
+                    Marcar {unreadCount} como {unreadCount === 1 ? "lido" : "lidos"}
                   </button>
                 )}
               </div>
@@ -297,15 +311,18 @@ export function MonitoringDashboard() {
                     }
                     key={alert.id}
                   >
-                    <div className="monitoring-alert-indicator" />
+                    <span className="monitoring-alert-indicator" aria-hidden="true" />
                     <div className="monitoring-alert-copy">
                       <div>
                         <strong>{alert.title}</strong>
-                        {!alert.readAt && <span>Novo</span>}
+                        {!alert.readAt && <span className="tag good">Novo</span>}
                       </div>
                       <p>{alert.message}</p>
                       <small>
-                        {new Date(alert.createdAt).toLocaleString("pt-BR")}
+                        {new Date(alert.createdAt).toLocaleString("pt-BR", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })}
                       </small>
                     </div>
                     {alert.watchItem?.permalink && (
@@ -313,8 +330,9 @@ export function MonitoringDashboard() {
                         href={alert.watchItem.permalink}
                         target="_blank"
                         rel="noreferrer"
+                        className="inline-link-button"
                       >
-                        Abrir
+                        Abrir anúncio
                       </a>
                     )}
                   </article>
@@ -326,18 +344,22 @@ export function MonitoringDashboard() {
           <section className="clean-panel monitoring-list-panel">
             <div className="clean-panel-head">
               <div>
-                <span>Watchlist</span>
-                <strong>Produtos acompanhados pelo Radar</strong>
+                <span>Lista de monitoramento</span>
+                <strong>Anúncios acompanhados pelo Radar</strong>
               </div>
             </div>
 
             {items.length === 0 ? (
               <div className="monitoring-empty">
-                <strong>Nenhum produto monitorado ainda.</strong>
+                <strong>Nenhum anúncio monitorado ainda</strong>
                 <p>
-                  Abra um anúncio no Mercado Livre, abra o Side Panel da extensão
-                  e clique em <b>Monitorar este anúncio</b>.
+                  Abra um anúncio no Mercado Livre, abra o painel lateral da
+                  extensão Radar e clique em <b>Monitorar este anúncio</b>. Ele
+                  aparece aqui com preço, demanda e score atualizados.
                 </p>
+                <a className="inline-link-button" href="/extensao">
+                  Instalar a extensão
+                </a>
               </div>
             ) : (
               <div className="monitoring-grid">
@@ -358,19 +380,24 @@ export function MonitoringDashboard() {
                         {item.thumbnail ? (
                           <img src={item.thumbnail} alt="" loading="lazy" />
                         ) : (
-                          <span className="clean-product-thumb">MR</span>
+                          <span className="clean-product-thumb" aria-hidden="true">MR</span>
                         )}
                         <div>
-                          <strong>{item.title}</strong>
+                          <strong title={item.title}>{item.title}</strong>
                           <small>{item.mlItemId}</small>
                         </div>
                         <span
                           className={
                             "watch-score " +
-                            (Number(item.score ?? 0) >= 70 ? "good" : "")
+                            (Number(item.score ?? 0) >= 70
+                              ? "good"
+                              : Number(item.score ?? 0) < 40
+                                ? "low"
+                                : "")
                           }
+                          title="Score de oportunidade"
                         >
-                          {item.score ?? 0}/100
+                          <b>{item.score ?? 0}</b>/100
                         </span>
                       </div>
 
@@ -382,56 +409,88 @@ export function MonitoringDashboard() {
                               ? "—"
                               : money.format(item.currentPrice)}
                           </strong>
-                          <small>
+                          <small
+                            className={
+                              priceDelta == null || priceDelta === 0
+                                ? ""
+                                : priceDelta > 0
+                                  ? "is-up"
+                                  : "is-down"
+                            }
+                          >
                             {priceDelta == null
                               ? "sem comparação"
-                              : `${priceDelta >= 0 ? "+" : ""}${priceDelta.toFixed(1)}%`}
+                              : `${priceDelta >= 0 ? "+" : ""}${priceDelta.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`}
                           </small>
                         </div>
                         <div>
                           <span>Demanda</span>
-                          <strong>{item.demandLabel ?? "—"}</strong>
-                          <small>{item.visits ?? 0} visitas</small>
+                          <strong>
+                            {item.demandLabel
+                              ? demandText[item.demandLabel] ?? item.demandLabel
+                              : "—"}
+                          </strong>
+                          <small>
+                            {(item.visits ?? 0).toLocaleString("pt-BR")} visitas
+                          </small>
                         </div>
                         <div>
                           <span>Vendidos</span>
-                          <strong>{item.soldQuantity}</strong>
+                          <strong>{item.soldQuantity.toLocaleString("pt-BR")}</strong>
                           <small>
                             {soldDelta == null
                               ? "primeiro snapshot"
-                              : `+${Math.max(0, soldDelta)} desde o anterior`}
+                              : `+${Math.max(0, soldDelta)} desde a última leitura`}
                           </small>
                         </div>
                         <div>
                           <span>Momentum</span>
-                          <strong>
+                          <strong
+                            className={
+                              item.momentum?.status === "READY"
+                                ? "momentum-" + item.momentum.direction.toLowerCase()
+                                : "momentum-learning"
+                            }
+                          >
                             {item.momentum?.status === "READY"
                               ? `${item.momentum.score}/100`
                               : "Aprendendo"}
                           </strong>
                           <small>
                             {item.momentum == null
-                              ? "precisa de mais snapshots"
+                              ? "precisa de mais leituras"
                               : item.momentum.status === "LEARNING"
                                 ? `${item.momentum.confidence}% confiança · ${item.momentum.spanHours}h`
-                                : `${item.momentum.direction} · ${item.momentum.confidence}% confiança`}
+                                : `${directionText[item.momentum.direction] ?? item.momentum.direction} · ${item.momentum.confidence}% confiança`}
                           </small>
                         </div>
                       </div>
 
                       <div className="monitoring-card-foot">
                         <small>
-                          Atualizado{" "}
-                          {new Date(item.lastCheckedAt).toLocaleString("pt-BR")}
+                          Atualizado em{" "}
+                          {new Date(item.lastCheckedAt).toLocaleString("pt-BR", {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })}
                         </small>
                         <div>
                           {item.permalink && (
-                            <a href={item.permalink} target="_blank" rel="noreferrer">
+                            <a
+                              className="inline-link-button"
+                              href={item.permalink}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
                               Abrir anúncio
                             </a>
                           )}
-                          <button type="button" onClick={() => void remove(item)}>
-                            Parar
+                          <button
+                            type="button"
+                            className="monitoring-stop"
+                            onClick={() => void remove(item)}
+                          >
+                            Parar de monitorar
                           </button>
                         </div>
                       </div>

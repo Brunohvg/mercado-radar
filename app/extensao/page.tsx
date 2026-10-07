@@ -5,22 +5,22 @@ export default function ExtensionPage() {
     <main className="shell">
       <AppNavigation />
       <section className="content routed-content">
-        <section className="overview-dashboard extension-install-page">
+        <section className="extension-install-page">
           <header className="page-header clean-page-header">
             <div>
-              <p className="page-kicker">Mercado Radar</p>
+              <p className="page-kicker">Configuração</p>
               <h1>Extensão Radar</h1>
               <p>
                 Inteligência do Radar diretamente nas buscas e anúncios do Mercado Livre.
               </p>
             </div>
-            <span className="health-badge good">Beta</span>
+            <span className="status-chip attention extension-install-beta">Versão beta</span>
           </header>
 
-          <section className="extension-install-hero">
+          <section className="clean-panel extension-install-hero">
             <div className="extension-install-copy">
-              <span className="extension-install-kicker">Instalação de desenvolvimento</span>
-              <h2>Instale sem baixar o repositório ou abrir o VS Code</h2>
+              <span className="extension-install-kicker">Instalação no Windows</span>
+              <h2>Instale em poucos cliques, sem baixar código</h2>
               <p>
                 O instalador prepara a versão atual da extensão em uma pasta fixa
                 do Windows e abre o Chrome na tela correta. Enquanto a extensão
@@ -30,7 +30,7 @@ export default function ExtensionPage() {
 
               <div className="extension-install-actions">
                 <a
-                  className="extension-install-primary"
+                  className="primary extension-install-primary"
                   href="/api/extension/dev-installer-cmd"
                   download
                 >
@@ -38,12 +38,12 @@ export default function ExtensionPage() {
                 </a>
 
                 <a
-                  className="extension-install-secondary"
+                  className="secondary extension-install-secondary"
                   href="https://chrome.google.com/webstore"
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Chrome Web Store — em breve
+                  Chrome Web Store (em breve)
                 </a>
               </div>
 
@@ -53,28 +53,30 @@ export default function ExtensionPage() {
               </small>
             </div>
 
-            <div className="extension-install-steps">
-              <div>
-                <span>1</span>
+            <ol className="extension-install-steps" aria-label="Passo a passo">
+              <li>
+                <span aria-hidden="true">1</span>
                 <strong>Dê dois cliques no instalador</strong>
-                <small>Execute MercadoRadar-Instalar.cmd. Ele prepara a pasta correta automaticamente.</small>
-              </div>
-              <div>
-                <span>2</span>
+                <small>Execute o MercadoRadar-Instalar.cmd baixado. Ele prepara a pasta correta sozinho.</small>
+              </li>
+              <li>
+                <span aria-hidden="true">2</span>
                 <strong>O Chrome será aberto</strong>
-                <small>Deixe o Modo do desenvolvedor ativado, como já está no seu print.</small>
-              </div>
-              <div>
-                <span>3</span>
+                <small>Na tela de extensões, deixe o Modo do desenvolvedor ativado (canto superior direito).</small>
+              </li>
+              <li>
+                <span aria-hidden="true">3</span>
                 <strong>Carregue a pasta gerada</strong>
                 <small>
-                  Clique em “Carregar sem compactação” e selecione somente a pasta %LOCALAPPDATA%\MercadoRadar\ExtensionDev — não selecione Downloads e não selecione o instalador.
+                  Clique em “Carregar sem compactação” e selecione somente a pasta{" "}
+                  <code>%LOCALAPPDATA%\MercadoRadar\ExtensionDev</code>. Não
+                  selecione a pasta Downloads nem o instalador.
                 </small>
-              </div>
-            </div>
+              </li>
+            </ol>
           </section>
 
-          <section className="clean-panel">
+          <section className="clean-panel extension-install-status">
             <div className="clean-panel-head">
               <div>
                 <span>Status</span>
@@ -93,13 +95,13 @@ export default function ExtensionPage() {
                 <small>oportunidade, demanda, margem e histórico</small>
               </div>
               <div>
-                <span>Side Panel</span>
+                <span>Painel lateral</span>
                 <strong>Ativo</strong>
-                <small>analytics, Buy Box, mercado e rentabilidade</small>
+                <small>métricas, Buy Box, mercado e rentabilidade</small>
               </div>
               <div>
                 <span>Atualização</span>
-                <strong>Reinstalador</strong>
+                <strong>Manual</strong>
                 <small>rode novamente o instalador para receber a versão atual</small>
               </div>
             </div>
@@ -107,7 +109,7 @@ export default function ExtensionPage() {
 
           <section className="clean-panel extension-install-note">
             <div>
-              <strong>Por que ainda existem 3 cliques no Chrome?</strong>
+              <strong>Por que ainda há três cliques no Chrome?</strong>
               <p>
                 Extensões fora da Chrome Web Store não podem ser instaladas
                 silenciosamente por um site comum. Quando publicarmos a versão

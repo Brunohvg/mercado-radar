@@ -149,11 +149,11 @@ export function EanBatchDashboard() {
     <section className="ean-batch-page">
       <header className="page-header clean-page-header">
         <div>
-          <p className="page-kicker">Playground · Sourcing</p>
+          <p className="page-kicker">Inteligência</p>
           <h1>EAN em lote</h1>
           <p>
-            Cole uma lista do fornecedor e descubra quais códigos existem no
-            catálogo e no mercado antes de perder tempo cadastrando produto.
+            Cole a lista do fornecedor e veja quais códigos existem no catálogo
+            e no mercado antes de cadastrar qualquer produto.
           </p>
         </div>
       </header>
@@ -162,17 +162,19 @@ export function EanBatchDashboard() {
         <article className="clean-panel ean-input-panel">
           <div className="clean-panel-head">
             <div>
-              <span>Entrada</span>
-              <strong>Até 50 EAN/GTIN por análise</strong>
+              <span>Lista de códigos</span>
+              <strong>Até 50 EAN/GTIN por pesquisa</strong>
             </div>
-            <span className="neutral-chip">{codes.length}/50</span>
+            <span className="neutral-chip ean-counter">{codes.length}/50</span>
           </div>
 
           <textarea
+            aria-label="Códigos EAN/GTIN"
+            spellCheck={false}
             value={input}
             onChange={(event) => setInput(event.target.value)}
             placeholder={
-              "Cole um código por linha, separados por vírgula ou diretamente de uma planilha."
+              "Um código por linha, separados por vírgula ou colados direto da planilha"
             }
           />
 
@@ -197,8 +199,8 @@ export function EanBatchDashboard() {
           </div>
 
           <p className="ean-helper">
-            O Radar valida o dígito verificador antes de consultar. Um número
-            apenas “parecido com EAN” não entra como produto válido.
+            O dígito verificador é validado antes da consulta: número só
+            parecido com EAN não conta como produto válido.
           </p>
         </article>
 
@@ -210,26 +212,26 @@ export function EanBatchDashboard() {
             </div>
           </div>
 
-          <div className="clean-mini-grid">
+          <div className="clean-mini-grid ean-summary-grid">
             <div>
               <span>Processados</span>
               <strong>{data?.total ?? 0}</strong>
               <small>códigos únicos</small>
             </div>
-            <div>
+            <div className="ean-stat-found">
               <span>Encontrados</span>
               <strong>{data?.found ?? 0}</strong>
               <small>catálogo ou mercado</small>
             </div>
-            <div>
+            <div className="ean-stat-missing">
               <span>Não encontrados</span>
               <strong>{data?.notFound ?? 0}</strong>
               <small>válidos, sem correspondência</small>
             </div>
-            <div>
+            <div className="ean-stat-invalid">
               <span>Inválidos</span>
               <strong>{data?.invalid ?? 0}</strong>
-              <small>checksum ou tamanho</small>
+              <small>dígito ou tamanho incorreto</small>
             </div>
           </div>
         </article>
@@ -239,10 +241,10 @@ export function EanBatchDashboard() {
 
       {data && (
         <section className="clean-panel products-table-panel ean-results-panel">
-          <div className="products-table-toolbar">
+          <div className="products-table-toolbar ean-toolbar">
             <div>
               <strong>Resultados</strong>
-              <span>{data.results.length}</span>
+              <span className="ean-count">{data.results.length}</span>
             </div>
             <button
               type="button"
@@ -260,23 +262,32 @@ export function EanBatchDashboard() {
                   <th>EAN/GTIN</th>
                   <th>Status</th>
                   <th>Produto encontrado</th>
-                  <th>Anúncios</th>
-                  <th>Menor preço</th>
-                  <th>Mediana</th>
-                  <th>Faixa</th>
-                  <th>Frete grátis</th>
+                  <th className="ean-num">Anúncios</th>
+                  <th className="ean-num">Menor preço</th>
+                  <th className="ean-num">Mediana</th>
+                  <th className="ean-num">Faixa</th>
+                  <th className="ean-num">Frete grátis</th>
                 </tr>
               </thead>
               <tbody>
                 {data.results.map((item) => (
-                  <tr key={item.code}>
+                  <tr
+                    key={item.code}
+                    className={"ean-row-" + item.status.toLowerCase()}
+                  >
                     <td>
                       <strong className="ean-code">{item.code}</strong>
                     </td>
                     <td>
                       <span
                         className={
-                          "ean-status " + item.status.toLowerCase()
+                          "table-status ean-status " +
+                          item.status.toLowerCase() +
+                          (item.status === "FOUND"
+                            ? " good"
+                            : item.status === "INVALID"
+                              ? " bad"
+                              : " neutral")
                         }
                       >
                         {item.status === "FOUND"
@@ -308,18 +319,18 @@ export function EanBatchDashboard() {
                         <span className="table-muted">{item.reason ?? "—"}</span>
                       )}
                     </td>
-                    <td>{item.market?.listings ?? 0}</td>
-                    <td>
+                    <td className="ean-num">{item.market?.listings ?? 0}</td>
+                    <td className="ean-num">
                       {item.market?.minimum == null
                         ? "—"
                         : money.format(item.market.minimum)}
                     </td>
-                    <td>
+                    <td className="ean-num ean-median">
                       {item.market?.median == null
                         ? "—"
                         : money.format(item.market.median)}
                     </td>
-                    <td>
+                    <td className="ean-num ean-range">
                       {item.market?.minimum == null ||
                       item.market?.maximum == null
                         ? "—"
@@ -327,7 +338,9 @@ export function EanBatchDashboard() {
                           " – " +
                           money.format(item.market.maximum)}
                     </td>
-                    <td>{item.market?.freeShippingCount ?? 0}</td>
+                    <td className="ean-num">
+                      {item.market?.freeShippingCount ?? 0}
+                    </td>
                   </tr>
                 ))}
               </tbody>

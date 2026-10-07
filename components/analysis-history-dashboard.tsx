@@ -151,12 +151,17 @@ export function AnalysisHistoryDashboard() {
     <section className="analysis-history-page">
       <header className="page-header clean-page-header">
         <div>
-          <p className="page-kicker">Inteligência · Histórico</p>
+          <p className="page-kicker">Inteligência</p>
           <h1>Histórico de análises</h1>
           <p>
-            Compare simulações feitas no dashboard e na extensão sem recalcular
+            Compare simulações feitas no painel e na extensão sem recalcular
             tudo do zero.
           </p>
+        </div>
+        <div className="page-header-actions">
+          <a className="primary" href="/analisar">
+            Nova análise
+          </a>
         </div>
       </header>
 
@@ -193,21 +198,24 @@ export function AnalysisHistoryDashboard() {
             </article>
           </section>
 
-          <section className="clean-panel products-table-panel">
-            <div className="products-table-toolbar">
+          <section className="clean-panel products-table-panel history-table-panel">
+            <div className="products-table-toolbar history-toolbar">
               <div>
                 <strong>Análises</strong>
-                <span>{visible.length}</span>
+                <span className="history-count">{visible.length}</span>
               </div>
 
-              <div className="products-table-actions">
+              <div className="products-table-actions history-filters">
                 <input
+                  type="search"
+                  aria-label="Buscar análises"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Buscar produto, SKU ou fornecedor..."
                 />
 
                 <select
+                  aria-label="Filtrar por origem"
                   value={source}
                   onChange={(event) =>
                     setSource(
@@ -217,34 +225,53 @@ export function AnalysisHistoryDashboard() {
                 >
                   <option value="ALL">Todas as origens</option>
                   <option value="EXTENSION">Extensão</option>
-                  <option value="MANUAL">Dashboard</option>
+                  <option value="MANUAL">Painel</option>
                 </select>
               </div>
             </div>
 
+            {items.length === 0 ? (
+              <div className="module-empty history-empty">
+                <strong>Nenhuma análise salva ainda</strong>
+                <p>
+                  Simule um produto na análise ou pela extensão e salve o
+                  resultado para comparar aqui depois.
+                </p>
+                <a className="secondary inline" href="/analisar">
+                  Abrir análise de produto
+                </a>
+              </div>
+            ) : visible.length === 0 ? (
+              <div className="module-empty history-empty">
+                <strong>Nada encontrado</strong>
+                <p>Nenhuma análise corresponde à busca ou à origem escolhida.</p>
+              </div>
+            ) : (
             <div className="clean-table-wrap">
               <table className="clean-table analysis-history-table">
                 <thead>
                   <tr>
                     <th>Produto</th>
                     <th>Origem</th>
-                    <th>Kit</th>
-                    <th>Custo</th>
-                    <th>Preço</th>
-                    <th>Lucro</th>
-                    <th>Margem</th>
-                    <th>ROI</th>
-                    <th>Piso saudável</th>
+                    <th className="history-num">Kit</th>
+                    <th className="history-num">Custo</th>
+                    <th className="history-num">Preço</th>
+                    <th className="history-num">Lucro</th>
+                    <th className="history-num">Margem</th>
+                    <th className="history-num">ROI</th>
+                    <th className="history-num">Piso saudável</th>
                     <th>Status</th>
                     <th>Data</th>
-                    <th />
+                    <th>
+                      <span className="history-sr">Ações</span>
+                    </th>
                   </tr>
                 </thead>
 
                 <tbody>
                   {visible.map((item) => (
                     <tr key={item.id}>
-                      <td>
+                      <td className="history-product">
                         <strong className="history-product-name">
                           {item.productName}
                         </strong>
@@ -258,14 +285,18 @@ export function AnalysisHistoryDashboard() {
                         <span className="neutral-chip">
                           {item.source === "EXTENSION"
                             ? "Extensão"
-                            : "Dashboard"}
+                            : "Painel"}
                         </span>
                       </td>
 
-                      <td>{item.kitQuantity}x</td>
-                      <td>{money.format(item.purchaseCost)}</td>
-                      <td>{money.format(item.salePrice)}</td>
-                      <td>
+                      <td className="history-num">{item.kitQuantity}x</td>
+                      <td className="history-num">
+                        {money.format(item.purchaseCost)}
+                      </td>
+                      <td className="history-num">
+                        {money.format(item.salePrice)}
+                      </td>
+                      <td className="history-num history-profit">
                         <span
                           className={
                             item.profit >= 0 ? "margin-good" : "margin-bad"
@@ -274,9 +305,15 @@ export function AnalysisHistoryDashboard() {
                           {money.format(item.profit)}
                         </span>
                       </td>
-                      <td>{item.marginPercent.toFixed(1)}%</td>
-                      <td>{item.roiPercent.toFixed(1)}%</td>
-                      <td>{money.format(item.minimumSuggestedPrice)}</td>
+                      <td className="history-num">
+                        {item.marginPercent.toFixed(1)}%
+                      </td>
+                      <td className="history-num">
+                        {item.roiPercent.toFixed(1)}%
+                      </td>
+                      <td className="history-num">
+                        {money.format(item.minimumSuggestedPrice)}
+                      </td>
 
                       <td>
                         <span
@@ -288,8 +325,16 @@ export function AnalysisHistoryDashboard() {
                         </span>
                       </td>
 
-                      <td>
-                        {new Date(item.createdAt).toLocaleString("pt-BR")}
+                      <td className="history-date">
+                        <span>
+                          {new Date(item.createdAt).toLocaleDateString("pt-BR")}
+                        </span>
+                        <small className="table-subtext">
+                          {new Date(item.createdAt).toLocaleTimeString("pt-BR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </small>
                       </td>
 
                       <td>
@@ -298,8 +343,21 @@ export function AnalysisHistoryDashboard() {
                           className="history-delete-button"
                           onClick={() => void remove(item.id)}
                           title="Excluir análise"
+                          aria-label={"Excluir análise de " + item.productName}
                         >
-                          ×
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+                          </svg>
                         </button>
                       </td>
                     </tr>
@@ -307,6 +365,7 @@ export function AnalysisHistoryDashboard() {
                 </tbody>
               </table>
             </div>
+            )}
           </section>
         </>
       )}

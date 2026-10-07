@@ -1,0 +1,401 @@
+/* vendas e lucro — só layout; cor/tipo/forma vêm de tokens e primitivas */
+
+.sales-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+/* ---------------------------------------------------------------- */
+/* seletor de período (controle segmentado)                          */
+/* ---------------------------------------------------------------- */
+
+.sales-page .period-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+
+.sales-page .period-switch button {
+  min-height: 30px;
+  padding: 0 var(--s-3);
+  border-radius: var(--r-xs);
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background-color 0.12s, color 0.12s;
+}
+
+.sales-page .period-switch button:hover {
+  background: var(--surface-2);
+  color: var(--ink-900);
+}
+
+.sales-page .period-switch button.active {
+  background: var(--brand-tint);
+  color: var(--brand-700);
+  font-weight: 600;
+}
+
+.sales-page .period-switch button:focus-visible,
+.sales-page .sales-more-button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+/* ---------------------------------------------------------------- */
+/* faixa de indicadores                                              */
+/* ---------------------------------------------------------------- */
+
+.sales-kpis .clean-kpi-card > small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------------------------------------------------------------- */
+/* subtítulos dos painéis                                            */
+/* ---------------------------------------------------------------- */
+
+.sales-page .module-subhead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: var(--s-4);
+}
+
+.sales-page .module-subhead strong {
+  color: var(--ink-900);
+  font-size: var(--fs-16);
+  font-weight: 600;
+}
+
+.sales-page .module-subhead small {
+  max-width: 72ch;
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+}
+
+/* ---------------------------------------------------------------- */
+/* produtos que mais saíram (grade com divisórias de 1px)            */
+/* ---------------------------------------------------------------- */
+
+.sales-page .top-product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--line);
+  overflow: hidden;
+}
+
+.sales-page .top-product-grid article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  background: var(--surface);
+}
+
+.sales-page .top-product-grid article > span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+  color: var(--ink-500);
+  font-family: var(--font-num);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sales-page .top-product-grid article:first-child > span {
+  background: var(--brand-tint);
+  color: var(--brand-700);
+}
+
+.sales-page .top-product-grid article > div:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sales-page .top-product-grid article > div:nth-child(2) strong {
+  color: var(--ink-900);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sales-page .top-product-grid article > div:nth-child(2) small {
+  color: var(--ink-400);
+  font-size: var(--fs-12);
+}
+
+.sales-page .top-product-number {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.sales-page .top-product-number strong {
+  color: var(--ink-900);
+  font-size: var(--fs-18);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.sales-page .top-product-number small {
+  color: var(--ink-500);
+  font-size: var(--fs-12);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- */
+/* pedidos recentes (lista com divisórias)                           */
+/* ---------------------------------------------------------------- */
+
+.sales-page .sales-order-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.sales-page .sales-order-list .module-subhead {
+  margin-bottom: var(--s-2);
+}
+
+.sales-page .sales-order-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4) 0;
+  border-top: 1px solid var(--line);
+}
+
+.sales-page .sales-order-card:last-of-type {
+  padding-bottom: 0;
+}
+
+.sales-page .order-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--s-5);
+}
+
+.sales-page .order-main > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sales-page .product-flags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-bottom: var(--s-1);
+}
+
+.sales-page .product-flags > span:not(.status-chip) {
+  color: var(--ink-400);
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+}
+
+/* status do pedido no Mercado Livre */
+.sales-page .status-chip.paid {
+  background: var(--ok-tint);
+  color: var(--ok);
+}
+
+.sales-page .status-chip.confirmed {
+  background: var(--info-tint);
+  color: var(--info);
+}
+
+.sales-page .status-chip.cancelled {
+  background: var(--risk-tint);
+  color: var(--risk);
+}
+
+.sales-page .order-main > div:first-child > strong {
+  color: var(--ink-900);
+  font-size: var(--fs-14);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sales-page .order-main > div:first-child > small {
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sales-page .order-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex: none;
+  text-align: right;
+}
+
+.sales-page .order-total span {
+  color: var(--ink-500);
+  font-size: var(--fs-12);
+}
+
+.sales-page .order-total strong {
+  color: var(--ink-900);
+  font-family: var(--font-num);
+  font-size: var(--fs-22);
+  font-weight: 600;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* tarifas, frete, lucro: faixa segmentada */
+.sales-page .order-finance {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--line);
+  overflow: hidden;
+}
+
+.sales-page .order-finance > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--s-2) var(--s-3);
+  background: var(--surface-2);
+}
+
+.sales-page .order-finance span {
+  color: var(--ink-500);
+  font-size: var(--fs-12);
+}
+
+.sales-page .order-finance strong {
+  color: var(--ink-900);
+  font-family: var(--font-num);
+  font-size: var(--fs-16);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sales-page .order-finance strong.good-value {
+  color: var(--ok);
+}
+
+.sales-page .order-finance strong.danger-value {
+  color: var(--risk);
+}
+
+.sales-page .order-finance strong.is-pending {
+  color: var(--warn);
+  font-family: var(--font-ui);
+  font-size: var(--fs-13);
+  font-weight: 500;
+  line-height: 1.35;
+  padding-top: 2px;
+}
+
+.sales-page .sales-order-list .module-empty {
+  margin-top: var(--s-2);
+}
+
+.sales-page .sales-more-button {
+  align-self: flex-start;
+  margin-top: var(--s-4);
+}
+
+/* ---------------------------------------------------------------- */
+/* responsivo                                                        */
+/* ---------------------------------------------------------------- */
+
+/* desktop largo: cada pedido vira uma linha de razão (venda | tarifas | frete | lucro) */
+@media (min-width: 1180px) {
+  .sales-page .sales-order-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(460px, 0.95fr);
+    align-items: center;
+    gap: var(--s-5);
+  }
+}
+
+@media (max-width: 900px) {
+  .sales-page .top-product-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .sales-page .module-heading-actions {
+    width: 100%;
+  }
+
+  .sales-page .period-switch {
+    display: flex;
+    width: 100%;
+  }
+
+  .sales-page .period-switch button {
+    flex: 1;
+  }
+
+  .sales-page .module-heading-actions > .secondary,
+  .sales-page .sales-more-button {
+    width: 100%;
+  }
+
+  .sales-page .top-product-grid article {
+    padding: var(--s-3);
+  }
+
+  .sales-page .order-main {
+    gap: var(--s-3);
+  }
+
+  .sales-page .order-total strong {
+    font-size: var(--fs-18);
+  }
+
+  .sales-page .order-finance {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sales-page .order-finance > div {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s-3);
+  }
+
+  .sales-page .order-finance strong {
+    font-size: var(--fs-14);
+    text-align: right;
+  }
+}

@@ -1,0 +1,182 @@
+/* Fornecedores: carteira agrupada por fornecedor, ordenada por capital em estoque. */
+
+/* painel da tabela (mesma estrutura de Produtos, escopada a esta tela) */
+.suppliers-page .products-table-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.suppliers-page .products-table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2) var(--s-4);
+  flex-wrap: wrap;
+  padding: var(--s-4) var(--s-5);
+  border-bottom: 1px solid var(--line);
+}
+
+.suppliers-page .products-table-title {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.suppliers-page .products-table-title strong {
+  color: var(--ink-900);
+  font-size: var(--fs-16);
+  font-weight: 600;
+}
+
+.suppliers-page .products-table-count {
+  padding: 1px var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  color: var(--ink-500);
+  font-family: var(--font-num);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.suppliers-page .suppliers-toolbar-note {
+  color: var(--ink-400);
+  font-size: var(--fs-13);
+}
+
+/* tabela */
+.suppliers-page .suppliers-table {
+  min-width: 860px;
+}
+
+.suppliers-page .suppliers-table th {
+  border-radius: 0;
+}
+
+.suppliers-page .suppliers-table th:first-child,
+.suppliers-page .suppliers-table td:first-child {
+  padding-left: var(--s-5);
+}
+
+.suppliers-page .suppliers-table th:last-child,
+.suppliers-page .suppliers-table td:last-child {
+  padding-right: var(--s-5);
+}
+
+.suppliers-page .suppliers-table .is-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.suppliers-page .suppliers-table td.num {
+  color: var(--ink-900);
+}
+
+.suppliers-page .suppliers-table td.danger-value {
+  color: var(--risk);
+  font-weight: 600;
+}
+
+.suppliers-page .supplier-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 220px;
+}
+
+.suppliers-page .supplier-cell:has(.table-status) {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-1);
+}
+
+.suppliers-page .supplier-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  background: var(--brand-tint);
+  color: var(--brand-700);
+  font-size: var(--fs-13);
+  font-weight: 600;
+}
+
+.suppliers-page .supplier-name {
+  color: var(--ink-900);
+  font-weight: 500;
+}
+
+.suppliers-page .suppliers-table tr.is-missing td {
+  background: var(--surface-2);
+}
+
+/* capital: valor + participação no total */
+.suppliers-page .suppliers-capital-head {
+  width: 240px;
+}
+
+.suppliers-page .suppliers-capital {
+  min-width: 200px;
+}
+
+.suppliers-page .suppliers-capital strong {
+  display: block;
+  color: var(--ink-900);
+  font-weight: 600;
+}
+
+.suppliers-page .suppliers-share {
+  display: block;
+  height: 6px;
+  margin-top: 6px;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.suppliers-page .suppliers-share > span {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  background: var(--brand);
+}
+
+.suppliers-page .suppliers-table tr.is-missing .suppliers-share > span {
+  min-width: 0;
+}
+
+.suppliers-page .suppliers-empty {
+  margin: var(--s-5);
+}
+
+.suppliers-page .suppliers-empty span {
+  max-width: 60ch;
+  font-size: var(--fs-14);
+}
+
+@media (max-width: 720px) {
+  .suppliers-page .products-table-toolbar {
+    padding: var(--s-4);
+  }
+
+  .suppliers-page .suppliers-table th:first-child,
+  .suppliers-page .suppliers-table td:first-child {
+    padding-left: var(--s-4);
+  }
+
+  .suppliers-page .supplier-cell {
+    min-width: 180px;
+  }
+
+  .suppliers-page .suppliers-empty {
+    margin: var(--s-4);
+  }
+}
+
+.suppliers-page .suppliers-table tr.is-missing .suppliers-share {
+  visibility: hidden;
+}

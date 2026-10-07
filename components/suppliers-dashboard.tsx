@@ -115,12 +115,12 @@ export function SuppliersDashboard() {
   const missingSupplier = groups.find((group) => group.name === "Sem fornecedor");
 
   return (
-    <section>
+    <section className="suppliers-page">
       <header className="page-header clean-page-header">
         <div>
-          <p className="page-kicker">Operação · Fornecedores</p>
+          <p className="page-kicker">Operação</p>
           <h1>Fornecedores</h1>
-          <p>Veja onde seu capital está concentrado e quais produtos ainda estão sem fornecedor vinculado.</p>
+          <p>Onde seu capital em estoque está concentrado e quais produtos ainda não têm fornecedor.</p>
         </div>
       </header>
 
@@ -160,50 +160,110 @@ export function SuppliersDashboard() {
 
           <section className="clean-panel products-table-panel">
             <div className="products-table-toolbar">
-              <div>
+              <div className="products-table-title">
                 <strong>Carteira de fornecedores</strong>
-                <span>{groups.length}</span>
+                <span className="products-table-count">{groups.length}</span>
               </div>
+              <span className="suppliers-toolbar-note">
+                Ordenado por capital em estoque
+              </span>
             </div>
 
+            {groups.length === 0 ? (
+              <div className="module-empty suppliers-empty">
+                <strong>Nenhum produto sincronizado</strong>
+                <span>
+                  Quando os produtos do Mercado Livre forem importados, os fornecedores
+                  aparecem aqui agrupados pelo cadastro de custo.
+                </span>
+              </div>
+            ) : (
             <div className="clean-table-wrap">
               <table className="clean-table suppliers-table">
                 <thead>
                   <tr>
                     <th>Fornecedor</th>
-                    <th>Produtos</th>
-                    <th>Estoque</th>
-                    <th>Vendas 30d</th>
-                    <th>Custo médio</th>
-                    <th>Margem média</th>
-                    <th>Capital em estoque</th>
+                    <th className="is-num">Produtos</th>
+                    <th className="is-num">Estoque</th>
+                    <th className="is-num">Vendas 30d</th>
+                    <th className="is-num">Custo médio</th>
+                    <th className="is-num">Margem média</th>
+                    <th className="suppliers-capital-head">Capital em estoque</th>
                   </tr>
                 </thead>
                 <tbody>
                   {groups.map((group) => (
-                    <tr key={group.name}>
+                    <tr
+                      key={group.name}
+                      className={
+                        group.name === "Sem fornecedor" ? "is-missing" : undefined
+                      }
+                    >
                       <td>
-                        <strong className="supplier-name">{group.name}</strong>
+                        {group.name === "Sem fornecedor" ? (
+                          <div className="supplier-cell">
+                            <span className="table-status attention">Sem fornecedor</span>
+                            <small className="table-subtext">
+                              Vincule em Produtos para calcular custo e margem
+                            </small>
+                          </div>
+                        ) : (
+                          <div className="supplier-cell">
+                            <span className="supplier-avatar" aria-hidden="true">
+                              {group.name.charAt(0)}
+                            </span>
+                            <strong className="supplier-name">{group.name}</strong>
+                          </div>
+                        )}
                       </td>
-                      <td>{group.products}</td>
-                      <td>{group.units}</td>
-                      <td>{group.sold30d}</td>
-                      <td>
+                      <td className="is-num num">{group.products}</td>
+                      <td className="is-num num">{group.units}</td>
+                      <td className="is-num num">{group.sold30d}</td>
+                      <td className="is-num num">
                         {group.averageCost == null
                           ? "—"
                           : money.format(group.averageCost)}
                       </td>
-                      <td>
+                      <td
+                        className={
+                          "is-num num" +
+                          (group.averageMargin != null && group.averageMargin < 15
+                            ? " danger-value"
+                            : "")
+                        }
+                      >
                         {group.averageMargin == null
                           ? "—"
                           : `${group.averageMargin.toFixed(1)}%`}
                       </td>
-                      <td>{money.format(group.inventoryCapital)}</td>
+                      <td className="suppliers-capital">
+                        <strong className="num">
+                          {money.format(group.inventoryCapital)}
+                        </strong>
+                        <span className="suppliers-share" aria-hidden="true">
+                          <span
+                            style={{
+                              width: `${Math.round(
+                                (group.inventoryCapital /
+                                  Math.max(
+                                    1,
+                                    groups.reduce(
+                                      (sum, item) => sum + item.inventoryCapital,
+                                      0,
+                                    ),
+                                  )) *
+                                  100,
+                              )}%`,
+                            }}
+                          />
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            )}
           </section>
         </>
       )}

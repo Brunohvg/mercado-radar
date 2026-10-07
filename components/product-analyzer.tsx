@@ -181,15 +181,15 @@ const money = new Intl.NumberFormat("pt-BR", {
 });
 
 function verdictLabel(verdict: ProfitabilityResult["verdict"]) {
-  if (verdict === "GOOD") return "FINANCEIRAMENTE VIÁVEL";
-  if (verdict === "TIGHT") return "FINANCEIRO APERTADO";
-  return "FINANCEIRAMENTE INVIÁVEL";
+  if (verdict === "GOOD") return "Financeiramente viável";
+  if (verdict === "TIGHT") return "Financeiro apertado";
+  return "Financeiramente inviável";
 }
 
 function kitPreviewLabel(verdict: ProfitabilityResult["verdict"]) {
-  if (verdict === "GOOD") return "PRÉVIA POSITIVA";
-  if (verdict === "TIGHT") return "PRÉVIA APERTADA";
-  return "PRÉVIA RUIM";
+  if (verdict === "GOOD") return "Prévia positiva";
+  if (verdict === "TIGHT") return "Prévia apertada";
+  return "Prévia ruim";
 }
 
 function number(value: string) {
@@ -1033,16 +1033,16 @@ export function ProductAnalyzer() {
 
   return (
     <section className="analyzer" id="analisar">
-      <div className="section-heading">
+      <header className="page-header">
         <div>
-          <p className="eyebrow">Analisador de produto</p>
-          <h2>Preço, frete, comissão e margem em uma conta só.</h2>
+          <p className="page-kicker">Inteligência</p>
+          <h1>Análise de produto</h1>
+          <p>
+            Preço, frete, comissão e margem em uma conta só. Comissão, tarifa e
+            frete vêm da sua conta conectada do Mercado Livre.
+          </p>
         </div>
-        <p>
-          Informe o produto e seu custo. Comissão, tarifa e frete são consultados
-          automaticamente na conta conectada do Mercado Livre.
-        </p>
-      </div>
+      </header>
 
       <div className="analyzer-grid">
         <form className="panel form-panel" onSubmit={submit}>
@@ -1067,7 +1067,9 @@ export function ProductAnalyzer() {
                   aria-label="Ler código de barras com a câmera"
                   title="Ler código de barras"
                 >
-                  ▣
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                    <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M16 8v8" />
+                  </svg>
                 </button>
                 <button
                   type="button"
@@ -1140,10 +1142,10 @@ export function ProductAnalyzer() {
               <div className="barcode-scanner-card">
                 <div className="barcode-scanner-head">
                   <div>
-                    <span className="eyebrow">Leitor de código</span>
+                    <span>Leitor de código</span>
                     <strong>Aponte para o EAN/GTIN</strong>
                   </div>
-                  <button type="button" onClick={stopBarcodeScanner}>
+                  <button type="button" className="secondary inline" onClick={stopBarcodeScanner}>
                     Fechar
                   </button>
                 </div>
@@ -1368,7 +1370,7 @@ export function ProductAnalyzer() {
                 <span>Custos Mercado Livre</span>
                 <strong>Preenchimento automático</strong>
               </div>
-              <span className="api-source-badge">Mercado Livre API</span>
+              <span className="api-source-badge source-badge source-badge--official">API do Mercado Livre</span>
             </div>
             <div className="ml-costs-grid">
               <div>
@@ -1401,7 +1403,7 @@ export function ProductAnalyzer() {
               conta, categoria, preço e logística no momento da análise.
             </small>
           </div>
-          <div className="field">
+          <div className="field field-goal">
             <label>Custo operacional</label>
             <input
               type="number"
@@ -1410,7 +1412,7 @@ export function ProductAnalyzer() {
               onChange={(e) => field("operatingCost", e.target.value)}
             />
           </div>
-          <div className="field">
+          <div className="field field-goal">
             <label>Meta de margem %</label>
             <input
               type="number"
@@ -1421,7 +1423,7 @@ export function ProductAnalyzer() {
               }
             />
           </div>
-          <div className="field">
+          <div className="field field-goal">
             <label>Meta de ROI %</label>
             <input
               type="number"
@@ -1481,8 +1483,14 @@ export function ProductAnalyzer() {
         <div className={"panel result-panel " + tone}>
           {!analysis ? (
             <div className="empty-result">
-              <span className="radar">◎</span>
-              <h3>{currentPreview ? "Prévia pronta" : "Comece pelo produto"}</h3>
+              <span className="radar" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <circle cx="12" cy="12" r="5" />
+                  <path d="M12 12l6-6" />
+                </svg>
+              </span>
+              <strong>{currentPreview ? "Prévia pronta" : "Comece pelo produto"}</strong>
               <p>
                 {currentPreview
                   ? `Com os números atuais: margem ${currentPreview.marginPercent.toFixed(1)}% e ROI ${currentPreview.roiPercent.toFixed(1)}%.`
@@ -1564,26 +1572,22 @@ export function ProductAnalyzer() {
         </div>
       </div>
 
-      <details className="ml-quote-panel advanced-analysis" id="advanced-logistics">
+      <details className="panel ml-quote-panel advanced-analysis" id="advanced-logistics">
         <summary>
           <div>
-            <span className="eyebrow">Ajustes avançados</span>
+            <span>Ajustes avançados</span>
             <strong>Categoria, embalagem e custos do Mercado Livre</strong>
           </div>
-          <span className="advanced-chevron">⌄</span>
+          <span className="advanced-chevron" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+          </span>
         </summary>
         <div className="advanced-analysis-body">
-        <div className="section-heading compact">
-          <div>
-            <p className="eyebrow">Custos reais da conta</p>
-            <h2>Consultar Mercado Livre</h2>
-          </div>
-          <p>
-            O Radar tenta preencher categoria, peso e dimensões por produtos
-            semelhantes. Quando houver estimativa, confirme antes de publicar
-            porque a embalagem real continua sendo a referência correta.
-          </p>
-        </div>
+        <p className="analyzer-note">
+          O Radar preenche categoria, peso e dimensões a partir de produtos
+          semelhantes. Quando for estimativa, confirme antes de publicar: a
+          embalagem real é a referência correta.
+        </p>
 
         <div className="quote-fields">
           <div className="field category">
@@ -1650,7 +1654,7 @@ export function ProductAnalyzer() {
           </button>
           <button
             type="button"
-            className="primary inline"
+            className="secondary"
             disabled={
               priceLoading ||
               !form.categoryId ||
@@ -1675,15 +1679,7 @@ export function ProductAnalyzer() {
           </button>
           <button
             type="button"
-            className="primary inline"
-            disabled={quoteLoading || !form.categoryId || number(form.salePrice) <= 0}
-            onClick={applyMlQuote}
-          >
-            {quoteLoading ? "Consultando..." : "Recalcular custos ML"}
-          </button>
-          <button
-            type="button"
-            className="secondary market-action"
+            className="primary market-action"
             disabled={
               marketLoading ||
               !form.categoryId ||
@@ -1694,6 +1690,14 @@ export function ProductAnalyzer() {
           >
             {marketLoading ? "Lendo mercado..." : "4. Analisar mercado"}
           </button>
+          <button
+            type="button"
+            className="clean-secondary quote-recalc"
+            disabled={quoteLoading || !form.categoryId || number(form.salePrice) <= 0}
+            onClick={applyMlQuote}
+          >
+            {quoteLoading ? "Consultando..." : "Recalcular custos ML"}
+          </button>
         </div>
 
         {quoteMessage && (
@@ -1701,7 +1705,7 @@ export function ProductAnalyzer() {
         )}
 
         {comparison.length > 0 && (
-          <div className="table-wrap">
+          <div className="table-wrap quote-compare">
             <table className="data-table">
               <thead>
                 <tr>
@@ -1748,10 +1752,10 @@ export function ProductAnalyzer() {
       </details>
 
       {marketScan && (
-        <section className="market-intelligence-panel" id="mercado">
+        <section className="panel market-intelligence-panel" id="mercado">
           <div className="market-decision-head">
             <div>
-              <p className="eyebrow">Decisão de mercado</p>
+              <span>Decisão de mercado</span>
               <h2>{marketScan.verdictLabel}</h2>
               <p>
                 O Radar cruza sua rentabilidade com anúncios comparáveis reais.
@@ -1764,8 +1768,8 @@ export function ProductAnalyzer() {
                 : marketScan.fitScore >= 55
                   ? "tight"
                   : "bad"
-            )}>
-              <span>Fit score</span>
+            )} style={{ "--score": marketScan.fitScore } as React.CSSProperties}>
+              <span>Aderência</span>
               <strong>{marketScan.fitScore}</strong>
               <small>/100</small>
             </div>
@@ -1917,17 +1921,17 @@ export function ProductAnalyzer() {
       )}
 
       {kitRows.length > 0 && (
-      <section className="kit-panel" id="kits">
-        <div className="section-heading compact">
+      <section className="panel kit-panel" id="kits">
+        <div className="clean-panel-head">
           <div>
-            <p className="eyebrow">Simulador de kits</p>
-            <h2>Quando o kit melhora a conta?</h2>
+            <span>Simulador de kits</span>
+            <strong>Quando o kit melhora a conta?</strong>
           </div>
-          <p>
-            Prévia financeira apenas. Kits maiores ainda usam o frete atual,
-            portanto não são uma recomendação de venda até a logística ser recalculada.
-          </p>
         </div>
+        <p className="analyzer-note">
+          Prévia financeira. Kits maiores ainda usam o frete atual, então não são
+          recomendação de venda até a logística ser recalculada.
+        </p>
 
         <div className="table-wrap">
           <table className="data-table">

@@ -109,22 +109,23 @@ export function SalesDashboard() {
   }, [days, load]);
 
   return (
-    <section className="module-section" id="vendas">
+    <section className="module-section sales-page" id="vendas">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Profit Intelligence</p>
+          <p className="eyebrow">Vendas e lucro</p>
           <h2>O que realmente está deixando dinheiro?</h2>
         </div>
         <div className="module-heading-actions">
-          <div className="period-switch">
+          <div className="period-switch" role="group" aria-label="Período">
             {[7, 30, 90].map((period) => (
               <button
                 key={period}
                 type="button"
                 className={days === period ? "active" : ""}
+                aria-pressed={days === period}
                 onClick={() => setDays(period)}
               >
-                {period}d
+                {period} dias
               </button>
             ))}
           </div>
@@ -144,18 +145,18 @@ export function SalesDashboard() {
 
       {data && (
         <>
-          <div className="module-kpis sales-kpis">
-            <article>
+          <div className="clean-kpi-grid sales-kpis">
+            <article className="clean-kpi-card">
               <span>Faturamento</span>
               <strong>{money.format(data.summary.grossRevenue)}</strong>
               <small>{data.summary.orders} pedidos válidos</small>
             </article>
-            <article>
+            <article className="clean-kpi-card">
               <span>Unidades</span>
               <strong>{data.summary.units}</strong>
               <small>ticket {money.format(data.summary.averageTicket)}</small>
             </article>
-            <article>
+            <article className="clean-kpi-card">
               <span>Tarifas realizadas</span>
               <strong>
                 {data.summary.feeReadyCount > 0
@@ -166,7 +167,12 @@ export function SalesDashboard() {
                 {data.summary.feeReadyCount}/{data.summary.orders} pedidos conciliados
               </small>
             </article>
-            <article className={data.summary.awaitingCostCount > 0 ? "attention" : ""}>
+            <article
+              className={
+                "clean-kpi-card accent" +
+                (data.summary.awaitingCostCount > 0 ? " attention" : "")
+              }
+            >
               <span>Lucro realizado</span>
               <strong>
                 {data.summary.profitReadyCount > 0
@@ -184,7 +190,7 @@ export function SalesDashboard() {
           </div>
 
           {data.topProducts.length > 0 && (
-            <div className="sales-top-products">
+            <section className="clean-panel sales-top-products">
               <div className="module-subhead">
                 <strong>Produtos que mais saíram</strong>
                 <small>Por unidades no período selecionado</small>
@@ -198,16 +204,16 @@ export function SalesDashboard() {
                       <small>{product.mlItemId}</small>
                     </div>
                     <div className="top-product-number">
-                      <strong>{product.quantity}</strong>
+                      <strong>{product.quantity} un.</strong>
                       <small>{money.format(product.revenue)}</small>
                     </div>
                   </article>
                 ))}
               </div>
-            </div>
+            </section>
           )}
 
-          <div className="sales-order-list">
+          <section className="clean-panel sales-order-list">
             <div className="module-subhead">
               <strong>Pedidos recentes</strong>
               <small>
@@ -262,7 +268,9 @@ export function SalesDashboard() {
                     </div>
                     <div>
                       <span>Frete realizado</span>
-                      <strong>
+                      <strong
+                        className={order.shippingCost == null ? "is-pending" : undefined}
+                      >
                         {order.shippingCost == null
                           ? "Aguardando"
                           : money.format(order.shippingCost)}
@@ -270,7 +278,15 @@ export function SalesDashboard() {
                     </div>
                     <div>
                       <span>Lucro real</span>
-                      <strong>
+                      <strong
+                        className={
+                          order.profit == null
+                            ? "is-pending"
+                            : order.profit < 0
+                              ? "danger-value"
+                              : "good-value"
+                        }
+                      >
                         {order.profit == null
                           ? profitStatus(order.profitabilityStatus)
                           : money.format(order.profit)}
@@ -292,7 +308,7 @@ export function SalesDashboard() {
                   : `Mostrar mais ${Math.min(data.orders.length - 8, 22)} pedido(s)`}
               </button>
             )}
-          </div>
+          </section>
         </>
       )}
     </section>

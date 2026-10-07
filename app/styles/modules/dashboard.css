@@ -1,0 +1,210 @@
+/* dashboard (visão geral) — só layout; cor/tipo/forma vêm de tokens e primitivas */
+
+.overview-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+/* painéis lado a lado: saúde (mais largo) + capital & estoque */
+.overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: var(--s-5);
+  align-items: stretch;
+}
+
+.overview-grid > .clean-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------------------------------------------------------------- */
+/* saúde do negócio                                                  */
+/* ---------------------------------------------------------------- */
+
+.business-health .health-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--s-5);
+  padding-bottom: var(--s-4);
+  margin-bottom: var(--s-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.business-health .health-score {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.business-health .health-score strong {
+  color: var(--brand-700);
+  font-size: var(--fs-36);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.business-health .health-score span {
+  color: var(--ink-400);
+  font-size: var(--fs-16);
+}
+
+.business-health .health-dimensions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin-top: auto;
+}
+
+.business-health .health-dimensions > div {
+  display: grid;
+  grid-template-columns: minmax(132px, 0.9fr) minmax(0, 1.4fr) 44px;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.business-health .health-dimensions > div > span {
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+}
+
+/* barra fina da dimensão */
+.business-health .health-dimensions > div > div {
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.business-health .health-dimensions i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand);
+}
+
+.business-health .health-dimensions > .is-low i {
+  background: var(--warn-strong);
+}
+
+.business-health .health-dimensions strong {
+  color: var(--ink-900);
+  font-family: var(--font-num);
+  font-size: var(--fs-14);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.business-health .health-dimensions > .is-low strong {
+  color: var(--warn);
+}
+
+/* ---------------------------------------------------------------- */
+/* capital & estoque                                                 */
+/* ---------------------------------------------------------------- */
+
+.stock-summary .clean-mini-grid {
+  flex: 1;
+  grid-auto-rows: 1fr;
+}
+
+.stock-summary .clean-mini-grid > div {
+  justify-content: center;
+}
+
+.stock-summary .clean-mini-grid strong {
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------------------------------------------------------------- */
+/* tabela de produtos                                                */
+/* ---------------------------------------------------------------- */
+
+.dashboard-products .clean-panel-head {
+  margin-bottom: var(--s-3);
+}
+
+/* colunas numéricas: preço, estoque, vendas, margem */
+.dashboard-products .clean-table :is(th, td):nth-child(n + 3):nth-child(-n + 6) {
+  text-align: right;
+}
+
+.dashboard-products .clean-table td:nth-child(n + 3):nth-child(-n + 6) {
+  font-family: var(--font-num);
+  color: var(--ink-900);
+  white-space: nowrap;
+}
+
+.dashboard-products .clean-table :is(th, td):nth-child(2) {
+  white-space: nowrap;
+}
+
+.dashboard-products .clean-table :is(th, td):last-child {
+  padding-left: var(--s-5);
+}
+
+.dashboard-products .clean-panel-head > a:focus-visible {
+  outline: none;
+  border-radius: var(--r-xs);
+  box-shadow: var(--focus);
+}
+
+/* ---------------------------------------------------------------- */
+/* responsivo                                                        */
+/* ---------------------------------------------------------------- */
+
+@media (max-width: 1120px) {
+  .overview-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .business-health .health-main {
+    gap: var(--s-4);
+  }
+
+  .business-health .health-score strong {
+    font-size: var(--fs-28);
+  }
+
+  .business-health .health-dimensions > div {
+    grid-template-columns: minmax(0, 1fr) 44px;
+    row-gap: 6px;
+  }
+
+  .business-health .health-dimensions > div > div {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .stock-summary .clean-mini-grid > div {
+    padding: var(--s-3);
+  }
+
+  .stock-summary .clean-mini-grid strong {
+    font-size: var(--fs-18);
+  }
+
+  /* tabela encosta nas bordas do painel: o corte indica rolagem */
+  .dashboard-products .clean-table-wrap {
+    width: auto;
+    margin: 0 calc(var(--s-4) * -1);
+    padding: 0 var(--s-4);
+  }
+
+  .dashboard-products .clean-panel-head,
+  .stock-summary .clean-panel-head {
+    flex-direction: column;
+    gap: var(--s-2);
+  }
+}

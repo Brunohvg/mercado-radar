@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Mercado Radar",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Inteligência de produto e rentabilidade dentro do Mercado Livre.",
   "permissions": [
     "storage",
     "sidePanel",
-    "tabs"
+    "tabs",
+    "identity"
   ],
   "host_permissions": [
     "https://*.mercadolivre.com.br/*",

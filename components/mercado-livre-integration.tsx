@@ -16,7 +16,8 @@ type MlDiagnostics = {
   marketplaceSearch: MlDiagnosticsCheck;
   summary: {
     healthy: boolean;
-    marketplaceSearchBlocked: boolean;
+    marketplaceKeywordSearchRequired?: boolean;
+    marketplaceKeywordSearchBlocked?: boolean;
   };
 };
 
@@ -162,23 +163,39 @@ export function MercadoLivreIntegration() {
               ["Conta / OAuth", diagnostics.account],
               ["Catálogo", diagnostics.catalogSearch],
               ["Categorias", diagnostics.categoryDiscovery],
-              ["Busca ampla", diagnostics.marketplaceSearch],
+              ["Busca ampla (legado)", diagnostics.marketplaceSearch],
             ].map(([label, check]) => {
               const item = check as MlDiagnosticsCheck;
               return (
                 <article
                   className={
                     "integration-diagnostic-item " +
-                    (item.ok ? "ok" : "blocked")
+                    (item.ok
+                      ? "ok"
+                      : String(label).includes("legado") &&
+                          item.status === 403
+                        ? "optional"
+                        : "blocked")
                   }
                   key={String(label)}
                 >
                   <span>{String(label)}</span>
-                  <strong>{item.ok ? "OK" : `HTTP ${item.status || "—"}`}</strong>
+                  <strong>
+                    {item.ok
+                      ? "OK"
+                      : String(label).includes("legado") &&
+                          item.status === 403
+                        ? "Não utilizado"
+                        : `HTTP ${item.status || "—"}`}
+                  </strong>
                   {!item.ok && (
                     <small>
-                      {[item.code, item.message].filter(Boolean).join(" · ") ||
-                        "Recurso indisponível"}
+                      {String(label).includes("legado") &&
+                      item.status === 403
+                        ? "O Radar não dependerá mais desta busca por palavra-chave."
+                        : [item.code, item.message]
+                            .filter(Boolean)
+                            .join(" · ") || "Recurso indisponível"}
                     </small>
                   )}
                 </article>
@@ -186,13 +203,13 @@ export function MercadoLivreIntegration() {
             })}
           </div>
 
-          {diagnostics.summary.marketplaceSearchBlocked && (
-            <div className="integration-note warning">
-              A busca ampla do marketplace está respondendo 403 para esta
-              aplicação. O Mercado Livre associa 403 normalmente a permissões,
-              scopes, aplicação, usuário ou restrições de acesso. O Radar usa
-              catálogo como fallback, mas comparáveis completos dependem desta
-              permissão.
+          {diagnostics.summary.marketplaceKeywordSearchBlocked && (
+            <div className="integration-note">
+              A antiga busca ampla por palavra-chave está bloqueada para esta
+              aplicação, mas ela não é mais uma dependência do Radar. A
+              descoberta usa o buscador oficial de produtos e a extensão
+              enriquece diretamente os anúncios que aparecem na página do
+              Mercado Livre.
             </div>
           )}
         </div>

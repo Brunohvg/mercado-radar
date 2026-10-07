@@ -1,0 +1,5128 @@
+diff -ruN a/.env.example b/.env.example
+--- a/.env.example	2026-10-07 03:02:22.000000000 +0000
++++ b/.env.example	2026-10-07 03:36:08.820324384 +0000
+@@ -10,11 +10,25 @@
+ MERCADO_LIVRE_REDIRECT_URI=http://localhost:3000/api/integrations/mercadolivre/callback
+ 
+ 
+-# Chave temporaria para autenticar a extensao no MVP.
+-# Antes da comercializacao sera substituida por login + token por usuario/dispositivo.
++# OBSOLETA: a extensão agora autentica por token de dispositivo (/api/extension/auth/*).
++# Nenhum código lê esta variável; pode ser removida do ambiente.
+ RADAR_EXTENSION_API_KEY=
+ 
+ 
+ # Protege o endpoint de monitoramento automático.
+ # Use uma chave diferente da extensão.
+ RADAR_CRON_SECRET=
++
++
++# Login do painel web (obrigatório em produção; sem isto o painel fica trancado).
++# Gere com:  node scripts/hash-password.mjs "uma-senha-forte-com-10+-caracteres"
++# (o hash usa ':' e não '$' de propósito, porque Docker Compose/Coolify interpolam '$')
++ADMIN_EMAIL=
++ADMIN_PASSWORD_HASH=
++ADMIN_SESSION_SECRET=
++
++# Opcional: fixa a conta do Mercado Livre usada pelo painel (id da tabela MercadoLivreAccount).
++ADMIN_ML_ACCOUNT_ID=
++
++# Opcional: máximo de chamadas simultâneas ao Mercado Livre (padrão 6).
++ML_MAX_CONCURRENCY=6
+diff -ruN a/CHANGES_2026-10-07.md b/CHANGES_2026-10-07.md
+--- a/CHANGES_2026-10-07.md	1970-01-01 00:00:00.000000000 +0000
++++ b/CHANGES_2026-10-07.md	2026-10-07 03:36:08.842378228 +0000
+@@ -0,0 +1,88 @@
++# Mudanças de 07/10/2026
++
++Base: branch `feature/chrome-extension-radar-v1`.
++
++## ⚠️ ORDEM DE DEPLOY (leia antes)
++
++O painel agora **exige login**. Se subir sem as variáveis abaixo, em produção o painel fica trancado
++(a extensão continua funcionando, porque `/api/extension/*` tem autenticação própria).
++
++1. Gere as credenciais:
++   ```bash
++   node scripts/hash-password.mjs "uma-senha-forte-com-10-ou-mais-caracteres"
++   ```
++   Ele imprime `ADMIN_PASSWORD_HASH=...` e `ADMIN_SESSION_SECRET=...`. O hash usa `:` (não `$`) de propósito:
++   Docker Compose/Coolify interpolam `$` e quebrariam o valor.
++2. No Coolify, defina: `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`.
++3. Defina também `RADAR_CRON_SECRET`. O `docker-compose.yml` **não repassava** essa variável ao container,
++   então `/api/cron/radar-monitoring` respondia 401 em produção. Agora é repassada. Atualize o agendador do
++   cron para enviar `Authorization: Bearer <RADAR_CRON_SECRET>`.
++4. (Opcional) `ADMIN_ML_ACCOUNT_ID` = id da conta ML que o painel deve usar (evita pegar "a mais recente").
++5. Faça o deploy. Abra `/login`.
++6. Recarregue a extensão em `chrome://extensions` (ou rode o instalador de novo).
++
++## O que mudou
++
++### Segurança e confiabilidade (backend)
++| Arquivo | Mudança |
++|---|---|
++| `proxy.ts` (novo) | Portão default-deny. Público só: `/login`, `/api/auth/*`, `/api/health`, `/api/extension/*`, `/api/cron/*`, webhook ML, callback OAuth. |
++| `lib/admin-token.ts`, `lib/admin-auth.ts` (novos) | Sessão por cookie httpOnly assinado (HMAC-SHA256, 7 dias), senha com scrypt, rate limit de login (5/15 min por IP, 30 global). Sem dependências novas. |
++| `app/api/auth/login`, `logout`, `app/login` (novos) | Tela e rotas de login. |
++| `lib/mercado-livre.ts` | Retry/backoff, limitador de concorrência, cache curto, `MlApiError`, trava de refresh de token, `ADMIN_ML_ACCOUNT_ID`. |
++| `docker-compose.yml`, `.env.example` | Novas variáveis; `RADAR_CRON_SECRET` agora chega ao container. |
++| `next.config.ts` | `outputFileTracingIncludes` para a pasta `extension/` ir para a imagem standalone (o dev-installer lê essa pasta em runtime). |
++
++### Extensão (v0.4.0)
++| Arquivo | Mudança |
++|---|---|
++| `content.js` (reescrito) | Shadow DOM; observer sem loop; dedupe por conjunto de anúncios; sem `innerHTML` com dado da API; widget no anúncio; faixa sob o card; lançador com menu (calculadora, EAN, configurações, painel). |
++| `selectors.js` (novo) | Único lugar que lê o DOM do ML + `healthCheck()` com aviso "layout do ML mudou". |
++| `ui/tokens.css`, `ui/content.css`, `ui/sidepanel.css` (novos) | Design tokens e estilos. `content.css` antigo removido. |
++| `sidepanel.html/js` | CSS inline substituído por arquivos; escapes em títulos/keywords/erros; guarda contra corrida entre renderizações. |
++| `manifest.json` | v0.4.0; removida a permissão `tabs` (sem uso no código); `web_accessible_resources` só para os 2 CSS. |
++| `manifest.prod.json` + `scripts/build-extension.mjs` (novos) | Build para a Chrome Web Store sem `localhost`. |
++| `app/api/extension/dev-installer/route.ts` | Lista de arquivos atualizada (senão instalaria uma extensão quebrada). |
++
++### Painel web (visual)
++| Arquivo | Mudança |
++|---|---|
++| `app/styles/tokens.css`, `radar-ui.css` (novos) | Tokens `--rd-*` (prefixo evita colisão com os 4 `:root` legados) e componentes `rd-*`. |
++| `components/app-navigation.tsx` | Rodapé mostrava **"Vidalys / Mercado Livre conectado" fixo no código**; agora lê o estado real. Botão Sair. Item "Primeiros passos". |
++| `app/onboarding`, `components/onboarding.tsx`, `app/api/onboarding` (novos) | Onboarding em 4 passos com estado **real** (contagens no banco). |
++
++## Medições feitas (Chromium real contra página que imita o ML)
++
++- **Loop confirmado:** `content.js` v0.3 chamou `/api/extension/search` **10x em 7 s sem nenhuma interação**; a v0.4 chamou **1x**.
++  Com limite de 5.000 req/dia por dispositivo, o loop esgotaria a cota em cerca de 1 hora com a aba aberta.
++- 26 verificações da UI da extensão passaram (isolamento de CSS hostil, ordenar/filtrar sem nova chamada,
++  reanexar após re-render do ML, estados sem login/limite sem insistir na API, XSS em título de concorrente).
++- 27 cenários do portão `proxy.ts` passaram (rotas públicas, bloqueios, prefixos falsos, cookie adulterado,
++  falha fechada em produção sem variáveis, dev sem variáveis).
++- Retry/backoff/cache/limitador (8 cenários) e trava de refresh (10 chamadas simultâneas → 1 `POST /oauth/token`) passaram.
++
++## O que NÃO foi feito (e por quê)
++
++1. **Consolidar o `app/globals.css` (8.479 linhas, 4 `:root`).** Não consegui rodar o Next aqui (sem `node_modules`/rede),
++   então reescrever o CSS de 13 telas sem ver nenhuma renderizada seria apostar com a sua produção. O prefixo `--rd-`
++   existe exatamente para conviver com o legado até essa etapa (PROMPT 02 do arquivo de prompts).
++2. **Não rodei `npm run typecheck` nem `npm run build`.** Chequei tipos com `strict` e stubs para os arquivos
++   novos/alterados (passou, exceto 2 avisos que são artefato dos stubs). **Rode `npm run build` antes de publicar.**
++3. **Âncora do widget no anúncio não foi testada no HTML real do ML**, só em página que imita as classes `ui-pdp-*`.
++   Se o ML usar outra estrutura, o widget aparece como cartão flutuante (funciona igual). Ajuste em `selectors.js`.
++4. **`proxy.ts`:** Next 16 renomeou `middleware.ts` para `proxy.ts`. Se o build reclamar, renomeie arquivo e função para `middleware`.
++5. Sem multi-conta/workspaces, sem planos Free/Pro, sem billing, sem convites/referrals, sem "Gerar EAN" nem ferramentas 3D
++   (decisão já registrada em `docs/CARGOOS_FEATURE_AUDIT.md`). `RadarExtensionAccess.plan` ainda nasce como `"PRO"` para todos.
++6. Sem telemetria de "layout mudou" (não existe endpoint); hoje só aparece o aviso ao usuário e um `console.warn`.
++7. Endpoints do ML ainda a conferir na doc oficial: `/items/bulk` x `/items?ids=`, visitas, `price_to_win`, Product Ads.
++8. A página `/extensao` tem o texto "como já está no seu print" (sobra de conversa); vale trocar.
++
++## Validação manual (10 min)
++
++- [ ] `/api/ml/products` em aba anônima → 401. Logado → 200.
++- [ ] `/login` entra; "Sair" volta ao login; senha errada 6x → bloqueio de 15 min.
++- [ ] Extensão: abrir uma busca com a aba Network aberta → **1** chamada a `/api/extension/search` e nenhuma repetida.
++- [ ] Busca: faixa sob cada card; filtros e "Ordenar" funcionam; card do ML com o mesmo tamanho de antes.
++- [ ] Anúncio: widget aparece; informar custo → lucro/margem; "Ver faixa de preço" abre P25/mediana/P75.
++- [ ] `/onboarding` mostra os passos conforme o banco; sidebar mostra o apelido real da conta ML.
++- [ ] Cron: `curl -H "Authorization: Bearer $RADAR_CRON_SECRET" https://radar.optarys.com.br/api/cron/radar-monitoring` → 200.
+diff -ruN a/app/api/auth/login/route.ts b/app/api/auth/login/route.ts
+--- a/app/api/auth/login/route.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/app/api/auth/login/route.ts	2026-10-07 03:36:08.831113337 +0000
+@@ -0,0 +1,76 @@
++import { NextResponse } from "next/server";
++import { z } from "zod";
++import {
++  adminAuthConfig,
++  clearLoginFailures,
++  clientIp,
++  loginBlocked,
++  registerLoginFailure,
++  verifyAdminCredentials,
++} from "@/lib/admin-auth";
++import {
++  ADMIN_COOKIE,
++  ADMIN_SESSION_SECONDS,
++  signAdminSession,
++} from "@/lib/admin-token";
++
++export const dynamic = "force-dynamic";
++
++const schema = z.object({
++  email: z.string().trim().min(3).max(200),
++  password: z.string().min(1).max(500),
++});
++
++export async function POST(request: Request) {
++  const config = adminAuthConfig();
++
++  if (!config.configured) {
++    return NextResponse.json(
++      {
++        error:
++          "Login não configurado. Defina ADMIN_EMAIL, ADMIN_PASSWORD_HASH e ADMIN_SESSION_SECRET.",
++      },
++      { status: 503 },
++    );
++  }
++
++  const ip = clientIp(request);
++
++  if (loginBlocked(ip)) {
++    return NextResponse.json(
++      { error: "Muitas tentativas. Aguarde alguns minutos e tente de novo." },
++      { status: 429 },
++    );
++  }
++
++  const parsed = schema.safeParse(await request.json().catch(() => null));
++  if (!parsed.success) {
++    return NextResponse.json({ error: "Informe e-mail e senha." }, { status: 400 });
++  }
++
++  const ok = await verifyAdminCredentials(
++    parsed.data.email,
++    parsed.data.password,
++  );
++
++  if (!ok) {
++    registerLoginFailure(ip);
++    return NextResponse.json(
++      { error: "E-mail ou senha inválidos." },
++      { status: 401 },
++    );
++  }
++
++  clearLoginFailures(ip);
++
++  const response = NextResponse.json({ ok: true });
++  response.cookies.set(ADMIN_COOKIE, await signAdminSession(config.secret), {
++    httpOnly: true,
++    secure: process.env.NODE_ENV === "production",
++    sameSite: "lax",
++    path: "/",
++    maxAge: ADMIN_SESSION_SECONDS,
++  });
++
++  return response;
++}
+diff -ruN a/app/api/auth/logout/route.ts b/app/api/auth/logout/route.ts
+--- a/app/api/auth/logout/route.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/app/api/auth/logout/route.ts	2026-10-07 03:36:08.831171981 +0000
+@@ -0,0 +1,16 @@
++import { NextResponse } from "next/server";
++import { ADMIN_COOKIE } from "@/lib/admin-token";
++
++export const dynamic = "force-dynamic";
++
++export async function POST() {
++  const response = NextResponse.json({ ok: true });
++  response.cookies.set(ADMIN_COOKIE, "", {
++    httpOnly: true,
++    secure: process.env.NODE_ENV === "production",
++    sameSite: "lax",
++    path: "/",
++    maxAge: 0,
++  });
++  return response;
++}
+diff -ruN a/app/api/extension/dev-installer/route.ts b/app/api/extension/dev-installer/route.ts
+--- a/app/api/extension/dev-installer/route.ts	2026-10-07 03:02:22.000000000 +0000
++++ b/app/api/extension/dev-installer/route.ts	2026-10-07 03:36:08.824572732 +0000
+@@ -7,8 +7,11 @@
+ const EXTENSION_FILES = [
+   "manifest.json",
+   "background.js",
++  "selectors.js",
+   "content.js",
+-  "content.css",
++  "ui/tokens.css",
++  "ui/content.css",
++  "ui/sidepanel.css",
+   "sidepanel.html",
+   "sidepanel.js",
+   "icons/icon16.png",
+diff -ruN a/app/api/onboarding/route.ts b/app/api/onboarding/route.ts
+--- a/app/api/onboarding/route.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/app/api/onboarding/route.ts	2026-10-07 03:36:08.831238325 +0000
+@@ -0,0 +1,34 @@
++import { NextResponse } from "next/server";
++import { prisma } from "@/lib/prisma";
++
++export const dynamic = "force-dynamic";
++
++/**
++ * Estado real dos passos de primeiro uso. Nada aqui é inventado:
++ * cada passo vem de uma contagem no banco.
++ */
++export async function GET() {
++  try {
++    const [accounts, extensions, products, withCost] = await Promise.all([
++      prisma.mercadoLivreAccount.count(),
++      prisma.radarExtensionAccess.count({ where: { revokedAt: null } }),
++      prisma.mercadoLivreProduct.count(),
++      prisma.mercadoLivreProduct.count({ where: { supplierPrice: { not: null } } }),
++    ]);
++
++    return NextResponse.json({
++      steps: {
++        connected: accounts > 0,
++        extension: extensions > 0,
++        synced: products > 0,
++        cost: withCost > 0,
++      },
++      counts: { accounts, extensions, products, withCost },
++    });
++  } catch {
++    return NextResponse.json(
++      { error: "Não foi possível ler o estado do onboarding." },
++      { status: 503 },
++    );
++  }
++}
+diff -ruN a/app/globals.css b/app/globals.css
+--- a/app/globals.css	2026-10-07 03:02:22.000000000 +0000
++++ b/app/globals.css	2026-10-07 03:36:08.831751534 +0000
+@@ -1,4 +1,6 @@
+ @import "tailwindcss";
++@import "./styles/tokens.css";
++@import "./styles/radar-ui.css";
+ 
+ :root {
+   --bg: #07111f;
+diff -ruN a/app/login/page.tsx b/app/login/page.tsx
+--- a/app/login/page.tsx	1970-01-01 00:00:00.000000000 +0000
++++ b/app/login/page.tsx	2026-10-07 03:36:08.833596157 +0000
+@@ -0,0 +1,10 @@
++import type { Metadata } from "next";
++import { LoginForm } from "@/components/login-form";
++import { adminAuthConfig } from "@/lib/admin-auth";
++
++export const dynamic = "force-dynamic";
++export const metadata: Metadata = { title: "Entrar" };
++
++export default function LoginPage() {
++  return <LoginForm configured={adminAuthConfig().configured} />;
++}
+diff -ruN a/app/onboarding/page.tsx b/app/onboarding/page.tsx
+--- a/app/onboarding/page.tsx	1970-01-01 00:00:00.000000000 +0000
++++ b/app/onboarding/page.tsx	2026-10-07 03:36:08.833653575 +0000
+@@ -0,0 +1,16 @@
++import type { Metadata } from "next";
++import { AppNavigation } from "@/components/app-navigation";
++import { Onboarding } from "@/components/onboarding";
++
++export const metadata: Metadata = { title: "Primeiros passos" };
++
++export default function OnboardingPage() {
++  return (
++    <main className="shell">
++      <AppNavigation />
++      <section className="content routed-content">
++        <Onboarding />
++      </section>
++    </main>
++  );
++}
+diff -ruN a/app/styles/radar-ui.css b/app/styles/radar-ui.css
+--- a/app/styles/radar-ui.css	1970-01-01 00:00:00.000000000 +0000
++++ b/app/styles/radar-ui.css	2026-10-07 03:36:08.833535018 +0000
+@@ -0,0 +1,90 @@
++/* Componentes novos do painel (login, onboarding, ajustes da sidebar). Prefixo rd- */
++
++.rd-btn {
++  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
++  min-height: 42px; padding: 0 18px; border: 1px solid transparent;
++  border-radius: var(--rd-r-md); background: var(--rd-brand-500); color: #fff;
++  font: 650 14px/1 var(--rd-font); text-decoration: none; cursor: pointer;
++  transition: background .15s;
++}
++.rd-btn:hover { background: var(--rd-brand-600); }
++.rd-btn:disabled { opacity: .6; cursor: default; }
++.rd-btn--ghost { background: transparent; border-color: var(--rd-line-strong); color: var(--rd-text-2); }
++.rd-btn--ghost:hover { background: var(--rd-surface-2); }
++.rd-btn--block { width: 100%; }
++.rd-btn:focus-visible, .rd-input:focus-visible { outline: 2px solid var(--rd-brand-500); outline-offset: 2px; }
++
++.rd-input {
++  width: 100%; min-height: 44px; padding: 0 12px;
++  border: 1px solid var(--rd-line-strong); border-radius: var(--rd-r-md);
++  background: var(--rd-surface); color: var(--rd-text); font: 400 15px var(--rd-font);
++}
++.rd-label { display: block; margin: 14px 0 6px; font: 650 13px var(--rd-font); color: var(--rd-text-2); }
++
++.rd-badge {
++  display: inline-flex; align-items: center; padding: 2px 9px; border-radius: var(--rd-r-pill);
++  background: var(--rd-surface-2); color: var(--rd-text-2); font: 700 11px/1.6 var(--rd-font);
++}
++.rd-badge--ok { background: var(--rd-brand-100); color: var(--rd-brand-600); }
++
++/* ---------- login ---------- */
++.rd-auth {
++  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 24px;
++  background: var(--rd-bg); font-family: var(--rd-font); color: var(--rd-text);
++}
++.rd-auth__card {
++  width: 100%; max-width: 400px; padding: 32px;
++  border: 1px solid var(--rd-line); border-radius: 20px;
++  background: var(--rd-surface); box-shadow: var(--rd-shadow-2);
++}
++.rd-auth__brand { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
++.rd-auth__brand img { width: 40px; height: 40px; border-radius: 11px; }
++.rd-auth__brand strong { display: block; font-size: 17px; letter-spacing: -.02em; }
++.rd-auth__brand small { display: block; color: var(--rd-text-3); font-size: 12px; }
++.rd-auth h1 { margin: 0 0 4px; font-size: 22px; letter-spacing: -.02em; }
++.rd-auth p { margin: 0; color: var(--rd-text-2); font-size: 14px; line-height: 1.5; }
++.rd-auth__error {
++  margin-top: 14px; padding: 10px 12px; border-radius: var(--rd-r-md);
++  background: var(--rd-risk-bg); color: var(--rd-risk); font-size: 13px;
++}
++.rd-auth form .rd-btn { margin-top: 20px; }
++
++/* ---------- onboarding ---------- */
++.rd-onb { max-width: 880px; font-family: var(--rd-font); color: var(--rd-text); }
++.rd-onb__head h1 { margin: 0 0 6px; font-size: 30px; letter-spacing: -.03em; }
++.rd-onb__head p { margin: 0; color: var(--rd-text-2); font-size: 15px; }
++.rd-onb__bar { display: flex; align-items: center; gap: 14px; margin: 24px 0 18px; }
++.rd-onb__track { flex: 1; height: 8px; border-radius: var(--rd-r-pill); background: var(--rd-line); overflow: hidden; }
++.rd-onb__fill { height: 100%; border-radius: inherit; background: var(--rd-brand-500); transition: width .3s; }
++.rd-onb__count { font: 700 13px var(--rd-font); color: var(--rd-text-2); white-space: nowrap; }
++.rd-onb__list { display: grid; gap: 12px; }
++.rd-step {
++  display: flex; align-items: center; gap: 16px; padding: 18px 20px;
++  border: 1px solid var(--rd-line); border-radius: var(--rd-r-lg);
++  background: var(--rd-surface); box-shadow: var(--rd-shadow-1);
++}
++.rd-step__icon {
++  display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 50%;
++  border: 2px solid var(--rd-line-strong); color: var(--rd-text-3); font: 700 14px var(--rd-font);
++}
++.rd-step--done .rd-step__icon { border-color: var(--rd-brand-500); background: var(--rd-brand-500); color: #fff; }
++.rd-step__copy { flex: 1; min-width: 0; }
++.rd-step__copy strong { display: block; font-size: 15px; }
++.rd-step__copy span { display: block; margin-top: 2px; color: var(--rd-text-2); font-size: 13px; line-height: 1.45; }
++.rd-onb__done {
++  margin-top: 18px; padding: 20px; border-radius: var(--rd-r-lg);
++  background: var(--rd-brand-50); border: 1px solid var(--rd-line);
++}
++.rd-onb__done strong { display: block; font-size: 16px; }
++.rd-onb__done p { margin: 4px 0 14px; color: var(--rd-text-2); font-size: 14px; }
++.rd-onb__error { padding: 14px 16px; border-radius: var(--rd-r-md); background: var(--rd-risk-bg); color: var(--rd-risk); font-size: 14px; }
++
++/* ---------- sidebar: estado real da conta e sair ---------- */
++.sidebar-account-status.is-offline { background: var(--rd-line-strong); box-shadow: none; }
++.rd-logout {
++  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
++  min-height: 40px; margin-top: 8px; border: 1px solid var(--rd-line); border-radius: 11px;
++  background: transparent; color: var(--rd-text-2); font: 600 13px var(--rd-font); cursor: pointer;
++}
++.rd-logout:hover { background: var(--rd-surface-2); color: var(--rd-text); }
++.sidebar.is-collapsed .rd-logout span { display: none; }
+diff -ruN a/app/styles/tokens.css b/app/styles/tokens.css
+--- a/app/styles/tokens.css	1970-01-01 00:00:00.000000000 +0000
++++ b/app/styles/tokens.css	2026-10-07 03:36:08.833501045 +0000
+@@ -0,0 +1,36 @@
++/*
++ * Tokens do Mercado Radar (painel web).
++ * Prefixo --rd- de propósito: o globals.css legado ainda tem 4 blocos :root
++ * com --bg/--text/--line etc. Sem prefixo, estes valores brigariam com eles.
++ * Quando o globals.css for consolidado (Prompt 02), o prefixo pode cair.
++ */
++:root {
++  --rd-brand-700: #0b5a49;
++  --rd-brand-600: #0f725e;
++  --rd-brand-500: #18967a;
++  --rd-brand-100: #e7f6f1;
++  --rd-brand-50: #f3fbf8;
++
++  --rd-bg: #f7f9f8;
++  --rd-surface: #ffffff;
++  --rd-surface-2: #f2f6f4;
++  --rd-line: #e3eae7;
++  --rd-line-strong: #cfdad6;
++
++  --rd-text: #17342d;
++  --rd-text-2: #51665f;
++  --rd-text-3: #7f918a;
++
++  --rd-ok: #18967a;
++  --rd-warn: #b87408;
++  --rd-risk: #c8402f;
++  --rd-risk-bg: #fdebe8;
++
++  --rd-r-sm: 8px;
++  --rd-r-md: 12px;
++  --rd-r-lg: 16px;
++  --rd-r-pill: 999px;
++  --rd-shadow-1: 0 1px 2px rgba(23, 52, 45, 0.06);
++  --rd-shadow-2: 0 8px 24px rgba(23, 52, 45, 0.1);
++  --rd-font: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
++}
+diff -ruN a/components/app-navigation.tsx b/components/app-navigation.tsx
+--- a/components/app-navigation.tsx	2026-10-07 03:02:22.000000000 +0000
++++ b/components/app-navigation.tsx	2026-10-07 03:36:08.834005052 +0000
+@@ -31,6 +31,7 @@
+     label: "Visão geral",
+     items: [
+       { href: "/", label: "Dashboard", icon: "dashboard" },
++      { href: "/onboarding", label: "Primeiros passos", icon: "radar" },
+       { href: "/anuncios", label: "Anúncios", icon: "listings" },
+       { href: "/produtos", label: "Produtos", icon: "products" },
+       { href: "/fornecedores", label: "Fornecedores", icon: "suppliers" },
+@@ -195,11 +196,43 @@
+   const pathname = usePathname();
+   const [open, setOpen] = useState(false);
+   const [collapsed, setCollapsed] = useState(false);
++  const [account, setAccount] = useState<{
++    loaded: boolean;
++    connected: boolean;
++    nickname: string | null;
++  }>({ loaded: false, connected: false, nickname: null });
+ 
+   useEffect(() => {
+     setCollapsed(window.localStorage.getItem("radar.sidebar.collapsed") === "1");
+   }, []);
+ 
++  useEffect(() => {
++    let active = true;
++
++    fetch("/api/integrations/mercadolivre/status", { cache: "no-store" })
++      .then((response) => response.json())
++      .then((body) => {
++        if (!active) return;
++        setAccount({
++          loaded: true,
++          connected: Boolean(body?.connected),
++          nickname: typeof body?.nickname === "string" ? body.nickname : null,
++        });
++      })
++      .catch(() => {
++        if (active) setAccount({ loaded: true, connected: false, nickname: null });
++      });
++
++    return () => {
++      active = false;
++    };
++  }, []);
++
++  async function signOut() {
++    await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
++    window.location.assign("/login");
++  }
++
+   function toggleCollapsed() {
+     setCollapsed((current) => {
+       const next = !current;
+@@ -290,14 +323,40 @@
+         </nav>
+ 
+         <div className="sidebar-account">
+-          <span className="sidebar-account-avatar">V</span>
++          <span className="sidebar-account-avatar">
++            {(account.nickname?.trim()[0] || "?").toUpperCase()}
++          </span>
+           <div className="sidebar-account-copy">
+-            <strong>Vidalys</strong>
+-            <small>Mercado Livre conectado</small>
++            <strong>
++              {account.connected
++                ? account.nickname || "Conta conectada"
++                : account.loaded
++                  ? "Sem conta conectada"
++                  : "Carregando..."}
++            </strong>
++            <small>
++              {account.connected
++                ? "Mercado Livre conectado"
++                : "Conecte em Integrações"}
++            </small>
+           </div>
+-          <span className="sidebar-account-status" title="Online" />
++          <span
++            className={
++              "sidebar-account-status" + (account.connected ? "" : " is-offline")
++            }
++            title={account.connected ? "Conectado" : "Desconectado"}
++          />
+         </div>
+ 
++        <button type="button" className="rd-logout" onClick={signOut}>
++          <span>Sair</span>
++          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
++            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
++            <path d="m16 17 5-5-5-5" />
++            <path d="M21 12H9" />
++          </svg>
++        </button>
++
+         <button
+           type="button"
+           className="sidebar-collapse"
+diff -ruN a/components/login-form.tsx b/components/login-form.tsx
+--- a/components/login-form.tsx	1970-01-01 00:00:00.000000000 +0000
++++ b/components/login-form.tsx	2026-10-07 03:36:08.835032674 +0000
+@@ -0,0 +1,100 @@
++"use client";
++
++import { useState } from "react";
++
++function safeNext() {
++  const next = new URLSearchParams(window.location.search).get("next");
++  // só caminhos internos; bloqueia "//host" e "http://host" (open redirect)
++  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
++}
++
++export function LoginForm({ configured }: { configured: boolean }) {
++  const [email, setEmail] = useState("");
++  const [password, setPassword] = useState("");
++  const [error, setError] = useState<string | null>(null);
++  const [loading, setLoading] = useState(false);
++
++  async function submit(event: React.FormEvent<HTMLFormElement>) {
++    event.preventDefault();
++    if (loading) return;
++
++    setLoading(true);
++    setError(null);
++
++    try {
++      const response = await fetch("/api/auth/login", {
++        method: "POST",
++        headers: { "content-type": "application/json" },
++        body: JSON.stringify({ email, password }),
++      });
++      const body = await response.json().catch(() => ({}));
++
++      if (!response.ok) {
++        setError(body?.error || "Não foi possível entrar.");
++        setLoading(false);
++        return;
++      }
++
++      window.location.assign(safeNext());
++    } catch {
++      setError("Sem conexão com o servidor. Tente de novo.");
++      setLoading(false);
++    }
++  }
++
++  return (
++    <main className="rd-auth">
++      <div className="rd-auth__card">
++        <div className="rd-auth__brand">
++          <img src="/brand/mark.svg" alt="" aria-hidden="true" />
++          <div>
++            <strong>Mercado Radar</strong>
++            <small>Seller intelligence</small>
++          </div>
++        </div>
++
++        <h1>Entrar</h1>
++        <p>Acesse o painel com a conta do operador.</p>
++
++        {!configured ? (
++          <div className="rd-auth__error" role="alert">
++            Login não configurado no servidor. Defina ADMIN_EMAIL,
++            ADMIN_PASSWORD_HASH e ADMIN_SESSION_SECRET e reinicie a aplicação.
++          </div>
++        ) : (
++          <form onSubmit={submit}>
++            <label className="rd-label" htmlFor="rd-email">E-mail</label>
++            <input
++              id="rd-email"
++              className="rd-input"
++              type="email"
++              autoComplete="username"
++              required
++              value={email}
++              onChange={(event) => setEmail(event.target.value)}
++            />
++
++            <label className="rd-label" htmlFor="rd-password">Senha</label>
++            <input
++              id="rd-password"
++              className="rd-input"
++              type="password"
++              autoComplete="current-password"
++              required
++              value={password}
++              onChange={(event) => setPassword(event.target.value)}
++            />
++
++            {error && (
++              <div className="rd-auth__error" role="alert">{error}</div>
++            )}
++
++            <button className="rd-btn rd-btn--block" type="submit" disabled={loading}>
++              {loading ? "Entrando..." : "Entrar"}
++            </button>
++          </form>
++        )}
++      </div>
++    </main>
++  );
++}
+diff -ruN a/components/onboarding.tsx b/components/onboarding.tsx
+--- a/components/onboarding.tsx	1970-01-01 00:00:00.000000000 +0000
++++ b/components/onboarding.tsx	2026-10-07 03:36:08.835061029 +0000
+@@ -0,0 +1,119 @@
++"use client";
++
++import Link from "next/link";
++import { useCallback, useEffect, useState } from "react";
++
++type Steps = { connected: boolean; extension: boolean; synced: boolean; cost: boolean };
++
++const STEPS: Array<{
++  key: keyof Steps;
++  title: string;
++  hint: string;
++  action: { label: string; href: string; external?: boolean };
++}> = [
++  {
++    key: "connected",
++    title: "Conectar sua conta do Mercado Livre",
++    hint: "Autoriza o Radar a ler anúncios, pedidos e métricas da sua conta.",
++    action: { label: "Conectar", href: "/api/integrations/mercadolivre/authorize", external: true },
++  },
++  {
++    key: "extension",
++    title: "Instalar a extensão e entrar nela",
++    hint: "Leva score, demanda e margem para dentro das buscas e anúncios.",
++    action: { label: "Instalar extensão", href: "/extensao" },
++  },
++  {
++    key: "synced",
++    title: "Sincronizar seus anúncios",
++    hint: "Traz seus anúncios para o Radar poder cruzar preço, estoque e vendas.",
++    action: { label: "Abrir produtos", href: "/produtos" },
++  },
++  {
++    key: "cost",
++    title: "Cadastrar o custo de pelo menos um produto",
++    hint: "Sem custo não existe margem real: é o que liga o Radar ao seu lucro.",
++    action: { label: "Cadastrar custo", href: "/produtos" },
++  },
++];
++
++export function Onboarding() {
++  const [steps, setSteps] = useState<Steps | null>(null);
++  const [error, setError] = useState<string | null>(null);
++
++  const load = useCallback(async () => {
++    setError(null);
++    try {
++      const response = await fetch("/api/onboarding", { cache: "no-store" });
++      const body = await response.json().catch(() => ({}));
++      if (!response.ok) throw new Error(body?.error || "Falha ao carregar.");
++      setSteps(body.steps as Steps);
++    } catch (reason) {
++      setError(reason instanceof Error ? reason.message : "Falha ao carregar.");
++    }
++  }, []);
++
++  useEffect(() => {
++    void load();
++  }, [load]);
++
++  const done = steps ? STEPS.filter((step) => steps[step.key]).length : 0;
++  const percent = Math.round((done / STEPS.length) * 100);
++
++  return (
++    <section className="rd-onb">
++      <header className="rd-onb__head">
++        <h1>Primeiros passos</h1>
++        <p>Quatro passos para o Radar começar a mostrar o lucro real de cada produto.</p>
++      </header>
++
++      {error ? (
++        <div className="rd-onb__error" role="alert" style={{ marginTop: 24 }}>
++          {error}{" "}
++          <button className="rd-btn rd-btn--ghost" type="button" onClick={() => void load()}>
++            Tentar de novo
++          </button>
++        </div>
++      ) : (
++        <>
++          <div className="rd-onb__bar" aria-live="polite">
++            <div className="rd-onb__track" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
++              <div className="rd-onb__fill" style={{ width: percent + "%" }} />
++            </div>
++            <span className="rd-onb__count">{steps ? `${done}/${STEPS.length}` : "…"}</span>
++          </div>
++
++          <div className="rd-onb__list">
++            {STEPS.map((step, index) => {
++              const finished = Boolean(steps?.[step.key]);
++              return (
++                <div className={"rd-step" + (finished ? " rd-step--done" : "")} key={step.key}>
++                  <span className="rd-step__icon" aria-hidden="true">{finished ? "✓" : index + 1}</span>
++                  <div className="rd-step__copy">
++                    <strong>{step.title}</strong>
++                    <span>{step.hint}</span>
++                  </div>
++                  {finished ? (
++                    <span className="rd-badge rd-badge--ok">Concluído</span>
++                  ) : steps && step.action.external ? (
++                    <a className="rd-btn" href={step.action.href}>{step.action.label}</a>
++                  ) : steps ? (
++                    <Link className="rd-btn" href={step.action.href}>{step.action.label}</Link>
++                  ) : null}
++                </div>
++              );
++            })}
++          </div>
++
++          {steps && done === STEPS.length && (
++            <div className="rd-onb__done">
++              <strong>Tudo pronto.</strong>
++              <p>Seu Radar já tem conta, extensão, anúncios e custo. Hora de achar oportunidades.</p>
++              <Link className="rd-btn" href="/oportunidades">Abrir radar de oportunidades</Link>
++            </div>
++          )}
++        </>
++      )}
++    </section>
++  );
++}
+diff -ruN a/docker-compose.yml b/docker-compose.yml
+--- a/docker-compose.yml	2026-10-07 03:02:22.000000000 +0000
++++ b/docker-compose.yml	2026-10-07 03:36:08.835095173 +0000
+@@ -31,6 +31,15 @@
+       MERCADO_LIVRE_CLIENT_ID: ${MERCADO_LIVRE_CLIENT_ID:-}
+       MERCADO_LIVRE_CLIENT_SECRET: ${MERCADO_LIVRE_CLIENT_SECRET:-}
+       MERCADO_LIVRE_REDIRECT_URI: ${MERCADO_LIVRE_REDIRECT_URI:-}
++      # Login do painel web (ver CHANGES_2026-10-07.md). Sem estas 3 em produção o painel fica trancado.
++      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
++      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:-}
++      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:-}
++      # Opcional: fixa qual conta ML o painel usa (id interno da tabela MercadoLivreAccount).
++      ADMIN_ML_ACCOUNT_ID: ${ADMIN_ML_ACCOUNT_ID:-}
++      # Antes não era repassado ao container: sem ele /api/cron/* responde 401 em produção.
++      RADAR_CRON_SECRET: ${RADAR_CRON_SECRET:-}
++      ML_MAX_CONCURRENCY: ${ML_MAX_CONCURRENCY:-6}
+       SERVICE_URL_APP_3000: /
+     expose:
+       - "3000"
+diff -ruN a/docs/DESIGN_SYSTEM.md b/docs/DESIGN_SYSTEM.md
+--- a/docs/DESIGN_SYSTEM.md	2026-10-07 03:02:22.000000000 +0000
++++ b/docs/DESIGN_SYSTEM.md	2026-10-07 03:36:08.835556920 +0000
+@@ -190,3 +190,12 @@
+ - visibilidade: 10.
+ 
+ A UI deve explicar o score e evitar métricas inventadas. Por exemplo, não calcular "conversão" usando visitas de vida inteira com vendas de somente 30 dias.
++
++
++## Atualização 07/10/2026 — UI injetada e tokens
++
++- A UI injetada no Mercado Livre vive em **Shadow DOM** (`extension/ui/tokens.css` + `content.css`). Nenhum CSS vaza de/para o ML.
++- Faixa de métricas **sob** o card da busca (não deforma o card); widget do anúncio na coluna de compra, com fallback flutuante.
++- Tokens do painel web em `app/styles/tokens.css` com prefixo `--rd-` (o `globals.css` legado ainda tem 4 `:root`; consolidar é a próxima etapa).
++- Tudo que é estimado (vendas/mês, faturamento) exibe `*` e a legenda "estimativa pela faixa de vendas do anúncio".
++- Cor de acento mantida: teal `#18967A`.
+diff -ruN a/docs/MERCADO_LIVRE_API_AUDIT.md b/docs/MERCADO_LIVRE_API_AUDIT.md
+--- a/docs/MERCADO_LIVRE_API_AUDIT.md	2026-10-07 03:02:22.000000000 +0000
++++ b/docs/MERCADO_LIVRE_API_AUDIT.md	2026-10-07 03:36:08.835955351 +0000
+@@ -147,3 +147,13 @@
+ - histórico de preço e posição.
+ 
+ Assim, o ranking representa o que o usuário realmente viu na busca do Mercado Livre.
++
++
++## Revisão 07/10/2026
++
++- `jsonFetch` agora faz retry com backoff (GET: 429/5xx, respeita `Retry-After`), limita concorrência (`ML_MAX_CONCURRENCY`, padrão 6) e tem cache curto para trends, highlights, products, visits e items/bulk. POST (ex.: `/oauth/token`) nunca é repetido.
++- Erros do ML agora são `MlApiError` (status, rota e código: UNAUTHORIZED/FORBIDDEN/RATE_LIMITED/UPSTREAM/TIMEOUT).
++- Refresh de token com trava por conta (o refresh token do ML é de uso único) e reaproveitamento do token se outro processo renovou primeiro.
++- `searchMarketplace` mantém a tentativa pública por compatibilidade, mas preserva o erro ORIGINAL (antes o 403 era trocado pelo erro da 2ª chamada).
++- `ean-batch` já usava `product_identifier` e degrada com flags `sources.*Unavailable`: correto, não alterado.
++- **Pendente de verificação na doc oficial:** `/items/bulk` x `/items?ids=` (a página de Itens e Buscas consultada ainda lista `/items?ids=`), `visits/items`, `price_to_win`, Product Ads.
+diff -ruN a/extension/README.md b/extension/README.md
+--- a/extension/README.md	2026-10-07 03:02:22.000000000 +0000
++++ b/extension/README.md	2026-10-07 03:36:08.836459558 +0000
+@@ -1,5 +1,10 @@
+ # Mercado Radar — Extensão Chrome (MVP)
+ 
++> **v0.4.0** — UI em Shadow DOM, observer sem loop, widget no anúncio, faixa sob cada card.
++> Arquivos: `selectors.js` (único lugar que lê o DOM do ML), `content.js`, `ui/*.css`.
++> Para a Chrome Web Store: `node scripts/build-extension.mjs` gera `dist/extension-prod`
++> (usa `manifest.prod.json`, sem localhost).
++
+ A extensão roda como **unpacked extension** durante o desenvolvimento. Não precisa estar publicada na Chrome Web Store.
+ 
+ ## 1. Baixar a branch
+diff -ruN a/extension/content.css b/extension/content.css
+--- a/extension/content.css	2026-10-07 03:02:22.000000000 +0000
++++ b/extension/content.css	1970-01-01 00:00:00.000000000 +0000
+@@ -1,286 +0,0 @@
+-.mercado-radar-card {
+-  margin-top: 8px;
+-  border: 1px solid #dcefe2;
+-  background: #f7fff9;
+-  border-radius: 10px;
+-  padding: 8px 10px;
+-  font-family: Arial, sans-serif;
+-  font-size: 12px;
+-  line-height: 1.35;
+-  color: #1f2937;
+-}
+-
+-.mercado-radar-card strong,
+-.mercado-radar-card b {
+-  color: #0f7a35;
+-}
+-
+-.mercado-radar-card__row {
+-  display: flex;
+-  justify-content: space-between;
+-  gap: 8px;
+-  margin-top: 3px;
+-}
+-
+-.mercado-radar-card__header {
+-  margin-top: 0;
+-  padding-bottom: 4px;
+-  border-bottom: 1px solid #e5efe8;
+-}
+-
+-.mercado-radar-card__score {
+-  font-weight: 700;
+-}
+-
+-.mercado-radar-filters {
+-  box-sizing: border-box;
+-  width: 100%;
+-  margin-bottom: 14px;
+-  padding: 14px;
+-  border: 1px solid #dcefe2;
+-  border-radius: 12px;
+-  background: #fff;
+-  color: #1f2937;
+-  font-family: Arial, sans-serif;
+-  font-size: 12px;
+-  box-shadow: 0 4px 18px rgba(20, 80, 40, 0.06);
+-}
+-
+-.mercado-radar-filters--fixed {
+-  position: fixed;
+-  z-index: 2147483000;
+-  left: 12px;
+-  top: 120px;
+-  width: 220px;
+-  max-height: calc(100vh - 140px);
+-  overflow: auto;
+-}
+-
+-.mercado-radar-filters__title {
+-  display: flex;
+-  align-items: center;
+-  justify-content: space-between;
+-  margin-bottom: 10px;
+-  font-size: 15px;
+-  font-weight: 700;
+-  color: #0f7a35;
+-}
+-
+-.mercado-radar-filters__title button {
+-  border: 0;
+-  background: transparent;
+-  color: #66736b;
+-  font-size: 11px;
+-  cursor: pointer;
+-}
+-
+-.mercado-radar-filters label {
+-  display: block;
+-  margin-top: 10px;
+-  font-weight: 600;
+-}
+-
+-.mercado-radar-filters select {
+-  box-sizing: border-box;
+-  width: 100%;
+-  margin-top: 4px;
+-  padding: 8px;
+-  border: 1px solid #d8e1dc;
+-  border-radius: 8px;
+-  background: #fff;
+-  color: #26312a;
+-  font-size: 12px;
+-}
+-
+-.mercado-radar-filters__check {
+-  display: flex !important;
+-  align-items: center;
+-  gap: 7px;
+-  font-weight: 500 !important;
+-}
+-
+-.mercado-radar-filters__check input {
+-  margin: 0;
+-}
+-
+-@media (max-width: 1100px) {
+-  .mercado-radar-filters--fixed {
+-    left: 8px;
+-    width: 190px;
+-  }
+-}
+-
+-
+-/* Mercado Radar brand pass */
+-.mercado-radar-card,
+-.mercado-radar-filters {
+-  font-family: "Segoe UI Variable Text", "Inter", "Segoe UI", system-ui, sans-serif;
+-}
+-
+-.mercado-radar-card {
+-  border-color: #cfe5de;
+-  background: #f7fcfa;
+-  color: #244039;
+-  box-shadow: 0 5px 16px rgba(20, 90, 73, .06);
+-}
+-
+-.mercado-radar-card strong,
+-.mercado-radar-card b,
+-.mercado-radar-filters__title {
+-  color: #147b66;
+-}
+-
+-.mercado-radar-card__header {
+-  border-bottom-color: #e1eeea;
+-}
+-
+-.mercado-radar-filters {
+-  border-color: #d9e6e2;
+-  box-shadow: 0 8px 24px rgba(20, 70, 60, .07);
+-}
+-
+-.mercado-radar-filters select {
+-  border-color: #d8e3df;
+-  color: #31463f;
+-}
+-
+-.mercado-radar-filters select:focus {
+-  outline: 0;
+-  border-color: #7fc4b2;
+-  box-shadow: 0 0 0 3px rgba(24, 150, 122, .10);
+-}
+-
+-
+-.mercado-radar-card__my-economics {
+-  margin-top: 6px;
+-  padding-top: 6px;
+-  border-top: 1px solid #e1eeea;
+-}
+-
+-.mercado-radar-card__my-economics b {
+-  color: #126f5b;
+-}
+-
+-.mercado-radar-filters__personal {
+-  margin-top: 12px;
+-  padding: 10px;
+-  border: 1px solid #dceae5;
+-  border-radius: 9px;
+-  background: #f4faf7;
+-}
+-
+-.mercado-radar-filters__personal strong,
+-.mercado-radar-filters__personal small {
+-  display: block;
+-}
+-
+-.mercado-radar-filters__personal strong {
+-  color: #24443a;
+-  font-size: 11px;
+-}
+-
+-.mercado-radar-filters__personal button {
+-  width: 100%;
+-  margin-top: 7px;
+-  padding: 8px 9px;
+-  border: 0;
+-  border-radius: 8px;
+-  background: #168f74;
+-  color: #fff;
+-  font-size: 11px;
+-  font-weight: 750;
+-  cursor: pointer;
+-}
+-
+-.mercado-radar-filters__personal button:disabled {
+-  cursor: default;
+-  opacity: .72;
+-}
+-
+-.mercado-radar-filters__personal small {
+-  margin-top: 6px;
+-  color: #75847d;
+-  font-size: 9px;
+-  line-height: 1.4;
+-}
+-
+-
+-/* Mercado Radar v4 brand + readable injected UI */
+-.mercado-radar-card,
+-.mercado-radar-filters {
+-  font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+-  color: #23463b;
+-}
+-
+-.mercado-radar-card {
+-  border-color: #cfe3db;
+-  border-radius: 13px;
+-  background:
+-    linear-gradient(145deg, #ffffff 0%, #f5fbf8 100%);
+-  box-shadow: 0 7px 20px rgba(20, 78, 61, .07);
+-  font-size: 13px;
+-  line-height: 1.45;
+-}
+-
+-.mercado-radar-card__header {
+-  padding-bottom: 7px;
+-  color: #163d32;
+-  font-size: 13px;
+-}
+-
+-.mercado-radar-card__row {
+-  margin-top: 5px;
+-}
+-
+-.mercado-radar-filters {
+-  border-color: #d4e4de;
+-  border-radius: 15px;
+-  background: rgba(255,255,255,.98);
+-  box-shadow: 0 12px 34px rgba(20,70,58,.10);
+-  font-size: 13px;
+-}
+-
+-.mercado-radar-filters__title {
+-  color: #116f57;
+-  font-size: 16px;
+-}
+-
+-.mercado-radar-filters__title::before {
+-  content: "";
+-  display: inline-block;
+-  width: 10px;
+-  height: 10px;
+-  margin-right: 7px;
+-  border-radius: 50%;
+-  background: #16a47d;
+-  box-shadow: 0 0 0 4px rgba(22,164,125,.12);
+-}
+-
+-.mercado-radar-filters__title button {
+-  font-size: 12px;
+-}
+-
+-.mercado-radar-filters label {
+-  font-size: 12px;
+-}
+-
+-.mercado-radar-filters select {
+-  min-height: 38px;
+-  border-radius: 9px;
+-  font-size: 12px;
+-}
+-
+-.mercado-radar-filters__personal strong {
+-  font-size: 12px;
+-}
+-
+-.mercado-radar-filters__personal small {
+-  font-size: 10px;
+-}
+-
+-.mercado-radar-filters__personal button {
+-  min-height: 37px;
+-  border-radius: 9px;
+-  background: linear-gradient(135deg,#17a57e,#0e8063);
+-  font-size: 12px;
+-}
+diff -ruN a/extension/content.js b/extension/content.js
+--- a/extension/content.js	2026-10-07 03:02:22.000000000 +0000
++++ b/extension/content.js	2026-10-07 03:36:08.836529436 +0000
+@@ -1,736 +1,1425 @@
+-const state = {
+-  lastUrl: location.href,
+-  running: false,
+-  items: [],
+-  searchMatches: [],
+-  profitabilityLoaded: false,
+-};
+-
+-function normalize(value) {
+-  return String(value || "")
+-    .normalize("NFD")
+-    .replace(/[\u0300-\u036f]/g, "")
+-    .toLowerCase()
+-    .replace(/[^a-z0-9]+/g, " ")
+-    .trim();
+-}
+-
+-function money(value) {
+-  if (!Number.isFinite(value)) return "—";
+-  return value.toLocaleString("pt-BR", {
+-    style: "currency",
+-    currency: "BRL",
+-    maximumFractionDigits: 0,
+-  });
+-}
++/**
++ * Mercado Radar — content script (v0.4)
++ *
++ * Mudanças em relação à v0.3:
++ *  - Toda UI vive em Shadow DOM (nenhum CSS vaza de/para o Mercado Livre).
++ *  - O observer ignora mutações causadas pela própria extensão e usa dedupe:
++ *    a API é chamada UMA vez por conjunto de anúncios visíveis (antes havia
++ *    um ciclo mutação → chamada → mutação que repetia a cada ~700 ms).
++ *  - Nenhum dado vindo da API entra via innerHTML (apenas textContent).
++ *  - Widget no anúncio (coluna da compra, com fallback flutuante) e faixa de
++ *    métricas sob cada card da busca, sem deformar o card do ML.
++ *  - Leitura do DOM do ML isolada em selectors.js.
++ */
++(() => {
++  "use strict";
++
++  if (globalThis.__mercadoRadarContent) return;
++  globalThis.__mercadoRadarContent = true;
++
++  const S = globalThis.RadarSelectors;
++  if (!S) return;
++
++  const OWN = "data-radar-owned";
++  const STYLE_URLS = ["ui/tokens.css", "ui/content.css"].map((path) =>
++    chrome.runtime.getURL(path),
++  );
++  const DEBOUNCE_MS = 800;
+ 
+-function getReferenceFromHref(href) {
+-  const match = String(href || "").match(/MLB(U)?-?(\d+)/i);
+-  if (!match) return null;
+-  return "MLB" + (match[1] ? "U" : "") + match[2];
+-}
+-
+-function getCurrentReference() {
+-  return getReferenceFromHref(location.href);
+-}
+-
+-function getCardReference(card) {
+-  const links = [...card.querySelectorAll("a[href*='MLB']")];
+-  for (const link of links) {
+-    const id = getReferenceFromHref(link.href);
+-    if (id) return id;
+-  }
+-  return null;
+-}
+-
+-function getCardTitle(card) {
+-  const element =
+-    card.querySelector(".poly-component__title") ||
+-    card.querySelector(".ui-search-item__title") ||
+-    card.querySelector("h2") ||
+-    card.querySelector("a[title]");
+-  return (element?.textContent || element?.getAttribute("title") || "").trim();
+-}
+-
+-function parseMoneyAmount(container) {
+-  if (!container) return null;
+-  const fraction = container.querySelector(".andes-money-amount__fraction");
+-  const cents = container.querySelector(".andes-money-amount__cents");
+-  if (!fraction) return null;
+-
+-  const integer = Number((fraction.textContent || "").replace(/\D/g, ""));
+-  const decimal = cents
+-    ? Number((cents.textContent || "").replace(/\D/g, "").slice(0, 2).padEnd(2, "0")) / 100
+-    : 0;
+-
+-  const value = integer + decimal;
+-  return Number.isFinite(value) && value > 0 ? value : null;
+-}
+-
+-function getCardPrice(card) {
+-  const preferred =
+-    card.querySelector(".poly-price__current") ||
+-    card.querySelector(".ui-search-price__second-line") ||
+-    card.querySelector(".ui-search-price") ||
+-    card;
+-  return parseMoneyAmount(preferred);
+-}
+-
+-function parseCompactSoldQuantity(text) {
+-  const normalized = normalize(text);
+-  const match = normalized.match(/\+?\s*(\d+(?:[.,]\d+)?)\s*(mil|k)?\s+vendid/);
+-  if (!match) return null;
+-
+-  const numeric = Number(String(match[1]).replace(",", "."));
+-  if (!Number.isFinite(numeric)) return null;
+-
+-  const multiplier = match[2] === "mil" || match[2] === "k" ? 1000 : 1;
+-  return Math.round(numeric * multiplier);
+-}
+-
+-function getCardSoldQuantityLowerBound(card) {
+-  return parseCompactSoldQuantity(card.textContent || "");
+-}
+-
+-function getCardShippingSignals(card) {
+-  const text = normalize(card.textContent || "");
+-  return {
+-    freeShipping: text.includes("frete gratis"),
+-    logisticType: text.includes(" full") || text.startsWith("full")
+-      ? "fulfillment"
+-      : null,
++  const state = {
++    lastUrl: location.href,
++    timer: null,
++    running: false,
++    applying: false,
++    reordered: false,
++    status: "idle", // idle | loading | ok | auth | limit | error
++    lastKey: "",
++    items: [],
++    matches: [],
++    economics: new Map(),
++    dataVersion: 0,
++    strips: new WeakMap(),
++    panel: null,
++    pdp: null,
++    pdpBusy: false,
++    launcher: null,
++    toast: null,
++    dead: false,
+   };
+-}
+ 
+-function getPagePrice() {
+-  const containers = [
+-    document.querySelector(".ui-pdp-price__second-line"),
+-    document.querySelector(".ui-pdp-price"),
+-    document.querySelector("[data-testid='price-part']"),
+-  ].filter(Boolean);
+-
+-  for (const container of containers) {
+-    const value = parseMoneyAmount(container);
+-    if (value) return value;
+-  }
+-  return null;
+-}
+-
+-function findSearchCards() {
+-  const candidates = [
+-    ...document.querySelectorAll(
+-      "li.ui-search-layout__item, .ui-search-result, .poly-card",
+-    ),
+-  ];
+-
+-  return candidates.filter((card, index, all) => {
+-    if (!getCardTitle(card)) return false;
+-    return !all.some(
+-      (other, otherIndex) =>
+-        otherIndex < index && other.contains(card),
+-    );
+-  });
+-}
++  /* ------------------------------------------------------------------ */
++  /* utilidades                                                          */
++  /* ------------------------------------------------------------------ */
++
++  function h(tag, props, ...children) {
++    const element = document.createElement(tag);
++
++    for (const [key, value] of Object.entries(props || {})) {
++      if (value == null || value === false) continue;
++      if (key === "class") element.className = value;
++      else if (key === "text") element.textContent = value;
++      else if (key.startsWith("on") && typeof value === "function") {
++        element.addEventListener(key.slice(2).toLowerCase(), value);
++      } else element.setAttribute(key, value === true ? "" : String(value));
++    }
+ 
+-function extractSearchQuery() {
+-  const searchInput =
+-    document.querySelector("#cb1-edit") ||
+-    document.querySelector("input[name='as_word']") ||
+-    document.querySelector("input.nav-search-input");
++    for (const child of children.flat()) {
++      if (child == null || child === false) continue;
++      element.append(child.nodeType ? child : document.createTextNode(String(child)));
++    }
+ 
+-  const inputValue = searchInput?.value?.trim();
+-  if (inputValue && inputValue.length >= 2) return inputValue;
++    return element;
++  }
+ 
+-  const query = new URL(location.href).searchParams.get("q");
+-  if (query && query.trim().length >= 2) return query.trim();
++  const SVG_NS = "http://www.w3.org/2000/svg";
+ 
+-  return null;
+-}
++  function markIcon() {
++    const svg = document.createElementNS(SVG_NS, "svg");
++    svg.setAttribute("viewBox", "0 0 24 24");
++    svg.setAttribute("fill", "none");
++    svg.setAttribute("stroke", "currentColor");
++    svg.setAttribute("stroke-width", "2");
++    svg.setAttribute("stroke-linecap", "round");
++    svg.setAttribute("aria-hidden", "true");
++    for (const d of [
++      "M4.5 12a7.5 7.5 0 0 1 7.5-7.5",
++      "M8 12a4 4 0 0 1 4-4",
++      "M12 12l6.5 6.5",
++    ]) {
++      const path = document.createElementNS(SVG_NS, "path");
++      path.setAttribute("d", d);
++      svg.append(path);
++    }
++    const dot = document.createElementNS(SVG_NS, "circle");
++    dot.setAttribute("cx", "12");
++    dot.setAttribute("cy", "12");
++    dot.setAttribute("r", "1.6");
++    dot.setAttribute("fill", "currentColor");
++    svg.append(dot);
++    return svg;
++  }
+ 
+-function titleScore(a, b) {
+-  const left = new Set(normalize(a).split(" ").filter((token) => token.length > 1));
+-  const right = new Set(normalize(b).split(" ").filter((token) => token.length > 1));
+-  if (!left.size || !right.size) return 0;
++  function makeHost(kind) {
++    const host = document.createElement("div");
++    host.setAttribute(OWN, kind);
++    host.style.cssText = "all:initial;display:block;";
++    const shadow = host.attachShadow({ mode: "open" });
++    for (const href of STYLE_URLS) {
++      shadow.append(h("link", { rel: "stylesheet", href }));
++    }
++    const root = h("div", { class: "rr" });
++    shadow.append(root);
++    return { host, shadow, root };
++  }
+ 
+-  let intersection = 0;
+-  for (const token of left) {
+-    if (right.has(token)) intersection += 1;
++  function setVisible(host, visible) {
++    host.style.display = visible ? "block" : "none";
+   }
+ 
+-  return intersection / Math.max(left.size, right.size);
+-}
++  function brl(value, digits = 2) {
++    if (!Number.isFinite(Number(value))) return "—";
++    return Number(value).toLocaleString("pt-BR", {
++      style: "currency",
++      currency: "BRL",
++      minimumFractionDigits: digits,
++      maximumFractionDigits: digits,
++    });
++  }
++
++  function moneyCompact(value) {
++    if (!Number.isFinite(value)) return "—";
++    const fmt = (n, d) => n.toFixed(d).replace(".", ",");
++    if (value >= 1e6) return "R$ " + fmt(value / 1e6, 1) + " mi";
++    if (value >= 1e4) return "R$ " + Math.round(value / 1e3) + " mil";
++    if (value >= 1e3) return "R$ " + fmt(value / 1e3, 1) + " mil";
++    return "R$ " + Math.round(value);
++  }
+ 
+-function matchItems(cards, items) {
+-  const remaining = new Set(items.map((_, index) => index));
+-  const matches = [];
++  function pct(value) {
++    if (!Number.isFinite(Number(value))) return "—";
++    return (
++      Number(value).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%"
++    );
++  }
+ 
+-  cards.forEach((card) => {
+-    const cardTitle = getCardTitle(card);
+-    const cardPrice = getCardPrice(card);
+-    const directRef = getCardReference(card);
++  function scoreTone(score) {
++    if (score >= 65) return "ok";
++    if (score >= 45) return "warn";
++    return "risk";
++  }
+ 
+-    let bestIndex = -1;
+-    let bestScore = -1;
++  function demandTone(label) {
++    if (label === "EXCELENTE" || label === "ALTA") return "ok";
++    if (label === "MEDIA") return "warn";
++    if (label === "BAIXA") return "risk";
++    return "";
++  }
+ 
+-    items.forEach((item, index) => {
+-      if (!remaining.has(index)) return;
++  function logisticText(type) {
++    const map = {
++      fulfillment: "Full",
++      self_service: "Flex",
++      cross_docking: "Coleta",
++      xd_drop_off: "Agência",
++      drop_off: "Agência",
++    };
++    return map[type] || type || "";
++  }
+ 
+-      let score = titleScore(cardTitle, item.title);
+-      if (directRef === item.id || directRef === item.userProductId) score += 2;
++  function demandText(label) {
++    const map = {
++      EXCELENTE: "Excelente",
++      ALTA: "Alta",
++      MEDIA: "Média",
++      BAIXA: "Baixa",
++    };
++    return map[label] || "—";
++  }
+ 
+-      if (cardPrice && item.price) {
+-        const priceGap = Math.abs(cardPrice - item.price) / Math.max(cardPrice, item.price);
+-        score += Math.max(0, 0.45 - priceGap);
+-      }
++  async function send(path, method = "GET", body) {
++    try {
++      return await chrome.runtime.sendMessage({
++        type: "RADAR_FETCH",
++        path,
++        method,
++        body,
++      });
++    } catch {
++      // Extensão recarregada/atualizada: este script ficou órfão.
++      state.dead = true;
++      observer.disconnect();
++      return {
++        ok: false,
++        status: 0,
++        contextLost: true,
++        body: { error: "O Radar foi atualizado. Recarregue esta página." },
++      };
++    }
++  }
+ 
+-      if (score > bestScore) {
+-        bestScore = score;
+-        bestIndex = index;
+-      }
+-    });
++  async function getSettings() {
++    const stored = await chrome.storage.sync.get([
++      "radarTaxPercent",
++      "radarOperatingCost",
++      "radarTargetMarginPercent",
++      "radarTargetRoiPercent",
++      "radarApiBase",
++    ]);
++
++    return {
++      taxPercent: Number(stored.radarTaxPercent || 0),
++      operatingCost: Number(stored.radarOperatingCost || 0),
++      targetMarginPercent: Number(stored.radarTargetMarginPercent || 20),
++      targetRoiPercent: Number(stored.radarTargetRoiPercent || 30),
++      apiBase: stored.radarApiBase || "https://radar.optarys.com.br",
++    };
++  }
+ 
+-    if (bestIndex >= 0 && bestScore >= 0.48) {
+-      remaining.delete(bestIndex);
+-      matches.push({ card, item: items[bestIndex], cardPrice });
++  async function login() {
++    try {
++      return await chrome.runtime.sendMessage({ type: "RADAR_AUTH_LOGIN" });
++    } catch {
++      return { authenticated: false, error: "Recarregue a página e tente novamente." };
+     }
+-  });
++  }
+ 
+-  return matches;
+-}
++  function titleScore(a, b) {
++    const left = new Set(S.normalize(a).split(" ").filter((t) => t.length > 1));
++    const right = new Set(S.normalize(b).split(" ").filter((t) => t.length > 1));
++    if (!left.size || !right.size) return 0;
++
++    let intersection = 0;
++    for (const token of left) if (right.has(token)) intersection += 1;
++    return intersection / Math.max(left.size, right.size);
++  }
+ 
+-function ensureBadge(card, item, visiblePrice) {
+-  const existing = card.querySelector(".mercado-radar-card");
+-  const price = visiblePrice || item.price || 0;
+-  const salesPerMonth = item.intelligence?.salesPerMonth;
+-  const revenuePerMonth =
+-    salesPerMonth == null || !price ? null : salesPerMonth * price;
+-
+-  card.dataset.radarScore = String(item.intelligence?.score ?? 0);
+-  card.dataset.radarDemand = item.intelligence?.demandLabel || "BAIXA";
+-  card.dataset.radarSales = String(salesPerMonth ?? 0);
+-  card.dataset.radarRevenue = String(revenuePerMonth ?? 0);
+-  card.dataset.radarAge = String(item.intelligence?.ageDays ?? 999999);
+-  card.dataset.radarFreeShipping = item.freeShipping ? "1" : "0";
+-  card.dataset.radarMomentum = String(
+-    item.momentum?.status === "READY" ? item.momentum.score ?? -1 : -1,
+-  );
+-  card.dataset.radarItemId = item.id;
++  function matchItems(cards, items) {
++    const remaining = new Set(items.map((_, index) => index));
++    const matches = [];
++
++    for (const card of cards) {
++      const cardTitle = S.cardTitle(card);
++      const cardPrice = S.cardPrice(card);
++      const directRef = S.cardReference(card);
++
++      let bestIndex = -1;
++      let bestScore = -1;
++
++      items.forEach((item, index) => {
++        if (!remaining.has(index)) return;
++
++        let score = titleScore(cardTitle, item.title);
++        if (directRef === item.id || directRef === item.userProductId) score += 2;
++
++        if (cardPrice && item.price) {
++          const gap =
++            Math.abs(cardPrice - item.price) / Math.max(cardPrice, item.price);
++          score += Math.max(0, 0.45 - gap);
++        }
++
++        if (score > bestScore) {
++          bestScore = score;
++          bestIndex = index;
++        }
++      });
++
++      if (bestIndex >= 0 && bestScore >= 0.48) {
++        remaining.delete(bestIndex);
++        matches.push({ card, item: items[bestIndex], cardPrice });
++      }
++    }
+ 
+-  const html = [
+-    '<div class="mercado-radar-card__row mercado-radar-card__header">',
+-    '<strong>Mercado Radar</strong>',
+-    '<span class="mercado-radar-card__score">' +
+-      (item.intelligence?.score ?? 0) +
+-      "/100</span>",
+-    "</div>",
+-    '<div class="mercado-radar-card__row"><span>Demanda</span><b>' +
+-      (item.intelligence?.demandLabel || "—") +
+-      "</b></div>",
+-    salesPerMonth == null
+-      ? ""
+-      : '<div class="mercado-radar-card__row"><span>Vendas/mês</span><b>~' +
+-        Math.round(salesPerMonth) +
+-        "</b></div>",
+-    revenuePerMonth == null
+-      ? ""
+-      : '<div class="mercado-radar-card__row"><span>Faturamento/mês</span><b>' +
+-        money(revenuePerMonth) +
+-        "</b></div>",
+-    item.intelligence?.ageDays == null
+-      ? ""
+-      : '<div class="mercado-radar-card__row"><span>Idade</span><span>' +
+-        item.intelligence.ageDays +
+-        " dias</span></div>",
+-    item.momentum?.status === "READY"
+-      ? '<div class="mercado-radar-card__row"><span>Momentum</span><b>' +
+-        item.momentum.score +
+-        "/100 · " +
+-        item.momentum.direction +
+-        "</b></div>"
+-      : item.monitored
+-        ? '<div class="mercado-radar-card__row"><span>Momentum</span><span>Aprendendo</span></div>'
+-        : "",
+-  ].join("");
+-
+-  if (existing) {
+-    existing.innerHTML = html;
+-    return;
+-  }
+-
+-  const box = document.createElement("div");
+-  box.className = "mercado-radar-card";
+-  box.innerHTML = html;
+-  card.appendChild(box);
+-}
+-
+-function applyMyEconomicsToCard(card, economics) {
+-  card.dataset.radarMyMargin = String(economics.marginPercent ?? -999);
+-  card.dataset.radarMyRoi = String(economics.roiPercent ?? -999);
+-  card.dataset.radarMyProfit = String(economics.profit ?? 0);
+-
+-  const box = card.querySelector(".mercado-radar-card");
+-  if (!box) return;
+-
+-  let row = box.querySelector(".mercado-radar-card__my-economics");
+-  if (!row) {
+-    row = document.createElement("div");
+-    row.className =
+-      "mercado-radar-card__row mercado-radar-card__my-economics";
+-    box.appendChild(row);
+-  }
+-
+-  const margin =
+-    economics.marginPercent == null
+-      ? "—"
+-      : Number(economics.marginPercent).toLocaleString("pt-BR", {
+-          maximumFractionDigits: 1,
+-        }) + "%";
+-  const profit =
+-    economics.profit == null
+-      ? "—"
+-      : Number(economics.profit).toLocaleString("pt-BR", {
+-          style: "currency",
+-          currency: "BRL",
+-        });
++    return matches;
++  }
+ 
+-  row.innerHTML =
+-    "<span>Minha margem</span><b>" +
+-    margin +
+-    " · " +
+-    profit +
+-    "</b>";
+-}
+-
+-async function loadSearchProfitability() {
+-  const panel = document.getElementById("mercado-radar-filters");
+-  if (!panel) return;
+-
+-  const button = panel.querySelector("[data-radar-my-economics]");
+-  const status = panel.querySelector("[data-radar-my-economics-status]");
+-  const query = extractSearchQuery();
+-
+-  if (!query || !state.searchMatches.length) return;
+-
+-  const items = state.searchMatches
+-    .map((match) => ({
+-      id: match.item.id,
+-      price: match.cardPrice || match.item.price || 0,
+-    }))
+-    .filter((item) => item.price > 0)
+-    .slice(0, 12);
+-
+-  if (!items.length) return;
+-
+-  if (button) {
+-    button.disabled = true;
+-    button.textContent = "Calculando...";
+-  }
+-  if (status) status.textContent = "Procurando seu produto e custo no Radar...";
+-
+-  const settings = await chrome.storage.sync.get([
+-    "radarTaxPercent",
+-    "radarOperatingCost",
+-    "radarTargetMarginPercent",
+-    "radarTargetRoiPercent",
+-  ]);
+-
+-  const response = await chrome.runtime.sendMessage({
+-    type: "RADAR_FETCH",
+-    path: "/api/extension/search-profitability",
+-    method: "POST",
+-    body: {
+-      query,
+-      items,
+-      taxPercent: Number(settings.radarTaxPercent || 0),
+-      operatingCost: Number(settings.radarOperatingCost || 0),
+-      targetMarginPercent: Number(settings.radarTargetMarginPercent || 20),
+-      targetRoiPercent: Number(settings.radarTargetRoiPercent || 30),
+-    },
+-  });
++  /* ------------------------------------------------------------------ */
++  /* faixa sob cada card da busca                                        */
++  /* ------------------------------------------------------------------ */
++
++  function stat(label, value, estimate, tone) {
++    return h(
++      "div",
++      { class: "stat" },
++      h("small", { text: label }),
++      h("b", { class: tone || "" }, value, estimate ? h("span", { class: "est", text: "*" }) : null),
++    );
++  }
+ 
+-  if (!response?.ok) {
+-    if (status) {
+-      status.textContent =
+-        response?.body?.error || "Não foi possível calcular sua margem.";
++  function renderStrip(root, item, price, econ) {
++    const intel = item.intelligence || {};
++    const score = Number(intel.score ?? 0);
++    const sales = intel.salesPerMonth;
++    const unitPrice = price || item.price || 0;
++    const revenue = sales == null || !unitPrice ? null : sales * unitPrice;
++
++    const children = [
++      h(
++        "div",
++        { class: "strip__head" },
++        h("span", { class: "brand" }, markIcon(), "Radar"),
++        h("span", { class: "chip chip--" + scoreTone(score), text: "Score " + score }),
++      ),
++      h(
++        "div",
++        { class: "strip__grid" },
++        stat("Vendas/mês", sales == null ? "—" : "~" + Math.round(sales), true),
++        stat("Faturamento", moneyCompact(revenue), true),
++        stat("Demanda", demandText(intel.demandLabel), false, demandTone(intel.demandLabel)),
++      ),
++    ];
++
++    if (item.momentum?.status === "READY") {
++      children.push(
++        h(
++          "div",
++          { class: "strip__mine" },
++          h("span", { text: "Momentum" }),
++          h("b", { text: item.momentum.score + "/100 · " + item.momentum.direction }),
++        ),
++      );
+     }
+-    if (button) {
+-      button.disabled = false;
+-      button.textContent = "Calcular minha margem";
++
++    if (econ) {
++      const good = Number(econ.marginPercent) >= 15;
++      children.push(
++        h(
++          "div",
++          { class: "strip__mine" },
++          h("span", { text: "Minha margem" }),
++          h("span", {
++            class: "chip chip--" + (good ? "ok" : "risk"),
++            text: pct(econ.marginPercent) + " · " + brl(econ.profit),
++          }),
++        ),
++      );
+     }
+-    return;
++
++    children.push(
++      h("div", { class: "strip__foot", text: "* estimativa pela faixa de vendas do anúncio" }),
++    );
++
++    root.replaceChildren(h("div", { class: "strip" }, ...children));
+   }
+ 
+-  if (response.body?.needsCost) {
+-    if (status) {
+-      status.textContent =
+-        response.body.message ||
+-        "Encontrei seu produto, mas falta cadastrar o custo.";
++  function ensureStrip(card, item, price, econ) {
++    const signature = item.id + "|" + state.dataVersion;
++    let record = state.strips.get(card);
++
++    if (!record) {
++      const made = makeHost("strip");
++      record = {
++        host: made.host,
++        root: made.root,
++        mode: card.tagName === "LI" ? "inside" : "after",
++        signature: "",
++      };
++      state.strips.set(card, record);
+     }
+-    if (button) {
+-      button.disabled = false;
+-      button.textContent = "Tentar novamente";
+-    }
+-    return;
+-  }
+ 
+-  if (!Array.isArray(response.body?.items) || !response.body.items.length) {
+-    if (status) {
+-      status.textContent =
+-        response.body?.message ||
+-        "Nenhum produto seu compatível foi encontrado para esta busca.";
++    if (!record.host.isConnected) {
++      if (record.mode === "inside") card.appendChild(record.host);
++      else card.insertAdjacentElement("afterend", record.host);
+     }
+-    if (button) {
+-      button.disabled = false;
+-      button.textContent = "Calcular minha margem";
++
++    if (record.signature !== signature) {
++      renderStrip(record.root, item, price, econ);
++      record.signature = signature;
+     }
+-    return;
+   }
+ 
+-  const resultById = new Map(
+-    response.body.items.map((item) => [item.id, item]),
+-  );
++  function decorateCard(card, item, price, econ) {
++    const intel = item.intelligence || {};
++    const sales = intel.salesPerMonth;
++    const unitPrice = price || item.price || 0;
++    const revenue = sales == null || !unitPrice ? null : sales * unitPrice;
++
++    card.dataset.radarScore = String(intel.score ?? 0);
++    card.dataset.radarDemand = intel.demandLabel || "BAIXA";
++    card.dataset.radarSales = String(sales ?? 0);
++    card.dataset.radarRevenue = String(revenue ?? 0);
++    card.dataset.radarAge = String(intel.ageDays ?? 999999);
++    card.dataset.radarFreeShipping = item.freeShipping ? "1" : "0";
++    card.dataset.radarMomentum = String(
++      item.momentum?.status === "READY" ? (item.momentum.score ?? -1) : -1,
++    );
++    card.dataset.radarItemId = item.id;
++    card.dataset.radarMyMargin = String(econ?.marginPercent ?? -999);
++    card.dataset.radarMyRoi = String(econ?.roiPercent ?? -999);
++    card.dataset.radarMyProfit = String(econ?.profit ?? 0);
++
++    ensureStrip(card, item, price, econ);
++  }
+ 
+-  for (const match of state.searchMatches) {
+-    const economics = resultById.get(match.item.id);
+-    if (economics) {
+-      applyMyEconomicsToCard(match.card, economics);
++  /* idempotente: pode rodar quantas vezes quiser sem chamar a API */
++  function applyMatches(cards) {
++    state.matches = matchItems(cards, state.items);
++    for (const match of state.matches) {
++      decorateCard(
++        match.card,
++        match.item,
++        match.cardPrice,
++        state.economics.get(match.item.id) || null,
++      );
+     }
++    applyFilters();
+   }
+ 
+-  state.profitabilityLoaded = true;
++  /* ------------------------------------------------------------------ */
++  /* painel de filtros                                                   */
++  /* ------------------------------------------------------------------ */
++
++  const FILTERS = {
++    score: ["Score mínimo", [["0", "Todas"], ["50", "Score 50+"], ["65", "Score 65+"], ["80", "Score 80+"]]],
++    demand: ["Demanda", [["", "Todas"], ["EXCELENTE", "Excelente"], ["ALTA", "Alta"], ["MEDIA", "Média"], ["BAIXA", "Baixa"]]],
++    sort: ["Ordenar", [["original", "Ordem do Mercado Livre"], ["score", "Melhor oportunidade"], ["sales", "Mais vendidos"], ["revenue", "Maior faturamento"], ["newest", "Mais novos"], ["momentum", "Maior momentum"], ["myMargin", "Maior margem para mim"], ["myRoi", "Maior ROI para mim"]]],
++    sales: ["Vendas estimadas/mês", [["0", "Todas"], ["10", "10+"], ["50", "50+"], ["100", "100+"], ["300", "300+"]]],
++    revenue: ["Faturamento estimado", [["0", "Todos"], ["1000", "R$ 1 mil+"], ["5000", "R$ 5 mil+"], ["10000", "R$ 10 mil+"], ["50000", "R$ 50 mil+"]]],
++    age: ["Idade máxima", [["999999", "Qualquer"], ["30", "30 dias"], ["90", "90 dias"], ["365", "1 ano"]]],
++    momentum: ["Momentum monitorado", [["-1", "Qualquer"], ["50", "50+"], ["70", "70+"], ["85", "85+"]]],
++    myMargin: ["Minha margem", [["-999", "Qualquer"], ["10", "10%+"], ["15", "15%+"], ["20", "20%+"], ["30", "30%+"]]],
++    myRoi: ["Meu ROI", [["-999", "Qualquer"], ["20", "20%+"], ["30", "30%+"], ["50", "50%+"], ["80", "80%+"]]],
++  };
+ 
+-  const marginFilter = panel.querySelector("[data-radar-filter='myMargin']");
+-  const roiFilter = panel.querySelector("[data-radar-filter='myRoi']");
+-  if (marginFilter) marginFilter.disabled = false;
+-  if (roiFilter) roiFilter.disabled = false;
++  function filterSelect(name, disabled) {
++    const [label, options] = FILTERS[name];
++    const select = h("select", { "data-f": name, disabled: Boolean(disabled) });
++    for (const [value, text] of options) select.append(h("option", { value, text }));
++    return h("label", { class: "field" }, h("span", { text: label }), select);
++  }
+ 
+-  if (status) {
+-    const matched = response.body.matchedProduct;
+-    status.textContent = matched
+-      ? "Usando custo de " +
+-        matched.title +
+-        " · confiança " +
+-        matched.similarityPercent +
+-        "%"
+-      : "Margem personalizada carregada.";
++  function section(title, open, ...children) {
++    return h("details", { class: "sec", open: Boolean(open) }, h("summary", { text: title }), ...children);
+   }
+ 
+-  if (button) {
+-    button.disabled = true;
+-    button.textContent = "Minha margem carregada";
+-  }
+-
+-  applyFilters();
+-}
+-
+-function filterMarkup() {
+-  return `
+-    <div class="mercado-radar-filters__title">
+-      <span>Radar</span>
+-      <button type="button" data-radar-reset>Limpar</button>
+-    </div>
+-    <label>Oportunidade
+-      <select data-radar-filter="score">
+-        <option value="0">Todas</option>
+-        <option value="50">Score 50+</option>
+-        <option value="65">Score 65+</option>
+-        <option value="80">Score 80+</option>
+-      </select>
+-    </label>
+-    <label>Demanda
+-      <select data-radar-filter="demand">
+-        <option value="">Todas</option>
+-        <option value="EXCELENTE">Excelente</option>
+-        <option value="ALTA">Alta</option>
+-        <option value="MEDIA">Média</option>
+-        <option value="BAIXA">Baixa</option>
+-      </select>
+-    </label>
+-    <label>Vendas estimadas/mês
+-      <select data-radar-filter="sales">
+-        <option value="0">Todas</option>
+-        <option value="10">10+</option>
+-        <option value="50">50+</option>
+-        <option value="100">100+</option>
+-        <option value="300">300+</option>
+-      </select>
+-    </label>
+-    <label>Faturamento estimado
+-      <select data-radar-filter="revenue">
+-        <option value="0">Todos</option>
+-        <option value="1000">R$ 1 mil+</option>
+-        <option value="5000">R$ 5 mil+</option>
+-        <option value="10000">R$ 10 mil+</option>
+-        <option value="50000">R$ 50 mil+</option>
+-      </select>
+-    </label>
+-    <label>Idade máxima
+-      <select data-radar-filter="age">
+-        <option value="999999">Qualquer</option>
+-        <option value="30">30 dias</option>
+-        <option value="90">90 dias</option>
+-        <option value="365">1 ano</option>
+-      </select>
+-    </label>
+-    <label>Momentum monitorado
+-      <select data-radar-filter="momentum">
+-        <option value="-1">Qualquer</option>
+-        <option value="50">50+</option>
+-        <option value="70">70+</option>
+-        <option value="85">85+</option>
+-      </select>
+-    </label>
+-
+-    <label class="mercado-radar-filters__check">
+-      <input type="checkbox" data-radar-filter="freeShipping" />
+-      Só frete grátis
+-    </label>
+-
+-    <div class="mercado-radar-filters__personal">
+-      <strong>Para minha operação</strong>
+-      <button type="button" data-radar-my-economics>Calcular minha margem</button>
+-      <small data-radar-my-economics-status>
+-        Usa o custo cadastrado no seu produto mais compatível.
+-      </small>
+-    </div>
+-
+-    <label>Minha margem
+-      <select data-radar-filter="myMargin" disabled>
+-        <option value="-999">Qualquer</option>
+-        <option value="10">10%+</option>
+-        <option value="15">15%+</option>
+-        <option value="20">20%+</option>
+-        <option value="30">30%+</option>
+-      </select>
+-    </label>
+-
+-    <label>Meu ROI
+-      <select data-radar-filter="myRoi" disabled>
+-        <option value="-999">Qualquer</option>
+-        <option value="20">20%+</option>
+-        <option value="30">30%+</option>
+-        <option value="50">50%+</option>
+-        <option value="80">80%+</option>
+-      </select>
+-    </label>
+-
+-    <label>Ordenar
+-      <select data-radar-filter="sort">
+-        <option value="original">Mercado Livre</option>
+-        <option value="score">Melhor oportunidade</option>
+-        <option value="sales">Mais vendidos</option>
+-        <option value="revenue">Maior faturamento</option>
+-        <option value="newest">Mais novos</option>
+-        <option value="momentum">Maior Momentum</option>
+-        <option value="myMargin">Maior margem para mim</option>
+-        <option value="myRoi">Maior ROI para mim</option>
+-      </select>
+-    </label>
+-  `;
+-}
+-
+-function applyFilters() {
+-  const panel = document.getElementById("mercado-radar-filters");
+-  if (!panel) return;
+-
+-  const cards = findSearchCards();
+-  const value = (name) => panel.querySelector(`[data-radar-filter="${name}"]`);
+-
+-  const score = Number(value("score")?.value || 0);
+-  const demand = value("demand")?.value || "";
+-  const sales = Number(value("sales")?.value || 0);
+-  const revenue = Number(value("revenue")?.value || 0);
+-  const age = Number(value("age")?.value || 999999);
+-  const momentum = Number(value("momentum")?.value ?? -1);
+-  const freeShipping = Boolean(value("freeShipping")?.checked);
+-  const myMargin = Number(value("myMargin")?.value ?? -999);
+-  const myRoi = Number(value("myRoi")?.value ?? -999);
+-  const sort = value("sort")?.value || "original";
+-
+-  cards.forEach((card, index) => {
+-    if (!card.dataset.radarOriginalIndex) {
+-      card.dataset.radarOriginalIndex = String(index);
+-    }
+-
+-    const visible =
+-      Number(card.dataset.radarScore || 0) >= score &&
+-      (!demand || card.dataset.radarDemand === demand) &&
+-      Number(card.dataset.radarSales || 0) >= sales &&
+-      Number(card.dataset.radarRevenue || 0) >= revenue &&
+-      Number(card.dataset.radarAge || 999999) <= age &&
+-      Number(card.dataset.radarMomentum ?? -1) >= momentum &&
+-      (!freeShipping || card.dataset.radarFreeShipping === "1") &&
+-      Number(card.dataset.radarMyMargin ?? -999) >= myMargin &&
+-      Number(card.dataset.radarMyRoi ?? -999) >= myRoi;
++  function buildPanel() {
++    const { host, root } = makeHost("panel");
+ 
+-    card.style.display = visible ? "" : "none";
+-  });
++    const count = h("span", { class: "panel__count" });
++    const notice = h("div", { class: "notice", hidden: true });
++    const mineStatus = h("small", { text: "Usa o custo cadastrado no seu produto mais compatível." });
++    const mineButton = h("button", {
++      class: "btn btn--block",
++      type: "button",
++      text: "Calcular minha margem",
++      onClick: () => void loadSearchProfitability(),
++    });
+ 
+-  const parents = new Set(cards.map((card) => card.parentElement).filter(Boolean));
+-  if (parents.size !== 1) return;
++    const panel = h(
++      "section",
++      { class: "panel", "aria-label": "Filtros do Mercado Radar" },
++      h(
++        "div",
++        { class: "panel__head" },
++        h("span", { class: "brand" }, markIcon(), "Radar"),
++        count,
++        h("button", { class: "link", type: "button", text: "Limpar", onClick: resetFilters }),
++      ),
++      notice,
++      h(
++        "div",
++        { class: "panel__body" },
++        section("Oportunidade", true, filterSelect("score"), filterSelect("demand"), filterSelect("sort")),
++        section("Volume e idade", false, filterSelect("sales"), filterSelect("revenue"), filterSelect("age"), filterSelect("momentum")),
++        section(
++          "Logística",
++          false,
++          h("label", { class: "check" }, h("input", { type: "checkbox", "data-f": "freeShipping" }), "Só frete grátis"),
++        ),
++        section(
++          "Para minha operação",
++          true,
++          h("div", { class: "mine-box" }, mineButton, mineStatus),
++          filterSelect("myMargin", true),
++          filterSelect("myRoi", true),
++        ),
++      ),
++    );
+ 
+-  const parent = [...parents][0];
+-  const sorted = [...cards].sort((a, b) => {
+-    if (sort === "score") {
+-      return Number(b.dataset.radarScore || 0) - Number(a.dataset.radarScore || 0);
+-    }
+-    if (sort === "sales") {
+-      return Number(b.dataset.radarSales || 0) - Number(a.dataset.radarSales || 0);
+-    }
+-    if (sort === "revenue") {
+-      return Number(b.dataset.radarRevenue || 0) - Number(a.dataset.radarRevenue || 0);
+-    }
+-    if (sort === "newest") {
+-      return Number(a.dataset.radarAge || 999999) - Number(b.dataset.radarAge || 999999);
++    panel.addEventListener("change", () => applyFilters());
++    root.append(panel);
++
++    return { host, root, count, notice, mineButton, mineStatus };
++  }
++
++  function mountPanel() {
++    if (state.panel?.host.isConnected) return;
++
++    if (!state.panel) state.panel = buildPanel();
++    const { host } = state.panel;
++
++    const sidebar = S.findSidebar();
++    if (sidebar) {
++      sidebar.prepend(host);
++    } else {
++      host.style.setProperty("position", "fixed");
++      host.style.setProperty("z-index", "2147483000");
++      host.style.setProperty("left", "12px");
++      host.style.setProperty("top", "120px");
++      host.style.setProperty("width", "260px");
++      host.style.setProperty("max-height", "calc(100vh - 140px)");
++      host.style.setProperty("overflow", "auto");
++      document.body.appendChild(host);
+     }
+-    if (sort === "momentum") {
+-      return Number(b.dataset.radarMomentum ?? -1) - Number(a.dataset.radarMomentum ?? -1);
++  }
++
++  function setNotice(kind, message, actionLabel, action) {
++    const notice = state.panel?.notice;
++    if (!notice) return;
++
++    if (!kind || kind === "ok") {
++      notice.hidden = true;
++      notice.replaceChildren();
++      return;
+     }
+-    if (sort === "myMargin") {
+-      return Number(b.dataset.radarMyMargin ?? -999) - Number(a.dataset.radarMyMargin ?? -999);
++
++    const tone = kind === "error" ? " notice--risk" : kind === "limit" ? " notice--warn" : "";
++    notice.className = "notice" + tone;
++    notice.hidden = false;
++    // replaceChildren(null) inseriria o texto "null": monta só com nós reais.
++    const nodes = [h("div", { text: message })];
++    if (actionLabel) {
++      nodes.push(h("button", { class: "btn btn--block", type: "button", text: actionLabel, onClick: action }));
+     }
+-    if (sort === "myRoi") {
+-      return Number(b.dataset.radarMyRoi ?? -999) - Number(a.dataset.radarMyRoi ?? -999);
++    notice.replaceChildren(...nodes);
++  }
++
++  function resetFilters() {
++    const root = state.panel?.root;
++    if (!root) return;
++    root.querySelectorAll("select").forEach((select) => {
++      select.selectedIndex = 0;
++    });
++    const free = root.querySelector("[data-f='freeShipping']");
++    if (free) free.checked = false;
++    applyFilters();
++  }
++
++  function applyFilters() {
++    const root = state.panel?.root;
++    if (!root) return;
++
++    const control = (name) => root.querySelector(`[data-f="${name}"]`);
++    const num = (name, fallback) => Number(control(name)?.value ?? fallback);
++
++    const score = num("score", 0);
++    const demand = control("demand")?.value || "";
++    const sales = num("sales", 0);
++    const revenue = num("revenue", 0);
++    const age = num("age", 999999);
++    const momentum = num("momentum", -1);
++    const myMargin = num("myMargin", -999);
++    const myRoi = num("myRoi", -999);
++    const freeShipping = Boolean(control("freeShipping")?.checked);
++    const sort = control("sort")?.value || "original";
++
++    const cards = S.findCards();
++    state.applying = true;
++
++    try {
++      let visibleCount = 0;
++
++      cards.forEach((card, index) => {
++        if (!card.dataset.radarOriginalIndex) {
++          card.dataset.radarOriginalIndex = String(index);
++        }
++
++        const d = card.dataset;
++        const visible =
++          Number(d.radarScore || 0) >= score &&
++          (!demand || d.radarDemand === demand) &&
++          Number(d.radarSales || 0) >= sales &&
++          Number(d.radarRevenue || 0) >= revenue &&
++          Number(d.radarAge || 999999) <= age &&
++          Number(d.radarMomentum ?? -1) >= momentum &&
++          (!freeShipping || d.radarFreeShipping === "1") &&
++          Number(d.radarMyMargin ?? -999) >= myMargin &&
++          Number(d.radarMyRoi ?? -999) >= myRoi;
++
++        card.style.display = visible ? "" : "none";
++        const strip = state.strips.get(card);
++        if (strip) setVisible(strip.host, visible);
++        if (visible) visibleCount += 1;
++      });
++
++      if (state.panel) {
++        state.panel.count.textContent = visibleCount + " de " + cards.length;
++      }
++
++      const parents = new Set(cards.map((card) => card.parentElement).filter(Boolean));
++      const mustSort = sort !== "original" || state.reordered;
++
++      if (mustSort && parents.size === 1) {
++        const parent = [...parents][0];
++        const read = (card, key, fallback) => Number(card.dataset[key] ?? fallback);
++
++        const sorted = [...cards].sort((a, b) => {
++          switch (sort) {
++            case "score": return read(b, "radarScore", 0) - read(a, "radarScore", 0);
++            case "sales": return read(b, "radarSales", 0) - read(a, "radarSales", 0);
++            case "revenue": return read(b, "radarRevenue", 0) - read(a, "radarRevenue", 0);
++            case "newest": return read(a, "radarAge", 999999) - read(b, "radarAge", 999999);
++            case "momentum": return read(b, "radarMomentum", -1) - read(a, "radarMomentum", -1);
++            case "myMargin": return read(b, "radarMyMargin", -999) - read(a, "radarMyMargin", -999);
++            case "myRoi": return read(b, "radarMyRoi", -999) - read(a, "radarMyRoi", -999);
++            default: return read(a, "radarOriginalIndex", 0) - read(b, "radarOriginalIndex", 0);
++          }
++        });
++
++        for (const card of sorted) {
++          parent.appendChild(card);
++          const strip = state.strips.get(card);
++          if (strip && strip.mode === "after") parent.appendChild(strip.host);
++        }
++
++        state.reordered = sort !== "original";
++      }
++    } finally {
++      // Descarta as mutações geradas aqui: não podem disparar novo ciclo.
++      observer.takeRecords();
++      state.applying = false;
+     }
+-    return Number(a.dataset.radarOriginalIndex || 0) - Number(b.dataset.radarOriginalIndex || 0);
+-  });
++  }
+ 
+-  sorted.forEach((card) => parent.appendChild(card));
+-}
++  /* ------------------------------------------------------------------ */
++  /* "para minha operação"                                               */
++  /* ------------------------------------------------------------------ */
++
++  async function loadSearchProfitability() {
++    const panel = state.panel;
++    if (!panel) return;
++
++    const query = S.extractQuery();
++    const items = state.matches
++      .map((match) => ({
++        id: match.item.id,
++        price: match.cardPrice || match.item.price || 0,
++      }))
++      .filter((item) => item.price > 0)
++      .slice(0, 12);
++
++    if (!query || !items.length) return;
++
++    panel.mineButton.disabled = true;
++    panel.mineButton.textContent = "Calculando...";
++    panel.mineStatus.textContent = "Procurando seu produto e custo no Radar...";
+ 
+-function mountFilterPanel() {
+-  if (document.getElementById("mercado-radar-filters")) return;
++    const settings = await getSettings();
++    const response = await send("/api/extension/search-profitability", "POST", {
++      query,
++      items,
++      taxPercent: settings.taxPercent,
++      operatingCost: settings.operatingCost,
++      targetMarginPercent: settings.targetMarginPercent,
++      targetRoiPercent: settings.targetRoiPercent,
++    });
+ 
+-  const cards = findSearchCards();
+-  if (cards.length < 3) return;
++    const retry = (label) => {
++      panel.mineButton.disabled = false;
++      panel.mineButton.textContent = label;
++    };
+ 
+-  const panel = document.createElement("section");
+-  panel.id = "mercado-radar-filters";
+-  panel.className = "mercado-radar-filters";
+-  panel.innerHTML = filterMarkup();
+-
+-  const sidebar =
+-    document.querySelector(".ui-search-sidebar") ||
+-    document.querySelector("[class*='ui-search-sidebar']");
+-
+-  if (sidebar) {
+-    sidebar.prepend(panel);
+-  } else {
+-    panel.classList.add("mercado-radar-filters--fixed");
+-    document.body.appendChild(panel);
+-  }
+-
+-  panel.addEventListener("change", applyFilters);
+-  panel
+-    .querySelector("[data-radar-my-economics]")
+-    ?.addEventListener("click", () => void loadSearchProfitability());
++    if (!response?.ok) {
++      panel.mineStatus.textContent =
++        response?.body?.error || "Não foi possível calcular sua margem.";
++      retry("Calcular minha margem");
++      return;
++    }
+ 
+-  panel.querySelector("[data-radar-reset]")?.addEventListener("click", () => {
+-    panel.querySelectorAll("select").forEach((select) => {
+-      select.selectedIndex = 0;
++    if (response.body?.needsCost) {
++      panel.mineStatus.textContent =
++        response.body.message ||
++        "Encontrei seu produto, mas falta cadastrar o custo.";
++      retry("Tentar novamente");
++      return;
++    }
++
++    if (!Array.isArray(response.body?.items) || !response.body.items.length) {
++      panel.mineStatus.textContent =
++        response.body?.message ||
++        "Nenhum produto seu compatível foi encontrado para esta busca.";
++      retry("Calcular minha margem");
++      return;
++    }
++
++    for (const economics of response.body.items) {
++      state.economics.set(economics.id, economics);
++    }
++    state.dataVersion += 1;
++
++    panel.root.querySelectorAll("[data-f='myMargin'], [data-f='myRoi']").forEach((el) => {
++      el.disabled = false;
+     });
+-    const freeShipping = panel.querySelector("[data-radar-filter='freeShipping']");
+-    if (freeShipping) freeShipping.checked = false;
+-    applyFilters();
+-  });
+-}
+ 
+-function publishContext() {
+-  const referenceId = getCurrentReference();
+-  const title = (document.querySelector("h1")?.textContent || "").trim();
+-  const price = getPagePrice();
+-
+-  chrome.runtime.sendMessage({
+-    type: "RADAR_CONTEXT_UPDATE",
+-    context: {
+-      url: location.href,
+-      referenceId,
+-      title: title || null,
+-      visiblePrice: price,
+-      updatedAt: new Date().toISOString(),
+-    },
+-  }).catch(() => {});
+-}
+-
+-async function enrichSearch() {
+-  if (state.running) return;
+-
+-  const query = extractSearchQuery();
+-  const cards = findSearchCards();
+-  if (!query || cards.length < 2) {
+-    publishContext();
+-    return;
++    const matched = response.body.matchedProduct;
++    panel.mineStatus.textContent = matched
++      ? "Usando custo de " + matched.title + " · confiança " + matched.similarityPercent + "%"
++      : "Margem personalizada carregada.";
++    panel.mineButton.textContent = "Minha margem carregada";
++
++    applyMatches(S.findCards());
+   }
+ 
+-  state.running = true;
++  /* ------------------------------------------------------------------ */
++  /* busca: enriquecimento com dedupe                                    */
++  /* ------------------------------------------------------------------ */
+ 
+-  try {
+-    const observedItems = cards
++  function buildObserved(cards) {
++    return cards
+       .map((card, index) => {
+-        const id = getCardReference(card);
++        const id = S.cardReference(card);
+         if (!id || !/^MLB\d+$/i.test(id)) return null;
+ 
+-        const shipping = getCardShippingSignals(card);
+-
++        const shipping = S.cardShipping(card);
+         return {
+           id,
+-          title: getCardTitle(card),
+-          price: getCardPrice(card),
++          title: S.cardTitle(card),
++          price: S.cardPrice(card),
+           position: index + 1,
+-          soldQuantityLowerBound: getCardSoldQuantityLowerBound(card),
++          soldQuantityLowerBound: S.cardSoldLowerBound(card),
+           freeShipping: shipping.freeShipping,
+           logisticType: shipping.logisticType,
+         };
+       })
+       .filter(Boolean)
+       .slice(0, 50);
++  }
++
++  function forceRefresh() {
++    state.lastKey = "";
++    state.status = "idle";
++    schedule(50);
++  }
++
++  async function enrichSearch() {
++    if (state.running || state.dead) return;
++
++    const cards = S.findCards();
++    const query = S.extractQuery();
++
++    if (!query || cards.length < 2) {
++      await enrichProduct();
++      return;
++    }
++
++    const observed = buildObserved(cards);
++    if (!observed.length) return;
+ 
+-    const response = await chrome.runtime.sendMessage({
+-      type: "RADAR_FETCH",
+-      path: "/api/extension/search",
+-      method: "POST",
+-      body: {
++    const key = query + "|" + observed.map((item) => item.id).join(",");
++
++    if (key === state.lastKey) {
++      // Mesmo conjunto de anúncios: nunca chama a API de novo. Só garante que a
++      // interface continue montada (o ML pode ter re-renderizado os cards).
++      if (cards.length >= 3) mountPanel();
++      if (state.status === "ok") applyMatches(cards);
++      return;
++    }
++
++    state.running = true;
++    state.lastKey = key;
++    state.status = "loading";
++    state.economics.clear();
++    publishContext();
++
++    try {
++      if (cards.length >= 3) mountPanel();
++      setNotice("loading", "Analisando anúncios...");
++
++      const response = await send("/api/extension/search", "POST", {
+         query,
+-        items: observedItems,
++        items: observed,
++      });
++
++      if (response.contextLost) return;
++
++      if (response.status === 401) {
++        state.status = "auth";
++        setNotice(
++          "auth",
++          "Entre no Mercado Radar para ver score, vendas e margem nesta busca.",
++          "Entrar no Mercado Radar",
++          async () => {
++            const result = await login();
++            if (result?.authenticated) forceRefresh();
++            else setNotice("error", result?.error || "Não foi possível entrar.", "Tentar de novo", forceRefresh);
++          },
++        );
++        return;
++      }
++
++      if (response.status === 429) {
++        state.status = "limit";
++        setNotice("limit", response.body?.error || "Limite diário da extensão atingido.");
++        return;
++      }
++
++      if (!response.ok || !Array.isArray(response.body?.items)) {
++        state.status = "error";
++        setNotice(
++          "error",
++          response.body?.error || "Não foi possível analisar esta busca.",
++          "Tentar de novo",
++          forceRefresh,
++        );
++        return;
++      }
++
++      state.status = "ok";
++      state.items = response.body.items;
++      state.dataVersion += 1;
++      setNotice("ok");
++      applyMatches(cards);
++    } finally {
++      state.running = false;
++    }
++  }
++
++  /* ------------------------------------------------------------------ */
++  /* anúncio: widget                                                     */
++  /* ------------------------------------------------------------------ */
++
++  function kpi(label, value, tone) {
++    return h("div", { class: "kpi" }, h("small", { text: label }), h("b", { class: tone || "", text: value }));
++  }
++
++  function createPdp(ref) {
++    const { host, root } = makeHost("widget");
++    const body = h("div", { class: "widget__body" });
++    const chip = h("span", { class: "chip", hidden: true });
++    const chevron = h("span", { class: "muted", text: "▾" });
++
++    const head = h(
++      "div",
++      {
++        class: "widget__head",
++        role: "button",
++        tabindex: "0",
++        "aria-expanded": "true",
+       },
++      h("span", { class: "brand" }, markIcon(), "Mercado Radar"),
++      h("span", { style: "display:flex;gap:8px;align-items:center" }, chip, chevron),
++    );
++
++    const toggle = () => {
++      body.hidden = !body.hidden;
++      chevron.textContent = body.hidden ? "▸" : "▾";
++      head.setAttribute("aria-expanded", String(!body.hidden));
++    };
++    head.addEventListener("click", toggle);
++    head.addEventListener("keydown", (event) => {
++      if (event.key === "Enter" || event.key === " ") {
++        event.preventDefault();
++        toggle();
++      }
+     });
+ 
+-    if (!response?.ok || !Array.isArray(response.body?.items)) return;
++    const wrap = h("section", { class: "widget", "aria-label": "Análise do Mercado Radar" }, head, body);
++    root.append(wrap);
+ 
+-    state.items = response.body.items;
+-    const matches = matchItems(cards, state.items);
+-    state.searchMatches = matches;
+-    state.profitabilityLoaded = false;
++    return { ref, host, root, wrap, body, chip, item: null, cost: null, floating: false };
++  }
+ 
+-    for (const match of matches) {
+-      ensureBadge(match.card, match.item, match.cardPrice);
++  function mountPdp() {
++    const pdp = state.pdp;
++    if (!pdp || pdp.host.isConnected) return;
++
++    const anchor = S.findPdpAnchor();
++    if (anchor) {
++      anchor.element.insertAdjacentElement(anchor.position, pdp.host);
++      pdp.floating = false;
++      pdp.wrap.classList.remove("widget--floating");
++    } else {
++      pdp.floating = true;
++      pdp.wrap.classList.add("widget--floating");
++      document.body.appendChild(pdp.host);
+     }
++  }
+ 
+-    mountFilterPanel();
+-    applyFilters();
++  function pdpMessage(pdp, tone, message, actionLabel, action) {
++    pdp.body.replaceChildren(
++      h(
++        "div",
++        { class: "notice" + (tone === "error" ? " notice--risk" : tone === "limit" ? " notice--warn" : ""), style: "margin:0" },
++        h("div", { text: message }),
++        actionLabel ? h("button", { class: "btn btn--block", type: "button", text: actionLabel, onClick: action }) : null,
++      ),
++    );
++  }
++
++  function payoutBlock(pdp, calc) {
++    const { fees, result } = calc;
++    const hasCost = pdp.cost != null;
++
++    const line = (label, value, className) =>
++      h("div", { class: "line" + (className ? " " + className : "") }, h("span", { text: label }), h("b", { text: value }));
++
++    const lines = [
++      line("Preço de venda", brl(result.salePrice)),
++      line("Comissão (" + pct(fees.commissionPercent) + ")", "− " + brl(fees.commissionAmount), "neg"),
++    ];
++    if (Number(fees.fixedFee) > 0) lines.push(line("Tarifa fixa", "− " + brl(fees.fixedFee), "neg"));
++    lines.push(line("Frete", "− " + brl(fees.shippingCost), "neg"));
++    if (Number(fees.taxAmount) > 0) lines.push(line("Imposto (" + pct(fees.taxPercent) + ")", "− " + brl(fees.taxAmount), "neg"));
++    lines.push(line("Você recebe", brl(result.amountReceived), "total"));
++
++    if (hasCost) {
++      lines.push(line("Custo do produto", "− " + brl(result.purchaseCost), "neg"));
++      lines.push(line("Lucro por venda", brl(result.profit), "total" + (result.profit <= 0 ? " risk" : "")));
++    }
++
++    const costInput = h("input", {
++      type: "number",
++      min: "0",
++      step: "0.01",
++      placeholder: "Meu custo (R$)",
++      value: hasCost ? String(pdp.cost) : null,
++      "aria-label": "Custo do produto",
++    });
++    const costButton = h("button", {
++      class: "btn",
++      type: "button",
++      text: hasCost ? "Recalcular" : "Calcular lucro",
++      onClick: async () => {
++        const value = Number(costInput.value);
++        if (!Number.isFinite(value) || value < 0 || costInput.value === "") return;
++        costButton.disabled = true;
++        costButton.textContent = "Calculando...";
++        pdp.cost = value;
++        await loadPdpCalculation(pdp);
++      },
++    });
++
++    return h(
++      "div",
++      { class: "block" },
++      h("div", { class: "block__title", text: "Quanto você recebe" }),
++      h("div", { class: "payout" }, ...lines),
++      h("div", { class: "cost-row" }, costInput, costButton),
++      hasCost
++        ? h("div", { class: "muted", style: "margin-top:8px", text: "Margem " + pct(result.marginPercent) + " · ROI " + pct(result.roiPercent) + " · preço mínimo saudável " + brl(result.minimumSuggestedPrice) })
++        : h("div", { class: "muted", style: "margin-top:8px", text: "Informe seu custo para ver lucro, margem e ROI." }),
++    );
++  }
++
++  function renderPdp(pdp, calc) {
++    const item = pdp.item;
++    const intel = item.intelligence || {};
++    const score = Number(intel.score ?? 0);
++
++    pdp.chip.hidden = false;
++    pdp.chip.className = "chip chip--" + scoreTone(score);
++    pdp.chip.textContent = "Score " + score;
++
++    const margin = calc && pdp.cost != null ? calc.result.marginPercent : null;
++    const marginTone = margin == null ? "" : margin >= 15 ? "ok" : "risk";
++
++    const blocks = [
++      h(
++        "div",
++        { class: "kpis" },
++        kpi("Score", score + "/100", scoreTone(score)),
++        kpi("Vendas/mês*", intel.salesPerMonth == null ? "—" : "~" + Math.round(intel.salesPerMonth)),
++        kpi("Demanda", demandText(intel.demandLabel), demandTone(intel.demandLabel)),
++        kpi("Minha margem", margin == null ? "—" : pct(margin), marginTone),
++      ),
++    ];
++
++    if (calc) blocks.push(payoutBlock(pdp, calc));
++
++    const winner = pdp.catalog?.buyBoxWinner;
++    if (winner?.price) {
++      const delta = item.price ? ((item.price - winner.price) / winner.price) * 100 : null;
++      blocks.push(
++        h(
++          "div",
++          { class: "block rows" },
++          h("div", { class: "block__title", text: "Buy Box do catálogo" }),
++          h("div", { class: "row" }, h("span", { text: "Vencedor" }), h("b", { text: brl(winner.price) })),
++          h("div", {
++            class: "muted",
++            text:
++              (winner.logisticType ? logisticText(winner.logisticType) + " · " : "") +
++              (winner.freeShipping ? "frete grátis" : "frete não grátis") +
++              (delta == null ? "" : " · este anúncio " + (delta >= 0 ? "+" : "") + pct(delta)),
++          }),
++        ),
++      );
++    }
++
++    pdp.marketSlot = h("div", { class: "block" });
++    blocks.push(pdp.marketSlot);
++    blocks.push(
++      h("div", { class: "muted", style: "margin-top:10px", text: "* estimativa pela faixa de vendas do anúncio" }),
++      h(
++        "div",
++        { style: "margin-top:10px" },
++        h("button", {
++          class: "btn btn--ghost btn--block",
++          type: "button",
++          text: "Monitorar este anúncio",
++          onClick: async (event) => {
++            const button = event.currentTarget;
++            button.disabled = true;
++            button.textContent = "Salvando...";
++            const response = await send("/api/extension/watchlist", "POST", {
++              itemId: item.id,
++              referenceId: pdp.ref || item.id,
++            });
++            button.disabled = false;
++            button.textContent = response?.ok
++              ? "Monitorando ✓"
++              : response?.body?.error || "Falha ao salvar — tentar novamente";
++          },
++        }),
++      ),
++    );
++
++    pdp.body.replaceChildren(...blocks);
++    renderMarketButton(pdp);
++  }
++
++  function renderMarketButton(pdp) {
++    pdp.marketSlot.replaceChildren(
++      h("button", {
++        class: "btn btn--ghost btn--block",
++        type: "button",
++        text: "Ver faixa de preço e concorrentes",
++        onClick: async (event) => {
++          const button = event.currentTarget;
++          button.disabled = true;
++          button.textContent = "Carregando...";
++          await loadPdpMarket(pdp);
++        },
++      }),
++    );
++  }
++
++  async function loadPdpMarket(pdp) {
++    const item = pdp.item;
++    const params = new URLSearchParams({
++      title: item.title,
++      itemId: item.id,
++      currentPrice: String(item.price || 0),
++    });
++    if (item.categoryId) params.set("categoryId", item.categoryId);
++
++    const response = await send("/api/extension/market?" + params.toString());
++
++    if (!response?.ok || !response.body?.market) {
++      pdp.marketSlot.replaceChildren(
++        h("div", { class: "muted", text: response?.body?.error || "Sem dados de mercado para este anúncio." }),
++      );
++      return;
++    }
++
++    const market = response.body.market;
++    const competitors = Array.isArray(response.body.competitors) ? response.body.competitors : [];
++
++    pdp.marketSlot.replaceChildren(
++      h("div", { class: "block__title", text: "Faixa de preço do mercado" }),
++      h(
++        "div",
++        { class: "kpis", style: "grid-template-columns:repeat(3,minmax(0,1fr))" },
++        kpi("P25", brl(market.p25, 0)),
++        kpi("Mediana", brl(market.median, 0)),
++        kpi("P75", brl(market.p75, 0)),
++      ),
++      h("div", {
++        class: "muted",
++        style: "margin-top:6px",
++        text:
++          market.count +
++          " comparáveis · " +
++          (market.gapToMedian == null
++            ? "sem comparação"
++            : "este anúncio " + (market.gapToMedian >= 0 ? "+" : "") + pct(market.gapToMedian) + " vs mediana"),
++      }),
++      competitors.length
++        ? h(
++            "div",
++            { class: "rows", style: "margin-top:8px" },
++            ...competitors.slice(0, 4).map((c) =>
++              h("div", { class: "row" }, h("span", { text: c.title }), h("b", { text: brl(c.price) })),
++            ),
++          )
++        : null,
++    );
++  }
++
++  async function loadPdpCalculation(pdp) {
++    const settings = await getSettings();
++    const response = await send("/api/extension/profitability", "POST", {
++      itemId: pdp.item.id,
++      supplierPrice: pdp.cost ?? 0,
++      discountPercent: 0,
++      kitQuantity: 1,
++      taxPercent: settings.taxPercent,
++      operatingCost: pdp.cost == null ? 0 : settings.operatingCost,
++      targetMarginPercent: settings.targetMarginPercent,
++      targetRoiPercent: settings.targetRoiPercent,
++    });
++
++    if (!response?.ok || !response.body?.result) {
++      renderPdp(pdp, null);
++      pdp.body.append(
++        h("div", { class: "muted", style: "margin-top:10px", text: response?.body?.error || "Não foi possível calcular taxas deste anúncio." }),
++      );
++      return;
++    }
++
++    renderPdp(pdp, response.body);
++  }
++
++  async function loadPdp(pdp) {
++    pdp.body.replaceChildren(
++      h("div", { class: "skeleton" }),
++      h("div", { class: "skeleton", style: "width:70%" }),
++      h("div", { class: "skeleton", style: "width:85%" }),
++    );
++
++    const params = new URLSearchParams({ id: pdp.ref });
++    const price = S.pagePrice();
++    if (price) params.set("visiblePrice", String(price));
++
++    const response = await send("/api/extension/item?" + params.toString());
++    if (response.contextLost) return;
++
++    if (response.status === 401) {
++      pdpMessage(pdp, "info", "Entre no Mercado Radar para ver margem, demanda e concorrência deste anúncio.", "Entrar no Mercado Radar", async () => {
++        const result = await login();
++        if (result?.authenticated) void loadPdp(pdp);
++        else pdpMessage(pdp, "error", result?.error || "Não foi possível entrar.", "Tentar de novo", () => void loadPdp(pdp));
++      });
++      return;
++    }
++
++    if (response.status === 429) {
++      pdpMessage(pdp, "limit", response.body?.error || "Limite diário da extensão atingido.");
++      return;
++    }
++
++    if (!response.ok || !response.body?.item) {
++      pdpMessage(pdp, "error", response.body?.error || "Não foi possível analisar este anúncio.", "Tentar de novo", () => void loadPdp(pdp));
++      return;
++    }
++
++    pdp.item = response.body.item;
++    pdp.catalog = response.body.catalog || null;
++    renderPdp(pdp, null);
++
++    // Custo cadastrado no Radar (produto seu mais compatível), se existir.
++    const settings = await getSettings();
++    const mine = await send("/api/extension/search-profitability", "POST", {
++      query: pdp.item.title,
++      items: [{ id: pdp.item.id, price: pdp.item.price }],
++      taxPercent: settings.taxPercent,
++      operatingCost: settings.operatingCost,
++      targetMarginPercent: settings.targetMarginPercent,
++      targetRoiPercent: settings.targetRoiPercent,
++    });
++
++    const matched = mine?.ok ? mine.body?.matchedProduct : null;
++    if (matched && matched.hasCost !== false && matched.unitCost != null) {
++      pdp.cost = Number(matched.unitCost);
++    }
++
++    await loadPdpCalculation(pdp);
++  }
++
++  async function enrichProduct() {
+     publishContext();
+-  } finally {
+-    state.running = false;
++
++    const ref = S.currentReference();
++    if (!ref || !S.isProductPage()) return;
++
++    if (state.pdp && state.pdp.ref === ref) {
++      mountPdp(); // idempotente: só recoloca se o ML removeu o widget
++      return;
++    }
++
++    if (state.pdpBusy) return;
++    state.pdpBusy = true;
++
++    try {
++      state.pdp?.host.remove();
++      state.pdp = createPdp(ref);
++      mountPdp();
++      await loadPdp(state.pdp);
++    } finally {
++      state.pdpBusy = false;
++    }
+   }
+-}
+ 
+-const observer = new MutationObserver(() => {
+-  if (location.href !== state.lastUrl) {
++  /* ------------------------------------------------------------------ */
++  /* lançador, menu, configurações e aviso de compatibilidade            */
++  /* ------------------------------------------------------------------ */
++
++  function isValidGtin(raw) {
++    const code = String(raw).replace(/\D/g, "");
++    if (![8, 12, 13, 14].includes(code.length)) return null;
++    const digits = code.split("").map(Number);
++    const check = digits.pop();
++    let sum = 0;
++    let weight = 3;
++    for (let i = digits.length - 1; i >= 0; i -= 1) {
++      sum += digits[i] * weight;
++      weight = weight === 3 ? 1 : 3;
++    }
++    return (10 - (sum % 10)) % 10 === check ? code : null;
++  }
++
++  function mountLauncher() {
++    if (state.launcher?.host.isConnected) return;
++    if (!document.body) return;
++
++    const { host, root } = makeHost("launcher");
++    host.style.cssText = "all:initial;";
++
++    const menu = h("div", { class: "menu", hidden: true, role: "menu" });
++    const sub = h("div", { class: "menu__sub", hidden: true });
++
++    const closeMenu = () => {
++      menu.hidden = true;
++      sub.hidden = true;
++    };
++
++    const showSub = (...nodes) => {
++      sub.hidden = false;
++      sub.replaceChildren(...nodes);
++    };
++
++    const item = (title, hint, onClick) =>
++      h("button", { class: "menu__item", type: "button", role: "menuitem", onClick }, title, hint ? h("small", { text: hint }) : null);
++
++    menu.append(
++      item("Calculadora de lucro", "Abra no anúncio que quer analisar", () => {
++        if (state.pdp?.host.isConnected) {
++          state.pdp.body.hidden = false;
++          state.pdp.host.scrollIntoView({ behavior: "smooth", block: "center" });
++          closeMenu();
++        } else {
++          showSub(h("div", { class: "muted", text: "Abra um anúncio do Mercado Livre para calcular comissão, frete e lucro." }));
++        }
++      }),
++      item("Pesquisa por EAN", "Valida o código e busca no Mercado Livre", () => {
++        const input = h("input", { type: "text", inputmode: "numeric", placeholder: "EAN / GTIN (8, 12, 13 ou 14 dígitos)", "aria-label": "Código EAN" });
++        const message = h("div", { class: "muted", style: "margin-top:6px" });
++        showSub(
++          input,
++          message,
++          h("button", {
++            class: "btn btn--block",
++            type: "button",
++            text: "Buscar",
++            onClick: () => {
++              const code = isValidGtin(input.value);
++              if (!code) {
++                message.textContent = "Código inválido: confira os dígitos (dígito verificador não confere).";
++                return;
++              }
++              location.href = "https://lista.mercadolivre.com.br/" + encodeURIComponent(code);
++            },
++          }),
++        );
++      }),
++      item("Configurações", "Imposto, custo operacional e metas", async () => {
++        const settings = await getSettings();
++        const field = (label, key, value, step) => {
++          const input = h("input", { type: "number", min: "0", step, value: String(value), "data-key": key });
++          return { input, node: h("label", { class: "field" }, h("span", { text: label }), input) };
++        };
++        const fields = [
++          field("Imposto %", "radarTaxPercent", settings.taxPercent, "0.1"),
++          field("Custo operacional (R$)", "radarOperatingCost", settings.operatingCost, "0.01"),
++          field("Margem alvo %", "radarTargetMarginPercent", settings.targetMarginPercent, "1"),
++          field("ROI alvo %", "radarTargetRoiPercent", settings.targetRoiPercent, "1"),
++        ];
++        const status = h("div", { class: "muted", style: "margin-top:6px" });
++        showSub(
++          ...fields.map((f) => f.node),
++          h("button", {
++            class: "btn btn--block",
++            type: "button",
++            text: "Salvar",
++            onClick: async () => {
++              const values = {};
++              for (const f of fields) values[f.input.dataset.key] = Math.max(0, Number(f.input.value) || 0);
++              await chrome.storage.sync.set(values);
++              status.textContent = "Salvo. Vale para os próximos cálculos.";
++            },
++          }),
++          status,
++        );
++      }),
++      item("Painel Mercado Radar", "Abre o painel completo", async () => {
++        const settings = await getSettings();
++        window.open(settings.apiBase, "_blank", "noopener");
++        closeMenu();
++      }),
++      sub,
++    );
++
++    const button = h(
++      "button",
++      {
++        class: "launcher__btn",
++        type: "button",
++        "aria-label": "Abrir menu do Mercado Radar",
++        "aria-haspopup": "menu",
++        onClick: () => {
++          menu.hidden = !menu.hidden;
++          sub.hidden = true;
++        },
++      },
++      markIcon(),
++    );
++
++    root.append(h("div", { class: "launcher" }, menu, button));
++    document.body.appendChild(host);
++    state.launcher = { host };
++  }
++
++  function runHealthCheck() {
++    if (state.dead || state.toast) return;
++    const result = S.healthCheck();
++    if (result.ok) return;
++
++    console.warn("[Mercado Radar] layout do Mercado Livre pode ter mudado:", result.problems);
++
++    const { host, root } = makeHost("toast");
++    host.style.cssText = "all:initial;";
++    root.append(
++      h(
++        "div",
++        { class: "toast", role: "status" },
++        h("b", { text: "O layout do Mercado Livre mudou. " }),
++        "Alguns dados podem não aparecer até o Radar ser atualizado.",
++        h("div", { style: "margin-top:6px" }, h("button", { class: "link", type: "button", text: "Fechar", onClick: () => host.remove() })),
++      ),
++    );
++    document.body.appendChild(host);
++    state.toast = host;
++  }
++
++  /* ------------------------------------------------------------------ */
++  /* contexto para o Side Panel                                          */
++  /* ------------------------------------------------------------------ */
++
++  function publishContext() {
++    if (state.dead) return;
++    try {
++      chrome.runtime
++        .sendMessage({
++          type: "RADAR_CONTEXT_UPDATE",
++          context: {
++            url: location.href,
++            referenceId: S.currentReference(),
++            title: S.pageTitle() || null,
++            visiblePrice: S.pagePrice(),
++            updatedAt: new Date().toISOString(),
++          },
++        })
++        .catch(() => {});
++    } catch {
++      state.dead = true;
++    }
++  }
++
++  /* ------------------------------------------------------------------ */
++  /* observer (sem loop) e boot                                          */
++  /* ------------------------------------------------------------------ */
++
++  function isRelevantNode(node, countOwn) {
++    if (node.nodeType !== 1) return false;
++    if (!countOwn && node.hasAttribute(OWN)) return false;
++    const tag = node.tagName;
++    return tag !== "SCRIPT" && tag !== "STYLE" && tag !== "LINK" && tag !== "NOSCRIPT";
++  }
++
++  function isRelevantMutation(record) {
++    // Nós NOSSOS adicionados são ignorados (evita o ciclo mutação → chamada → mutação).
++    // Nós NOSSOS removidos contam: significa que o ML apagou a nossa UI e precisamos reanexá-la.
++    return (
++      [...record.addedNodes].some((node) => isRelevantNode(node, false)) ||
++      [...record.removedNodes].some((node) => isRelevantNode(node, true))
++    );
++  }
++
++  function schedule(delay = DEBOUNCE_MS) {
++    clearTimeout(state.timer);
++    state.timer = setTimeout(() => void enrichSearch(), delay);
++  }
++
++  function resetForNavigation() {
+     state.lastUrl = location.href;
+-    document.getElementById("mercado-radar-filters")?.remove();
+-    state.searchMatches = [];
+-    state.profitabilityLoaded = false;
++    state.panel?.host.remove();
++    state.panel = null;
++    state.pdp?.host.remove();
++    state.pdp = null;
++    state.lastKey = "";
++    state.status = "idle";
++    state.items = [];
++    state.matches = [];
++    state.economics.clear();
++    state.reordered = false;
+     publishContext();
+   }
+ 
+-  clearTimeout(window.__mercadoRadarTimer);
+-  window.__mercadoRadarTimer = setTimeout(enrichSearch, 700);
+-});
+-
+-observer.observe(document.documentElement, {
+-  childList: true,
+-  subtree: true,
+-});
++  const observer = new MutationObserver((records) => {
++    if (state.applying || state.dead) return;
++
++    if (location.href !== state.lastUrl) {
++      resetForNavigation();
++      schedule();
++      return;
++    }
++
++    if (records.some(isRelevantMutation)) schedule();
++  });
++
++  observer.observe(document.documentElement, { childList: true, subtree: true });
+ 
+-publishContext();
+-enrichSearch();
++  publishContext();
++  mountLauncher();
++  schedule(300);
++  setTimeout(runHealthCheck, 4500);
++})();
+diff -ruN a/extension/manifest.json b/extension/manifest.json
+--- a/extension/manifest.json	2026-10-07 03:02:22.000000000 +0000
++++ b/extension/manifest.json	2026-10-07 03:36:08.837016215 +0000
+@@ -1,46 +1,33 @@
+ {
+   "manifest_version": 3,
+   "name": "Mercado Radar",
+-  "version": "0.3.0",
++  "version": "0.4.0",
+   "description": "Inteligência de produto e rentabilidade dentro do Mercado Livre.",
+-  "permissions": [
+-    "storage",
+-    "sidePanel",
+-    "tabs",
+-    "identity"
+-  ],
++  "permissions": ["storage", "sidePanel", "identity"],
+   "host_permissions": [
+     "https://*.mercadolivre.com.br/*",
+     "https://radar.optarys.com.br/*",
+     "http://localhost/*",
+     "http://127.0.0.1/*"
+   ],
+-  "background": {
+-    "service_worker": "background.js"
+-  },
++  "background": { "service_worker": "background.js" },
+   "content_scripts": [
+     {
+-      "matches": [
+-        "https://*.mercadolivre.com.br/*"
+-      ],
+-      "js": [
+-        "content.js"
+-      ],
+-      "css": [
+-        "content.css"
+-      ],
++      "matches": ["https://*.mercadolivre.com.br/*"],
++      "js": ["selectors.js", "content.js"],
+       "run_at": "document_idle"
+     }
+   ],
+-  "side_panel": {
+-    "default_path": "sidepanel.html"
+-  },
++  "web_accessible_resources": [
++    {
++      "resources": ["ui/tokens.css", "ui/content.css"],
++      "matches": ["https://*.mercadolivre.com.br/*"]
++    }
++  ],
++  "side_panel": { "default_path": "sidepanel.html" },
+   "action": {
+     "default_title": "Abrir Mercado Radar",
+-    "default_icon": {
+-      "16": "icons/icon16.png",
+-      "32": "icons/icon32.png"
+-    }
++    "default_icon": { "16": "icons/icon16.png", "32": "icons/icon32.png" }
+   },
+   "icons": {
+     "16": "icons/icon16.png",
+diff -ruN a/extension/manifest.prod.json b/extension/manifest.prod.json
+--- a/extension/manifest.prod.json	1970-01-01 00:00:00.000000000 +0000
++++ b/extension/manifest.prod.json	2026-10-07 03:36:08.837273971 +0000
+@@ -0,0 +1,57 @@
++{
++  "manifest_version": 3,
++  "name": "Mercado Radar",
++  "version": "0.4.0",
++  "description": "Inteligência de produto e rentabilidade dentro do Mercado Livre.",
++  "permissions": [
++    "storage",
++    "sidePanel",
++    "identity"
++  ],
++  "host_permissions": [
++    "https://*.mercadolivre.com.br/*",
++    "https://radar.optarys.com.br/*"
++  ],
++  "background": {
++    "service_worker": "background.js"
++  },
++  "content_scripts": [
++    {
++      "matches": [
++        "https://*.mercadolivre.com.br/*"
++      ],
++      "js": [
++        "selectors.js",
++        "content.js"
++      ],
++      "run_at": "document_idle"
++    }
++  ],
++  "web_accessible_resources": [
++    {
++      "resources": [
++        "ui/tokens.css",
++        "ui/content.css"
++      ],
++      "matches": [
++        "https://*.mercadolivre.com.br/*"
++      ]
++    }
++  ],
++  "side_panel": {
++    "default_path": "sidepanel.html"
++  },
++  "action": {
++    "default_title": "Abrir Mercado Radar",
++    "default_icon": {
++      "16": "icons/icon16.png",
++      "32": "icons/icon32.png"
++    }
++  },
++  "icons": {
++    "16": "icons/icon16.png",
++    "32": "icons/icon32.png",
++    "48": "icons/icon48.png",
++    "128": "icons/icon128.png"
++  }
++}
+diff -ruN a/extension/selectors.js b/extension/selectors.js
+--- a/extension/selectors.js	1970-01-01 00:00:00.000000000 +0000
++++ b/extension/selectors.js	2026-10-07 03:36:08.837243558 +0000
+@@ -0,0 +1,243 @@
++/**
++ * Camada única de leitura do DOM do Mercado Livre.
++ *
++ * Toda dependência de classe/estrutura do ML fica AQUI. Quando o layout do
++ * Mercado Livre mudar, só este arquivo precisa ser ajustado, e o healthCheck()
++ * avisa o usuário em vez de falhar em silêncio.
++ *
++ * Âncoras do anúncio (PDP) são heurísticas com fallback: se nenhuma existir,
++ * o widget vira um cartão flutuante e continua funcionando.
++ */
++(() => {
++  const CARD_SELECTORS =
++    "li.ui-search-layout__item, .ui-search-result, .poly-card";
++
++  const TITLE_SELECTORS = [
++    ".poly-component__title",
++    ".ui-search-item__title",
++    "h2",
++    "a[title]",
++  ];
++
++  const CARD_PRICE_SELECTORS = [
++    ".poly-price__current",
++    ".ui-search-price__second-line",
++    ".ui-search-price",
++  ];
++
++  const PDP_PRICE_SELECTORS = [
++    ".ui-pdp-price__second-line",
++    ".ui-pdp-price",
++    "[data-testid='price-part']",
++  ];
++
++  const SEARCH_INPUT_SELECTORS = [
++    "#cb1-edit",
++    "input[name='as_word']",
++    "input.nav-search-input",
++  ];
++
++  const SIDEBAR_SELECTORS = [".ui-search-sidebar", "[class*='ui-search-sidebar']"];
++
++  const PDP_COLUMN_SELECTORS = [
++    ".ui-vip-core-container--column__right",
++    ".ui-pdp-container--column-right",
++    ".ui-pdp-container__col.col-1",
++    ".ui-pdp--sticky-wrapper",
++  ];
++
++  function normalize(value) {
++    return String(value || "")
++      .normalize("NFD")
++      .replace(/[\u0300-\u036f]/g, "")
++      .toLowerCase()
++      .replace(/[^a-z0-9]+/g, " ")
++      .trim();
++  }
++
++  function first(selectors, root = document) {
++    for (const selector of selectors) {
++      const element = root.querySelector(selector);
++      if (element) return element;
++    }
++    return null;
++  }
++
++  function referenceFromHref(href) {
++    const match = String(href || "").match(/MLB(U)?-?(\d+)/i);
++    if (!match) return null;
++    return "MLB" + (match[1] ? "U" : "") + match[2];
++  }
++
++  function currentReference() {
++    return referenceFromHref(location.href);
++  }
++
++  function parseMoneyAmount(container) {
++    if (!container) return null;
++    const fraction = container.querySelector(".andes-money-amount__fraction");
++    const cents = container.querySelector(".andes-money-amount__cents");
++    if (!fraction) return null;
++
++    const integer = Number((fraction.textContent || "").replace(/\D/g, ""));
++    const decimal = cents
++      ? Number(
++          (cents.textContent || "").replace(/\D/g, "").slice(0, 2).padEnd(2, "0"),
++        ) / 100
++      : 0;
++
++    const value = integer + decimal;
++    return Number.isFinite(value) && value > 0 ? value : null;
++  }
++
++  function cardTitle(card) {
++    const element = first(TITLE_SELECTORS, card);
++    return (element?.textContent || element?.getAttribute("title") || "").trim();
++  }
++
++  function cardReference(card) {
++    for (const link of card.querySelectorAll("a[href*='MLB']")) {
++      const id = referenceFromHref(link.href);
++      if (id) return id;
++    }
++    return null;
++  }
++
++  function cardPrice(card) {
++    return parseMoneyAmount(first(CARD_PRICE_SELECTORS, card) || card);
++  }
++
++  function parseSoldLowerBound(text) {
++    const match = normalize(text).match(
++      /\+?\s*(\d+(?:[.,]\d+)?)\s*(mil|k)?\s+vendid/,
++    );
++    if (!match) return null;
++
++    const numeric = Number(String(match[1]).replace(",", "."));
++    if (!Number.isFinite(numeric)) return null;
++
++    return Math.round(numeric * (match[2] === "mil" || match[2] === "k" ? 1000 : 1));
++  }
++
++  function cardSoldLowerBound(card) {
++    return parseSoldLowerBound(card.textContent || "");
++  }
++
++  function cardShipping(card) {
++    const text = normalize(card.textContent || "");
++    return {
++      freeShipping: text.includes("frete gratis"),
++      logisticType:
++        text.includes(" full") || text.startsWith("full") ? "fulfillment" : null,
++    };
++  }
++
++  function pagePrice() {
++    for (const selector of PDP_PRICE_SELECTORS) {
++      const value = parseMoneyAmount(document.querySelector(selector));
++      if (value) return value;
++    }
++    return null;
++  }
++
++  function pageTitle() {
++    return (document.querySelector("h1")?.textContent || "").trim();
++  }
++
++  function findCards() {
++    const candidates = [...document.querySelectorAll(CARD_SELECTORS)];
++
++    return candidates.filter((card, index, all) => {
++      if (!cardTitle(card)) return false;
++      return !all.some(
++        (other, otherIndex) => otherIndex < index && other.contains(card),
++      );
++    });
++  }
++
++  function extractQuery() {
++    const input = first(SEARCH_INPUT_SELECTORS);
++    const value = input?.value?.trim();
++    if (value && value.length >= 2) return value;
++
++    const query = new URL(location.href).searchParams.get("q");
++    if (query && query.trim().length >= 2) return query.trim();
++
++    return null;
++  }
++
++  function findSidebar() {
++    return first(SIDEBAR_SELECTORS);
++  }
++
++  /**
++   * Onde encaixar o widget do anúncio.
++   * Retorna { element, position } ou null (=> modo flutuante).
++   */
++  function findPdpAnchor() {
++    const price = document.querySelector(".ui-pdp-price");
++    const row = price?.closest(".ui-pdp-container__row");
++    if (row) return { element: row, position: "afterend" };
++
++    const column = first(PDP_COLUMN_SELECTORS);
++    if (column) return { element: column, position: "afterbegin" };
++
++    return null;
++  }
++
++  function isProductPage() {
++    return Boolean(currentReference()) && Boolean(document.querySelector("h1"));
++  }
++
++  /**
++   * Diagnóstico de compatibilidade com o layout atual do ML.
++   * Retorna { ok, problems[] } e nunca lança.
++   */
++  function healthCheck() {
++    const problems = [];
++
++    try {
++      const cards = findCards();
++      const onSearch = Boolean(extractQuery()) && !currentReference();
++
++      if (onSearch && cards.length === 0) {
++        problems.push("Nenhum anúncio reconhecido na busca.");
++      }
++
++      if (onSearch && cards.length > 0) {
++        const withPrice = cards.filter((card) => cardPrice(card)).length;
++        const withRef = cards.filter((card) => cardReference(card)).length;
++        if (withPrice / cards.length < 0.5) problems.push("Preços não reconhecidos.");
++        if (withRef / cards.length < 0.5) problems.push("Códigos MLB não reconhecidos.");
++      }
++
++      if (isProductPage() && cards.length < 2 && !pagePrice()) {
++        problems.push("Preço do anúncio não reconhecido.");
++      }
++    } catch (error) {
++      problems.push("Erro ao ler a página: " + (error?.message || "desconhecido"));
++    }
++
++    return { ok: problems.length === 0, problems };
++  }
++
++  globalThis.RadarSelectors = {
++    normalize,
++    referenceFromHref,
++    currentReference,
++    parseMoneyAmount,
++    cardTitle,
++    cardReference,
++    cardPrice,
++    cardSoldLowerBound,
++    cardShipping,
++    pagePrice,
++    pageTitle,
++    findCards,
++    extractQuery,
++    findSidebar,
++    findPdpAnchor,
++    isProductPage,
++    healthCheck,
++  };
++})();
+diff -ruN a/extension/sidepanel.html b/extension/sidepanel.html
+--- a/extension/sidepanel.html	2026-10-07 03:02:22.000000000 +0000
++++ b/extension/sidepanel.html	2026-10-07 03:36:08.837046852 +0000
+@@ -4,62 +4,8 @@
+   <meta charset="utf-8" />
+   <meta name="viewport" content="width=device-width,initial-scale=1" />
+   <title>Mercado Radar</title>
+-  <style>
+-    *{box-sizing:border-box}
+-    body{font-family:"Segoe UI Variable","Segoe UI",system-ui,sans-serif;margin:0;background:linear-gradient(180deg,#f8fbfa,#f2f8f5);color:#17342d;-webkit-font-smoothing:antialiased;font-size:13px}
+-    main{padding:16px}
+-    .brand{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+-    .brand-copy{display:flex;align-items:center;gap:10px;min-width:0}
+-    .brand-copy img{width:34px;height:34px;border-radius:9px;box-shadow:0 6px 14px rgba(14,128,99,.18)}
+-    .brand-copy strong{display:block;font-size:16px;line-height:1.1;letter-spacing:-.02em}
+-    .brand-copy small{display:block;margin-top:3px;color:#7f9188;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+-    .pill{font-size:10px;padding:5px 8px;border-radius:999px;background:#ddf6ed;color:#0e755b;font-weight:800}
+-    .card{background:white;border:1px solid #dbe7e2;border-radius:15px;padding:14px;margin-bottom:12px;box-shadow:0 5px 16px rgba(20,70,58,.045)}
+-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+-    .metric{background:#f6faf8;border:1px solid #edf2ef;border-radius:10px;padding:10px}
+-    .metric small{display:block;color:#6f8178;font-size:11px}
+-    .metric strong{display:block;margin-top:4px;font-size:16px;color:#173d32}
+-    label{display:block;font-size:12px;font-weight:700;margin:10px 0 5px;color:#5f746a}
+-    input{width:100%;padding:10px 11px;border:1px solid #cbd9d3;border-radius:9px;background:white;font-size:13px;outline:0}
+-    input:focus{border-color:#68bda3;box-shadow:0 0 0 3px rgba(22,164,125,.10)}
+-    button{width:100%;padding:11px;border:0;border-radius:10px;background:linear-gradient(135deg,#17a57e,#0e8063);color:#fff;font-size:13px;font-weight:750;cursor:pointer;margin-top:11px}
+-    button.secondary{background:#edf6f2;color:#285a4c}
+-    .muted{font-size:12px;color:#708279;line-height:1.5}
+-    .title{font-size:14px;font-weight:800;margin-bottom:9px;color:#29463b}
+-    .product-title{font-size:14px;font-weight:700;line-height:1.4;margin-bottom:9px;color:#173d32}
+-    .error{padding:9px 10px;border:1px solid #f1c9ce;border-radius:9px;background:#fff3f5;color:#a13f4b;font-size:12px}
+-    .good{color:#14745f}
+-    .bad{color:#a32121}
+-    details{margin-top:14px}
+-    summary{cursor:pointer;font-size:12px;font-weight:700}
+-    .divider{height:1px;background:#edf1ee;margin:10px 0}
+-    .mercado-radar-trend{padding:5px 0;border-bottom:1px solid #f0f3f1;font-size:11px}
+-    .market-range{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+-    .market-range>div{padding:8px;border-radius:8px;background:#f4f9f7}
+-    .market-range small,.market-range strong{display:block}
+-    .market-range small{color:#68756d;font-size:10px}
+-    .market-range strong{margin-top:3px;font-size:14px}
+-    .competitor-row{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #f0f3f1;font-size:11px}
+-    .competitor-row>div:first-child{min-width:0;flex:1}
+-    .competitor-row>div:last-child{flex:0 0 auto;text-align:right}
+-    .competitor-row span,.competitor-row small,.competitor-row strong{display:block}
+-    .competitor-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+-    .competitor-row small{margin-top:2px;color:#7d8b85;font-size:10px}
+-    .competitor-row strong{color:#23463c;font-size:11px}
+-    .compare-box{margin-top:10px;padding:10px;border-radius:10px;background:#f3f9f6;font-size:11px;border:1px solid #deece7}
+-    .auth-card{background:linear-gradient(145deg,#f9fdfb,#eff9f5);border-color:#cde7dd}
+-    .auth-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+-    .auth-copy{min-width:0}
+-    .auth-copy strong,.auth-copy small{display:block}
+-    .auth-copy strong{font-size:14px;color:#173d32}
+-    .auth-copy small{margin-top:3px;color:#708279;font-size:11px}
+-    .auth-dot{width:9px;height:9px;flex:0 0 auto;border-radius:50%;background:#d4ddd9;box-shadow:0 0 0 4px rgba(112,130,121,.08)}
+-    .auth-dot.online{background:#18a67e;box-shadow:0 0 0 4px rgba(24,166,126,.12)}
+-    .auth-actions{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px}
+-    .auth-actions button{margin-top:0}
+-    .auth-actions .secondary{width:auto;padding-left:14px;padding-right:14px}
+-    #logoutButton[hidden]{display:none}
+-  </style>
++  <link rel="stylesheet" href="ui/tokens.css" />
++  <link rel="stylesheet" href="ui/sidepanel.css" />
+ </head>
+ <body>
+   <main>
+diff -ruN a/extension/sidepanel.js b/extension/sidepanel.js
+--- a/extension/sidepanel.js	2026-10-07 03:02:22.000000000 +0000
++++ b/extension/sidepanel.js	2026-10-07 03:36:08.837077717 +0000
+@@ -111,7 +111,11 @@
+   );
+ }
+ 
++let renderRun = 0;
++
+ async function renderContext(context) {
++  const runId = ++renderRun;
++  const stale = () => runId !== renderRun;
+   currentItem = null;
+   analyticsCard.hidden = true;
+   watchCard.hidden = true;
+@@ -138,7 +142,7 @@
+   contextCard.innerHTML =
+     '<div class="title">Anúncio atual</div>' +
+     '<div class="product-title">' +
+-      (context.title || context.referenceId) +
++      escapeHtml(context.title || context.referenceId) +
+     '</div>' +
+     '<p class="muted">Carregando dados do Radar...</p>';
+ 
+@@ -148,13 +152,14 @@
+   }
+ 
+   const response = await request("/api/extension/item?" + params.toString());
++  if (stale()) return;
+ 
+   if (response?.status === 401) {
+     await updateAuthState();
+     contextCard.innerHTML =
+       '<div class="title">Entre no Mercado Radar</div>' +
+       '<div class="product-title">' +
+-        (context.title || context.referenceId) +
++        escapeHtml(context.title || context.referenceId) +
+       '</div>' +
+       '<p class="error">Sua sessão da extensão não está conectada ou expirou. Use o botão “Entrar no Mercado Radar”.</p>';
+     return;
+@@ -164,10 +169,10 @@
+     contextCard.innerHTML =
+       '<div class="title">Anúncio atual</div>' +
+       '<div class="product-title">' +
+-        (context.title || context.referenceId) +
++        escapeHtml(context.title || context.referenceId) +
+       '</div>' +
+       '<p class="error">' +
+-        (response?.body?.error || "Não foi possível analisar este anúncio.") +
++        escapeHtml(response?.body?.error || "Não foi possível analisar este anúncio.") +
+       "</p>";
+     return;
+   }
+@@ -177,7 +182,7 @@
+ 
+   contextCard.innerHTML =
+     '<div class="title">Anúncio atual</div>' +
+-    '<div class="product-title">' + currentItem.title + "</div>" +
++    '<div class="product-title">' + escapeHtml(currentItem.title) + "</div>" +
+     '<div class="grid">' +
+       '<div class="metric"><small>Preço</small><strong>' + brl(currentItem.price) + "</strong></div>" +
+       '<div class="metric"><small>Tipo</small><strong>' +
+@@ -186,7 +191,7 @@
+     "</div>" +
+     '<p class="muted">' +
+       (currentItem.freeShipping ? "Frete grátis · " : "") +
+-      (currentItem.userProductId ? "User Product " + currentItem.userProductId : "Item " + currentItem.id) +
++      escapeHtml(currentItem.userProductId ? "User Product " + currentItem.userProductId : "Item " + currentItem.id) +
+     "</p>";
+ 
+   document.getElementById("score").textContent = (intel.score ?? 0) + "/100";
+@@ -221,12 +226,14 @@
+       '<div class="metric"><small>Buy Box</small><strong>' +
+       (winner.price ? brl(winner.price) : "—") +
+       '</strong><span class="muted">' +
+-      (winner.logisticType ? winner.logisticType + " · " : "") +
++      (winner.logisticType ? escapeHtml(winner.logisticType) + " · " : "") +
+       (winner.freeShipping ? "frete grátis" : "frete não grátis") +
+       (delta == null ? "" : " · seu preço " + (delta >= 0 ? "+" : "") + pct(delta)) +
+       "</span></div>";
+   }
+ 
++  if (stale()) return;
++
+   const savedProfitSettings = await chrome.storage.sync.get([
+     "radarTaxPercent",
+     "radarOperatingCost",
+@@ -251,6 +258,8 @@
+     },
+   );
+ 
++  if (stale()) return;
++
+   if (myOperationResponse?.ok && myOperationResponse.body?.matchedProduct) {
+     const mine = myOperationResponse.body.matchedProduct;
+     const economics = myOperationResponse.body.items?.[0] || null;
+@@ -299,6 +308,8 @@
+     "/api/extension/market?" + marketParams.toString(),
+   );
+ 
++  if (stale()) return;
++
+   if (marketResponse?.ok && marketResponse.body?.market) {
+     currentMarket = marketResponse.body.market;
+     const market = currentMarket;
+@@ -324,7 +335,7 @@
+             '<div class="competitor-row competitor-row--rich">' +
+               '<div><span>' + escapeHtml(item.title) + '</span>' +
+               '<small>' +
+-                (item.demandLabel || "—") +
++                escapeHtml(item.demandLabel || "—") +
+                 (item.salesPerMonth == null ? "" : " · ~" + Math.round(item.salesPerMonth) + "/mês") +
+                 (item.ageDays == null ? "" : " · " + item.ageDays + " dias") +
+               '</small></div>' +
+@@ -344,7 +355,7 @@
+           '<div class="mercado-radar-trend"><strong>' +
+           (index + 1) +
+           ".</strong> " +
+-          trend.keyword +
++          escapeHtml(trend.keyword) +
+           "</div>",
+         )
+         .join("");
+diff -ruN a/extension/ui/content.css b/extension/ui/content.css
+--- a/extension/ui/content.css	1970-01-01 00:00:00.000000000 +0000
++++ b/extension/ui/content.css	2026-10-07 03:36:08.837183236 +0000
+@@ -0,0 +1,414 @@
++/* Mercado Radar — UI injetada no Mercado Livre (vive dentro de Shadow DOM) */
++.rr {
++  box-sizing: border-box;
++  font-family: var(--font);
++  font-size: 13px;
++  line-height: 1.45;
++  color: var(--text);
++  -webkit-font-smoothing: antialiased;
++  text-align: left;
++}
++.rr *,
++.rr *::before,
++.rr *::after {
++  box-sizing: border-box;
++}
++.rr button,
++.rr input,
++.rr select {
++  font: inherit;
++  color: inherit;
++}
++.rr :focus-visible {
++  outline: 2px solid var(--brand-500);
++  outline-offset: 2px;
++}
++.rr [hidden] {
++  display: none !important;
++}
++
++/* ---------- marca ---------- */
++.rr .brand {
++  display: inline-flex;
++  align-items: center;
++  gap: 6px;
++  font-weight: 700;
++  color: var(--brand-600);
++  letter-spacing: -0.01em;
++}
++.rr .brand svg {
++  width: 16px;
++  height: 16px;
++}
++
++/* ---------- chips e botões ---------- */
++.rr .chip {
++  display: inline-flex;
++  align-items: center;
++  gap: 4px;
++  padding: 2px 8px;
++  border-radius: var(--r-pill);
++  font-size: 11px;
++  font-weight: 700;
++  line-height: 1.5;
++  background: var(--surface-2);
++  color: var(--text-2);
++  white-space: nowrap;
++}
++.rr .chip--ok { background: var(--ok-bg); color: var(--brand-600); }
++.rr .chip--warn { background: var(--warn-bg); color: var(--warn); }
++.rr .chip--risk { background: var(--risk-bg); color: var(--risk); }
++.rr .chip--info { background: var(--info-bg); color: var(--info); }
++
++.rr .btn {
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
++  gap: 6px;
++  min-height: 36px;
++  padding: 0 14px;
++  border: 1px solid transparent;
++  border-radius: var(--r-md);
++  background: var(--brand-500);
++  color: #fff;
++  font-weight: 650;
++  cursor: pointer;
++  transition: background 0.15s;
++}
++.rr .btn:hover { background: var(--brand-600); }
++.rr .btn:disabled { opacity: 0.6; cursor: default; }
++.rr .btn--ghost {
++  background: transparent;
++  border-color: var(--line-strong);
++  color: var(--text-2);
++}
++.rr .btn--ghost:hover { background: var(--surface-2); }
++.rr .btn--block { width: 100%; }
++.rr .link {
++  border: 0;
++  background: none;
++  padding: 0;
++  color: var(--brand-600);
++  font-weight: 650;
++  cursor: pointer;
++}
++
++.rr .field { display: block; margin-top: 10px; }
++.rr .field > span {
++  display: block;
++  margin-bottom: 4px;
++  font-size: 12px;
++  font-weight: 650;
++  color: var(--text-2);
++}
++.rr select,
++.rr input[type="number"],
++.rr input[type="text"] {
++  width: 100%;
++  min-height: 36px;
++  padding: 0 10px;
++  border: 1px solid var(--line-strong);
++  border-radius: var(--r-sm);
++  background: var(--surface);
++}
++.rr select:disabled { opacity: 0.55; }
++.rr .check {
++  display: flex;
++  align-items: center;
++  gap: 8px;
++  margin-top: 10px;
++  font-weight: 500;
++}
++.rr .muted { color: var(--text-3); font-size: 12px; }
++.rr .est { color: var(--text-3); font-weight: 600; }
++
++/* ---------- faixa sob o card da busca ---------- */
++.rr .strip {
++  margin: 8px 0 0;
++  padding: 8px 10px 9px;
++  border: 1px solid var(--line);
++  border-radius: var(--r-md);
++  background: var(--surface);
++  box-shadow: var(--shadow-1);
++}
++.rr .strip__head {
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 8px;
++  margin-bottom: 6px;
++  font-size: 12px;
++}
++.rr .strip__grid {
++  display: grid;
++  grid-template-columns: repeat(3, minmax(0, 1fr));
++  gap: 6px;
++}
++.rr .stat { min-width: 0; }
++.rr .stat small {
++  display: block;
++  font-size: 10px;
++  font-weight: 650;
++  letter-spacing: 0.02em;
++  text-transform: uppercase;
++  color: var(--text-3);
++}
++.rr .stat b {
++  display: block;
++  overflow: hidden;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++  font-size: 13px;
++  font-weight: 700;
++  color: var(--text);
++}
++.rr .stat b.ok { color: var(--brand-600); }
++.rr .stat b.warn { color: var(--warn); }
++.rr .stat b.risk { color: var(--risk); }
++.rr .strip__mine {
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 8px;
++  margin-top: 7px;
++  padding-top: 7px;
++  border-top: 1px dashed var(--line-strong);
++  font-size: 12px;
++}
++.rr .strip__foot {
++  margin-top: 6px;
++  font-size: 10px;
++  color: var(--text-3);
++}
++
++/* ---------- painel de filtros ---------- */
++.rr .panel {
++  width: 100%;
++  margin-bottom: 14px;
++  border: 1px solid var(--line);
++  border-radius: var(--r-lg);
++  background: var(--surface);
++  box-shadow: var(--shadow-2);
++  overflow: hidden;
++}
++.rr .panel__head {
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 8px;
++  padding: 12px 14px;
++  border-bottom: 1px solid var(--line);
++}
++.rr .panel__head .brand { font-size: 15px; }
++.rr .panel__count { font-size: 12px; color: var(--text-3); }
++.rr .panel__body { padding: 4px 14px 14px; }
++.rr .notice {
++  margin: 12px 14px 0;
++  padding: 10px 12px;
++  border-radius: var(--r-md);
++  font-size: 12px;
++  background: var(--info-bg);
++  color: var(--info);
++}
++.rr .notice--risk { background: var(--risk-bg); color: var(--risk); }
++.rr .notice--warn { background: var(--warn-bg); color: var(--warn); }
++.rr .notice .btn { margin-top: 8px; min-height: 32px; }
++.rr details.sec { border-bottom: 1px solid var(--line); padding: 2px 0 10px; }
++.rr details.sec:last-of-type { border-bottom: 0; }
++.rr details.sec > summary {
++  cursor: pointer;
++  list-style: none;
++  padding: 10px 0 2px;
++  font-size: 12px;
++  font-weight: 750;
++  letter-spacing: 0.03em;
++  text-transform: uppercase;
++  color: var(--text-2);
++}
++.rr details.sec > summary::-webkit-details-marker { display: none; }
++.rr details.sec > summary::after { content: "▾"; float: right; color: var(--text-3); }
++.rr details.sec:not([open]) > summary::after { content: "▸"; }
++.rr .mine-box {
++  margin-top: 10px;
++  padding: 10px;
++  border: 1px solid var(--line);
++  border-radius: var(--r-md);
++  background: var(--brand-50);
++}
++.rr .mine-box small { display: block; margin-top: 6px; color: var(--text-3); font-size: 11px; }
++
++/* ---------- widget do anúncio ---------- */
++.rr .widget {
++  margin: 12px 0;
++  border: 1px solid var(--line);
++  border-radius: var(--r-lg);
++  background: var(--surface);
++  box-shadow: var(--shadow-2);
++  overflow: hidden;
++}
++.rr .widget--floating {
++  position: fixed;
++  right: 20px;
++  bottom: 84px;
++  width: 340px;
++  max-height: calc(100vh - 120px);
++  overflow: auto;
++  z-index: 2147483000;
++}
++.rr .widget__head {
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 8px;
++  padding: 12px 14px;
++  cursor: pointer;
++}
++.rr .widget__head .brand { font-size: 14px; }
++.rr .widget__body { padding: 0 14px 14px; }
++.rr .kpis {
++  display: grid;
++  grid-template-columns: repeat(4, minmax(0, 1fr));
++  gap: 8px;
++}
++.rr .kpi {
++  padding: 8px;
++  border-radius: var(--r-md);
++  background: var(--surface-2);
++  min-width: 0;
++}
++.rr .kpi small {
++  display: block;
++  font-size: 10px;
++  font-weight: 650;
++  text-transform: uppercase;
++  letter-spacing: 0.02em;
++  color: var(--text-3);
++}
++.rr .kpi b {
++  display: block;
++  margin-top: 2px;
++  overflow: hidden;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++  font-size: 15px;
++  letter-spacing: -0.01em;
++}
++.rr .kpi b.ok { color: var(--brand-600); }
++.rr .kpi b.warn { color: var(--warn); }
++.rr .kpi b.risk { color: var(--risk); }
++
++.rr .block { margin-top: 14px; }
++.rr .block__title {
++  margin-bottom: 6px;
++  font-size: 12px;
++  font-weight: 750;
++  text-transform: uppercase;
++  letter-spacing: 0.03em;
++  color: var(--text-2);
++}
++.rr .payout .line {
++  display: flex;
++  justify-content: space-between;
++  gap: 8px;
++  padding: 5px 0;
++  border-bottom: 1px dashed var(--line);
++  font-size: 13px;
++}
++.rr .payout .line span:first-child { color: var(--text-2); }
++.rr .payout .line.neg b { color: var(--risk); }
++.rr .payout .line.total {
++  margin-top: 4px;
++  padding: 8px 10px;
++  border: 0;
++  border-radius: var(--r-md);
++  background: var(--brand-50);
++  font-size: 14px;
++  font-weight: 700;
++}
++.rr .payout .line.total.risk { background: var(--risk-bg); }
++.rr .cost-row { display: flex; gap: 8px; margin-top: 10px; }
++.rr .cost-row input { flex: 1; }
++.rr .rows .row {
++  display: flex;
++  justify-content: space-between;
++  gap: 8px;
++  padding: 5px 0;
++  font-size: 12px;
++}
++.rr .rows .row span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
++.rr .skeleton {
++  height: 14px;
++  margin: 8px 0;
++  border-radius: 6px;
++  background: linear-gradient(90deg, var(--surface-2), var(--line), var(--surface-2));
++  background-size: 200% 100%;
++  animation: rr-shimmer 1.3s infinite linear;
++}
++@keyframes rr-shimmer {
++  from { background-position: 200% 0; }
++  to { background-position: -200% 0; }
++}
++
++/* ---------- lançador e menu ---------- */
++.rr .launcher {
++  position: fixed;
++  right: 20px;
++  bottom: 20px;
++  z-index: 2147483001;
++}
++.rr .launcher__btn {
++  display: grid;
++  place-items: center;
++  width: 48px;
++  height: 48px;
++  border: 0;
++  border-radius: 50%;
++  background: var(--brand-500);
++  color: #fff;
++  box-shadow: var(--shadow-2);
++  cursor: pointer;
++}
++.rr .launcher__btn:hover { background: var(--brand-600); }
++.rr .launcher__btn svg { width: 24px; height: 24px; }
++.rr .menu {
++  position: absolute;
++  right: 0;
++  bottom: 58px;
++  width: 280px;
++  padding: 6px;
++  border: 1px solid var(--line);
++  border-radius: var(--r-lg);
++  background: var(--surface);
++  box-shadow: var(--shadow-2);
++}
++.rr .menu__item {
++  display: block;
++  width: 100%;
++  padding: 10px 12px;
++  border: 0;
++  border-radius: var(--r-md);
++  background: none;
++  text-align: left;
++  font-weight: 600;
++  cursor: pointer;
++}
++.rr .menu__item:hover { background: var(--surface-2); }
++.rr .menu__item small { display: block; font-weight: 500; color: var(--text-3); }
++.rr .menu__sub { padding: 8px 12px 12px; }
++.rr .menu__sub .btn { margin-top: 10px; }
++
++/* ---------- aviso de compatibilidade ---------- */
++.rr .toast {
++  position: fixed;
++  left: 20px;
++  bottom: 20px;
++  max-width: 360px;
++  padding: 10px 14px;
++  border: 1px solid var(--line);
++  border-left: 4px solid var(--warn);
++  border-radius: var(--r-md);
++  background: var(--surface);
++  box-shadow: var(--shadow-2);
++  font-size: 12px;
++  z-index: 2147483002;
++}
+diff -ruN a/extension/ui/sidepanel.css b/extension/ui/sidepanel.css
+--- a/extension/ui/sidepanel.css	1970-01-01 00:00:00.000000000 +0000
++++ b/extension/ui/sidepanel.css	2026-10-07 03:36:08.837214212 +0000
+@@ -0,0 +1,108 @@
++/* Mercado Radar — Side Panel (usa os mesmos tokens da UI injetada) */
++* { box-sizing: border-box; }
++body {
++  margin: 0;
++  background: var(--bg);
++  color: var(--text);
++  font-family: var(--font);
++  font-size: 13px;
++  line-height: 1.45;
++  -webkit-font-smoothing: antialiased;
++}
++main { padding: 16px; }
++:focus-visible { outline: 2px solid var(--brand-500); outline-offset: 2px; }
++[hidden] { display: none !important; }
++
++.brand { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
++.brand-copy { display: flex; align-items: center; gap: 10px; min-width: 0; }
++.brand-copy img { width: 34px; height: 34px; border-radius: 9px; }
++.brand-copy strong { display: block; font-size: 16px; line-height: 1.1; letter-spacing: -0.02em; }
++.brand-copy small {
++  display: block; margin-top: 3px; color: var(--text-3);
++  font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
++}
++.pill {
++  padding: 3px 9px; border-radius: var(--r-pill);
++  background: var(--brand-100); color: var(--brand-600);
++  font-size: 10px; font-weight: 800;
++}
++
++.card {
++  margin-bottom: 12px; padding: 14px;
++  border: 1px solid var(--line); border-radius: var(--r-lg);
++  background: var(--surface); box-shadow: var(--shadow-1);
++}
++.title { margin-bottom: 9px; font-size: 13px; font-weight: 750; color: var(--text); }
++.product-title { margin-bottom: 9px; font-size: 14px; font-weight: 700; line-height: 1.4; }
++.muted { color: var(--text-3); font-size: 12px; line-height: 1.5; }
++.good { color: var(--brand-600); }
++.bad { color: var(--risk); }
++.divider { height: 1px; margin: 12px 0; background: var(--line); }
++
++.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
++.metric { padding: 10px; border-radius: var(--r-md); background: var(--surface-2); min-width: 0; }
++.metric small {
++  display: block; color: var(--text-3); font-size: 10px; font-weight: 650;
++  text-transform: uppercase; letter-spacing: 0.02em;
++}
++.metric strong { display: block; margin-top: 3px; font-size: 16px; letter-spacing: -0.01em; }
++.metric span.muted { display: block; margin-top: 4px; }
++
++label { display: block; margin: 10px 0 5px; font-size: 12px; font-weight: 650; color: var(--text-2); }
++input {
++  width: 100%; min-height: 36px; padding: 0 10px;
++  border: 1px solid var(--line-strong); border-radius: var(--r-sm);
++  background: var(--surface); font: inherit; color: inherit;
++}
++button {
++  width: 100%; min-height: 38px; margin-top: 11px; padding: 0 14px;
++  border: 0; border-radius: var(--r-md);
++  background: var(--brand-500); color: #fff;
++  font: inherit; font-weight: 650; cursor: pointer;
++}
++button:hover { background: var(--brand-600); }
++button:disabled { opacity: 0.6; cursor: default; }
++button.secondary { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--line-strong); }
++button.secondary:hover { background: var(--line); }
++
++.error {
++  padding: 10px 12px; border-radius: var(--r-md);
++  background: var(--risk-bg); color: var(--risk); font-size: 12px;
++}
++
++.market-range { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
++.market-range > div { padding: 8px; border-radius: var(--r-md); background: var(--surface-2); }
++.market-range small { display: block; color: var(--text-3); font-size: 10px; font-weight: 650; }
++.market-range strong { display: block; margin-top: 3px; font-size: 14px; }
++
++.competitor-row {
++  display: flex; justify-content: space-between; gap: 8px;
++  padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 12px;
++}
++.competitor-row > div:first-child { min-width: 0; flex: 1; }
++.competitor-row > div:last-child { flex: 0 0 auto; text-align: right; }
++.competitor-row span, .competitor-row small, .competitor-row strong { display: block; }
++.competitor-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
++.competitor-row small { margin-top: 2px; color: var(--text-3); font-size: 11px; }
++.mercado-radar-trend { padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
++
++.compare-box {
++  margin-top: 10px; padding: 12px; border-radius: var(--r-md);
++  background: var(--brand-50); border: 1px solid var(--line); font-size: 12px;
++}
++
++.auth-card { background: var(--brand-50); }
++.auth-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
++.auth-copy { min-width: 0; }
++.auth-copy strong, .auth-copy small { display: block; }
++.auth-copy strong { font-size: 14px; }
++.auth-copy small { margin-top: 3px; color: var(--text-3); font-size: 11px; }
++.auth-dot {
++  width: 9px; height: 9px; flex: 0 0 auto; border-radius: 50%;
++  background: var(--line-strong);
++}
++.auth-dot.online { background: var(--ok); box-shadow: 0 0 0 4px rgba(24, 150, 122, 0.15); }
++.auth-actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
++.auth-actions button { margin-top: 0; }
++.auth-actions .secondary { width: auto; }
++#logoutButton[hidden] { display: none; }
+diff -ruN a/extension/ui/tokens.css b/extension/ui/tokens.css
+--- a/extension/ui/tokens.css	1970-01-01 00:00:00.000000000 +0000
++++ b/extension/ui/tokens.css	2026-10-07 03:36:08.837151604 +0000
+@@ -0,0 +1,39 @@
++/* Mercado Radar — design tokens (fonte única; espelha app/styles/tokens.css do painel web) */
++:root,
++.rr {
++  --brand-700: #0b5a49;
++  --brand-600: #0f725e;
++  --brand-500: #18967a;
++  --brand-100: #e7f6f1;
++  --brand-50: #f3fbf8;
++
++  --bg: #f7f9f8;
++  --surface: #ffffff;
++  --surface-2: #f2f6f4;
++  --line: #e3eae7;
++  --line-strong: #cfdad6;
++
++  --text: #17342d;
++  --text-2: #51665f;
++  --text-3: #7f918a;
++
++  --ok: #18967a;
++  --ok-bg: #e7f6f1;
++  --warn: #b87408;
++  --warn-bg: #fdf3df;
++  --risk: #c8402f;
++  --risk-bg: #fdebe8;
++  --info: #2f6feb;
++  --info-bg: #e9f0fe;
++
++  --r-sm: 8px;
++  --r-md: 12px;
++  --r-lg: 16px;
++  --r-pill: 999px;
++
++  --shadow-1: 0 1px 2px rgba(23, 52, 45, 0.06);
++  --shadow-2: 0 8px 24px rgba(23, 52, 45, 0.1);
++
++  --font: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system,
++    sans-serif;
++}
+diff -ruN a/lib/admin-auth.ts b/lib/admin-auth.ts
+--- a/lib/admin-auth.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/lib/admin-auth.ts	2026-10-07 03:36:08.838590570 +0000
+@@ -0,0 +1,102 @@
++import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
++
++/**
++ * Credenciais do operador (painel web single-tenant).
++ *
++ * ADMIN_EMAIL            e-mail de login
++ * ADMIN_PASSWORD_HASH    gerado por `node scripts/hash-password.mjs`
++ *                        formato: scrypt:<salt base64url>:<hash base64url>
++ *                        (sem '$' de propósito: Docker Compose/Coolify interpolam '$')
++ * ADMIN_SESSION_SECRET   segredo (>= 32 caracteres) que assina o cookie
++ */
++const KEY_LENGTH = 64;
++const MIN_SECRET_LENGTH = 32;
++
++export function adminAuthConfig() {
++  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase() ?? "";
++  const passwordHash = process.env.ADMIN_PASSWORD_HASH?.trim() ?? "";
++  const secret = process.env.ADMIN_SESSION_SECRET?.trim() ?? "";
++
++  return {
++    email,
++    passwordHash,
++    secret,
++    configured:
++      Boolean(email) &&
++      passwordHash.startsWith("scrypt:") &&
++      secret.length >= MIN_SECRET_LENGTH,
++  };
++}
++
++function scryptAsync(password: string, salt: Buffer) {
++  return new Promise<Buffer>((resolve, reject) => {
++    scrypt(password, salt, KEY_LENGTH, (error, derived) => {
++      if (error) reject(error);
++      else resolve(derived);
++    });
++  });
++}
++
++export async function hashPassword(password: string) {
++  const salt = randomBytes(16);
++  const derived = await scryptAsync(password, salt);
++  return `scrypt:${salt.toString("base64url")}:${derived.toString("base64url")}`;
++}
++
++export async function verifyAdminCredentials(email: string, password: string) {
++  const config = adminAuthConfig();
++  if (!config.configured) return false;
++
++  const [, saltRaw, hashRaw] = config.passwordHash.split(":");
++  if (!saltRaw || !hashRaw) return false;
++
++  // Sempre calcula o scrypt, mesmo com e-mail errado, para não vazar por tempo.
++  const derived = await scryptAsync(password, Buffer.from(saltRaw, "base64url"));
++  const expected = Buffer.from(hashRaw, "base64url");
++
++  const passwordOk =
++    derived.length === expected.length && timingSafeEqual(derived, expected);
++  const emailOk = email.trim().toLowerCase() === config.email;
++
++  return passwordOk && emailOk;
++}
++
++/* ---------- limite de tentativas (memória do processo) ---------- */
++const WINDOW_MS = 15 * 60 * 1000;
++const MAX_PER_IP = 5;
++const MAX_GLOBAL = 30;
++
++const failures = new Map<string, { count: number; resetAt: number }>();
++
++function bump(key: string, now: number) {
++  const current = failures.get(key);
++  if (!current || current.resetAt <= now) {
++    failures.set(key, { count: 1, resetAt: now + WINDOW_MS });
++    return;
++  }
++  current.count += 1;
++}
++
++export function loginBlocked(ip: string, now = Date.now()) {
++  const byIp = failures.get(ip);
++  const global = failures.get("*");
++  return (
++    (byIp && byIp.resetAt > now && byIp.count >= MAX_PER_IP) ||
++    (global && global.resetAt > now && global.count >= MAX_GLOBAL)
++  );
++}
++
++export function registerLoginFailure(ip: string, now = Date.now()) {
++  bump(ip, now);
++  bump("*", now);
++}
++
++export function clearLoginFailures(ip: string) {
++  failures.delete(ip);
++}
++
++export function clientIp(request: Request) {
++  const forwarded = request.headers.get("x-forwarded-for");
++  if (forwarded) return forwarded.split(",")[0].trim() || "unknown";
++  return request.headers.get("x-real-ip")?.trim() || "unknown";
++}
+diff -ruN a/lib/admin-token.ts b/lib/admin-token.ts
+--- a/lib/admin-token.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/lib/admin-token.ts	2026-10-07 03:36:08.838561472 +0000
+@@ -0,0 +1,86 @@
++/**
++ * Sessão do operador do painel web.
++ *
++ * Usa apenas Web Crypto (HMAC-SHA256) para funcionar tanto no proxy.ts
++ * quanto nas rotas Node. Formato do token: base64url(payload).base64url(hmac)
++ */
++export const ADMIN_COOKIE = "radar_admin";
++export const ADMIN_SESSION_SECONDS = 7 * 24 * 60 * 60;
++
++const encoder = new TextEncoder();
++
++function toBase64Url(bytes: Uint8Array) {
++  let binary = "";
++  for (const byte of bytes) binary += String.fromCharCode(byte);
++  return btoa(binary)
++    .replaceAll("+", "-")
++    .replaceAll("/", "_")
++    .replaceAll("=", "");
++}
++
++function fromBase64Url(value: string) {
++  const padded =
++    value.replaceAll("-", "+").replaceAll("_", "/") +
++    "=".repeat((4 - (value.length % 4)) % 4);
++  const binary = atob(padded);
++  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
++}
++
++function hmacKey(secret: string) {
++  return crypto.subtle.importKey(
++    "raw",
++    encoder.encode(secret),
++    { name: "HMAC", hash: "SHA-256" },
++    false,
++    ["sign", "verify"],
++  );
++}
++
++export async function signAdminSession(secret: string, now = Date.now()) {
++  const payload = toBase64Url(
++    encoder.encode(
++      JSON.stringify({
++        v: 1,
++        exp: Math.floor(now / 1000) + ADMIN_SESSION_SECONDS,
++      }),
++    ),
++  );
++
++  const signature = await crypto.subtle.sign(
++    "HMAC",
++    await hmacKey(secret),
++    encoder.encode(payload),
++  );
++
++  return `${payload}.${toBase64Url(new Uint8Array(signature))}`;
++}
++
++export async function verifyAdminSession(
++  token: string | undefined | null,
++  secret: string,
++  now = Date.now(),
++) {
++  if (!token || !secret) return false;
++
++  const [payload, signature, extra] = token.split(".");
++  if (!payload || !signature || extra !== undefined) return false;
++
++  try {
++    const valid = await crypto.subtle.verify(
++      "HMAC",
++      await hmacKey(secret),
++      fromBase64Url(signature),
++      encoder.encode(payload),
++    );
++    if (!valid) return false;
++
++    const data = JSON.parse(new TextDecoder().decode(fromBase64Url(payload))) as {
++      v?: number;
++      exp?: number;
++    };
++
++    return data.v === 1 && typeof data.exp === "number" && data.exp * 1000 > now;
++  } catch {
++    return false;
++  }
++}
+diff -ruN a/lib/mercado-livre.ts b/lib/mercado-livre.ts
+--- a/lib/mercado-livre.ts	2026-10-07 03:02:22.000000000 +0000
++++ b/lib/mercado-livre.ts	2026-10-07 03:36:08.837552839 +0000
+@@ -1,3 +1,4 @@
++import { createHash } from "node:crypto";
+ import { prisma } from "@/lib/prisma";
+ import { decryptSecret, encryptSecret } from "@/lib/security";
+ 
+@@ -20,65 +21,232 @@
+   return { clientId, clientSecret };
+ }
+ 
+-async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
++export type MlApiErrorCode =
++  | "UNAUTHORIZED"
++  | "FORBIDDEN"
++  | "RATE_LIMITED"
++  | "UPSTREAM"
++  | "TIMEOUT"
++  | "HTTP";
++
++/**
++ * Erro tipado da API do Mercado Livre. Continua sendo um Error comum
++ * (mesma mensagem amigável de antes), mas agora carrega status e rota para
++ * que telas e diagnósticos distingam token, permissão, limite e indisponibilidade.
++ */
++export class MlApiError extends Error {
++  readonly status: number;
++  readonly path: string;
++  readonly code: MlApiErrorCode;
++
++  constructor(message: string, status: number, path: string, code: MlApiErrorCode) {
++    super(message);
++    this.name = "MlApiError";
++    this.status = status;
++    this.path = path;
++    this.code = code;
++  }
++}
++
++/* ---------- limitador de concorrência (processo único) ---------- */
++const MAX_CONCURRENCY = Math.max(1, Number(process.env.ML_MAX_CONCURRENCY) || 6);
++let activeRequests = 0;
++const waiters: Array<() => void> = [];
++
++async function acquireSlot() {
++  if (activeRequests < MAX_CONCURRENCY) {
++    activeRequests += 1;
++    return;
++  }
++  // O slot é transferido diretamente para quem espera (activeRequests não muda).
++  await new Promise<void>((resolve) => waiters.push(resolve));
++}
++
++function releaseSlot() {
++  const next = waiters.shift();
++  if (next) next();
++  else activeRequests -= 1;
++}
++
++/* ---------- cache curto para GETs idempotentes ---------- */
++const CACHE_RULES: Array<{ test: RegExp; ttlMs: number }> = [
++  { test: /\/trends\//, ttlMs: 10 * 60_000 },
++  { test: /\/highlights\//, ttlMs: 10 * 60_000 },
++  { test: /\/products\/search\?/, ttlMs: 5 * 60_000 },
++  { test: /\/products\/[A-Z0-9]+(\?|$)/, ttlMs: 5 * 60_000 },
++  { test: /\/visits\/items\?/, ttlMs: 5 * 60_000 },
++  { test: /\/items\/bulk\?/, ttlMs: 60_000 },
++];
++const CACHE_MAX_ENTRIES = 500;
++const responseCache = new Map<string, { expiresAt: number; body: unknown }>();
++
++function cacheTtl(url: string, method: string) {
++  if (method !== "GET") return 0;
++  return CACHE_RULES.find((rule) => rule.test.test(url))?.ttlMs ?? 0;
++}
++
++function cacheKey(url: string, init?: RequestInit) {
++  const headers = new Headers(init?.headers);
++  const auth = headers.get("authorization") ?? "";
++  const who = auth
++    ? createHash("sha1").update(auth).digest("hex").slice(0, 12)
++    : "anon";
++  return `${who}|${url}`;
++}
++
++function pathOf(url: string) {
+   try {
+-    const response = await fetch(url, {
+-      ...init,
+-      cache: "no-store",
+-      signal: AbortSignal.timeout(12000),
+-    });
+-    const body = await response.json().catch(() => ({}));
++    return new URL(url).pathname;
++  } catch {
++    return url;
++  }
++}
+ 
+-    if (!response.ok) {
+-      const apiMessage =
+-        typeof body?.message === "string"
+-          ? body.message
+-          : `Mercado Livre respondeu HTTP ${response.status}`;
+-
+-      if (response.status === 401) {
+-        throw new Error(
+-          "A autorização do Mercado Livre expirou ou foi revogada. Reconecte a conta em Integrações.",
+-        );
+-      }
++function sleep(ms: number) {
++  return new Promise((resolve) => setTimeout(resolve, ms));
++}
+ 
+-      if (response.status === 403) {
+-        throw new Error(
+-          "O Mercado Livre negou acesso a este recurso. A conta está conectada, mas o aplicativo precisa da permissão correspondente. Revise a integração do Mercado Livre.",
+-        );
+-      }
++function retryDelayMs(attempt: number, retryAfter: string | null) {
++  const seconds = retryAfter ? Number(retryAfter) : NaN;
++  if (Number.isFinite(seconds) && seconds >= 0) {
++    return Math.min(10_000, seconds * 1000);
++  }
++  return Math.min(8000, 500 * 2 ** attempt) + Math.floor(Math.random() * 250);
++}
+ 
+-      if (response.status === 429) {
+-        throw new Error(
+-          "O Mercado Livre limitou temporariamente as consultas. O Radar tentará novamente quando o limite liberar.",
+-        );
+-      }
++function isTimeout(error: unknown) {
++  return (
++    error instanceof Error &&
++    (error.name === "TimeoutError" || error.name === "AbortError")
++  );
++}
+ 
+-      if (response.status >= 500) {
+-        throw new Error(
+-          "O Mercado Livre está temporariamente indisponível para esta consulta. Tente novamente em alguns instantes.",
+-        );
++function httpError(status: number, path: string, apiMessage: string): MlApiError {
++  if (status === 401) {
++    return new MlApiError(
++      "A autorização do Mercado Livre expirou ou foi revogada. Reconecte a conta em Integrações.",
++      status,
++      path,
++      "UNAUTHORIZED",
++    );
++  }
++  if (status === 403) {
++    return new MlApiError(
++      "O Mercado Livre negou acesso a este recurso. A conta está conectada, mas o aplicativo precisa da permissão correspondente. Revise a integração do Mercado Livre.",
++      status,
++      path,
++      "FORBIDDEN",
++    );
++  }
++  if (status === 429) {
++    return new MlApiError(
++      "O Mercado Livre limitou temporariamente as consultas. O Radar tentará novamente quando o limite liberar.",
++      status,
++      path,
++      "RATE_LIMITED",
++    );
++  }
++  if (status >= 500) {
++    return new MlApiError(
++      "O Mercado Livre está temporariamente indisponível para esta consulta. Tente novamente em alguns instantes.",
++      status,
++      path,
++      "UPSTREAM",
++    );
++  }
++  return new MlApiError(
++    apiMessage === "forbidden"
++      ? "O Mercado Livre não autorizou esta consulta para o aplicativo conectado."
++      : apiMessage,
++    status,
++    path,
++    "HTTP",
++  );
++}
++
++async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
++  const method = (init?.method ?? "GET").toUpperCase();
++  const path = pathOf(url);
++  const ttl = cacheTtl(url, method);
++  const key = ttl ? cacheKey(url, init) : "";
++
++  if (ttl) {
++    const hit = responseCache.get(key);
++    if (hit && hit.expiresAt > Date.now()) return hit.body as T;
++    if (hit) responseCache.delete(key);
++  }
++
++  // Só repetimos GET: POST/PUT (ex.: /oauth/token) nunca devem ser reenviados.
++  const maxAttempts = method === "GET" ? 3 : 1;
++  let lastError: unknown;
++
++  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
++    await acquireSlot();
++    let response: Response | null = null;
++    let body: unknown = {};
++
++    try {
++      response = await fetch(url, {
++        ...init,
++        cache: "no-store",
++        signal: AbortSignal.timeout(12000),
++      });
++      body = await response.json().catch(() => ({}));
++    } catch (error) {
++      lastError = isTimeout(error)
++        ? new MlApiError(
++            "O Mercado Livre demorou demais para responder. Tente novamente em alguns segundos.",
++            0,
++            path,
++            "TIMEOUT",
++          )
++        : error;
++      releaseSlot();
++      // Timeout/rede: uma única repetição.
++      if (attempt === 0 && maxAttempts > 1) {
++        await sleep(retryDelayMs(attempt, null));
++        continue;
+       }
++      throw lastError;
++    }
++
++    releaseSlot();
+ 
+-      throw new Error(
+-        apiMessage === "forbidden"
+-          ? "O Mercado Livre não autorizou esta consulta para o aplicativo conectado."
+-          : apiMessage,
+-      );
++    if (response.ok) {
++      if (ttl) {
++        if (responseCache.size >= CACHE_MAX_ENTRIES) {
++          const oldest = responseCache.keys().next().value;
++          if (oldest) responseCache.delete(oldest);
++        }
++        responseCache.set(key, { expiresAt: Date.now() + ttl, body });
++      }
++      return body as T;
+     }
+ 
+-    return body as T;
+-  } catch (error) {
+-    if (
+-      error instanceof Error &&
+-      (error.name === "TimeoutError" || error.name === "AbortError")
+-    ) {
+-      throw new Error(
+-        "O Mercado Livre demorou demais para responder. Tente novamente em alguns segundos.",
+-      );
++    const apiMessage =
++      typeof (body as { message?: unknown })?.message === "string"
++        ? String((body as { message: string }).message)
++        : `Mercado Livre respondeu HTTP ${response.status}`;
++    lastError = httpError(response.status, path, apiMessage);
++
++    const retryable =
++      response.status === 429 ||
++      response.status === 500 ||
++      response.status === 502 ||
++      response.status === 503 ||
++      response.status === 504;
++
++    if (retryable && attempt < maxAttempts - 1) {
++      await sleep(retryDelayMs(attempt, response.headers.get("retry-after")));
++      continue;
+     }
+ 
+-    throw error;
++    throw lastError;
+   }
++
++  throw lastError instanceof Error
++    ? lastError
++    : new Error("Falha ao consultar o Mercado Livre.");
+ }
+ 
+ export async function exchangeAuthorizationCode(input: {
+@@ -164,7 +332,7 @@
+   });
+ }
+ 
+-async function buildMlSession(account: {
++type MlAccountRecord = {
+   id: string;
+   mercadoLivreUserId: string;
+   nickname: string | null;
+@@ -174,37 +342,106 @@
+   scopes: string | null;
+   createdAt: Date;
+   updatedAt: Date;
+-}) {
+-  if (account.tokenExpiresAt.getTime() > Date.now() + 5 * 60 * 1000) {
++};
++
++const REFRESH_MARGIN_MS = 5 * 60 * 1000;
++
++function hasFreshToken(account: MlAccountRecord) {
++  return account.tokenExpiresAt.getTime() > Date.now() + REFRESH_MARGIN_MS;
++}
++
++// O refresh token do Mercado Livre é de uso único: duas renovações simultâneas
++// da mesma conta podem invalidar a conexão. Esta trava garante UMA renovação
++// por conta neste processo; quem chegar durante a renovação reutiliza o resultado.
++const refreshLocks = new Map<
++  string,
++  Promise<{ account: MlAccountRecord; accessToken: string }>
++>();
++
++async function refreshAccountSession(stale: MlAccountRecord) {
++  // Outra requisição/processo pode ter renovado entre a leitura e a trava.
++  const current =
++    (await prisma.mercadoLivreAccount.findUnique({ where: { id: stale.id } })) ??
++    stale;
++
++  if (hasFreshToken(current)) {
+     return {
+-      account,
+-      accessToken: decryptSecret(account.accessTokenEncrypted),
++      account: current,
++      accessToken: decryptSecret(current.accessTokenEncrypted),
+     };
+   }
+ 
+-  const refreshed = await refreshAccessToken(
+-    decryptSecret(account.refreshTokenEncrypted),
+-  );
++  let refreshed: Awaited<ReturnType<typeof refreshAccessToken>>;
++
++  try {
++    refreshed = await refreshAccessToken(
++      decryptSecret(current.refreshTokenEncrypted),
++    );
++  } catch (error) {
++    // Se outro processo (ex.: cron) rotacionou o token enquanto tentávamos,
++    // o banco já tem um token válido: usamos ele em vez de derrubar a sessão.
++    const latest = await prisma.mercadoLivreAccount.findUnique({
++      where: { id: current.id },
++    });
++
++    if (
++      latest &&
++      latest.refreshTokenEncrypted !== current.refreshTokenEncrypted &&
++      hasFreshToken(latest)
++    ) {
++      return {
++        account: latest,
++        accessToken: decryptSecret(latest.accessTokenEncrypted),
++      };
++    }
++
++    throw error;
++  }
+ 
+   const updated = await prisma.mercadoLivreAccount.update({
+-    where: { id: account.id },
++    where: { id: current.id },
+     data: {
+       accessTokenEncrypted: encryptSecret(refreshed.access_token),
+       refreshTokenEncrypted: refreshed.refresh_token
+         ? encryptSecret(refreshed.refresh_token)
+-        : account.refreshTokenEncrypted,
++        : current.refreshTokenEncrypted,
+       tokenExpiresAt: new Date(Date.now() + refreshed.expires_in * 1000),
+-      scopes: refreshed.scope ?? account.scopes,
++      scopes: refreshed.scope ?? current.scopes,
+     },
+   });
+ 
+   return { account: updated, accessToken: refreshed.access_token };
+ }
+ 
+-export async function getMlSession() {
+-  const account = await prisma.mercadoLivreAccount.findFirst({
+-    orderBy: { updatedAt: "desc" },
++async function buildMlSession(account: MlAccountRecord) {
++  if (hasFreshToken(account)) {
++    return {
++      account,
++      accessToken: decryptSecret(account.accessTokenEncrypted),
++    };
++  }
++
++  const running = refreshLocks.get(account.id);
++  if (running) return running;
++
++  const task = refreshAccountSession(account).finally(() => {
++    refreshLocks.delete(account.id);
+   });
++  refreshLocks.set(account.id, task);
++  return task;
++}
++
++export async function getMlSession() {
++  // Painel web (single-tenant): se ADMIN_ML_ACCOUNT_ID estiver definido, usa
++  // exatamente essa conta. Sem ele mantém o comportamento anterior (conta mais
++  // recente), o que é arriscado quando há contas de extensão no mesmo banco.
++  const pinned = process.env.ADMIN_ML_ACCOUNT_ID?.trim();
++
++  const account = pinned
++    ? await prisma.mercadoLivreAccount.findUnique({ where: { id: pinned } })
++    : await prisma.mercadoLivreAccount.findFirst({
++        orderBy: { updatedAt: "desc" },
++      });
+ 
+   if (!account) {
+     throw new Error("Conta do Mercado Livre ainda não conectada.");
+@@ -404,15 +641,21 @@
+ 
+   let raw: MarketplaceSearchResponse;
+ 
++  const searchUrl = `${API}/sites/MLB/search?${params.toString()}`;
++
+   try {
+-    raw = await jsonFetch<MarketplaceSearchResponse>(
+-      `${API}/sites/MLB/search?${params.toString()}`,
+-      { headers: { Authorization: `Bearer ${input.accessToken}` } },
+-    );
+-  } catch {
+-    raw = await jsonFetch<MarketplaceSearchResponse>(
+-      `${API}/sites/MLB/search?${params.toString()}`,
+-    );
++    raw = await jsonFetch<MarketplaceSearchResponse>(searchUrl, {
++      headers: { Authorization: `Bearer ${input.accessToken}` },
++    });
++  } catch (authenticatedError) {
++    // Tentativa pública mantida por compatibilidade, mas o erro REAL (ex.: 403
++    // de permissão) é preservado: antes ele era substituído pelo da segunda
++    // chamada e o diagnóstico ficava enganoso.
++    try {
++      raw = await jsonFetch<MarketplaceSearchResponse>(searchUrl);
++    } catch {
++      throw authenticatedError;
++    }
+   }
+ 
+   return (raw.results ?? [])
+diff -ruN a/next.config.ts b/next.config.ts
+--- a/next.config.ts	2026-10-07 03:02:22.000000000 +0000
++++ b/next.config.ts	2026-10-07 03:36:08.838710924 +0000
+@@ -4,6 +4,11 @@
+   output: "standalone",
+   poweredByHeader: false,
+   reactStrictMode: true,
++  // O instalador de desenvolvimento lê /extension em tempo de execução; sem isto o
++  // file tracing do modo standalone pode não copiar a pasta (nem os arquivos novos).
++  outputFileTracingIncludes: {
++    "/api/extension/dev-installer": ["./extension/**/*"],
++  },
+ };
+ 
+ export default nextConfig;
+diff -ruN a/proxy.ts b/proxy.ts
+--- a/proxy.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/proxy.ts	2026-10-07 03:36:08.842345074 +0000
+@@ -0,0 +1,76 @@
++import { NextResponse, type NextRequest } from "next/server";
++import { ADMIN_COOKIE, verifyAdminSession } from "@/lib/admin-token";
++
++/**
++ * Portão único do painel web (default-deny).
++ *
++ * Tudo exige a sessão do operador, EXCETO as rotas abaixo, que têm
++ * autenticação própria ou precisam ser públicas por natureza:
++ *  - /api/extension/**           Bearer por dispositivo (getExtensionSession)
++ *  - /api/cron/**                RADAR_CRON_SECRET
++ *  - /api/webhooks/mercadolivre  notificações do Mercado Livre
++ *  - /api/integrations/mercadolivre/callback  retorno do OAuth
++ *  - /api/health, /login, /api/auth/**
++ *
++ * Next 16 renomeou middleware.ts para proxy.ts. Se a sua versão ainda usar
++ * middleware.ts, renomeie o arquivo e a função exportada para `middleware`.
++ */
++const PUBLIC = [
++  "/login",
++  "/api/auth",
++  "/api/health",
++  "/api/extension",
++  "/api/cron",
++  "/api/webhooks/mercadolivre",
++  "/api/integrations/mercadolivre/callback",
++];
++
++function isPublic(pathname: string) {
++  return PUBLIC.some(
++    (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
++  );
++}
++
++export async function proxy(request: NextRequest) {
++  const { pathname, search } = request.nextUrl;
++  if (isPublic(pathname)) return NextResponse.next();
++
++  const secret = process.env.ADMIN_SESSION_SECRET?.trim() ?? "";
++  const configured =
++    Boolean(process.env.ADMIN_EMAIL?.trim()) &&
++    Boolean(process.env.ADMIN_PASSWORD_HASH?.trim()) &&
++    secret.length >= 32;
++
++  // Desenvolvimento sem credenciais: não trava o fluxo local.
++  if (!configured && process.env.NODE_ENV !== "production") {
++    return NextResponse.next();
++  }
++
++  const token = request.cookies.get(ADMIN_COOKIE)?.value;
++  if (configured && (await verifyAdminSession(token, secret))) {
++    return NextResponse.next();
++  }
++
++  if (pathname.startsWith("/api/")) {
++    return NextResponse.json(
++      {
++        error: configured
++          ? "Não autorizado. Entre no Mercado Radar."
++          : "Autenticação do painel não configurada.",
++      },
++      { status: 401, headers: { "Cache-Control": "no-store" } },
++    );
++  }
++
++  const login = request.nextUrl.clone();
++  login.pathname = "/login";
++  login.search = "";
++  if (pathname !== "/") login.searchParams.set("next", pathname + search);
++  return NextResponse.redirect(login);
++}
++
++export const config = {
++  matcher: [
++    "/((?!_next/static|_next/image|brand/|favicon.ico|icon.svg|manifest.webmanifest).*)",
++  ],
++};
+diff -ruN a/scripts/build-extension.mjs b/scripts/build-extension.mjs
+--- a/scripts/build-extension.mjs	1970-01-01 00:00:00.000000000 +0000
++++ b/scripts/build-extension.mjs	2026-10-07 03:36:08.842314434 +0000
+@@ -0,0 +1,16 @@
++#!/usr/bin/env node
++// Gera a pasta dist/extension-prod pronta para zipar e enviar à Chrome Web Store:
++// copia /extension e troca manifest.json pelo manifest.prod.json (sem localhost).
++import { cpSync, rmSync, mkdirSync, renameSync, existsSync } from "node:fs";
++
++const out = "dist/extension-prod";
++rmSync(out, { recursive: true, force: true });
++mkdirSync("dist", { recursive: true });
++cpSync("extension", out, { recursive: true });
++
++if (!existsSync(out + "/manifest.prod.json")) throw new Error("manifest.prod.json não encontrado");
++rmSync(out + "/manifest.json");
++renameSync(out + "/manifest.prod.json", out + "/manifest.json");
++rmSync(out + "/README.md", { force: true });
++
++console.log("OK → " + out + "\nZip: cd dist && zip -r mercado-radar-extension.zip extension-prod");
+diff -ruN a/scripts/hash-password.mjs b/scripts/hash-password.mjs
+--- a/scripts/hash-password.mjs	1970-01-01 00:00:00.000000000 +0000
++++ b/scripts/hash-password.mjs	2026-10-07 03:36:08.842279131 +0000
+@@ -0,0 +1,17 @@
++#!/usr/bin/env node
++// Uso: node scripts/hash-password.mjs "sua-senha-forte"
++// Gera o valor para ADMIN_PASSWORD_HASH (e sugere um ADMIN_SESSION_SECRET).
++import { randomBytes, scrypt } from "node:crypto";
++
++const password = process.argv[2];
++if (!password || password.length < 10) {
++  console.error('Informe uma senha com pelo menos 10 caracteres:\n  node scripts/hash-password.mjs "sua-senha-forte"');
++  process.exit(1);
++}
++
++const salt = randomBytes(16);
++scrypt(password, salt, 64, (error, derived) => {
++  if (error) throw error;
++  console.log("ADMIN_PASSWORD_HASH=scrypt:" + salt.toString("base64url") + ":" + derived.toString("base64url"));
++  console.log("ADMIN_SESSION_SECRET=" + randomBytes(48).toString("base64url"));
++});

@@ -178,7 +178,7 @@ export async function GET() {
       oauth: {
         userId,
         appId,
-        storedScope: session.account.scope ?? null,
+        storedScope: session.account.scopes ?? null,
       },
       summary: {
         healthy:

@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { isExtensionAuthorized } from "@/lib/extension-auth";
+import { getExtensionSession } from "@/lib/extension-auth";
 import {
   getExistingItemShippingQuote,
   getListingPriceQuote,
-  getMlSession,
 } from "@/lib/mercado-livre";
 import { analyzeProfitability } from "@/lib/profitability";
 
@@ -85,8 +84,26 @@ function listingTypeFromId(value: string | null) {
 }
 
 export async function POST(request: Request) {
-  if (!isExtensionAuthorized(request)) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  let extensionSession;
+  try {
+    extensionSession = await getExtensionSession(request);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Falha ao validar sessão da extensão.",
+      },
+      { status: 429 },
+    );
+  }
+
+  if (!extensionSession) {
+    return NextResponse.json(
+      { error: "Sessão da extensão inválida ou expirada." },
+      { status: 401 },
+    );
   }
 
   const parsed = schema.safeParse(await request.json());
@@ -95,7 +112,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const session = await getMlSession();
+    const session = extensionSession.ml;
     const sellerUserId = session.account.mercadoLivreUserId;
 
     const ownProducts = await prisma.mercadoLivreProduct.findMany({

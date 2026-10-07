@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
   getCatalogProductDetails,
+  getCatalogProductOffers,
   getCategoryHighlights,
   getItemsBulk,
   getItemsVisitTotals,
@@ -191,33 +192,57 @@ export async function POST(request: Request) {
           productId: product.id,
         }).catch(() => null);
 
-        return { product, detail };
+        // Plano B documentado: sem buy_box_winner, usa a oferta mais barata
+        // listada em GET /products/{id}/items.
+        let fallback: Awaited<ReturnType<typeof getCatalogProductOffers>>[number] | null =
+          null;
+        if (!/^MLB\d+$/i.test(String(detail?.buy_box_winner?.item_id ?? ""))) {
+          const offers = await getCatalogProductOffers({
+            accessToken: session.accessToken,
+            productId: product.id,
+            limit: 20,
+          }).catch(() => []);
+          fallback = [...offers].sort((a, b) => a.price - b.price)[0] ?? null;
+        }
+
+        return { product, detail, fallback };
       }),
     );
 
     const winnerCandidates = productDetails
-      .map(({ product, detail }) => {
+      .map(({ product, detail, fallback }) => {
         const winner = detail?.buy_box_winner;
-        const itemId = winner?.item_id
+        const winnerId = winner?.item_id
           ? String(winner.item_id).toUpperCase()
           : null;
+        const itemId =
+          winnerId && /^MLB\d+$/i.test(winnerId)
+            ? winnerId
+            : (fallback?.itemId ?? null);
 
         if (!itemId || !/^MLB\d+$/i.test(itemId)) return null;
+        const usingFallback = itemId !== winnerId;
 
         return {
           product,
           detail,
           itemId,
           title: detail?.name ?? product.name,
-          price: Number(winner?.price ?? 0),
+          price: Number(usingFallback ? fallback?.price : winner?.price) || 0,
           sellerId:
-            winner?.seller_id == null ? null : String(winner.seller_id),
+            (usingFallback ? fallback?.sellerId : winner?.seller_id) == null
+              ? null
+              : String(usingFallback ? fallback?.sellerId : winner?.seller_id),
           categoryId: winner?.category_id ?? categoryId,
           soldQuantity: Number(
             winner?.sold_quantity ?? detail?.sold_quantity ?? 0,
           ),
-          freeShipping: Boolean(winner?.shipping?.free_shipping),
-          logisticType: winner?.shipping?.logistic_type ?? null,
+          freeShipping: usingFallback
+            ? Boolean(fallback?.freeShipping)
+            : Boolean(winner?.shipping?.free_shipping),
+          logisticType: usingFallback
+            ? (fallback?.logisticType ?? null)
+            : (winner?.shipping?.logistic_type ?? null),
         };
       })
       .filter(
@@ -240,7 +265,7 @@ export async function POST(request: Request) {
         summary: null,
         opportunities: [],
         message:
-          "Produtos de catálogo foram encontrados, mas o Mercado Livre não retornou anúncios vencedores utilizáveis. Abra esta busca no Mercado Livre com a Extensão Radar para analisar os anúncios visíveis.",
+          "Encontramos produtos de catálogo, mas o Mercado Livre não liberou ofertas utilizáveis para o seu aplicativo nesta busca (nem o vencedor nem a lista de ofertas). Abra a busca no Mercado Livre com a Extensão Radar para analisar os anúncios visíveis.",
       });
     }
 
@@ -488,7 +513,7 @@ export async function POST(request: Request) {
       opportunities,
       methodology: {
         exact:
-          "A descoberta usa o buscador oficial de produtos do Mercado Livre. Preço e seller vêm do buy_box_winner quando disponíveis; detalhes adicionais usam Items Bulk.",
+          "A descoberta usa o buscador oficial de produtos do Mercado Livre. Preço e seller vêm do buy_box_winner; sem ele, da oferta mais barata em /products/{id}/items. Detalhes adicionais usam o multiget /items?ids=.",
         estimated:
           "Vendas/mês e faturamento/mês continuam sendo estimativas baseadas nos sinais disponíveis e são identificadas como estimativas na interface.",
         score:

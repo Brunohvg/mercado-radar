@@ -5,6 +5,7 @@ import {
   getCatalogProductDetails,
   getItemCurrentPrice,
   getItemsBulk,
+  getItemsBulkDetailed,
   getItemsByUserProduct,
   getItemsVisitTotals,
   getTrends,
@@ -110,8 +111,8 @@ export async function GET(request: Request) {
       visiblePrice: parsed.data.visiblePrice,
     });
 
-    const [details, visits] = await Promise.all([
-      getItemsBulk({
+    const [bulk, visits] = await Promise.all([
+      getItemsBulkDetailed({
         accessToken: session.accessToken,
         itemIds: [itemId],
       }),
@@ -121,9 +122,19 @@ export async function GET(request: Request) {
       }).catch(() => ({} as Record<string, number>)),
     ]);
 
-    const item = details[0];
+    const item = bulk.items[0];
     if (!item) {
-      return NextResponse.json({ error: "Anúncio não encontrado." }, { status: 404 });
+      // O Mercado Livre não libera este anúncio para o app (típico de anúncios de
+      // outros vendedores). Não é problema de conta: a extensão deve cair para
+      // a leitura pela página em vez de pedir reconexão.
+      return NextResponse.json(
+        {
+          error:
+            "O Mercado Livre não libera os detalhes deste anúncio pela API. Mostrando apenas o que a página informa.",
+          restricted: true,
+        },
+        { status: 404 },
+      );
     }
 
     const exactOwnPrice =

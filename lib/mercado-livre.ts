@@ -75,7 +75,7 @@ const CACHE_RULES: Array<{ test: RegExp; ttlMs: number }> = [
   { test: /\/products\/search\?/, ttlMs: 5 * 60_000 },
   { test: /\/products\/[A-Z0-9]+(\?|$)/, ttlMs: 5 * 60_000 },
   { test: /\/visits\/items\?/, ttlMs: 5 * 60_000 },
-  { test: /\/items\/bulk\?/, ttlMs: 60_000 },
+  { test: /\/items\?ids=/, ttlMs: 60_000 },
 ];
 const CACHE_MAX_ENTRIES = 500;
 const responseCache = new Map<string, { expiresAt: number; body: unknown }>();
@@ -758,102 +758,90 @@ export type SellerItemDetail = {
   raw: unknown;
 };
 
+/**
+ * Multiget oficial: GET /items?ids=ID1,ID2 (máx. 20 por chamada). Cada entrada
+ * vem como { code, body }. Itens que o Mercado Livre não libera para o app
+ * (code 403/404) são omitidos do resultado e listados em `restrictedIds`.
+ */
+const ITEMS_MULTIGET_LIMIT = 20;
+
+type MultigetEntry = {
+  code?: number;
+  status_code?: number;
+  body?: Record<string, any> & {
+    id?: string;
+    shipping?: { free_shipping?: boolean; logistic_type?: string; mode?: string };
+    attributes?: Array<{ id?: string; value_name?: string }>;
+  };
+};
+
+function toSellerItemDetail(entry: MultigetEntry): SellerItemDetail | null {
+  const body = entry.body;
+  if (!body?.id) return null;
+
+  const sellerSku =
+    body.seller_custom_field ??
+    body.attributes?.find((attribute) => attribute.id === "SELLER_SKU")
+      ?.value_name ??
+    null;
+
+  return {
+    id: String(body.id),
+    title: String(body.title ?? body.id),
+    categoryId: body.category_id ?? null,
+    status: String(body.status ?? "unknown"),
+    listingTypeId: body.listing_type_id ?? null,
+    currentPrice: Number(body.price ?? 0),
+    sellerId: body.seller_id == null ? null : String(body.seller_id),
+    catalogProductId: body.catalog_product_id ?? null,
+    userProductId: body.user_product_id ?? null,
+    availableQuantity: Number(body.available_quantity ?? 0),
+    soldQuantity: Number(body.sold_quantity ?? 0),
+    dateCreated: body.date_created ?? null,
+    permalink: body.permalink ?? null,
+    thumbnail: body.thumbnail ?? null,
+    freeShipping: Boolean(body.shipping?.free_shipping),
+    logisticType: body.shipping?.logistic_type ?? null,
+    shippingMode: body.shipping?.mode ?? null,
+    sellerSku,
+    raw: entry,
+  };
+}
+
+export async function getItemsBulkDetailed(input: {
+  accessToken: string;
+  itemIds: string[];
+}) {
+  const ids = [...new Set(input.itemIds.filter(Boolean))].slice(0, 100);
+  const items: SellerItemDetail[] = [];
+  const restrictedIds: string[] = [];
+
+  for (let offset = 0; offset < ids.length; offset += ITEMS_MULTIGET_LIMIT) {
+    const chunk = ids.slice(offset, offset + ITEMS_MULTIGET_LIMIT);
+    const params = new URLSearchParams({ ids: chunk.join(",") });
+
+    const raw = await jsonFetch<MultigetEntry[]>(
+      `${API}/items?${params.toString()}`,
+      { headers: { Authorization: `Bearer ${input.accessToken}` } },
+    );
+
+    (Array.isArray(raw) ? raw : []).forEach((entry, index) => {
+      const code = entry.code ?? entry.status_code ?? 200;
+      const detail = code === 200 ? toSellerItemDetail(entry) : null;
+      if (detail) items.push(detail);
+      else restrictedIds.push(entry.body?.id ?? chunk[index]);
+    });
+  }
+
+  return { items, restrictedIds };
+}
+
 export async function getItemsBulk(input: {
   accessToken: string;
   itemIds: string[];
 }) {
   if (input.itemIds.length === 0) return [] as SellerItemDetail[];
-
-  const ids = input.itemIds.slice(0, 50).join(",");
-  const params = new URLSearchParams({
-    ids,
-    attributes: [
-      "body.id",
-      "body.title",
-      "body.category_id",
-      "body.status",
-      "body.listing_type_id",
-      "body.price",
-      "body.seller_id",
-      "body.catalog_product_id",
-      "body.user_product_id",
-      "body.available_quantity",
-      "body.sold_quantity",
-      "body.date_created",
-      "body.permalink",
-      "body.thumbnail",
-      "body.shipping",
-      "body.seller_custom_field",
-      "body.attributes",
-    ].join(","),
-  });
-
-  const raw = await jsonFetch<Array<{
-    id?: string;
-    status_code?: number;
-    body?: {
-      id?: string;
-      title?: string;
-      category_id?: string;
-      status?: string;
-      listing_type_id?: string;
-      price?: number;
-      seller_id?: string | number;
-      catalog_product_id?: string;
-      user_product_id?: string;
-      available_quantity?: number;
-      sold_quantity?: number;
-      date_created?: string;
-      permalink?: string;
-      thumbnail?: string;
-      seller_custom_field?: string;
-      shipping?: {
-        free_shipping?: boolean;
-        logistic_type?: string;
-        mode?: string;
-      };
-      attributes?: Array<{
-        id?: string;
-        value_name?: string;
-      }>;
-    };
-  }>>(
-    `${API}/items/bulk?${params.toString()}`,
-    { headers: { Authorization: `Bearer ${input.accessToken}` } },
-  );
-
-  return raw
-    .filter((entry) => entry.body?.id)
-    .map<SellerItemDetail>((entry) => {
-      const body = entry.body!;
-      const sellerSku =
-        body.seller_custom_field ??
-        body.attributes?.find((attribute) => attribute.id === "SELLER_SKU")
-          ?.value_name ??
-        null;
-
-      return {
-        id: String(body.id),
-        title: String(body.title ?? body.id),
-        categoryId: body.category_id ?? null,
-        status: String(body.status ?? "unknown"),
-        listingTypeId: body.listing_type_id ?? null,
-        currentPrice: Number(body.price ?? 0),
-        sellerId: body.seller_id == null ? null : String(body.seller_id),
-        catalogProductId: body.catalog_product_id ?? null,
-        userProductId: body.user_product_id ?? null,
-        availableQuantity: Number(body.available_quantity ?? 0),
-        soldQuantity: Number(body.sold_quantity ?? 0),
-        dateCreated: body.date_created ?? null,
-        permalink: body.permalink ?? null,
-        thumbnail: body.thumbnail ?? null,
-        freeShipping: Boolean(body.shipping?.free_shipping),
-        logisticType: body.shipping?.logistic_type ?? null,
-        shippingMode: body.shipping?.mode ?? null,
-        sellerSku,
-        raw: entry,
-      };
-    });
+  return (await getItemsBulkDetailed(input)).items;
 }
 
 export async function getItemsCurrentPrices(input: {
@@ -1188,6 +1176,53 @@ export async function getCatalogProductDetails(input: {
       },
     },
   );
+}
+
+
+export type CatalogOffer = {
+  itemId: string;
+  sellerId: string | null;
+  price: number;
+  condition: string | null;
+  freeShipping: boolean;
+  logisticType: string | null;
+  officialStoreId: string | null;
+};
+
+/**
+ * Ofertas concorrentes de um produto de catálogo: GET /products/{id}/items
+ * (documentado em "Competição de catálogo"). Serve de plano B quando
+ * buy_box_winner vem vazio.
+ */
+export async function getCatalogProductOffers(input: {
+  accessToken: string;
+  productId: string;
+  limit?: number;
+}): Promise<CatalogOffer[]> {
+  const params = new URLSearchParams({ limit: String(input.limit ?? 20) });
+
+  const raw = await jsonFetch<any>(
+    `${API}/products/${input.productId}/items?${params.toString()}`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+
+  const list: any[] = Array.isArray(raw) ? raw : (raw?.results ?? []);
+
+  return list
+    .map((entry) => {
+      const itemId = String(entry?.item_id ?? entry?.id ?? "").toUpperCase();
+      return {
+        itemId,
+        sellerId: entry?.seller_id == null ? null : String(entry.seller_id),
+        price: Number(entry?.price ?? 0),
+        condition: entry?.condition ?? null,
+        freeShipping: Boolean(entry?.shipping?.free_shipping),
+        logisticType: entry?.shipping?.logistic_type ?? null,
+        officialStoreId:
+          entry?.official_store_id == null ? null : String(entry.official_store_id),
+      } satisfies CatalogOffer;
+    })
+    .filter((offer) => /^MLB\d+$/.test(offer.itemId) && offer.price > 0);
 }
 
 

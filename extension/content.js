@@ -17,6 +17,9 @@
   if (globalThis.__mercadoRadarContent) return;
   globalThis.__mercadoRadarContent = true;
 
+  // Páginas de verificação do Mercado Livre (captcha/login): a extensão não deve aparecer nem fazer requisições.
+  if (/^\/(captcha|jms|gz)\b/.test(location.pathname)) return;
+
   const S = globalThis.RadarSelectors;
   if (!S) return;
 

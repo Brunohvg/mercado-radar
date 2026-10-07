@@ -20,6 +20,11 @@
       "matches": [
         "https://*.mercadolivre.com.br/*"
       ],
+      "exclude_matches": [
+        "https://*.mercadolivre.com.br/captcha/*",
+        "https://*.mercadolivre.com.br/jms/*",
+        "https://*.mercadolivre.com.br/gz/*"
+      ],
       "js": [
         "selectors.js",
         "content.js"

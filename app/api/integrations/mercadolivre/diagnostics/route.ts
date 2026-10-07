@@ -95,10 +95,6 @@ export async function GET() {
         token,
       ),
       check(
-        "https://api.mercadolibre.com/sites/MLB/search?q=Samsung&limit=1",
-        token,
-      ),
-      check(
         "https://api.mercadolibre.com/trends/MLB",
         token,
       ),
@@ -123,7 +119,6 @@ export async function GET() {
       productAds,
       catalogSearch,
       categoryDiscovery,
-      marketplaceSearch,
       trends,
       application,
     ] = checks;
@@ -160,16 +155,6 @@ export async function GET() {
           ...categoryDiscovery,
           hint: permissionHint(categoryDiscovery),
         },
-        marketplaceSearch: {
-          ...marketplaceSearch,
-          hint:
-            marketplaceSearch.status === 403
-              ? "LEGACY_KEYWORD_SEARCH_BLOCKED"
-              : permissionHint(marketplaceSearch),
-          required: false,
-          replacement:
-            "Use /products/search para descoberta por palavra-chave e a extensão para enriquecer os anúncios visíveis no marketplace.",
-        },
         trends: {
           ...trends,
           hint: permissionHint(trends),
@@ -188,8 +173,7 @@ export async function GET() {
           orders.ok &&
           productAds.ok,
         marketplaceKeywordSearchRequired: false,
-        marketplaceKeywordSearchBlocked:
-          !marketplaceSearch.ok && marketplaceSearch.status === 403,
+        marketplaceKeywordSearchBlocked: false,
         permissionsMissing: [
           !listings.ok && listings.status === 403
             ? "Publicação e sincronização"

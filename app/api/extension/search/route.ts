@@ -6,43 +6,61 @@ import {
   getItemsBulk,
   getItemsVisitTotals,
   getMlSession,
-  searchMarketplace,
 } from "@/lib/mercado-livre";
 import { calculateRadarOpportunityScore } from "@/lib/radar-score";
 import { calculateRadarMomentum } from "@/lib/radar-momentum";
 
 export const dynamic = "force-dynamic";
 
-const schema = z.object({
-  q: z.string().trim().min(2).max(180),
+const observedItemSchema = z.object({
+  id: z.string().trim().regex(/^MLB\d+$/i),
+  title: z.string().trim().min(1).max(300),
+  price: z.number().positive().nullable(),
+  position: z.number().int().min(1).max(100),
+  soldQuantityLowerBound: z.number().int().min(0).nullable(),
+  freeShipping: z.boolean().default(false),
+  logisticType: z.string().trim().max(60).nullable(),
 });
 
-export async function GET(request: Request) {
+const schema = z.object({
+  query: z.string().trim().min(2).max(180),
+  items: z.array(observedItemSchema).min(1).max(50),
+});
+
+export async function POST(request: Request) {
   if (!isExtensionAuthorized(request)) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+    return NextResponse.json(
+      {
+        error:
+          "Extensão não autorizada. Confira a chave configurada no Mercado Radar.",
+      },
+      { status: 401 },
+    );
   }
 
-  const url = new URL(request.url);
-  const parsed = schema.safeParse({ q: url.searchParams.get("q") ?? "" });
+  const parsed = schema.safeParse(await request.json());
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Pesquisa inválida.", items: [] }, { status: 400 });
+    return NextResponse.json(
+      {
+        error:
+          "A página do Mercado Livre não forneceu anúncios válidos para enriquecer.",
+        items: [],
+      },
+      { status: 400 },
+    );
   }
 
   try {
     const session = await getMlSession();
-    const marketplace = await searchMarketplace({
-      accessToken: session.accessToken,
-      query: parsed.data.q,
-      limit: 50,
-    });
+    const observed = parsed.data.items;
+    const itemIds = observed.map((item) => item.id.toUpperCase());
 
-    const itemIds = marketplace.map((item) => item.id);
     const [details, visits, watched] = await Promise.all([
       getItemsBulk({
         accessToken: session.accessToken,
         itemIds,
-      }),
+      }).catch(() => []),
       getItemsVisitTotals({
         accessToken: session.accessToken,
         itemIds,
@@ -62,6 +80,7 @@ export async function GET(request: Request) {
       }),
     ]);
 
+    const detailById = new Map(details.map((item) => [item.id, item]));
     const watchByItemId = new Map(
       watched.map((watch) => [
         watch.mlItemId,
@@ -80,54 +99,84 @@ export async function GET(request: Request) {
       ]),
     );
 
-    const detailById = new Map(details.map((item) => [item.id, item]));
+    const items = observed.map((visible) => {
+      const itemId = visible.id.toUpperCase();
+      const detail = detailById.get(itemId);
+      const itemVisits = visits[itemId] ?? null;
 
-    const items = marketplace.map((searchItem) => {
-      const detail = detailById.get(searchItem.id);
+      const apiSoldQuantity =
+        detail?.soldQuantity != null && detail.soldQuantity > 0
+          ? detail.soldQuantity
+          : null;
+      const soldQuantity =
+        apiSoldQuantity ?? visible.soldQuantityLowerBound ?? 0;
+
       const price =
-        searchItem.price > 0
-          ? searchItem.price
+        visible.price != null && visible.price > 0
+          ? visible.price
           : detail?.currentPrice ?? 0;
-      const itemVisits = visits[searchItem.id] ?? null;
 
       const intelligence = calculateRadarOpportunityScore({
         price,
-        soldQuantity: detail?.soldQuantity ?? 0,
+        soldQuantity,
         visits: itemVisits,
         dateCreated: detail?.dateCreated ?? null,
-        freeShipping: searchItem.freeShipping || detail?.freeShipping,
-        listingTypeId: searchItem.listingTypeId ?? detail?.listingTypeId ?? null,
+        freeShipping:
+          visible.freeShipping || Boolean(detail?.freeShipping),
+        listingTypeId: detail?.listingTypeId ?? null,
       });
 
-      const watch = watchByItemId.get(searchItem.id) ?? null;
+      const watch = watchByItemId.get(itemId) ?? null;
 
       return {
-        id: searchItem.id,
-        title: searchItem.title,
+        id: itemId,
+        title: visible.title || detail?.title || itemId,
         price,
-        categoryId: searchItem.categoryId ?? detail?.categoryId ?? null,
-        sellerId: searchItem.sellerId ?? detail?.sellerId ?? null,
-        listingTypeId:
-          searchItem.listingTypeId ?? detail?.listingTypeId ?? null,
-        freeShipping: searchItem.freeShipping || Boolean(detail?.freeShipping),
-        soldQuantity: detail?.soldQuantity ?? 0,
+        searchPosition: visible.position,
+        categoryId: detail?.categoryId ?? null,
+        sellerId: detail?.sellerId ?? null,
+        listingTypeId: detail?.listingTypeId ?? null,
+        freeShipping:
+          visible.freeShipping || Boolean(detail?.freeShipping),
+        logisticType:
+          detail?.logisticType ?? visible.logisticType ?? null,
+        soldQuantity,
+        soldQuantityIsLowerBound:
+          apiSoldQuantity == null &&
+          visible.soldQuantityLowerBound != null,
         availableQuantity: detail?.availableQuantity ?? 0,
         visits: itemVisits,
         dateCreated: detail?.dateCreated ?? null,
         catalogProductId: detail?.catalogProductId ?? null,
         userProductId: detail?.userProductId ?? null,
-        permalink: searchItem.permalink ?? detail?.permalink ?? null,
-        thumbnail: searchItem.thumbnail ?? detail?.thumbnail ?? null,
+        permalink: detail?.permalink ?? null,
+        thumbnail: detail?.thumbnail ?? null,
         intelligence,
         monitored: Boolean(watch),
         momentum: watch?.momentum ?? null,
+        sources: {
+          marketplace:
+            "VISIBLE_MERCADO_LIVRE_PAGE",
+          itemDetails: detail ? "ITEMS_BULK" : "UNAVAILABLE",
+          soldQuantity:
+            apiSoldQuantity != null
+              ? "ITEMS_BULK"
+              : visible.soldQuantityLowerBound != null
+                ? "VISIBLE_RANGE_LOWER_BOUND"
+                : "UNAVAILABLE",
+          visits:
+            itemVisits != null ? "VISITS_API" : "UNAVAILABLE",
+        },
       };
     });
 
     return NextResponse.json({
-      query: parsed.data.q,
+      query: parsed.data.query,
       items,
       generatedAt: new Date().toISOString(),
+      source: "VISIBLE_MERCADO_LIVRE_PAGE",
+      note:
+        "Os anúncios vieram da página que o usuário está vendo. O Radar apenas enriqueceu os IDs com APIs oficiais disponíveis.",
     });
   } catch (error) {
     const message =
@@ -137,4 +186,15 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ error: message, items: [] }, { status: 502 });
   }
+}
+
+export async function GET() {
+  return NextResponse.json(
+    {
+      error:
+        "Esta versão da extensão não faz mais busca ampla pelo backend. Atualize a extensão para usar os anúncios visíveis na página do Mercado Livre.",
+      items: [],
+    },
+    { status: 410 },
+  );
 }

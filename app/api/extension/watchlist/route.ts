@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { isExtensionAuthorized } from "@/lib/extension-auth";
+import { getExtensionSession } from "@/lib/extension-auth";
 import {
   getItemCurrentPrice,
   getItemsBulk,
   getItemsVisitTotals,
-  getMlSession,
 } from "@/lib/mercado-livre";
 import { calculateRadarOpportunityScore } from "@/lib/radar-score";
 
@@ -18,12 +17,30 @@ const createSchema = z.object({
 });
 
 export async function GET(request: Request) {
-  if (!isExtensionAuthorized(request)) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  let extensionSession;
+  try {
+    extensionSession = await getExtensionSession(request);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Falha ao validar sessão da extensão.",
+      },
+      { status: 429 },
+    );
+  }
+
+  if (!extensionSession) {
+    return NextResponse.json(
+      { error: "Sessão da extensão inválida ou expirada." },
+      { status: 401 },
+    );
   }
 
   try {
-    const session = await getMlSession();
+    const session = extensionSession.ml;
     const items = await prisma.radarWatchItem.findMany({
       where: {
         sellerUserId: session.account.mercadoLivreUserId,
@@ -72,8 +89,26 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!isExtensionAuthorized(request)) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  let extensionSession;
+  try {
+    extensionSession = await getExtensionSession(request);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Falha ao validar sessão da extensão.",
+      },
+      { status: 429 },
+    );
+  }
+
+  if (!extensionSession) {
+    return NextResponse.json(
+      { error: "Sessão da extensão inválida ou expirada." },
+      { status: 401 },
+    );
   }
 
   const parsed = createSchema.safeParse(await request.json());
@@ -82,7 +117,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const session = await getMlSession();
+    const session = extensionSession.ml;
     const itemId = parsed.data.itemId.toUpperCase();
 
     const [details, price, visits] = await Promise.all([
@@ -185,8 +220,26 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  if (!isExtensionAuthorized(request)) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  let extensionSession;
+  try {
+    extensionSession = await getExtensionSession(request);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Falha ao validar sessão da extensão.",
+      },
+      { status: 429 },
+    );
+  }
+
+  if (!extensionSession) {
+    return NextResponse.json(
+      { error: "Sessão da extensão inválida ou expirada." },
+      { status: 401 },
+    );
   }
 
   const url = new URL(request.url);
@@ -196,7 +249,7 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    const session = await getMlSession();
+    const session = extensionSession.ml;
     await prisma.radarWatchItem.updateMany({
       where: {
         sellerUserId: session.account.mercadoLivreUserId,

@@ -922,6 +922,52 @@ export async function getCatalogProductDetails(input: {
 }
 
 
+export async function getCatalogCompetition(input: {
+  accessToken: string;
+  itemId: string;
+}) {
+  return jsonFetch<{
+    item_id?: string;
+    current_price?: number;
+    currency_id?: string;
+    price_to_win?: number | null;
+    status?:
+      | "winning"
+      | "competing"
+      | "sharing_first_place"
+      | "listed"
+      | string;
+    consistent?: boolean;
+    visit_share?: string | null;
+    competitors_sharing_first_place?: number | null;
+    reason?: string[];
+    catalog_product_id?: string | null;
+    boosts?: Array<{
+      id?: string;
+      status?: string;
+      description?: string;
+    }>;
+    winner?: {
+      item_id?: string;
+      price?: number;
+      currency_id?: string;
+      boosts?: Array<{
+        id?: string;
+        status?: string;
+        description?: string;
+      }>;
+    } | null;
+  }>(
+    `${API}/items/${input.itemId}/price_to_win?siteId=MLB&version=v2`,
+    {
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+      },
+    },
+  );
+}
+
+
 export async function getExistingItemShippingQuote(input: {
   accessToken: string;
   userId: string;

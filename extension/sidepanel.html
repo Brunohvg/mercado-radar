@@ -47,6 +47,18 @@
     .competitor-row small{margin-top:2px;color:#7d8b85;font-size:10px}
     .competitor-row strong{color:#23463c;font-size:11px}
     .compare-box{margin-top:10px;padding:10px;border-radius:10px;background:#f3f9f6;font-size:11px;border:1px solid #deece7}
+    .auth-card{background:linear-gradient(145deg,#f9fdfb,#eff9f5);border-color:#cde7dd}
+    .auth-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .auth-copy{min-width:0}
+    .auth-copy strong,.auth-copy small{display:block}
+    .auth-copy strong{font-size:14px;color:#173d32}
+    .auth-copy small{margin-top:3px;color:#708279;font-size:11px}
+    .auth-dot{width:9px;height:9px;flex:0 0 auto;border-radius:50%;background:#d4ddd9;box-shadow:0 0 0 4px rgba(112,130,121,.08)}
+    .auth-dot.online{background:#18a67e;box-shadow:0 0 0 4px rgba(24,166,126,.12)}
+    .auth-actions{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px}
+    .auth-actions button{margin-top:0}
+    .auth-actions .secondary{width:auto;padding-left:14px;padding-right:14px}
+    #logoutButton[hidden]{display:none}
   </style>
 </head>
 <body>
@@ -146,16 +158,21 @@
       </div>
     </div>
 
-    <details class="card">
-      <summary>Configuração da extensão</summary>
-      <label>URL da API</label>
-      <input id="apiBase" placeholder="https://radar.optarys.com.br" />
-      <label>Chave da extensão</label>
-      <input id="apiKey" type="password" placeholder="Cole aqui a chave gerada/configurada no Radar" autocomplete="off" />
-      <button id="save" class="secondary">Salvar configuração</button>
-      <p class="muted">A chave desta tela não é o token do Mercado Livre. Ela deve ser a mesma chave configurada no servidor como RADAR_EXTENSION_API_KEY.</p>
-      <p id="status" class="muted"></p>
-    </details>
+    <div id="authCard" class="card auth-card">
+      <div class="title">Conta Mercado Radar</div>
+      <div class="auth-row">
+        <div class="auth-copy">
+          <strong id="authTitle">Não conectado</strong>
+          <small id="authSubtitle">Entre com sua conta do Mercado Livre para liberar o Radar.</small>
+        </div>
+        <span id="authDot" class="auth-dot"></span>
+      </div>
+      <div class="auth-actions">
+        <button id="loginButton">Entrar no Mercado Radar</button>
+        <button id="logoutButton" class="secondary" hidden>Sair</button>
+      </div>
+      <p id="authStatus" class="muted"></p>
+    </div>
   </main>
   <script src="sidepanel.js"></script>
 </body>

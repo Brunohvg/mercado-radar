@@ -75,6 +75,8 @@ type ListingInsight = {
     position: number | null;
     searched: number;
     note: string | null;
+    source?: "EXTENSION_SEARCH" | "NOT_CAPTURED";
+    capturedAt?: string | null;
   };
   market: {
     count: number;
@@ -108,8 +110,23 @@ type ListingInsight = {
     price: number | null;
     freeShipping: boolean;
     listingTypeId: string | null;
-    similarityPercent: number;
+    similarityPercent: number | null;
+    searchPosition?: number | null;
+    logisticType?: string | null;
+    source?: "EXTENSION_SEARCH" | "CATALOG_WINNER";
   }>;
+  catalogCompetition?: {
+    status: string | null;
+    priceToWin: number | null;
+    visitShare: string | null;
+    competitorsSharingFirstPlace: number | null;
+    consistent: boolean | null;
+    reasons: string[];
+    winner: {
+      itemId: string | null;
+      price: number | null;
+    } | null;
+  } | null;
   history: Array<{
     position: number | null;
     testedPrice: number | null;
@@ -875,10 +892,21 @@ export function ListingsDashboard() {
                                                         )}
                                                   </strong>
                                                   <small>
-                                                    {competitor.similarityPercent}%
-                                                    compatível
+                                                    {competitor.source ===
+                                                    "CATALOG_WINNER"
+                                                      ? "vencedor do catálogo"
+                                                      : competitor.searchPosition !=
+                                                          null
+                                                        ? "#" +
+                                                          competitor.searchPosition +
+                                                          " na busca"
+                                                        : "observado na busca"}
                                                     {competitor.freeShipping
                                                       ? " · frete grátis"
+                                                      : ""}
+                                                    {competitor.logisticType ===
+                                                    "fulfillment"
+                                                      ? " · Full"
                                                       : ""}
                                                   </small>
                                                 </div>

@@ -120,3 +120,30 @@ Assim conseguimos distinguir:
 - endpoint bloqueado;
 - rate limit;
 - API indisponível.
+
+
+## Correção — busca ampla por palavra-chave
+
+O endpoint `/sites/MLB/search?q=...` respondeu HTTP 403 para a aplicação mesmo com OAuth, catálogo e demais permissões saudáveis.
+
+A documentação atual mantém `/sites/{site}/search` principalmente para consultas por `seller_id` ou `nickname`. Para descoberta por palavra-chave, o Radar passa a usar:
+
+- `/products/search?site_id=MLB&status=active&q=...` no dashboard web;
+- `/products/{product_id}` para obter detalhes e `buy_box_winner`;
+- `/items/{item_id}/price_to_win?siteId=MLB&version=v2` para competição de catálogo;
+- IDs dos anúncios visíveis na própria página do Mercado Livre quando a Extensão Radar está ativa;
+- `/items/bulk?ids=...` para enriquecer esses IDs.
+
+A busca ampla antiga deixa de ser requisito de saúde da integração.
+
+### Ranking orgânico
+
+O Radar não tenta mais inferir posição orgânica chamando uma busca ampla bloqueada.
+
+A Extensão Radar observa a posição real dos cards na página de resultados e grava `MarketSnapshot` quando anúncios da conta conectada aparecem. Esse snapshot abastece:
+- posição;
+- P25/mediana/P75 dos anúncios visíveis;
+- concorrentes observados;
+- histórico de preço e posição.
+
+Assim, o ranking representa o que o usuário realmente viu na busca do Mercado Livre.

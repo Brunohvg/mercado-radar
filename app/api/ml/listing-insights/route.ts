@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import {
+  getCatalogCompetition,
   getExistingItemShippingQuote,
   getListingPriceQuote,
   getMlSession,
-  searchMarketplace,
 } from "@/lib/mercado-livre";
 import { analyzeProfitability } from "@/lib/profitability";
 import { buildCompetitivePriceStrategy } from "@/lib/price-strategy";
@@ -16,67 +16,6 @@ const schema = z.object({
   id: z.string().trim().regex(/^MLB\d+$/i),
 });
 
-const STOPWORDS = new Set([
-  "de",
-  "da",
-  "do",
-  "das",
-  "dos",
-  "com",
-  "sem",
-  "para",
-  "por",
-  "em",
-  "um",
-  "uma",
-  "kit",
-  "pacote",
-  "un",
-  "und",
-  "unid",
-  "unidade",
-  "unidades",
-  "novo",
-  "nova",
-]);
-
-function normalize(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-function tokens(value: string) {
-  return normalize(value)
-    .split(/\s+/)
-    .filter((token) => token.length >= 2 && !STOPWORDS.has(token));
-}
-
-function similarity(left: string, right: string) {
-  const leftTokens = [...new Set(tokens(left))];
-  const rightSet = new Set(tokens(right));
-
-  if (!leftTokens.length || !rightSet.size) return 0;
-
-  const matches = leftTokens.filter((token) => rightSet.has(token)).length;
-  return matches / leftTokens.length;
-}
-
-function percentile(sorted: number[], p: number) {
-  if (!sorted.length) return null;
-  if (sorted.length === 1) return sorted[0];
-
-  const index = (sorted.length - 1) * p;
-  const lower = Math.floor(index);
-  const upper = Math.ceil(index);
-  const weight = index - lower;
-
-  return sorted[lower] * (1 - weight) + sorted[upper] * weight;
-}
-
 const round2 = (value: number | null) =>
   value == null
     ? null
@@ -85,6 +24,22 @@ const round2 = (value: number | null) =>
 function listingTypeFromId(value: string | null) {
   return value === "gold_pro" ? ("PREMIUM" as const) : ("CLASSIC" as const);
 }
+
+function decimal(value: unknown) {
+  if (value == null) return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+type SnapshotCompetitor = {
+  id?: string;
+  title?: string;
+  price?: number;
+  searchPosition?: number;
+  sellerId?: string | null;
+  freeShipping?: boolean;
+  logisticType?: string | null;
+};
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -116,65 +71,82 @@ export async function GET(request: Request) {
     const currentPrice =
       product.currentPrice == null ? null : Number(product.currentPrice);
 
-    const results = await searchMarketplace({
-      accessToken: session.accessToken,
-      query: product.title,
-      categoryId: product.categoryId ?? undefined,
-      limit: 50,
-    });
+    const [latestSnapshot, competition] = await Promise.all([
+      prisma.marketSnapshot.findFirst({
+        where: {
+          sellerUserId,
+          mlItemId: itemId,
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      product.catalogProductId
+        ? getCatalogCompetition({
+            accessToken: session.accessToken,
+            itemId,
+          }).catch(() => null)
+        : Promise.resolve(null),
+    ]);
 
-    const positionIndex = results.findIndex((item) => item.id === itemId);
-    const position = positionIndex >= 0 ? positionIndex + 1 : null;
+    const snapshotCompetitors = Array.isArray(latestSnapshot?.competitors)
+      ? (latestSnapshot?.competitors as SnapshotCompetitor[])
+      : [];
 
-    const ranked = results
-      .filter(
-        (item) =>
-          item.price > 0 &&
-          item.id !== itemId &&
-          item.sellerId !== sellerUserId,
-      )
+    const compactCompetitors = snapshotCompetitors
+      .filter((item) => item.id && Number(item.price) > 0)
+      .slice(0, 8)
       .map((item) => ({
-        ...item,
-        similarity: similarity(product.title, item.title),
-      }))
-      .filter((item) => item.similarity >= 0.35)
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, 20);
+        id: String(item.id),
+        title: item.title ?? "Anúncio observado na busca",
+        price: round2(Number(item.price)),
+        freeShipping: Boolean(item.freeShipping),
+        listingTypeId: null,
+        similarityPercent: null,
+        searchPosition: item.searchPosition ?? null,
+        logisticType: item.logisticType ?? null,
+        source: "EXTENSION_SEARCH",
+      }));
 
-    const source =
-      ranked.length >= 5
-        ? ranked
-        : results
-            .filter(
-              (item) =>
-                item.price > 0 &&
-                item.id !== itemId &&
-                item.sellerId !== sellerUserId,
-            )
-            .slice(0, 20)
-            .map((item) => ({
-              ...item,
-              similarity: similarity(product.title, item.title),
-            }));
+    if (
+      competition?.winner?.item_id &&
+      String(competition.winner.item_id).toUpperCase() !== itemId &&
+      Number(competition.winner.price) > 0 &&
+      !compactCompetitors.some(
+        (item) =>
+          item.id === String(competition.winner?.item_id).toUpperCase(),
+      )
+    ) {
+      const winnerBoosts = competition.winner.boosts ?? [];
+      compactCompetitors.unshift({
+        id: String(competition.winner.item_id).toUpperCase(),
+        title: "Vencedor atual do catálogo",
+        price: round2(Number(competition.winner.price)),
+        freeShipping: winnerBoosts.some(
+          (boost) =>
+            boost.id === "free_shipping" && boost.status === "boosted",
+        ),
+        listingTypeId: null,
+        similarityPercent: null,
+        searchPosition: null,
+        logisticType: winnerBoosts.some(
+          (boost) =>
+            boost.id === "fulfillment" && boost.status === "boosted",
+        )
+          ? "fulfillment"
+          : null,
+        source: "CATALOG_WINNER",
+      });
+    }
 
-    const prices = source
-      .map((item) => item.price)
-      .filter((price) => price > 0)
-      .sort((a, b) => a - b);
-
-    const p25 = round2(percentile(prices, 0.25));
-    const median = round2(percentile(prices, 0.5));
-    const p75 = round2(percentile(prices, 0.75));
-    const minimum = prices.length ? round2(prices[0]) : null;
-    const maximum = prices.length
-      ? round2(prices[prices.length - 1])
-      : null;
-    const average =
-      prices.length > 0
-        ? round2(
-            prices.reduce((sum, price) => sum + price, 0) / prices.length,
-          )
-        : null;
+    const market = {
+      count: latestSnapshot?.resultCount ?? compactCompetitors.length,
+      minimum: decimal(latestSnapshot?.minimumPrice),
+      p25: decimal(latestSnapshot?.p25Price),
+      median: decimal(latestSnapshot?.medianPrice),
+      p75: decimal(latestSnapshot?.p75Price),
+      maximum: decimal(latestSnapshot?.maximumPrice),
+      average: decimal(latestSnapshot?.averagePrice),
+      gapToMedian: decimal(latestSnapshot?.marketGapPercent),
+    };
 
     let unitCost =
       product.supplierPrice == null
@@ -259,54 +231,26 @@ export async function GET(request: Request) {
         targetRoiPercent,
       });
 
-      if (p25 != null && p25 > 0) {
+      const marketReferencePrice =
+        market.p25 != null && market.p25 > 0
+          ? market.p25
+          : competition?.price_to_win != null &&
+              Number(competition.price_to_win) > 0
+            ? Number(competition.price_to_win)
+            : competition?.winner?.price != null &&
+                Number(competition.winner.price) > 0
+              ? Number(competition.winner.price)
+              : null;
+
+      if (marketReferencePrice != null) {
         strategy = buildCompetitivePriceStrategy({
           currentPrice,
-          marketReferencePrice: p25,
+          marketReferencePrice,
           minimumSuggestedPrice: profitability.minimumSuggestedPrice,
           breakEvenPrice: profitability.breakEvenPrice,
         });
       }
     }
-
-    const gapToMedian =
-      currentPrice != null && median != null && median > 0
-        ? round2(((currentPrice - median) / median) * 100)
-        : null;
-
-    const compactCompetitors = source
-      .sort((a, b) => a.price - b.price)
-      .slice(0, 8)
-      .map((item) => ({
-        id: item.id,
-        title: item.title,
-        price: round2(item.price),
-        freeShipping: item.freeShipping,
-        listingTypeId: item.listingTypeId,
-        similarityPercent: Math.round(item.similarity * 100),
-      }));
-
-    await prisma.marketSnapshot.create({
-      data: {
-        sellerUserId,
-        mlItemId: itemId,
-        position,
-        query: product.title,
-        categoryId: product.categoryId,
-        resultCount: prices.length,
-        minimumPrice: minimum,
-        p25Price: p25,
-        medianPrice: median,
-        p75Price: p75,
-        maximumPrice: maximum,
-        averagePrice: average,
-        testedPrice: currentPrice,
-        marketGapPercent: gapToMedian,
-        opportunityScore: null,
-        verdict: strategy?.action ?? null,
-        competitors: compactCompetitors,
-      },
-    });
 
     const history = await prisma.marketSnapshot.findMany({
       where: {
@@ -334,23 +278,38 @@ export async function GET(request: Request) {
         channel: product.catalogProductId ? "CATALOG" : "TRADITIONAL",
       },
       ranking: {
-        position,
-        searched: results.length,
-        note:
-          position == null
-            ? "Seu anúncio não apareceu entre os primeiros resultados retornados para esta consulta."
-            : null,
+        position: latestSnapshot?.position ?? null,
+        searched: latestSnapshot?.resultCount ?? 0,
+        source: latestSnapshot ? "EXTENSION_SEARCH" : "NOT_CAPTURED",
+        capturedAt: latestSnapshot?.createdAt ?? null,
+        note: latestSnapshot
+          ? "Posição capturada diretamente na página de busca do Mercado Livre pela Extensão Radar."
+          : "Abra uma busca relevante no Mercado Livre com a Extensão Radar ativa para capturar a posição orgânica deste anúncio.",
       },
-      market: {
-        count: prices.length,
-        minimum,
-        p25,
-        median,
-        p75,
-        maximum,
-        average,
-        gapToMedian,
-      },
+      catalogCompetition: competition
+        ? {
+            status: competition.status ?? null,
+            priceToWin:
+              competition.price_to_win == null
+                ? null
+                : Number(competition.price_to_win),
+            visitShare: competition.visit_share ?? null,
+            competitorsSharingFirstPlace:
+              competition.competitors_sharing_first_place ?? null,
+            consistent: competition.consistent ?? null,
+            reasons: competition.reason ?? [],
+            winner: competition.winner
+              ? {
+                  itemId: competition.winner.item_id ?? null,
+                  price:
+                    competition.winner.price == null
+                      ? null
+                      : Number(competition.winner.price),
+                }
+              : null,
+          }
+        : null,
+      market,
       profitability,
       strategy,
       competitors: compactCompetitors,

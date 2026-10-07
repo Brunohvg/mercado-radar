@@ -1,5 +1,10 @@
 # Mercado Radar — Extensão Chrome (MVP)
 
+> **v0.4.0** — UI em Shadow DOM, observer sem loop, widget no anúncio, faixa sob cada card.
+> Arquivos: `selectors.js` (único lugar que lê o DOM do ML), `content.js`, `ui/*.css`.
+> Para a Chrome Web Store: `node scripts/build-extension.mjs` gera `dist/extension-prod`
+> (usa `manifest.prod.json`, sem localhost).
+
 A extensão roda como **unpacked extension** durante o desenvolvimento. Não precisa estar publicada na Chrome Web Store.
 
 ## 1. Baixar a branch

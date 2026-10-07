@@ -27,14 +27,20 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgresql://${SERVICE_LOWERCASEUSER_POSTGRES}:${SERVICE_PASSWORD_64_POSTGRES}@postgres:5432/mercado_radar?schema=public
       APP_ENCRYPTION_KEY: ${SERVICE_REALBASE64_64_ENCRYPTION}
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
-      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:-}
-      RADAR_CRON_SECRET: ${RADAR_CRON_SECRET:-}
-      RADAR_EXTENSION_SIGNING_KEY: ${RADAR_EXTENSION_SIGNING_KEY:-}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-}
       MERCADO_LIVRE_CLIENT_ID: ${MERCADO_LIVRE_CLIENT_ID:-}
       MERCADO_LIVRE_CLIENT_SECRET: ${MERCADO_LIVRE_CLIENT_SECRET:-}
       MERCADO_LIVRE_REDIRECT_URI: ${MERCADO_LIVRE_REDIRECT_URI:-}
+      # Login do painel web (ver CHANGES_2026-10-07.md). Sem estas 3 em produção o painel fica trancado.
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:-}
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:-}
+      # Opcional: fixa qual conta ML o painel usa (id interno da tabela MercadoLivreAccount).
+      ADMIN_ML_ACCOUNT_ID: ${ADMIN_ML_ACCOUNT_ID:-}
+      # Antes não era repassado ao container: sem ele /api/cron/* responde 401 em produção.
+      RADAR_CRON_SECRET: ${RADAR_CRON_SECRET:-}
+      RADAR_EXTENSION_SIGNING_KEY: ${RADAR_EXTENSION_SIGNING_KEY:-}
+      ML_MAX_CONCURRENCY: ${ML_MAX_CONCURRENCY:-6}
       SERVICE_URL_APP_3000: /
     expose:
       - "3000"

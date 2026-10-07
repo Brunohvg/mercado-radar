@@ -111,7 +111,11 @@ async function loadSettings() {
   );
 }
 
+let renderRun = 0;
+
 async function renderContext(context) {
+  const runId = ++renderRun;
+  const stale = () => runId !== renderRun;
   currentItem = null;
   analyticsCard.hidden = true;
   watchCard.hidden = true;
@@ -138,7 +142,7 @@ async function renderContext(context) {
   contextCard.innerHTML =
     '<div class="title">Anúncio atual</div>' +
     '<div class="product-title">' +
-      (context.title || context.referenceId) +
+      escapeHtml(context.title || context.referenceId) +
     '</div>' +
     '<p class="muted">Carregando dados do Radar...</p>';
 
@@ -148,13 +152,14 @@ async function renderContext(context) {
   }
 
   const response = await request("/api/extension/item?" + params.toString());
+  if (stale()) return;
 
   if (response?.status === 401) {
     await updateAuthState();
     contextCard.innerHTML =
       '<div class="title">Entre no Mercado Radar</div>' +
       '<div class="product-title">' +
-        (context.title || context.referenceId) +
+        escapeHtml(context.title || context.referenceId) +
       '</div>' +
       '<p class="error">Sua sessão da extensão não está conectada ou expirou. Use o botão “Entrar no Mercado Radar”.</p>';
     return;
@@ -164,10 +169,10 @@ async function renderContext(context) {
     contextCard.innerHTML =
       '<div class="title">Anúncio atual</div>' +
       '<div class="product-title">' +
-        (context.title || context.referenceId) +
+        escapeHtml(context.title || context.referenceId) +
       '</div>' +
       '<p class="error">' +
-        (response?.body?.error || "Não foi possível analisar este anúncio.") +
+        escapeHtml(response?.body?.error || "Não foi possível analisar este anúncio.") +
       "</p>";
     return;
   }
@@ -177,7 +182,7 @@ async function renderContext(context) {
 
   contextCard.innerHTML =
     '<div class="title">Anúncio atual</div>' +
-    '<div class="product-title">' + currentItem.title + "</div>" +
+    '<div class="product-title">' + escapeHtml(currentItem.title) + "</div>" +
     '<div class="grid">' +
       '<div class="metric"><small>Preço</small><strong>' + brl(currentItem.price) + "</strong></div>" +
       '<div class="metric"><small>Tipo</small><strong>' +
@@ -186,7 +191,7 @@ async function renderContext(context) {
     "</div>" +
     '<p class="muted">' +
       (currentItem.freeShipping ? "Frete grátis · " : "") +
-      (currentItem.userProductId ? "User Product " + currentItem.userProductId : "Item " + currentItem.id) +
+      escapeHtml(currentItem.userProductId ? "User Product " + currentItem.userProductId : "Item " + currentItem.id) +
     "</p>";
 
   document.getElementById("score").textContent = (intel.score ?? 0) + "/100";
@@ -221,11 +226,13 @@ async function renderContext(context) {
       '<div class="metric"><small>Buy Box</small><strong>' +
       (winner.price ? brl(winner.price) : "—") +
       '</strong><span class="muted">' +
-      (winner.logisticType ? winner.logisticType + " · " : "") +
+      (winner.logisticType ? escapeHtml(winner.logisticType) + " · " : "") +
       (winner.freeShipping ? "frete grátis" : "frete não grátis") +
       (delta == null ? "" : " · seu preço " + (delta >= 0 ? "+" : "") + pct(delta)) +
       "</span></div>";
   }
+
+  if (stale()) return;
 
   const savedProfitSettings = await chrome.storage.sync.get([
     "radarTaxPercent",
@@ -250,6 +257,8 @@ async function renderContext(context) {
       },
     },
   );
+
+  if (stale()) return;
 
   if (myOperationResponse?.ok && myOperationResponse.body?.matchedProduct) {
     const mine = myOperationResponse.body.matchedProduct;
@@ -299,6 +308,8 @@ async function renderContext(context) {
     "/api/extension/market?" + marketParams.toString(),
   );
 
+  if (stale()) return;
+
   if (marketResponse?.ok && marketResponse.body?.market) {
     currentMarket = marketResponse.body.market;
     const market = currentMarket;
@@ -324,7 +335,7 @@ async function renderContext(context) {
             '<div class="competitor-row competitor-row--rich">' +
               '<div><span>' + escapeHtml(item.title) + '</span>' +
               '<small>' +
-                (item.demandLabel || "—") +
+                escapeHtml(item.demandLabel || "—") +
                 (item.salesPerMonth == null ? "" : " · ~" + Math.round(item.salesPerMonth) + "/mês") +
                 (item.ageDays == null ? "" : " · " + item.ageDays + " dias") +
               '</small></div>' +
@@ -344,7 +355,7 @@ async function renderContext(context) {
           '<div class="mercado-radar-trend"><strong>' +
           (index + 1) +
           ".</strong> " +
-          trend.keyword +
+          escapeHtml(trend.keyword) +
           "</div>",
         )
         .join("");

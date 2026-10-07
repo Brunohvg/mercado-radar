@@ -164,15 +164,17 @@ export async function saveMlAccount(input: {
   });
 }
 
-export async function getMlSession() {
-  const account = await prisma.mercadoLivreAccount.findFirst({
-    orderBy: { updatedAt: "desc" },
-  });
-
-  if (!account) {
-    throw new Error("Conta do Mercado Livre ainda não conectada.");
-  }
-
+async function buildMlSession(account: {
+  id: string;
+  mercadoLivreUserId: string;
+  nickname: string | null;
+  accessTokenEncrypted: string;
+  refreshTokenEncrypted: string;
+  tokenExpiresAt: Date;
+  scopes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
   if (account.tokenExpiresAt.getTime() > Date.now() + 5 * 60 * 1000) {
     return {
       account,
@@ -197,6 +199,30 @@ export async function getMlSession() {
   });
 
   return { account: updated, accessToken: refreshed.access_token };
+}
+
+export async function getMlSession() {
+  const account = await prisma.mercadoLivreAccount.findFirst({
+    orderBy: { updatedAt: "desc" },
+  });
+
+  if (!account) {
+    throw new Error("Conta do Mercado Livre ainda não conectada.");
+  }
+
+  return buildMlSession(account);
+}
+
+export async function getMlSessionForAccount(accountId: string) {
+  const account = await prisma.mercadoLivreAccount.findUnique({
+    where: { id: accountId },
+  });
+
+  if (!account) {
+    throw new Error("Conta do Mercado Livre vinculada à extensão não encontrada.");
+  }
+
+  return buildMlSession(account);
 }
 
 export async function getListingPriceQuote(input: {

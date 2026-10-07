@@ -64,29 +64,41 @@ async function clearTokens() {
   ]);
 }
 
+let refreshPromise = null;
+
 async function refreshAccessToken() {
-  const base = await getApiBase();
-  const tokens = await authTokens();
-  if (!tokens.radarRefreshToken) return null;
+  if (refreshPromise) return refreshPromise;
 
-  const response = await fetch(base + "/api/extension/auth/refresh", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      grant_type: "refresh_token",
-      refresh_token: tokens.radarRefreshToken,
-      device_id: await getDeviceId(),
-    }),
-  });
+  refreshPromise = (async () => {
+    const base = await getApiBase();
+    const tokens = await authTokens();
+    if (!tokens.radarRefreshToken) return null;
 
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok || !body.access_token) {
-    await clearTokens();
-    return null;
+    const response = await fetch(base + "/api/extension/auth/refresh", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        grant_type: "refresh_token",
+        refresh_token: tokens.radarRefreshToken,
+        device_id: await getDeviceId(),
+      }),
+    });
+
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || !body.access_token) {
+      await clearTokens();
+      return null;
+    }
+
+    await saveTokens(body);
+    return body.access_token;
+  })();
+
+  try {
+    return await refreshPromise;
+  } finally {
+    refreshPromise = null;
   }
-
-  await saveTokens(body);
-  return body.access_token;
 }
 
 async function currentAccessToken() {

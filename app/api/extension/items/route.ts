@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { isExtensionAuthorized } from "@/lib/extension-auth";
+import { getExtensionSession } from "@/lib/extension-auth";
 import {
   getItemsBulk,
   getItemsVisitTotals,
-  getMlSession,
 } from "@/lib/mercado-livre";
 import { calculateRadarOpportunityScore } from "@/lib/radar-score";
 
@@ -26,8 +25,26 @@ const schema = z.object({
 });
 
 export async function GET(request: Request) {
-  if (!isExtensionAuthorized(request)) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  let extensionSession;
+  try {
+    extensionSession = await getExtensionSession(request);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Falha ao validar sessão da extensão.",
+      },
+      { status: 429 },
+    );
+  }
+
+  if (!extensionSession) {
+    return NextResponse.json(
+      { error: "Sessão da extensão inválida ou expirada." },
+      { status: 401 },
+    );
   }
 
   const url = new URL(request.url);
@@ -38,7 +55,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const session = await getMlSession();
+    const session = extensionSession.ml;
     const details = await getItemsBulk({
       accessToken: session.accessToken,
       itemIds: parsed.data.ids,

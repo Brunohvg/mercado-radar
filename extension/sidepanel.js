@@ -1,6 +1,9 @@
-const apiBase = document.getElementById("apiBase");
-const apiKey = document.getElementById("apiKey");
-const status = document.getElementById("status");
+const authTitle = document.getElementById("authTitle");
+const authSubtitle = document.getElementById("authSubtitle");
+const authDot = document.getElementById("authDot");
+const authStatus = document.getElementById("authStatus");
+const loginButton = document.getElementById("loginButton");
+const logoutButton = document.getElementById("logoutButton");
 const contextCard = document.getElementById("contextCard");
 const analyticsCard = document.getElementById("analyticsCard");
 const watchCard = document.getElementById("watchCard");
@@ -54,18 +57,45 @@ async function request(path, options = {}) {
   });
 }
 
+async function authState() {
+  return chrome.runtime.sendMessage({ type: "RADAR_AUTH_STATUS" });
+}
+
+async function updateAuthState() {
+  const auth = await authState();
+
+  if (auth?.authenticated) {
+    authTitle.textContent = auth.account?.nickname || "Mercado Livre conectado";
+    authSubtitle.textContent =
+      "Plano " +
+      (auth.access?.plan || "PRO") +
+      " · extensão conectada a esta conta";
+    authDot.classList.add("online");
+    loginButton.textContent = "Reconectar conta";
+    logoutButton.hidden = false;
+    authStatus.textContent = "";
+    authStatus.className = "muted";
+    return true;
+  }
+
+  authTitle.textContent = "Não conectado";
+  authSubtitle.textContent =
+    "Entre com sua conta do Mercado Livre para liberar o Radar.";
+  authDot.classList.remove("online");
+  loginButton.textContent = "Entrar no Mercado Radar";
+  logoutButton.hidden = true;
+  authStatus.textContent = auth?.error || "";
+  authStatus.className = auth?.error ? "muted bad" : "muted";
+  return false;
+}
+
 async function loadSettings() {
   const settings = await chrome.storage.sync.get([
-    "radarApiBase",
-    "radarApiKey",
     "radarTaxPercent",
     "radarOperatingCost",
     "radarTargetMarginPercent",
     "radarTargetRoiPercent",
   ]);
-
-  apiBase.value = settings.radarApiBase || "https://radar.optarys.com.br";
-  apiKey.value = settings.radarApiKey || "";
 
   document.getElementById("taxPercent").value = String(
     settings.radarTaxPercent ?? 0,
@@ -117,25 +147,16 @@ async function renderContext(context) {
     params.set("visiblePrice", String(context.visiblePrice));
   }
 
-  if (!apiKey.value.trim()) {
-    contextCard.innerHTML =
-      '<div class="title">Extensão ainda não vinculada</div>' +
-      '<div class="product-title">' +
-        (context.title || context.referenceId) +
-      '</div>' +
-      '<p class="error">Configure a chave da extensão abaixo. Esta chave pertence ao Mercado Radar e não é o access token do Mercado Livre.</p>';
-    return;
-  }
-
   const response = await request("/api/extension/item?" + params.toString());
 
   if (response?.status === 401) {
+    await updateAuthState();
     contextCard.innerHTML =
-      '<div class="title">Extensão não autorizada</div>' +
+      '<div class="title">Entre no Mercado Radar</div>' +
       '<div class="product-title">' +
         (context.title || context.referenceId) +
       '</div>' +
-      '<p class="error">A chave salva na extensão não confere com RADAR_EXTENSION_API_KEY do servidor. Corrija a chave em Configuração da extensão e tente novamente.</p>';
+      '<p class="error">Sua sessão da extensão não está conectada ou expirou. Use o botão “Entrar no Mercado Radar”.</p>';
     return;
   }
 
@@ -338,17 +359,36 @@ async function refreshContext() {
   await renderContext(data.radarCurrentContext);
 }
 
-document.getElementById("save").addEventListener("click", () => {
-  chrome.storage.sync.set(
-    {
-      radarApiBase: apiBase.value.trim() || "https://radar.optarys.com.br",
-      radarApiKey: apiKey.value.trim(),
-    },
-    () => {
-      status.textContent = "Configuração salva.";
-      refreshContext();
-    },
-  );
+loginButton.addEventListener("click", async () => {
+  loginButton.disabled = true;
+  authStatus.textContent = "Abrindo login seguro do Mercado Livre...";
+  authStatus.className = "muted";
+
+  const result = await chrome.runtime.sendMessage({
+    type: "RADAR_AUTH_LOGIN",
+  });
+
+  loginButton.disabled = false;
+
+  if (!result?.authenticated) {
+    authStatus.textContent =
+      result?.error || "Não foi possível concluir o login.";
+    authStatus.className = "muted bad";
+    return;
+  }
+
+  authStatus.textContent = "Conta conectada com sucesso.";
+  authStatus.className = "muted good";
+  await updateAuthState();
+  await refreshContext();
+});
+
+logoutButton.addEventListener("click", async () => {
+  logoutButton.disabled = true;
+  await chrome.runtime.sendMessage({ type: "RADAR_AUTH_LOGOUT" });
+  logoutButton.disabled = false;
+  await updateAuthState();
+  await refreshContext();
 });
 
 document.getElementById("calculate").addEventListener("click", async () => {
@@ -568,5 +608,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
-loadSettings();
-refreshContext();
+async function init() {
+  await loadSettings();
+  await updateAuthState();
+  await refreshContext();
+}
+
+init();

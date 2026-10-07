@@ -13,7 +13,15 @@ type MlDiagnostics = {
   account: MlDiagnosticsCheck;
   catalogSearch: MlDiagnosticsCheck;
   categoryDiscovery: MlDiagnosticsCheck;
-  marketplaceSearch: MlDiagnosticsCheck;
+  capabilities: {
+    listings: MlDiagnosticsCheck & { permission?: string; hint?: string };
+    businessMetrics: MlDiagnosticsCheck & { permission?: string; hint?: string };
+    orders: MlDiagnosticsCheck & { permission?: string; hint?: string };
+    productAds: MlDiagnosticsCheck & { permission?: string; hint?: string };
+    catalogSearch: MlDiagnosticsCheck & { hint?: string };
+    categoryDiscovery: MlDiagnosticsCheck & { hint?: string };
+    trends: MlDiagnosticsCheck & { hint?: string };
+  };
   summary: {
     healthy: boolean;
     marketplaceKeywordSearchRequired?: boolean;
@@ -161,41 +169,32 @@ export function MercadoLivreIntegration() {
           <div className="integration-diagnostic-grid">
             {[
               ["Conta / OAuth", diagnostics.account],
-              ["Catálogo", diagnostics.catalogSearch],
-              ["Categorias", diagnostics.categoryDiscovery],
-              ["Busca ampla (legado)", diagnostics.marketplaceSearch],
+              ["Publicações", diagnostics.capabilities.listings],
+              ["Métricas", diagnostics.capabilities.businessMetrics],
+              ["Pedidos", diagnostics.capabilities.orders],
+              ["Product Ads", diagnostics.capabilities.productAds],
+              ["Catálogo", diagnostics.capabilities.catalogSearch],
+              ["Categorias", diagnostics.capabilities.categoryDiscovery],
+              ["Tendências", diagnostics.capabilities.trends],
             ].map(([label, check]) => {
               const item = check as MlDiagnosticsCheck;
               return (
                 <article
                   className={
                     "integration-diagnostic-item " +
-                    (item.ok
-                      ? "ok"
-                      : String(label).includes("legado") &&
-                          item.status === 403
-                        ? "optional"
-                        : "blocked")
+                    (item.ok ? "ok" : "blocked")
                   }
                   key={String(label)}
                 >
                   <span>{String(label)}</span>
                   <strong>
-                    {item.ok
-                      ? "OK"
-                      : String(label).includes("legado") &&
-                          item.status === 403
-                        ? "Não utilizado"
-                        : `HTTP ${item.status || "—"}`}
+                    {item.ok ? "OK" : `HTTP ${item.status || "—"}`}
                   </strong>
                   {!item.ok && (
                     <small>
-                      {String(label).includes("legado") &&
-                      item.status === 403
-                        ? "O Radar não dependerá mais desta busca por palavra-chave."
-                        : [item.code, item.message]
-                            .filter(Boolean)
-                            .join(" · ") || "Recurso indisponível"}
+                      {[item.code, item.message]
+                        .filter(Boolean)
+                        .join(" · ") || "Recurso indisponível"}
                     </small>
                   )}
                 </article>
@@ -203,15 +202,7 @@ export function MercadoLivreIntegration() {
             })}
           </div>
 
-          {diagnostics.summary.marketplaceKeywordSearchBlocked && (
-            <div className="integration-note">
-              A antiga busca ampla por palavra-chave está bloqueada para esta
-              aplicação, mas ela não é mais uma dependência do Radar. A
-              descoberta usa o buscador oficial de produtos e a extensão
-              enriquece diretamente os anúncios que aparecem na página do
-              Mercado Livre.
-            </div>
-          )}
+
         </div>
       )}
     </section>

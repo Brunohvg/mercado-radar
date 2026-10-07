@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
-import { ADMIN_SESSION_COOKIE } from "@/lib/admin-session";
+import { ADMIN_COOKIE } from "@/lib/admin-token";
 
-function clear(request: Request) {
-  const response = NextResponse.redirect(new URL("/login", request.url), 303);
-  response.cookies.set(ADMIN_SESSION_COOKIE, "", {
+export const dynamic = "force-dynamic";
+
+export async function POST() {
+  const response = NextResponse.json({ ok: true });
+  response.cookies.set(ADMIN_COOKIE, "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -11,12 +13,4 @@ function clear(request: Request) {
     maxAge: 0,
   });
   return response;
-}
-
-export async function GET(request: Request) {
-  return clear(request);
-}
-
-export async function POST(request: Request) {
-  return clear(request);
 }

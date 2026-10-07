@@ -1,91 +1,80 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import {
-  ADMIN_SESSION_COOKIE,
-  verifyAdminSessionToken,
-} from "@/lib/admin-session";
+  ADMIN_COOKIE,
+  adminSessionSecret,
+  verifyAdminSession,
+} from "@/lib/admin-token";
 
-function isStatic(pathname: string) {
-  return (
-    pathname.startsWith("/_next/") ||
-    pathname === "/favicon.ico" ||
-    pathname === "/manifest.webmanifest" ||
-    pathname.startsWith("/brand/") ||
-    /\.(?:png|jpg|jpeg|gif|webp|svg|ico|css|js|map|woff2?|ttf|txt|xml)$/i.test(
-      pathname,
-    )
-  );
-}
+/**
+ * Portão único do painel web (default-deny).
+ *
+ * Tudo exige a sessão do operador, EXCETO as rotas abaixo, que têm
+ * autenticação própria ou precisam ser públicas por natureza:
+ *  - /api/extension/**           Bearer por dispositivo (getExtensionSession)
+ *  - /api/cron/**                RADAR_CRON_SECRET
+ *  - /api/webhooks/mercadolivre  notificações do Mercado Livre
+ *  - /api/integrations/mercadolivre/callback  retorno do OAuth
+ *  - /api/health, /login, /api/auth/**
+ *
+ * Next 16 renomeou middleware.ts para proxy.ts. Se a sua versão ainda usar
+ * middleware.ts, renomeie o arquivo e a função exportada para `middleware`.
+ */
+const PUBLIC = [
+  "/login",
+  "/api/auth",
+  "/api/health",
+  "/api/extension",
+  "/api/cron",
+  "/api/webhooks/mercadolivre",
+  "/api/integrations/mercadolivre/callback",
+];
 
 function isPublic(pathname: string) {
-  return (
-    pathname === "/login" ||
-    pathname === "/api/auth/login" ||
-    pathname === "/api/auth/logout" ||
-    pathname === "/api/health" ||
-    pathname.startsWith("/api/extension/") ||
-    pathname.startsWith("/api/cron/") ||
-    pathname === "/api/integrations/mercadolivre/authorize" ||
-    pathname === "/api/integrations/mercadolivre/callback" ||
-    pathname === "/api/webhooks/mercadolivre" ||
-    isStatic(pathname)
+  return PUBLIC.some(
+    (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
   );
 }
 
-function unauthorizedApi() {
-  return NextResponse.json(
-    { error: "Sessão administrativa necessária." },
-    { status: 401 },
-  );
-}
+export async function proxy(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
+  if (isPublic(pathname)) return NextResponse.next();
 
-export function proxy(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
+  const secret = adminSessionSecret();
+  const configured =
+    Boolean(process.env.ADMIN_EMAIL?.trim()) &&
+    Boolean(process.env.ADMIN_PASSWORD_HASH?.trim()) &&
+    secret.length >= 32;
 
-  if (isPublic(pathname)) {
-    if (pathname === "/login") {
-      const session = verifyAdminSessionToken(
-        request.cookies.get(ADMIN_SESSION_COOKIE)?.value,
-      );
-      if (session) {
-        return NextResponse.redirect(new URL("/", request.url));
-      }
-    }
-
+  // Desenvolvimento sem credenciais: não trava o fluxo local.
+  if (!configured && process.env.NODE_ENV !== "production") {
     return NextResponse.next();
   }
 
-  const session = verifyAdminSessionToken(
-    request.cookies.get(ADMIN_SESSION_COOKIE)?.value,
-  );
+  const token = request.cookies.get(ADMIN_COOKIE)?.value;
+  if (configured && (await verifyAdminSession(token, secret))) {
+    return NextResponse.next();
+  }
 
-  if (!session) {
-    if (pathname.startsWith("/api/")) {
-      return unauthorizedApi();
-    }
-
-    const login = new URL("/login", request.url);
-    login.searchParams.set(
-      "next",
-      pathname + request.nextUrl.search,
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.json(
+      {
+        error: configured
+          ? "Não autorizado. Entre no Mercado Radar."
+          : "Autenticação do painel não configurada.",
+      },
+      { status: 401, headers: { "Cache-Control": "no-store" } },
     );
-    login.searchParams.set("error", "session_required");
-    return NextResponse.redirect(login);
   }
 
-  const headers = new Headers(request.headers);
-  headers.delete("x-radar-account-id");
-  headers.delete("x-radar-admin-email");
-
-  headers.set("x-radar-admin-email", session.email);
-  if (session.accountId) {
-    headers.set("x-radar-account-id", session.accountId);
-  }
-
-  return NextResponse.next({
-    request: { headers },
-  });
+  const login = request.nextUrl.clone();
+  login.pathname = "/login";
+  login.search = "";
+  if (pathname !== "/") login.searchParams.set("next", pathname + search);
+  return NextResponse.redirect(login);
 }
 
 export const config = {
-  matcher: ["/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|brand/|favicon.ico|icon.svg|manifest.webmanifest).*)",
+  ],
 };

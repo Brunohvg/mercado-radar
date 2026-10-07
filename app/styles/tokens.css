@@ -1,0 +1,36 @@
+/*
+ * Tokens do Mercado Radar (painel web).
+ * Prefixo --rd- de propósito: o globals.css legado ainda tem 4 blocos :root
+ * com --bg/--text/--line etc. Sem prefixo, estes valores brigariam com eles.
+ * Quando o globals.css for consolidado (Prompt 02), o prefixo pode cair.
+ */
+:root {
+  --rd-brand-700: #0b5a49;
+  --rd-brand-600: #0f725e;
+  --rd-brand-500: #18967a;
+  --rd-brand-100: #e7f6f1;
+  --rd-brand-50: #f3fbf8;
+
+  --rd-bg: #f7f9f8;
+  --rd-surface: #ffffff;
+  --rd-surface-2: #f2f6f4;
+  --rd-line: #e3eae7;
+  --rd-line-strong: #cfdad6;
+
+  --rd-text: #17342d;
+  --rd-text-2: #51665f;
+  --rd-text-3: #7f918a;
+
+  --rd-ok: #18967a;
+  --rd-warn: #b87408;
+  --rd-risk: #c8402f;
+  --rd-risk-bg: #fdebe8;
+
+  --rd-r-sm: 8px;
+  --rd-r-md: 12px;
+  --rd-r-lg: 16px;
+  --rd-r-pill: 999px;
+  --rd-shadow-1: 0 1px 2px rgba(23, 52, 45, 0.06);
+  --rd-shadow-2: 0 8px 24px rgba(23, 52, 45, 0.1);
+  --rd-font: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+}

@@ -31,6 +31,7 @@ const groups: Array<{ label: string; items: MenuItem[] }> = [
     label: "Visão geral",
     items: [
       { href: "/", label: "Dashboard", icon: "dashboard" },
+      { href: "/onboarding", label: "Primeiros passos", icon: "radar" },
       { href: "/anuncios", label: "Anúncios", icon: "listings" },
       { href: "/produtos", label: "Produtos", icon: "products" },
       { href: "/fornecedores", label: "Fornecedores", icon: "suppliers" },
@@ -195,10 +196,42 @@ export function AppNavigation() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [account, setAccount] = useState<{
+    loaded: boolean;
+    connected: boolean;
+    nickname: string | null;
+  }>({ loaded: false, connected: false, nickname: null });
 
   useEffect(() => {
     setCollapsed(window.localStorage.getItem("radar.sidebar.collapsed") === "1");
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    fetch("/api/integrations/mercadolivre/status", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((body) => {
+        if (!active) return;
+        setAccount({
+          loaded: true,
+          connected: Boolean(body?.connected),
+          nickname: typeof body?.nickname === "string" ? body.nickname : null,
+        });
+      })
+      .catch(() => {
+        if (active) setAccount({ loaded: true, connected: false, nickname: null });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function signOut() {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
+    window.location.assign("/login");
+  }
 
   function toggleCollapsed() {
     setCollapsed((current) => {
@@ -290,13 +323,39 @@ export function AppNavigation() {
         </nav>
 
         <div className="sidebar-account">
-          <span className="sidebar-account-avatar">V</span>
+          <span className="sidebar-account-avatar">
+            {(account.nickname?.trim()[0] || "?").toUpperCase()}
+          </span>
           <div className="sidebar-account-copy">
-            <strong>Vidalys</strong>
-            <small>Mercado Livre conectado</small>
+            <strong>
+              {account.connected
+                ? account.nickname || "Conta conectada"
+                : account.loaded
+                  ? "Sem conta conectada"
+                  : "Carregando..."}
+            </strong>
+            <small>
+              {account.connected
+                ? "Mercado Livre conectado"
+                : "Conecte em Integrações"}
+            </small>
           </div>
-          <span className="sidebar-account-status" title="Online" />
+          <span
+            className={
+              "sidebar-account-status" + (account.connected ? "" : " is-offline")
+            }
+            title={account.connected ? "Conectado" : "Desconectado"}
+          />
         </div>
+
+        <button type="button" className="rd-logout" onClick={signOut}>
+          <span>Sair</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <path d="m16 17 5-5-5-5" />
+            <path d="M21 12H9" />
+          </svg>
+        </button>
 
         <button
           type="button"

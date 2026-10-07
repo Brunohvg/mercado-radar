@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { decryptSecret, encryptSecret } from "@/lib/security";
 
@@ -22,204 +21,232 @@ function credentials() {
   return { clientId, clientSecret };
 }
 
-type JsonFetchOptions = {
-  allowRetry?: boolean;
-};
+export type MlApiErrorCode =
+  | "UNAUTHORIZED"
+  | "FORBIDDEN"
+  | "RATE_LIMITED"
+  | "UPSTREAM"
+  | "TIMEOUT"
+  | "HTTP";
 
-type MlLimiter = {
-  active: number;
-  queue: Array<() => void>;
-};
+/**
+ * Erro tipado da API do Mercado Livre. Continua sendo um Error comum
+ * (mesma mensagem amigável de antes), mas agora carrega status e rota para
+ * que telas e diagnósticos distingam token, permissão, limite e indisponibilidade.
+ */
+export class MlApiError extends Error {
+  readonly status: number;
+  readonly path: string;
+  readonly code: MlApiErrorCode;
 
-const mlLimiters = new Map<string, MlLimiter>();
-const mlGetCache = new Map<
-  string,
-  { expiresAt: number; value: unknown }
->();
-
-function authScopeKey(init?: RequestInit) {
-  const authorization = new Headers(init?.headers).get("authorization");
-  if (!authorization) return "public";
-
-  return createHash("sha256")
-    .update(authorization)
-    .digest("hex")
-    .slice(0, 20);
-}
-
-function isCacheableGet(url: string, init?: RequestInit) {
-  const method = (init?.method ?? "GET").toUpperCase();
-  if (method !== "GET") return false;
-
-  const pathname = new URL(url).pathname;
-  return (
-    pathname === "/items/bulk" ||
-    pathname === "/visits/items" ||
-    /^\/products\/[^/]+$/.test(pathname)
-  );
-}
-
-async function withMlConcurrency<T>(
-  key: string,
-  task: () => Promise<T>,
-): Promise<T> {
-  const limiter = mlLimiters.get(key) ?? { active: 0, queue: [] };
-  mlLimiters.set(key, limiter);
-
-  if (limiter.active >= 4) {
-    await new Promise<void>((resolve) => {
-      limiter.queue.push(resolve);
-    });
+  constructor(message: string, status: number, path: string, code: MlApiErrorCode) {
+    super(message);
+    this.name = "MlApiError";
+    this.status = status;
+    this.path = path;
+    this.code = code;
   }
+}
 
-  limiter.active += 1;
+/* ---------- limitador de concorrência (processo único) ---------- */
+const MAX_CONCURRENCY = Math.max(1, Number(process.env.ML_MAX_CONCURRENCY) || 6);
+let activeRequests = 0;
+const waiters: Array<() => void> = [];
 
+async function acquireSlot() {
+  if (activeRequests < MAX_CONCURRENCY) {
+    activeRequests += 1;
+    return;
+  }
+  // O slot é transferido diretamente para quem espera (activeRequests não muda).
+  await new Promise<void>((resolve) => waiters.push(resolve));
+}
+
+function releaseSlot() {
+  const next = waiters.shift();
+  if (next) next();
+  else activeRequests -= 1;
+}
+
+/* ---------- cache curto para GETs idempotentes ---------- */
+const CACHE_RULES: Array<{ test: RegExp; ttlMs: number }> = [
+  { test: /\/trends\//, ttlMs: 10 * 60_000 },
+  { test: /\/highlights\//, ttlMs: 10 * 60_000 },
+  { test: /\/products\/search\?/, ttlMs: 5 * 60_000 },
+  { test: /\/products\/[A-Z0-9]+(\?|$)/, ttlMs: 5 * 60_000 },
+  { test: /\/visits\/items\?/, ttlMs: 5 * 60_000 },
+  { test: /\/items\/bulk\?/, ttlMs: 60_000 },
+];
+const CACHE_MAX_ENTRIES = 500;
+const responseCache = new Map<string, { expiresAt: number; body: unknown }>();
+
+function cacheTtl(url: string, method: string) {
+  if (method !== "GET") return 0;
+  return CACHE_RULES.find((rule) => rule.test.test(url))?.ttlMs ?? 0;
+}
+
+function cacheKey(url: string, init?: RequestInit) {
+  const headers = new Headers(init?.headers);
+  const auth = headers.get("authorization") ?? "";
+  const who = auth
+    ? createHash("sha1").update(auth).digest("hex").slice(0, 12)
+    : "anon";
+  return `${who}|${url}`;
+}
+
+function pathOf(url: string) {
   try {
-    return await task();
-  } finally {
-    limiter.active -= 1;
-    const next = limiter.queue.shift();
-    if (next) {
-      next();
-    } else if (limiter.active === 0) {
-      mlLimiters.delete(key);
-    }
+    return new URL(url).pathname;
+  } catch {
+    return url;
   }
-}
-
-function retryAfterMs(response: Response, attempt: number) {
-  const value = response.headers.get("retry-after");
-
-  if (value) {
-    const seconds = Number(value);
-    if (Number.isFinite(seconds) && seconds >= 0) {
-      return Math.min(seconds * 1000, 30_000);
-    }
-
-    const date = Date.parse(value);
-    if (Number.isFinite(date)) {
-      return Math.min(Math.max(0, date - Date.now()), 30_000);
-    }
-  }
-
-  const exponential = Math.min(500 * 2 ** attempt, 4_000);
-  const jitter = Math.floor(Math.random() * 250);
-  return exponential + jitter;
 }
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function apiError(response: Response, body: any) {
-  const apiMessage =
-    typeof body?.message === "string"
-      ? body.message
-      : `Mercado Livre respondeu HTTP ${response.status}`;
-
-  if (response.status === 401) {
-    return new Error(
-      "A autorização do Mercado Livre expirou ou foi revogada. Reconecte a conta em Integrações.",
-    );
+function retryDelayMs(attempt: number, retryAfter: string | null) {
+  const seconds = retryAfter ? Number(retryAfter) : NaN;
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.min(10_000, seconds * 1000);
   }
+  return Math.min(8000, 500 * 2 ** attempt) + Math.floor(Math.random() * 250);
+}
 
-  if (response.status === 403) {
-    return new Error(
-      "O Mercado Livre negou acesso a este recurso. Revise a capacidade correspondente no diagnóstico da integração.",
-    );
-  }
-
-  if (response.status === 429) {
-    return new Error(
-      "O Mercado Livre limitou temporariamente as consultas. Tente novamente em alguns instantes.",
-    );
-  }
-
-  if (response.status >= 500) {
-    return new Error(
-      "O Mercado Livre está temporariamente indisponível para esta consulta. Tente novamente em alguns instantes.",
-    );
-  }
-
-  return new Error(
-    apiMessage === "forbidden"
-      ? "O Mercado Livre não autorizou esta consulta para o aplicativo conectado."
-      : apiMessage,
+function isTimeout(error: unknown) {
+  return (
+    error instanceof Error &&
+    (error.name === "TimeoutError" || error.name === "AbortError")
   );
 }
 
-async function jsonFetch<T>(
-  url: string,
-  init?: RequestInit,
-  options: JsonFetchOptions = {},
-): Promise<T> {
-  const scopeKey = authScopeKey(init);
-  const cacheable = isCacheableGet(url, init);
-  const cacheKey = `${scopeKey}:${url}`;
+function httpError(status: number, path: string, apiMessage: string): MlApiError {
+  if (status === 401) {
+    return new MlApiError(
+      "A autorização do Mercado Livre expirou ou foi revogada. Reconecte a conta em Integrações.",
+      status,
+      path,
+      "UNAUTHORIZED",
+    );
+  }
+  if (status === 403) {
+    return new MlApiError(
+      "O Mercado Livre negou acesso a este recurso. A conta está conectada, mas o aplicativo precisa da permissão correspondente. Revise a integração do Mercado Livre.",
+      status,
+      path,
+      "FORBIDDEN",
+    );
+  }
+  if (status === 429) {
+    return new MlApiError(
+      "O Mercado Livre limitou temporariamente as consultas. O Radar tentará novamente quando o limite liberar.",
+      status,
+      path,
+      "RATE_LIMITED",
+    );
+  }
+  if (status >= 500) {
+    return new MlApiError(
+      "O Mercado Livre está temporariamente indisponível para esta consulta. Tente novamente em alguns instantes.",
+      status,
+      path,
+      "UPSTREAM",
+    );
+  }
+  return new MlApiError(
+    apiMessage === "forbidden"
+      ? "O Mercado Livre não autorizou esta consulta para o aplicativo conectado."
+      : apiMessage,
+    status,
+    path,
+    "HTTP",
+  );
+}
 
-  if (cacheable) {
-    const cached = mlGetCache.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) {
-      return cached.value as T;
-    }
-    if (cached) mlGetCache.delete(cacheKey);
+async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
+  const method = (init?.method ?? "GET").toUpperCase();
+  const path = pathOf(url);
+  const ttl = cacheTtl(url, method);
+  const key = ttl ? cacheKey(url, init) : "";
+
+  if (ttl) {
+    const hit = responseCache.get(key);
+    if (hit && hit.expiresAt > Date.now()) return hit.body as T;
+    if (hit) responseCache.delete(key);
   }
 
-  return withMlConcurrency(scopeKey, async () => {
-    if (cacheable) {
-      const cached = mlGetCache.get(cacheKey);
-      if (cached && cached.expiresAt > Date.now()) {
-        return cached.value as T;
-      }
-    }
+  // Só repetimos GET: POST/PUT (ex.: /oauth/token) nunca devem ser reenviados.
+  const maxAttempts = method === "GET" ? 3 : 1;
+  let lastError: unknown;
 
-    const allowRetry = options.allowRetry !== false;
-    const maxAttempts = allowRetry ? 3 : 1;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    await acquireSlot();
+    let response: Response | null = null;
+    let body: unknown = {};
 
-    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-      let response: Response;
-
-      try {
-        response = await fetch(url, {
-          ...init,
-          cache: "no-store",
-          signal: AbortSignal.timeout(12000),
-        });
-      } catch (error) {
-        if (
-          error instanceof Error &&
-          (error.name === "TimeoutError" || error.name === "AbortError")
-        ) {
-          throw new Error(
+    try {
+      response = await fetch(url, {
+        ...init,
+        cache: "no-store",
+        signal: AbortSignal.timeout(12000),
+      });
+      body = await response.json().catch(() => ({}));
+    } catch (error) {
+      lastError = isTimeout(error)
+        ? new MlApiError(
             "O Mercado Livre demorou demais para responder. Tente novamente em alguns segundos.",
-          );
-        }
-        throw error;
-      }
-
-      const body = await response.json().catch(() => ({}));
-
-      if (response.ok) {
-        if (cacheable) {
-          mlGetCache.set(cacheKey, {
-            value: body,
-            expiresAt: Date.now() + 60_000,
-          });
-        }
-        return body as T;
-      }
-
-      const retryable = response.status === 429 || response.status >= 500;
-      if (retryable && attempt < maxAttempts - 1) {
-        await sleep(retryAfterMs(response, attempt));
+            0,
+            path,
+            "TIMEOUT",
+          )
+        : error;
+      releaseSlot();
+      // Timeout/rede: uma única repetição.
+      if (attempt === 0 && maxAttempts > 1) {
+        await sleep(retryDelayMs(attempt, null));
         continue;
       }
-
-      throw apiError(response, body);
+      throw lastError;
     }
 
-    throw new Error("Mercado Livre não respondeu após as tentativas previstas.");
-  });
+    releaseSlot();
+
+    if (response.ok) {
+      if (ttl) {
+        if (responseCache.size >= CACHE_MAX_ENTRIES) {
+          const oldest = responseCache.keys().next().value;
+          if (oldest) responseCache.delete(oldest);
+        }
+        responseCache.set(key, { expiresAt: Date.now() + ttl, body });
+      }
+      return body as T;
+    }
+
+    const apiMessage =
+      typeof (body as { message?: unknown })?.message === "string"
+        ? String((body as { message: string }).message)
+        : `Mercado Livre respondeu HTTP ${response.status}`;
+    lastError = httpError(response.status, path, apiMessage);
+
+    const retryable =
+      response.status === 429 ||
+      response.status === 500 ||
+      response.status === 502 ||
+      response.status === 503 ||
+      response.status === 504;
+
+    if (retryable && attempt < maxAttempts - 1) {
+      await sleep(retryDelayMs(attempt, response.headers.get("retry-after")));
+      continue;
+    }
+
+    throw lastError;
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Falha ao consultar o Mercado Livre.");
 }
 
 export async function exchangeAuthorizationCode(input: {
@@ -243,15 +270,11 @@ export async function exchangeAuthorizationCode(input: {
     expires_in: number;
     user_id: number;
     scope?: string;
-  }>(
-    `${API}/oauth/token`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body,
-    },
-    { allowRetry: false },
-  );
+  }>(`${API}/oauth/token`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body,
+  });
 }
 
 export async function fetchCurrentUser(accessToken: string) {
@@ -274,15 +297,11 @@ async function refreshAccessToken(refreshToken: string) {
     refresh_token?: string;
     expires_in: number;
     scope?: string;
-  }>(
-    `${API}/oauth/token`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body,
-    },
-    { allowRetry: false },
-  );
+  }>(`${API}/oauth/token`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body,
+  });
 }
 
 export async function saveMlAccount(input: {
@@ -313,7 +332,7 @@ export async function saveMlAccount(input: {
   });
 }
 
-type StoredMlAccount = {
+type MlAccountRecord = {
   id: string;
   mercadoLivreUserId: string;
   nickname: string | null;
@@ -325,114 +344,110 @@ type StoredMlAccount = {
   updatedAt: Date;
 };
 
-type MlSession = {
-  account: StoredMlAccount;
-  accessToken: string;
-};
+const REFRESH_MARGIN_MS = 5 * 60 * 1000;
 
-const refreshLocks = new Map<string, Promise<MlSession>>();
+function hasFreshToken(account: MlAccountRecord) {
+  return account.tokenExpiresAt.getTime() > Date.now() + REFRESH_MARGIN_MS;
+}
 
-async function buildMlSession(account: StoredMlAccount): Promise<MlSession> {
-  if (account.tokenExpiresAt.getTime() > Date.now() + 5 * 60 * 1000) {
+// O refresh token do Mercado Livre é de uso único: duas renovações simultâneas
+// da mesma conta podem invalidar a conexão. Esta trava garante UMA renovação
+// por conta neste processo; quem chegar durante a renovação reutiliza o resultado.
+const refreshLocks = new Map<
+  string,
+  Promise<{ account: MlAccountRecord; accessToken: string }>
+>();
+
+async function refreshAccountSession(stale: MlAccountRecord) {
+  // Outra requisição/processo pode ter renovado entre a leitura e a trava.
+  const current =
+    (await prisma.mercadoLivreAccount.findUnique({ where: { id: stale.id } })) ??
+    stale;
+
+  if (hasFreshToken(current)) {
     return {
-      account,
-      accessToken: decryptSecret(account.accessTokenEncrypted),
+      account: current,
+      accessToken: decryptSecret(current.accessTokenEncrypted),
     };
   }
 
-  const existing = refreshLocks.get(account.id);
-  if (existing) return existing;
+  let refreshed: Awaited<ReturnType<typeof refreshAccessToken>>;
 
-  const refreshPromise = (async () => {
+  try {
+    refreshed = await refreshAccessToken(
+      decryptSecret(current.refreshTokenEncrypted),
+    );
+  } catch (error) {
+    // Se outro processo (ex.: cron) rotacionou o token enquanto tentávamos,
+    // o banco já tem um token válido: usamos ele em vez de derrubar a sessão.
     const latest = await prisma.mercadoLivreAccount.findUnique({
-      where: { id: account.id },
+      where: { id: current.id },
     });
 
-    if (!latest) {
-      throw new Error("Conta do Mercado Livre não encontrada.");
-    }
-
-    if (latest.tokenExpiresAt.getTime() > Date.now() + 5 * 60 * 1000) {
+    if (
+      latest &&
+      latest.refreshTokenEncrypted !== current.refreshTokenEncrypted &&
+      hasFreshToken(latest)
+    ) {
       return {
         account: latest,
         accessToken: decryptSecret(latest.accessTokenEncrypted),
       };
     }
 
-    const refreshed = await refreshAccessToken(
-      decryptSecret(latest.refreshTokenEncrypted),
-    );
-
-    const updated = await prisma.mercadoLivreAccount.update({
-      where: { id: latest.id },
-      data: {
-        accessTokenEncrypted: encryptSecret(refreshed.access_token),
-        refreshTokenEncrypted: refreshed.refresh_token
-          ? encryptSecret(refreshed.refresh_token)
-          : latest.refreshTokenEncrypted,
-        tokenExpiresAt: new Date(Date.now() + refreshed.expires_in * 1000),
-        scopes: refreshed.scope ?? latest.scopes,
-      },
-    });
-
-    return {
-      account: updated,
-      accessToken: refreshed.access_token,
-    };
-  })();
-
-  refreshLocks.set(account.id, refreshPromise);
-
-  try {
-    return await refreshPromise;
-  } finally {
-    if (refreshLocks.get(account.id) === refreshPromise) {
-      refreshLocks.delete(account.id);
-    }
+    throw error;
   }
+
+  const updated = await prisma.mercadoLivreAccount.update({
+    where: { id: current.id },
+    data: {
+      accessTokenEncrypted: encryptSecret(refreshed.access_token),
+      refreshTokenEncrypted: refreshed.refresh_token
+        ? encryptSecret(refreshed.refresh_token)
+        : current.refreshTokenEncrypted,
+      tokenExpiresAt: new Date(Date.now() + refreshed.expires_in * 1000),
+      scopes: refreshed.scope ?? current.scopes,
+    },
+  });
+
+  return { account: updated, accessToken: refreshed.access_token };
 }
 
-async function requestAccountId() {
-  try {
-    return (await headers()).get("x-radar-account-id");
-  } catch {
-    return null;
+async function buildMlSession(account: MlAccountRecord) {
+  if (hasFreshToken(account)) {
+    return {
+      account,
+      accessToken: decryptSecret(account.accessTokenEncrypted),
+    };
   }
+
+  const running = refreshLocks.get(account.id);
+  if (running) return running;
+
+  const task = refreshAccountSession(account).finally(() => {
+    refreshLocks.delete(account.id);
+  });
+  refreshLocks.set(account.id, task);
+  return task;
 }
 
 export async function getMlSession() {
-  const accountId = await requestAccountId();
+  // Painel web (single-tenant): se ADMIN_ML_ACCOUNT_ID estiver definido, usa
+  // exatamente essa conta. Sem ele mantém o comportamento anterior (conta mais
+  // recente), o que é arriscado quando há contas de extensão no mesmo banco.
+  const pinned = process.env.ADMIN_ML_ACCOUNT_ID?.trim();
 
-  if (accountId) {
-    const account = await prisma.mercadoLivreAccount.findUnique({
-      where: { id: accountId },
-    });
+  const account = pinned
+    ? await prisma.mercadoLivreAccount.findUnique({ where: { id: pinned } })
+    : await prisma.mercadoLivreAccount.findFirst({
+        orderBy: { updatedAt: "desc" },
+      });
 
-    if (!account) {
-      throw new Error(
-        "A conta Mercado Livre da sessão não existe mais. Entre novamente.",
-      );
-    }
-
-    return buildMlSession(account);
-  }
-
-  const accounts = await prisma.mercadoLivreAccount.findMany({
-    orderBy: { createdAt: "asc" },
-    take: 2,
-  });
-
-  if (accounts.length === 0) {
+  if (!account) {
     throw new Error("Conta do Mercado Livre ainda não conectada.");
   }
 
-  if (accounts.length > 1) {
-    throw new Error(
-      "Há mais de uma conta Mercado Livre conectada e nenhum accountId foi definido no contexto. O Radar não selecionará uma conta automaticamente.",
-    );
-  }
-
-  return buildMlSession(accounts[0]);
+  return buildMlSession(account);
 }
 
 export async function getMlSessionForAccount(accountId: string) {
@@ -624,10 +639,24 @@ export async function searchMarketplace(input: {
     }>;
   };
 
-  const raw = await jsonFetch<MarketplaceSearchResponse>(
-    `${API}/sites/MLB/search?${params.toString()}`,
-    { headers: { Authorization: `Bearer ${input.accessToken}` } },
-  );
+  let raw: MarketplaceSearchResponse;
+
+  const searchUrl = `${API}/sites/MLB/search?${params.toString()}`;
+
+  try {
+    raw = await jsonFetch<MarketplaceSearchResponse>(searchUrl, {
+      headers: { Authorization: `Bearer ${input.accessToken}` },
+    });
+  } catch (authenticatedError) {
+    // Tentativa pública mantida por compatibilidade, mas o erro REAL (ex.: 403
+    // de permissão) é preservado: antes ele era substituído pelo da segunda
+    // chamada e o diagnóstico ficava enganoso.
+    try {
+      raw = await jsonFetch<MarketplaceSearchResponse>(searchUrl);
+    } catch {
+      throw authenticatedError;
+    }
+  }
 
   return (raw.results ?? [])
     .filter((item) => item.id && item.title)

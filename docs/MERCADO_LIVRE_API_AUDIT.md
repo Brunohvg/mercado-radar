@@ -147,3 +147,13 @@ A Extensão Radar observa a posição real dos cards na página de resultados e 
 - histórico de preço e posição.
 
 Assim, o ranking representa o que o usuário realmente viu na busca do Mercado Livre.
+
+
+## Revisão 07/10/2026
+
+- `jsonFetch` agora faz retry com backoff (GET: 429/5xx, respeita `Retry-After`), limita concorrência (`ML_MAX_CONCURRENCY`, padrão 6) e tem cache curto para trends, highlights, products, visits e items/bulk. POST (ex.: `/oauth/token`) nunca é repetido.
+- Erros do ML agora são `MlApiError` (status, rota e código: UNAUTHORIZED/FORBIDDEN/RATE_LIMITED/UPSTREAM/TIMEOUT).
+- Refresh de token com trava por conta (o refresh token do ML é de uso único) e reaproveitamento do token se outro processo renovou primeiro.
+- `searchMarketplace` mantém a tentativa pública por compatibilidade, mas preserva o erro ORIGINAL (antes o 403 era trocado pelo erro da 2ª chamada).
+- `ean-batch` já usava `product_identifier` e degrada com flags `sources.*Unavailable`: correto, não alterado.
+- **Pendente de verificação na doc oficial:** `/items/bulk` x `/items?ids=` (a página de Itens e Buscas consultada ainda lista `/items?ids=`), `visits/items`, `price_to_win`, Product Ads.

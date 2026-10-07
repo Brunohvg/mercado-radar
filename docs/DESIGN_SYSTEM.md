@@ -190,3 +190,12 @@ Score transparente de 0 a 100:
 - visibilidade: 10.
 
 A UI deve explicar o score e evitar métricas inventadas. Por exemplo, não calcular "conversão" usando visitas de vida inteira com vendas de somente 30 dias.
+
+
+## Atualização 07/10/2026 — UI injetada e tokens
+
+- A UI injetada no Mercado Livre vive em **Shadow DOM** (`extension/ui/tokens.css` + `content.css`). Nenhum CSS vaza de/para o ML.
+- Faixa de métricas **sob** o card da busca (não deforma o card); widget do anúncio na coluna de compra, com fallback flutuante.
+- Tokens do painel web em `app/styles/tokens.css` com prefixo `--rd-` (o `globals.css` legado ainda tem 4 `:root`; consolidar é a próxima etapa).
+- Tudo que é estimado (vendas/mês, faturamento) exibe `*` e a legenda "estimativa pela faixa de vendas do anúncio".
+- Cor de acento mantida: teal `#18967A`.

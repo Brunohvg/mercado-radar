@@ -1,0 +1,90 @@
+/* Componentes novos do painel (login, onboarding, ajustes da sidebar). Prefixo rd- */
+
+.rd-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 42px; padding: 0 18px; border: 1px solid transparent;
+  border-radius: var(--rd-r-md); background: var(--rd-brand-500); color: #fff;
+  font: 650 14px/1 var(--rd-font); text-decoration: none; cursor: pointer;
+  transition: background .15s;
+}
+.rd-btn:hover { background: var(--rd-brand-600); }
+.rd-btn:disabled { opacity: .6; cursor: default; }
+.rd-btn--ghost { background: transparent; border-color: var(--rd-line-strong); color: var(--rd-text-2); }
+.rd-btn--ghost:hover { background: var(--rd-surface-2); }
+.rd-btn--block { width: 100%; }
+.rd-btn:focus-visible, .rd-input:focus-visible { outline: 2px solid var(--rd-brand-500); outline-offset: 2px; }
+
+.rd-input {
+  width: 100%; min-height: 44px; padding: 0 12px;
+  border: 1px solid var(--rd-line-strong); border-radius: var(--rd-r-md);
+  background: var(--rd-surface); color: var(--rd-text); font: 400 15px var(--rd-font);
+}
+.rd-label { display: block; margin: 14px 0 6px; font: 650 13px var(--rd-font); color: var(--rd-text-2); }
+
+.rd-badge {
+  display: inline-flex; align-items: center; padding: 2px 9px; border-radius: var(--rd-r-pill);
+  background: var(--rd-surface-2); color: var(--rd-text-2); font: 700 11px/1.6 var(--rd-font);
+}
+.rd-badge--ok { background: var(--rd-brand-100); color: var(--rd-brand-600); }
+
+/* ---------- login ---------- */
+.rd-auth {
+  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 24px;
+  background: var(--rd-bg); font-family: var(--rd-font); color: var(--rd-text);
+}
+.rd-auth__card {
+  width: 100%; max-width: 400px; padding: 32px;
+  border: 1px solid var(--rd-line); border-radius: 20px;
+  background: var(--rd-surface); box-shadow: var(--rd-shadow-2);
+}
+.rd-auth__brand { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+.rd-auth__brand img { width: 40px; height: 40px; border-radius: 11px; }
+.rd-auth__brand strong { display: block; font-size: 17px; letter-spacing: -.02em; }
+.rd-auth__brand small { display: block; color: var(--rd-text-3); font-size: 12px; }
+.rd-auth h1 { margin: 0 0 4px; font-size: 22px; letter-spacing: -.02em; }
+.rd-auth p { margin: 0; color: var(--rd-text-2); font-size: 14px; line-height: 1.5; }
+.rd-auth__error {
+  margin-top: 14px; padding: 10px 12px; border-radius: var(--rd-r-md);
+  background: var(--rd-risk-bg); color: var(--rd-risk); font-size: 13px;
+}
+.rd-auth form .rd-btn { margin-top: 20px; }
+
+/* ---------- onboarding ---------- */
+.rd-onb { max-width: 880px; font-family: var(--rd-font); color: var(--rd-text); }
+.rd-onb__head h1 { margin: 0 0 6px; font-size: 30px; letter-spacing: -.03em; }
+.rd-onb__head p { margin: 0; color: var(--rd-text-2); font-size: 15px; }
+.rd-onb__bar { display: flex; align-items: center; gap: 14px; margin: 24px 0 18px; }
+.rd-onb__track { flex: 1; height: 8px; border-radius: var(--rd-r-pill); background: var(--rd-line); overflow: hidden; }
+.rd-onb__fill { height: 100%; border-radius: inherit; background: var(--rd-brand-500); transition: width .3s; }
+.rd-onb__count { font: 700 13px var(--rd-font); color: var(--rd-text-2); white-space: nowrap; }
+.rd-onb__list { display: grid; gap: 12px; }
+.rd-step {
+  display: flex; align-items: center; gap: 16px; padding: 18px 20px;
+  border: 1px solid var(--rd-line); border-radius: var(--rd-r-lg);
+  background: var(--rd-surface); box-shadow: var(--rd-shadow-1);
+}
+.rd-step__icon {
+  display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 50%;
+  border: 2px solid var(--rd-line-strong); color: var(--rd-text-3); font: 700 14px var(--rd-font);
+}
+.rd-step--done .rd-step__icon { border-color: var(--rd-brand-500); background: var(--rd-brand-500); color: #fff; }
+.rd-step__copy { flex: 1; min-width: 0; }
+.rd-step__copy strong { display: block; font-size: 15px; }
+.rd-step__copy span { display: block; margin-top: 2px; color: var(--rd-text-2); font-size: 13px; line-height: 1.45; }
+.rd-onb__done {
+  margin-top: 18px; padding: 20px; border-radius: var(--rd-r-lg);
+  background: var(--rd-brand-50); border: 1px solid var(--rd-line);
+}
+.rd-onb__done strong { display: block; font-size: 16px; }
+.rd-onb__done p { margin: 4px 0 14px; color: var(--rd-text-2); font-size: 14px; }
+.rd-onb__error { padding: 14px 16px; border-radius: var(--rd-r-md); background: var(--rd-risk-bg); color: var(--rd-risk); font-size: 14px; }
+
+/* ---------- sidebar: estado real da conta e sair ---------- */
+.sidebar-account-status.is-offline { background: var(--rd-line-strong); box-shadow: none; }
+.rd-logout {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+  min-height: 40px; margin-top: 8px; border: 1px solid var(--rd-line); border-radius: 11px;
+  background: transparent; color: var(--rd-text-2); font: 600 13px var(--rd-font); cursor: pointer;
+}
+.rd-logout:hover { background: var(--rd-surface-2); color: var(--rd-text); }
+.sidebar.is-collapsed .rd-logout span { display: none; }

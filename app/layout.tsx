@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./styles/radar-theme.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://radar.optarys.com.br"),

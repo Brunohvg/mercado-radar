@@ -1,103 +1,121 @@
-import bcrypt from "bcryptjs";
+import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
+import { adminSessionSecret } from "@/lib/admin-token";
 
-type Attempt = {
-  count: number;
-  firstAt: number;
-  blockedUntil: number | null;
-};
+/**
+ * Credenciais do operador (painel web single-tenant).
+ *
+ * ADMIN_EMAIL            e-mail de login
+ * ADMIN_PASSWORD_HASH    gerado por `node scripts/hash-password.mjs`
+ *                        formato: scrypt:<salt base64url>:<hash base64url>
+ *                        (sem '$' de propósito: Docker Compose/Coolify interpolam '$')
+ * ADMIN_SESSION_SECRET   segredo (>= 32 caracteres) que assina o cookie
+ */
+const KEY_LENGTH = 64;
+const MIN_SECRET_LENGTH = 32;
 
-const WINDOW_MS = 15 * 60 * 1000;
-const MAX_ATTEMPTS = 5;
-const BLOCK_MS = 15 * 60 * 1000;
+const BCRYPT_PREFIX = /^\$2[aby]\$/;
 
-const attempts = new Map<string, Attempt>();
-
-function credentials() {
-  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  const passwordHash = process.env.ADMIN_PASSWORD_HASH?.trim();
-
-  if (!email || !passwordHash) {
-    throw new Error(
-      "ADMIN_EMAIL e ADMIN_PASSWORD_HASH precisam estar configurados.",
-    );
-  }
-
-  return { email, passwordHash };
+function isSupportedHash(hash: string) {
+  return hash.startsWith("scrypt:") || BCRYPT_PREFIX.test(hash);
 }
 
-export function adminAuthConfigured() {
-  return Boolean(
-    process.env.ADMIN_EMAIL?.trim() &&
-      process.env.ADMIN_PASSWORD_HASH?.trim() &&
-      process.env.APP_ENCRYPTION_KEY?.trim(),
+async function verifyBcrypt(password: string, hash: string) {
+  // Compatibilidade com hashes bcrypt já configurados. Carrega sob demanda.
+  const bcrypt = await import("bcryptjs");
+  return bcrypt.compare(password, hash);
+}
+
+export function adminAuthConfig() {
+  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase() ?? "";
+  const passwordHash = process.env.ADMIN_PASSWORD_HASH?.trim() ?? "";
+  const secret = adminSessionSecret();
+
+  return {
+    email,
+    passwordHash,
+    secret,
+    configured:
+      Boolean(email) &&
+      isSupportedHash(passwordHash) &&
+      secret.length >= MIN_SECRET_LENGTH,
+  };
+}
+
+function scryptAsync(password: string, salt: Buffer) {
+  return new Promise<Buffer>((resolve, reject) => {
+    scrypt(password, salt, KEY_LENGTH, (error, derived) => {
+      if (error) reject(error);
+      else resolve(derived);
+    });
+  });
+}
+
+export async function hashPassword(password: string) {
+  const salt = randomBytes(16);
+  const derived = await scryptAsync(password, salt);
+  return `scrypt:${salt.toString("base64url")}:${derived.toString("base64url")}`;
+}
+
+export async function verifyAdminCredentials(email: string, password: string) {
+  const config = adminAuthConfig();
+  if (!config.configured) return false;
+
+  if (BCRYPT_PREFIX.test(config.passwordHash)) {
+    const passwordOk = await verifyBcrypt(password, config.passwordHash);
+    const emailOk = email.trim().toLowerCase() === config.email;
+    return passwordOk && emailOk;
+  }
+
+  const [, saltRaw, hashRaw] = config.passwordHash.split(":");
+  if (!saltRaw || !hashRaw) return false;
+
+  // Sempre calcula o scrypt, mesmo com e-mail errado, para não vazar por tempo.
+  const derived = await scryptAsync(password, Buffer.from(saltRaw, "base64url"));
+  const expected = Buffer.from(hashRaw, "base64url");
+
+  const passwordOk =
+    derived.length === expected.length && timingSafeEqual(derived, expected);
+  const emailOk = email.trim().toLowerCase() === config.email;
+
+  return passwordOk && emailOk;
+}
+
+/* ---------- limite de tentativas (memória do processo) ---------- */
+const WINDOW_MS = 15 * 60 * 1000;
+const MAX_PER_IP = 5;
+const MAX_GLOBAL = 30;
+
+const failures = new Map<string, { count: number; resetAt: number }>();
+
+function bump(key: string, now: number) {
+  const current = failures.get(key);
+  if (!current || current.resetAt <= now) {
+    failures.set(key, { count: 1, resetAt: now + WINDOW_MS });
+    return;
+  }
+  current.count += 1;
+}
+
+export function loginBlocked(ip: string, now = Date.now()) {
+  const byIp = failures.get(ip);
+  const global = failures.get("*");
+  return (
+    (byIp && byIp.resetAt > now && byIp.count >= MAX_PER_IP) ||
+    (global && global.resetAt > now && global.count >= MAX_GLOBAL)
   );
 }
 
-export function loginAttemptKey(ip: string, email: string) {
-  return `${ip || "unknown"}:${email.trim().toLowerCase()}`;
+export function registerLoginFailure(ip: string, now = Date.now()) {
+  bump(ip, now);
+  bump("*", now);
 }
 
-export function getLoginRateLimit(key: string) {
-  const now = Date.now();
-  const current = attempts.get(key);
-
-  if (!current) {
-    return { blocked: false, retryAfterSeconds: 0 };
-  }
-
-  if (current.blockedUntil && current.blockedUntil > now) {
-    return {
-      blocked: true,
-      retryAfterSeconds: Math.ceil((current.blockedUntil - now) / 1000),
-    };
-  }
-
-  if (now - current.firstAt > WINDOW_MS) {
-    attempts.delete(key);
-    return { blocked: false, retryAfterSeconds: 0 };
-  }
-
-  return { blocked: false, retryAfterSeconds: 0 };
+export function clearLoginFailures(ip: string) {
+  failures.delete(ip);
 }
 
-export function registerLoginFailure(key: string) {
-  const now = Date.now();
-  const current = attempts.get(key);
-
-  if (!current || now - current.firstAt > WINDOW_MS) {
-    attempts.set(key, {
-      count: 1,
-      firstAt: now,
-      blockedUntil: null,
-    });
-    return;
-  }
-
-  current.count += 1;
-  if (current.count >= MAX_ATTEMPTS) {
-    current.blockedUntil = now + BLOCK_MS;
-  }
-  attempts.set(key, current);
-}
-
-export function clearLoginFailures(key: string) {
-  attempts.delete(key);
-}
-
-export async function verifyAdminCredentials(input: {
-  email: string;
-  password: string;
-}) {
-  const { email, passwordHash } = credentials();
-  const candidateEmail = input.email.trim().toLowerCase();
-
-  if (candidateEmail !== email) {
-    return false;
-  }
-
-  if (!input.password || bcrypt.truncates(input.password)) {
-    return false;
-  }
-
-  return bcrypt.compare(input.password, passwordHash);
+export function clientIp(request: Request) {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0].trim() || "unknown";
+  return request.headers.get("x-real-ip")?.trim() || "unknown";
 }

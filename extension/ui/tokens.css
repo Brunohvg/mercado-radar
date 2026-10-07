@@ -1,0 +1,39 @@
+/* Mercado Radar — design tokens (fonte única; espelha app/styles/tokens.css do painel web) */
+:root,
+.rr {
+  --brand-700: #0b5a49;
+  --brand-600: #0f725e;
+  --brand-500: #18967a;
+  --brand-100: #e7f6f1;
+  --brand-50: #f3fbf8;
+
+  --bg: #f7f9f8;
+  --surface: #ffffff;
+  --surface-2: #f2f6f4;
+  --line: #e3eae7;
+  --line-strong: #cfdad6;
+
+  --text: #17342d;
+  --text-2: #51665f;
+  --text-3: #7f918a;
+
+  --ok: #18967a;
+  --ok-bg: #e7f6f1;
+  --warn: #b87408;
+  --warn-bg: #fdf3df;
+  --risk: #c8402f;
+  --risk-bg: #fdebe8;
+  --info: #2f6feb;
+  --info-bg: #e9f0fe;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  --shadow-1: 0 1px 2px rgba(23, 52, 45, 0.06);
+  --shadow-2: 0 8px 24px rgba(23, 52, 45, 0.1);
+
+  --font: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system,
+    sans-serif;
+}

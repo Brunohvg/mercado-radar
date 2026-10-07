@@ -1,135 +1,75 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { z } from "zod";
 import {
-  adminAuthConfigured,
+  adminAuthConfig,
   clearLoginFailures,
-  getLoginRateLimit,
-  loginAttemptKey,
+  clientIp,
+  loginBlocked,
   registerLoginFailure,
   verifyAdminCredentials,
 } from "@/lib/admin-auth";
 import {
-  ADMIN_SESSION_COOKIE,
-  ADMIN_SESSION_MAX_AGE,
-  createAdminSessionToken,
-} from "@/lib/admin-session";
+  ADMIN_COOKIE,
+  ADMIN_SESSION_SECONDS,
+  signAdminSession,
+} from "@/lib/admin-token";
 
-function safeNext(value: string | null) {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/";
-  return value;
-}
+export const dynamic = "force-dynamic";
 
-function clientIp(request: Request) {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip")?.trim() ||
-    "unknown"
-  );
-}
+const schema = z.object({
+  email: z.string().trim().min(3).max(200),
+  password: z.string().min(1).max(500),
+});
 
 export async function POST(request: Request) {
-  if (!adminAuthConfigured()) {
+  const config = adminAuthConfig();
+
+  if (!config.configured) {
     return NextResponse.json(
-      { error: "Login administrativo não configurado no ambiente." },
+      {
+        error:
+          "Login não configurado. Defina ADMIN_EMAIL e ADMIN_PASSWORD_HASH (e, opcionalmente, ADMIN_SESSION_SECRET; sem ele usa APP_ENCRYPTION_KEY).",
+      },
       { status: 503 },
     );
   }
 
-  const contentType = request.headers.get("content-type") ?? "";
-  let email = "";
-  let password = "";
-  let next = "/";
+  const ip = clientIp(request);
 
-  if (contentType.includes("application/json")) {
-    const body = await request.json().catch(() => ({}));
-    email = String(body?.email ?? "");
-    password = String(body?.password ?? "");
-    next = safeNext(String(body?.next ?? "/"));
-  } else {
-    const body = await request.formData();
-    email = String(body.get("email") ?? "");
-    password = String(body.get("password") ?? "");
-    next = safeNext(String(body.get("next") ?? "/"));
+  if (loginBlocked(ip)) {
+    return NextResponse.json(
+      { error: "Muitas tentativas. Aguarde alguns minutos e tente de novo." },
+      { status: 429 },
+    );
   }
 
-  const key = loginAttemptKey(clientIp(request), email);
-  const limit = getLoginRateLimit(key);
-
-  if (limit.blocked) {
-    const response = contentType.includes("application/json")
-      ? NextResponse.json(
-          { error: "Muitas tentativas. Tente novamente mais tarde." },
-          { status: 429 },
-        )
-      : NextResponse.redirect(
-          new URL(
-            `/login?error=rate_limited&next=${encodeURIComponent(next)}`,
-            request.url,
-          ),
-          303,
-        );
-
-    response.headers.set("Retry-After", String(limit.retryAfterSeconds));
-    return response;
+  const parsed = schema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Informe e-mail e senha." }, { status: 400 });
   }
 
-  const valid = await verifyAdminCredentials({ email, password });
+  const ok = await verifyAdminCredentials(
+    parsed.data.email,
+    parsed.data.password,
+  );
 
-  if (!valid) {
-    registerLoginFailure(key);
-    return contentType.includes("application/json")
-      ? NextResponse.json({ error: "E-mail ou senha inválidos." }, { status: 401 })
-      : NextResponse.redirect(
-          new URL(
-            `/login?error=invalid_credentials&next=${encodeURIComponent(next)}`,
-            request.url,
-          ),
-          303,
-        );
+  if (!ok) {
+    registerLoginFailure(ip);
+    return NextResponse.json(
+      { error: "E-mail ou senha inválidos." },
+      { status: 401 },
+    );
   }
 
-  const accounts = await prisma.mercadoLivreAccount.findMany({
-    select: { id: true },
-    orderBy: { createdAt: "asc" },
-    take: 2,
-  });
+  clearLoginFailures(ip);
 
-  if (accounts.length > 1) {
-    return contentType.includes("application/json")
-      ? NextResponse.json(
-          {
-            error:
-              "Há mais de uma conta Mercado Livre conectada. Defina o contexto de conta antes de continuar.",
-          },
-          { status: 409 },
-        )
-      : NextResponse.redirect(
-          new URL(
-            `/login?error=multiple_accounts&next=${encodeURIComponent(next)}`,
-            request.url,
-          ),
-          303,
-        );
-  }
-
-  clearLoginFailures(key);
-
-  const configuredEmail = process.env.ADMIN_EMAIL!.trim().toLowerCase();
-  const token = createAdminSessionToken({
-    email: configuredEmail,
-    accountId: accounts[0]?.id ?? null,
-  });
-
-  const response = contentType.includes("application/json")
-    ? NextResponse.json({ ok: true, next })
-    : NextResponse.redirect(new URL(next, request.url), 303);
-
-  response.cookies.set(ADMIN_SESSION_COOKIE, token, {
+  const response = NextResponse.json({ ok: true });
+  response.cookies.set(ADMIN_COOKIE, await signAdminSession(config.secret), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: ADMIN_SESSION_MAX_AGE,
+    maxAge: ADMIN_SESSION_SECONDS,
   });
 
   return response;

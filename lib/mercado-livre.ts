@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { decryptSecret, encryptSecret } from "@/lib/security";
 
@@ -20,65 +22,204 @@ function credentials() {
   return { clientId, clientSecret };
 }
 
-async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
-  try {
-    const response = await fetch(url, {
-      ...init,
-      cache: "no-store",
-      signal: AbortSignal.timeout(12000),
+type JsonFetchOptions = {
+  allowRetry?: boolean;
+};
+
+type MlLimiter = {
+  active: number;
+  queue: Array<() => void>;
+};
+
+const mlLimiters = new Map<string, MlLimiter>();
+const mlGetCache = new Map<
+  string,
+  { expiresAt: number; value: unknown }
+>();
+
+function authScopeKey(init?: RequestInit) {
+  const authorization = new Headers(init?.headers).get("authorization");
+  if (!authorization) return "public";
+
+  return createHash("sha256")
+    .update(authorization)
+    .digest("hex")
+    .slice(0, 20);
+}
+
+function isCacheableGet(url: string, init?: RequestInit) {
+  const method = (init?.method ?? "GET").toUpperCase();
+  if (method !== "GET") return false;
+
+  const pathname = new URL(url).pathname;
+  return (
+    pathname === "/items/bulk" ||
+    pathname === "/visits/items" ||
+    /^\/products\/[^/]+$/.test(pathname)
+  );
+}
+
+async function withMlConcurrency<T>(
+  key: string,
+  task: () => Promise<T>,
+): Promise<T> {
+  const limiter = mlLimiters.get(key) ?? { active: 0, queue: [] };
+  mlLimiters.set(key, limiter);
+
+  if (limiter.active >= 4) {
+    await new Promise<void>((resolve) => {
+      limiter.queue.push(resolve);
     });
-    const body = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      const apiMessage =
-        typeof body?.message === "string"
-          ? body.message
-          : `Mercado Livre respondeu HTTP ${response.status}`;
-
-      if (response.status === 401) {
-        throw new Error(
-          "A autorização do Mercado Livre expirou ou foi revogada. Reconecte a conta em Integrações.",
-        );
-      }
-
-      if (response.status === 403) {
-        throw new Error(
-          "O Mercado Livre negou acesso a este recurso. A conta está conectada, mas o aplicativo precisa da permissão correspondente. Revise a integração do Mercado Livre.",
-        );
-      }
-
-      if (response.status === 429) {
-        throw new Error(
-          "O Mercado Livre limitou temporariamente as consultas. O Radar tentará novamente quando o limite liberar.",
-        );
-      }
-
-      if (response.status >= 500) {
-        throw new Error(
-          "O Mercado Livre está temporariamente indisponível para esta consulta. Tente novamente em alguns instantes.",
-        );
-      }
-
-      throw new Error(
-        apiMessage === "forbidden"
-          ? "O Mercado Livre não autorizou esta consulta para o aplicativo conectado."
-          : apiMessage,
-      );
-    }
-
-    return body as T;
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      (error.name === "TimeoutError" || error.name === "AbortError")
-    ) {
-      throw new Error(
-        "O Mercado Livre demorou demais para responder. Tente novamente em alguns segundos.",
-      );
-    }
-
-    throw error;
   }
+
+  limiter.active += 1;
+
+  try {
+    return await task();
+  } finally {
+    limiter.active -= 1;
+    const next = limiter.queue.shift();
+    if (next) {
+      next();
+    } else if (limiter.active === 0) {
+      mlLimiters.delete(key);
+    }
+  }
+}
+
+function retryAfterMs(response: Response, attempt: number) {
+  const value = response.headers.get("retry-after");
+
+  if (value) {
+    const seconds = Number(value);
+    if (Number.isFinite(seconds) && seconds >= 0) {
+      return Math.min(seconds * 1000, 30_000);
+    }
+
+    const date = Date.parse(value);
+    if (Number.isFinite(date)) {
+      return Math.min(Math.max(0, date - Date.now()), 30_000);
+    }
+  }
+
+  const exponential = Math.min(500 * 2 ** attempt, 4_000);
+  const jitter = Math.floor(Math.random() * 250);
+  return exponential + jitter;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function apiError(response: Response, body: any) {
+  const apiMessage =
+    typeof body?.message === "string"
+      ? body.message
+      : `Mercado Livre respondeu HTTP ${response.status}`;
+
+  if (response.status === 401) {
+    return new Error(
+      "A autorização do Mercado Livre expirou ou foi revogada. Reconecte a conta em Integrações.",
+    );
+  }
+
+  if (response.status === 403) {
+    return new Error(
+      "O Mercado Livre negou acesso a este recurso. Revise a capacidade correspondente no diagnóstico da integração.",
+    );
+  }
+
+  if (response.status === 429) {
+    return new Error(
+      "O Mercado Livre limitou temporariamente as consultas. Tente novamente em alguns instantes.",
+    );
+  }
+
+  if (response.status >= 500) {
+    return new Error(
+      "O Mercado Livre está temporariamente indisponível para esta consulta. Tente novamente em alguns instantes.",
+    );
+  }
+
+  return new Error(
+    apiMessage === "forbidden"
+      ? "O Mercado Livre não autorizou esta consulta para o aplicativo conectado."
+      : apiMessage,
+  );
+}
+
+async function jsonFetch<T>(
+  url: string,
+  init?: RequestInit,
+  options: JsonFetchOptions = {},
+): Promise<T> {
+  const scopeKey = authScopeKey(init);
+  const cacheable = isCacheableGet(url, init);
+  const cacheKey = `${scopeKey}:${url}`;
+
+  if (cacheable) {
+    const cached = mlGetCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value as T;
+    }
+    if (cached) mlGetCache.delete(cacheKey);
+  }
+
+  return withMlConcurrency(scopeKey, async () => {
+    if (cacheable) {
+      const cached = mlGetCache.get(cacheKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        return cached.value as T;
+      }
+    }
+
+    const allowRetry = options.allowRetry !== false;
+    const maxAttempts = allowRetry ? 3 : 1;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      let response: Response;
+
+      try {
+        response = await fetch(url, {
+          ...init,
+          cache: "no-store",
+          signal: AbortSignal.timeout(12000),
+        });
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          (error.name === "TimeoutError" || error.name === "AbortError")
+        ) {
+          throw new Error(
+            "O Mercado Livre demorou demais para responder. Tente novamente em alguns segundos.",
+          );
+        }
+        throw error;
+      }
+
+      const body = await response.json().catch(() => ({}));
+
+      if (response.ok) {
+        if (cacheable) {
+          mlGetCache.set(cacheKey, {
+            value: body,
+            expiresAt: Date.now() + 60_000,
+          });
+        }
+        return body as T;
+      }
+
+      const retryable = response.status === 429 || response.status >= 500;
+      if (retryable && attempt < maxAttempts - 1) {
+        await sleep(retryAfterMs(response, attempt));
+        continue;
+      }
+
+      throw apiError(response, body);
+    }
+
+    throw new Error("Mercado Livre não respondeu após as tentativas previstas.");
+  });
 }
 
 export async function exchangeAuthorizationCode(input: {
@@ -102,11 +243,15 @@ export async function exchangeAuthorizationCode(input: {
     expires_in: number;
     user_id: number;
     scope?: string;
-  }>(`${API}/oauth/token`, {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body,
-  });
+  }>(
+    `${API}/oauth/token`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body,
+    },
+    { allowRetry: false },
+  );
 }
 
 export async function fetchCurrentUser(accessToken: string) {
@@ -129,11 +274,15 @@ async function refreshAccessToken(refreshToken: string) {
     refresh_token?: string;
     expires_in: number;
     scope?: string;
-  }>(`${API}/oauth/token`, {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body,
-  });
+  }>(
+    `${API}/oauth/token`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body,
+    },
+    { allowRetry: false },
+  );
 }
 
 export async function saveMlAccount(input: {
@@ -164,7 +313,7 @@ export async function saveMlAccount(input: {
   });
 }
 
-async function buildMlSession(account: {
+type StoredMlAccount = {
   id: string;
   mercadoLivreUserId: string;
   nickname: string | null;
@@ -174,7 +323,16 @@ async function buildMlSession(account: {
   scopes: string | null;
   createdAt: Date;
   updatedAt: Date;
-}) {
+};
+
+type MlSession = {
+  account: StoredMlAccount;
+  accessToken: string;
+};
+
+const refreshLocks = new Map<string, Promise<MlSession>>();
+
+async function buildMlSession(account: StoredMlAccount): Promise<MlSession> {
   if (account.tokenExpiresAt.getTime() > Date.now() + 5 * 60 * 1000) {
     return {
       account,
@@ -182,35 +340,99 @@ async function buildMlSession(account: {
     };
   }
 
-  const refreshed = await refreshAccessToken(
-    decryptSecret(account.refreshTokenEncrypted),
-  );
+  const existing = refreshLocks.get(account.id);
+  if (existing) return existing;
 
-  const updated = await prisma.mercadoLivreAccount.update({
-    where: { id: account.id },
-    data: {
-      accessTokenEncrypted: encryptSecret(refreshed.access_token),
-      refreshTokenEncrypted: refreshed.refresh_token
-        ? encryptSecret(refreshed.refresh_token)
-        : account.refreshTokenEncrypted,
-      tokenExpiresAt: new Date(Date.now() + refreshed.expires_in * 1000),
-      scopes: refreshed.scope ?? account.scopes,
-    },
-  });
+  const refreshPromise = (async () => {
+    const latest = await prisma.mercadoLivreAccount.findUnique({
+      where: { id: account.id },
+    });
 
-  return { account: updated, accessToken: refreshed.access_token };
+    if (!latest) {
+      throw new Error("Conta do Mercado Livre não encontrada.");
+    }
+
+    if (latest.tokenExpiresAt.getTime() > Date.now() + 5 * 60 * 1000) {
+      return {
+        account: latest,
+        accessToken: decryptSecret(latest.accessTokenEncrypted),
+      };
+    }
+
+    const refreshed = await refreshAccessToken(
+      decryptSecret(latest.refreshTokenEncrypted),
+    );
+
+    const updated = await prisma.mercadoLivreAccount.update({
+      where: { id: latest.id },
+      data: {
+        accessTokenEncrypted: encryptSecret(refreshed.access_token),
+        refreshTokenEncrypted: refreshed.refresh_token
+          ? encryptSecret(refreshed.refresh_token)
+          : latest.refreshTokenEncrypted,
+        tokenExpiresAt: new Date(Date.now() + refreshed.expires_in * 1000),
+        scopes: refreshed.scope ?? latest.scopes,
+      },
+    });
+
+    return {
+      account: updated,
+      accessToken: refreshed.access_token,
+    };
+  })();
+
+  refreshLocks.set(account.id, refreshPromise);
+
+  try {
+    return await refreshPromise;
+  } finally {
+    if (refreshLocks.get(account.id) === refreshPromise) {
+      refreshLocks.delete(account.id);
+    }
+  }
+}
+
+async function requestAccountId() {
+  try {
+    return (await headers()).get("x-radar-account-id");
+  } catch {
+    return null;
+  }
 }
 
 export async function getMlSession() {
-  const account = await prisma.mercadoLivreAccount.findFirst({
-    orderBy: { updatedAt: "desc" },
+  const accountId = await requestAccountId();
+
+  if (accountId) {
+    const account = await prisma.mercadoLivreAccount.findUnique({
+      where: { id: accountId },
+    });
+
+    if (!account) {
+      throw new Error(
+        "A conta Mercado Livre da sessão não existe mais. Entre novamente.",
+      );
+    }
+
+    return buildMlSession(account);
+  }
+
+  const accounts = await prisma.mercadoLivreAccount.findMany({
+    orderBy: { createdAt: "asc" },
+    take: 2,
   });
 
-  if (!account) {
+  if (accounts.length === 0) {
     throw new Error("Conta do Mercado Livre ainda não conectada.");
   }
 
-  return buildMlSession(account);
+  if (accounts.length > 1) {
+    throw new Error(
+      "Há mais de uma conta Mercado Livre conectada e nenhum accountId foi definido no contexto. O Radar não selecionará uma conta automaticamente.",
+    );
+  }
+
+  return buildMlSession(accounts[0]);
 }
 
 export async function getMlSessionForAccount(accountId: string) {
@@ -402,18 +624,10 @@ export async function searchMarketplace(input: {
     }>;
   };
 
-  let raw: MarketplaceSearchResponse;
-
-  try {
-    raw = await jsonFetch<MarketplaceSearchResponse>(
-      `${API}/sites/MLB/search?${params.toString()}`,
-      { headers: { Authorization: `Bearer ${input.accessToken}` } },
-    );
-  } catch {
-    raw = await jsonFetch<MarketplaceSearchResponse>(
-      `${API}/sites/MLB/search?${params.toString()}`,
-    );
-  }
+  const raw = await jsonFetch<MarketplaceSearchResponse>(
+    `${API}/sites/MLB/search?${params.toString()}`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
 
   return (raw.results ?? [])
     .filter((item) => item.id && item.title)

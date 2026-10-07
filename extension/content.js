@@ -1,9 +1,12 @@
 const state = {
   lastUrl: location.href,
+  lastSearchKey: null,
   running: false,
+  pending: false,
   items: [],
   searchMatches: [],
   profitabilityLoaded: false,
+  observerTarget: null,
 };
 
 function normalize(value) {
@@ -13,6 +16,88 @@ function normalize(value) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+function hashString(value) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function isRadarOwnedNode(node) {
+  if (!(node instanceof Element)) return false;
+  return (
+    node.matches("[data-radar-owned='1']") ||
+    Boolean(node.closest("[data-radar-owned='1']"))
+  );
+}
+
+function mutationIsOnlyRadarOwned(mutation) {
+  if (isRadarOwnedNode(mutation.target)) return true;
+
+  const changed = [
+    ...mutation.addedNodes,
+    ...mutation.removedNodes,
+  ].filter((node) => node.nodeType === Node.ELEMENT_NODE);
+
+  return changed.length > 0 && changed.every(isRadarOwnedNode);
+}
+
+let resultsObserver = null;
+
+function resultsContainer(cards = findSearchCards()) {
+  if (!cards.length) return null;
+
+  const parents = new Set(
+    cards.map((card) => card.parentElement).filter(Boolean),
+  );
+
+  if (parents.size === 1) return [...parents][0];
+
+  return (
+    cards[0]?.closest(".ui-search-layout") ||
+    cards[0]?.closest("[class*='ui-search-layout']") ||
+    cards[0]?.parentElement ||
+    null
+  );
+}
+
+function scheduleEnrich() {
+  clearTimeout(window.__mercadoRadarTimer);
+  window.__mercadoRadarTimer = setTimeout(() => {
+    void enrichSearch();
+  }, 800);
+}
+
+function attachResultsObserver() {
+  const target = resultsContainer();
+  if (!target) {
+    resultsObserver?.disconnect();
+    state.observerTarget = null;
+    return;
+  }
+
+  if (state.observerTarget === target) return;
+
+  resultsObserver?.disconnect();
+  state.observerTarget = target;
+  resultsObserver?.observe(target, {
+    childList: true,
+    subtree: true,
+  });
+}
+
+function withResultsObserverPaused(callback) {
+  resultsObserver?.disconnect();
+  try {
+    callback();
+  } finally {
+    state.observerTarget = null;
+    attachResultsObserver();
+  }
 }
 
 function money(value) {
@@ -253,12 +338,14 @@ function ensureBadge(card, item, visiblePrice) {
   ].join("");
 
   if (existing) {
+    existing.dataset.radarOwned = "1";
     existing.innerHTML = html;
     return;
   }
 
   const box = document.createElement("div");
   box.className = "mercado-radar-card";
+  box.dataset.radarOwned = "1";
   box.innerHTML = html;
   card.appendChild(box);
 }
@@ -276,6 +363,7 @@ function applyMyEconomicsToCard(card, economics) {
     row = document.createElement("div");
     row.className =
       "mercado-radar-card__row mercado-radar-card__my-economics";
+    row.dataset.radarOwned = "1";
     box.appendChild(row);
   }
 
@@ -595,7 +683,9 @@ function applyFilters() {
     return Number(a.dataset.radarOriginalIndex || 0) - Number(b.dataset.radarOriginalIndex || 0);
   });
 
-  sorted.forEach((card) => parent.appendChild(card));
+  withResultsObserverPaused(() => {
+    sorted.forEach((card) => parent.appendChild(card));
+  });
 }
 
 function mountFilterPanel() {
@@ -607,6 +697,7 @@ function mountFilterPanel() {
   const panel = document.createElement("section");
   panel.id = "mercado-radar-filters";
   panel.className = "mercado-radar-filters";
+  panel.dataset.radarOwned = "1";
   panel.innerHTML = filterMarkup();
 
   const sidebar =
@@ -653,38 +744,63 @@ function publishContext() {
 }
 
 async function enrichSearch() {
-  if (state.running) return;
+  if (state.running) {
+    state.pending = true;
+    return;
+  }
 
   const query = extractSearchQuery();
   const cards = findSearchCards();
+
   if (!query || cards.length < 2) {
+    state.lastSearchKey = null;
     publishContext();
+    attachResultsObserver();
+    return;
+  }
+
+  const observedItems = cards
+    .map((card, index) => {
+      const id = getCardReference(card);
+      if (!id || !/^MLB\d+$/i.test(id)) return null;
+
+      const shipping = getCardShippingSignals(card);
+
+      return {
+        id,
+        title: getCardTitle(card),
+        price: getCardPrice(card),
+        position: index + 1,
+        soldQuantityLowerBound: getCardSoldQuantityLowerBound(card),
+        freeShipping: shipping.freeShipping,
+        logisticType: shipping.logisticType,
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 50);
+
+  if (!observedItems.length) {
+    publishContext();
+    attachResultsObserver();
+    return;
+  }
+
+  const dedupeKey = hashString(
+    normalize(query) +
+      "|" +
+      observedItems.map((item) => item.id).join("|"),
+  );
+
+  if (state.lastSearchKey === dedupeKey) {
+    attachResultsObserver();
     return;
   }
 
   state.running = true;
+  state.pending = false;
+  state.lastSearchKey = dedupeKey;
 
   try {
-    const observedItems = cards
-      .map((card, index) => {
-        const id = getCardReference(card);
-        if (!id || !/^MLB\d+$/i.test(id)) return null;
-
-        const shipping = getCardShippingSignals(card);
-
-        return {
-          id,
-          title: getCardTitle(card),
-          price: getCardPrice(card),
-          position: index + 1,
-          soldQuantityLowerBound: getCardSoldQuantityLowerBound(card),
-          freeShipping: shipping.freeShipping,
-          logisticType: shipping.logisticType,
-        };
-      })
-      .filter(Boolean)
-      .slice(0, 50);
-
     const response = await chrome.runtime.sendMessage({
       type: "RADAR_FETCH",
       path: "/api/extension/search",
@@ -695,7 +811,10 @@ async function enrichSearch() {
       },
     });
 
-    if (!response?.ok || !Array.isArray(response.body?.items)) return;
+    if (!response?.ok || !Array.isArray(response.body?.items)) {
+      publishContext();
+      return;
+    }
 
     state.items = response.body.items;
     const matches = matchItems(cards, state.items);
@@ -711,26 +830,40 @@ async function enrichSearch() {
     publishContext();
   } finally {
     state.running = false;
+    attachResultsObserver();
+
+    if (state.pending) {
+      state.pending = false;
+      scheduleEnrich();
+    }
   }
 }
 
-const observer = new MutationObserver(() => {
-  if (location.href !== state.lastUrl) {
-    state.lastUrl = location.href;
-    document.getElementById("mercado-radar-filters")?.remove();
-    state.searchMatches = [];
-    state.profitabilityLoaded = false;
-    publishContext();
+resultsObserver = new MutationObserver((mutations) => {
+  if (mutations.length && mutations.every(mutationIsOnlyRadarOwned)) {
+    return;
   }
 
-  clearTimeout(window.__mercadoRadarTimer);
-  window.__mercadoRadarTimer = setTimeout(enrichSearch, 700);
+  scheduleEnrich();
 });
 
-observer.observe(document.documentElement, {
-  childList: true,
-  subtree: true,
-});
+function handleUrlAndObserver() {
+  if (location.href !== state.lastUrl) {
+    state.lastUrl = location.href;
+    state.lastSearchKey = null;
+    state.searchMatches = [];
+    state.profitabilityLoaded = false;
+    document.getElementById("mercado-radar-filters")?.remove();
+    publishContext();
+    scheduleEnrich();
+  }
+
+  attachResultsObserver();
+}
+
+window.setInterval(handleUrlAndObserver, 800);
 
 publishContext();
-enrichSearch();
+attachResultsObserver();
+void enrichSearch();
+

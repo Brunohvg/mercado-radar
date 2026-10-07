@@ -22,6 +22,10 @@ function psString(value: string) {
 }
 
 export async function GET() {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   try {
     const root = path.join(process.cwd(), "extension");
     const files = await Promise.all(

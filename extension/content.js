@@ -76,6 +76,32 @@ function getCardPrice(card) {
   return parseMoneyAmount(preferred);
 }
 
+function parseCompactSoldQuantity(text) {
+  const normalized = normalize(text);
+  const match = normalized.match(/\+?\s*(\d+(?:[.,]\d+)?)\s*(mil|k)?\s+vendid/);
+  if (!match) return null;
+
+  const numeric = Number(String(match[1]).replace(",", "."));
+  if (!Number.isFinite(numeric)) return null;
+
+  const multiplier = match[2] === "mil" || match[2] === "k" ? 1000 : 1;
+  return Math.round(numeric * multiplier);
+}
+
+function getCardSoldQuantityLowerBound(card) {
+  return parseCompactSoldQuantity(card.textContent || "");
+}
+
+function getCardShippingSignals(card) {
+  const text = normalize(card.textContent || "");
+  return {
+    freeShipping: text.includes("frete gratis"),
+    logisticType: text.includes(" full") || text.startsWith("full")
+      ? "fulfillment"
+      : null,
+  };
+}
+
 function getPagePrice() {
   const containers = [
     document.querySelector(".ui-pdp-price__second-line"),
@@ -639,9 +665,34 @@ async function enrichSearch() {
   state.running = true;
 
   try {
+    const observedItems = cards
+      .map((card, index) => {
+        const id = getCardReference(card);
+        if (!id || !/^MLB\d+$/i.test(id)) return null;
+
+        const shipping = getCardShippingSignals(card);
+
+        return {
+          id,
+          title: getCardTitle(card),
+          price: getCardPrice(card),
+          position: index + 1,
+          soldQuantityLowerBound: getCardSoldQuantityLowerBound(card),
+          freeShipping: shipping.freeShipping,
+          logisticType: shipping.logisticType,
+        };
+      })
+      .filter(Boolean)
+      .slice(0, 50);
+
     const response = await chrome.runtime.sendMessage({
       type: "RADAR_FETCH",
-      path: "/api/extension/search?q=" + encodeURIComponent(query),
+      path: "/api/extension/search",
+      method: "POST",
+      body: {
+        query,
+        items: observedItems,
+      },
     });
 
     if (!response?.ok || !Array.isArray(response.body?.items)) return;

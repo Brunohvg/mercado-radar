@@ -93,6 +93,8 @@ model MercadoLivreAccount {
   scopes                String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+  extensionAccesses     RadarExtensionAccess[]
+  extensionAuthCodes    RadarExtensionAuthCode[]
 }
 
 model SyncRun {
@@ -136,6 +138,8 @@ model MercadoLivreNotification {
 model MarketSnapshot {
   id                String   @id @default(cuid())
   sellerUserId      String
+  mlItemId          String?
+  position          Int?
   query             String
   categoryId        String?
   resultCount       Int
@@ -153,6 +157,7 @@ model MarketSnapshot {
   createdAt         DateTime @default(now())
 
   @@index([sellerUserId, createdAt])
+  @@index([sellerUserId, mlItemId, createdAt])
   @@index([categoryId, createdAt])
   @@index([verdict, createdAt])
 }
@@ -167,6 +172,9 @@ model MercadoLivreProduct {
   categoryId        String?
   status            String
   listingTypeId     String?
+  catalogProductId  String?
+  userProductId     String?
+  listingCreatedAt  DateTime?
   currentPrice      Decimal? @db.Decimal(12, 2)
   availableQuantity Int      @default(0)
   soldQuantity      Int      @default(0)
@@ -184,6 +192,8 @@ model MercadoLivreProduct {
 
   @@index([sellerUserId, status])
   @@index([sellerUserId, soldQuantity])
+  @@index([catalogProductId])
+  @@index([userProductId])
   @@index([lastSyncedAt])
 }
 
@@ -236,4 +246,178 @@ model MercadoLivreOrderItem {
   @@index([orderId])
   @@index([mlItemId])
   @@index([sku])
+}
+
+
+model RadarWatchItem {
+  id             String   @id @default(cuid())
+  sellerUserId   String
+  mlItemId       String
+  referenceId    String?
+  title          String
+  permalink      String?
+  thumbnail      String?
+  currentPrice   Decimal? @db.Decimal(12, 2)
+  score          Int?
+  demandLabel    String?
+  soldQuantity   Int      @default(0)
+  visits         Int?
+  active         Boolean  @default(true)
+  lastCheckedAt  DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  snapshots      RadarWatchSnapshot[]
+  alerts         RadarAlert[]
+
+  @@unique([sellerUserId, mlItemId])
+  @@index([sellerUserId, active, updatedAt])
+}
+
+model RadarWatchSnapshot {
+  id           String         @id @default(cuid())
+  watchItemId  String
+  price        Decimal?       @db.Decimal(12, 2)
+  score        Int?
+  demandLabel  String?
+  soldQuantity Int            @default(0)
+  visits       Int?
+  capturedAt   DateTime       @default(now())
+  watchItem    RadarWatchItem @relation(fields: [watchItemId], references: [id], onDelete: Cascade)
+
+  @@index([watchItemId, capturedAt])
+}
+
+
+model RadarAlert {
+  id           String          @id @default(cuid())
+  sellerUserId String
+  watchItemId  String?
+  kind         String
+  severity     String          @default("INFO")
+  title        String
+  message      String
+  metadata     Json?
+  readAt       DateTime?
+  createdAt    DateTime        @default(now())
+  watchItem    RadarWatchItem? @relation(fields: [watchItemId], references: [id], onDelete: Cascade)
+
+  @@index([sellerUserId, readAt, createdAt])
+  @@index([watchItemId, createdAt])
+  @@index([kind, createdAt])
+}
+
+
+model RadarExtensionAccess {
+  id                    String   @id @default(cuid())
+  mercadoLivreAccountId String
+  deviceId              String
+  name                  String
+  tokenHash             String   @unique
+  plan                  String   @default("PRO")
+  dailyRequestLimit     Int      @default(5000)
+  capabilities          Json?
+  lastUsedAt            DateTime?
+  expiresAt             DateTime?
+  revokedAt             DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  account               MercadoLivreAccount @relation(fields: [mercadoLivreAccountId], references: [id], onDelete: Cascade)
+  usage                 RadarExtensionUsage[]
+
+  @@unique([mercadoLivreAccountId, deviceId])
+  @@index([mercadoLivreAccountId, revokedAt])
+  @@index([plan, createdAt])
+}
+
+model RadarExtensionAuthCode {
+  id                    String   @id @default(cuid())
+  codeHash              String   @unique
+  mercadoLivreAccountId String
+  codeChallenge         String
+  redirectUri           String
+  deviceId              String
+  deviceName            String?
+  expiresAt             DateTime
+  consumedAt            DateTime?
+  createdAt             DateTime @default(now())
+  account               MercadoLivreAccount @relation(fields: [mercadoLivreAccountId], references: [id], onDelete: Cascade)
+
+  @@index([mercadoLivreAccountId, expiresAt])
+  @@index([expiresAt, consumedAt])
+}
+
+model RadarExtensionUsage {
+  id        String   @id @default(cuid())
+  accessId  String
+  day       DateTime @db.Date
+  requests  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  access    RadarExtensionAccess @relation(fields: [accessId], references: [id], onDelete: Cascade)
+
+  @@unique([accessId, day])
+  @@index([day, requests])
+}
+
+
+/// Anúncio do Mercado Livre observado pelo Radar (de qualquer vendedor).
+/// Alimentado pela extensão (apenas o que a página aberta pelo usuário mostra)
+/// e pela sincronização oficial dos anúncios da própria conta.
+model MarketItem {
+  id                String               @id
+  title             String
+  permalink         String?
+  thumbnail         String?
+  catalogProductId  String?
+  categoryId        String?
+  sellerId          String?
+  sellerName        String?
+  condition         String?
+  lastPrice         Decimal?             @db.Decimal(12, 2)
+  lastOriginalPrice Decimal?             @db.Decimal(12, 2)
+  lastSoldLower     Int?
+  lastSoldUpper     Int?
+  lastSoldLabel     String?
+  lastReviews       Int?
+  lastRating        Decimal?             @db.Decimal(3, 2)
+  freeShipping      Boolean              @default(false)
+  fulfillment       Boolean              @default(false)
+  bestSellerRank    Int?
+  bestSellerLabel   String?
+  dateCreated       DateTime?
+  isOwn             Boolean              @default(false)
+  observationCount  Int                  @default(0)
+  lastSnapshotAt    DateTime?
+  firstSeenAt       DateTime             @default(now())
+  lastSeenAt        DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  snapshots         MarketItemSnapshot[]
+
+  @@index([lastSeenAt])
+  @@index([catalogProductId])
+  @@index([categoryId])
+  @@index([isOwn, lastSeenAt])
+}
+
+/// Uma leitura datada de um anúncio. A série destas leituras é o que permite
+/// medir vendas/dia por diferença no tempo, sem acesso privilegiado.
+model MarketItemSnapshot {
+  id             String     @id @default(cuid())
+  itemId         String
+  observedAt     DateTime   @default(now())
+  source         String
+  price          Decimal?   @db.Decimal(12, 2)
+  soldLower      Int?
+  soldUpper      Int?
+  soldExact      Int?
+  reviews        Int?
+  rating         Decimal?   @db.Decimal(3, 2)
+  bestSellerRank Int?
+  visitsTotal    Int?
+  searchQuery    String?
+  searchPosition Int?
+  item           MarketItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId, observedAt])
+  @@index([observedAt])
 }

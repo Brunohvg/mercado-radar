@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mercado Radar</title>
+  <link rel="stylesheet" href="ui/tokens.css" />
+  <link rel="stylesheet" href="ui/sidepanel.css" />
+</head>
+<body>
+  <main>
+    <div class="brand">
+      <div class="brand-copy">
+        <img src="icons/icon32.png" alt="" />
+        <div>
+          <strong>Mercado Radar</strong>
+          <small>Seller Intelligence</small>
+        </div>
+      </div>
+      <span class="pill">beta</span>
+    </div>
+
+    <div id="contextCard" class="card">
+      <div class="title">Anúncio atual</div>
+      <p class="muted">Abra um anúncio do Mercado Livre para carregar a análise.</p>
+    </div>
+
+    <div id="watchCard" class="card" hidden>
+      <div class="title">Acompanhar oportunidade</div>
+      <p class="muted">Salve este anúncio no Radar para acompanhar preço, score, demanda e evolução.</p>
+      <button id="watchButton">Monitorar este anúncio</button>
+      <p id="watchStatus" class="muted"></p>
+    </div>
+
+    <div id="analyticsCard" class="card" hidden>
+      <div class="title">Radar Analytics</div>
+      <div class="grid">
+        <div class="metric"><small>Score</small><strong id="score">—</strong></div>
+        <div class="metric"><small>Demanda</small><strong id="demand">—</strong></div>
+        <div class="metric"><small>Vendas/mês</small><strong id="salesMonth">—</strong></div>
+        <div class="metric"><small>Faturamento/mês</small><strong id="revenueMonth">—</strong></div>
+        <div class="metric"><small>Vendidos</small><strong id="sold">—</strong></div>
+        <div class="metric"><small>Idade</small><strong id="age">—</strong></div>
+      </div>
+    </div>
+
+    <div id="myOperationCard" class="card" hidden>
+      <div class="title">Minha operação</div>
+      <div id="myOperationBlock"></div>
+    </div>
+
+    <div id="marketCard" class="card" hidden>
+      <div class="title">Mercado & catálogo</div>
+      <div id="marketRangeBlock"></div>
+      <div id="buyBoxBlock"></div>
+      <div id="trendsBlock"></div>
+    </div>
+
+    <div id="calculatorCard" class="card" hidden>
+      <div class="title">Rentabilidade para você</div>
+      <div class="grid">
+        <div>
+          <label>Custo do produto</label>
+          <input id="supplierPrice" type="number" min="0" step="0.01" placeholder="0,00" />
+        </div>
+        <div>
+          <label>Quantidade no kit</label>
+          <input id="kitQuantity" type="number" min="1" max="1000" step="1" value="1" />
+        </div>
+        <div>
+          <label>Desconto fornecedor %</label>
+          <input id="discountPercent" type="number" min="0" max="95" step="0.1" value="0" />
+        </div>
+        <div>
+          <label>Imposto %</label>
+          <input id="taxPercent" type="number" min="0" max="50" step="0.1" value="0" />
+        </div>
+        <div>
+          <label>Custo operacional</label>
+          <input id="operatingCost" type="number" min="0" step="0.01" value="0" />
+        </div>
+        <div>
+          <label>Margem alvo %</label>
+          <input id="targetMargin" type="number" min="0" max="80" step="1" value="20" />
+        </div>
+        <div>
+          <label>ROI alvo %</label>
+          <input id="targetRoi" type="number" min="0" max="500" step="1" value="30" />
+        </div>
+      </div>
+      <button id="calculate">Calcular com taxas reais</button>
+      <button id="saveSimulation" class="secondary" hidden>Salvar simulação no Radar</button>
+      <p id="calcStatus" class="muted"></p>
+      <div id="calcResult" hidden>
+        <div class="divider"></div>
+        <div class="grid">
+          <div class="metric"><small>Lucro/un.</small><strong id="profit">—</strong></div>
+          <div class="metric"><small>Margem</small><strong id="margin">—</strong></div>
+          <div class="metric"><small>ROI</small><strong id="roi">—</strong></div>
+          <div class="metric"><small>Preço mínimo</small><strong id="minPrice">—</strong></div>
+        </div>
+        <p id="fees" class="muted"></p>
+        <div id="competitiveSimulation" class="compare-box" hidden></div>
+      </div>
+    </div>
+
+    <div id="authCard" class="card auth-card">
+      <div class="title">Conta Mercado Radar</div>
+      <div class="auth-row">
+        <div class="auth-copy">
+          <strong id="authTitle">Não conectado</strong>
+          <small id="authSubtitle">Entre com sua conta do Mercado Livre para liberar o Radar.</small>
+        </div>
+        <span id="authDot" class="auth-dot"></span>
+      </div>
+      <div class="auth-actions">
+        <button id="loginButton">Entrar no Mercado Radar</button>
+        <button id="logoutButton" class="secondary" hidden>Sair</button>
+      </div>
+      <p id="authStatus" class="muted"></p>
+    </div>
+  </main>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

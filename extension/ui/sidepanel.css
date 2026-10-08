@@ -1,0 +1,108 @@
+/* Mercado Radar — Side Panel (usa os mesmos tokens da UI injetada) */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+main { padding: 16px; }
+:focus-visible { outline: 2px solid var(--brand-500); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+.brand { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.brand-copy { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand-copy img { width: 34px; height: 34px; border-radius: 9px; }
+.brand-copy strong { display: block; font-size: 16px; line-height: 1.1; letter-spacing: -0.02em; }
+.brand-copy small {
+  display: block; margin-top: 3px; color: var(--text-3);
+  font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+}
+.pill {
+  padding: 3px 9px; border-radius: var(--r-pill);
+  background: var(--brand-100); color: var(--brand-600);
+  font-size: 10px; font-weight: 800;
+}
+
+.card {
+  margin-bottom: 12px; padding: 14px;
+  border: 1px solid var(--line); border-radius: var(--r-lg);
+  background: var(--surface); box-shadow: var(--shadow-1);
+}
+.title { margin-bottom: 9px; font-size: 13px; font-weight: 750; color: var(--text); }
+.product-title { margin-bottom: 9px; font-size: 14px; font-weight: 700; line-height: 1.4; }
+.muted { color: var(--text-3); font-size: 12px; line-height: 1.5; }
+.good { color: var(--brand-600); }
+.bad { color: var(--risk); }
+.divider { height: 1px; margin: 12px 0; background: var(--line); }
+
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.metric { padding: 10px; border-radius: var(--r-md); background: var(--surface-2); min-width: 0; }
+.metric small {
+  display: block; color: var(--text-3); font-size: 10px; font-weight: 650;
+  text-transform: uppercase; letter-spacing: 0.02em;
+}
+.metric strong { display: block; margin-top: 3px; font-size: 16px; letter-spacing: -0.01em; }
+.metric span.muted { display: block; margin-top: 4px; }
+
+label { display: block; margin: 10px 0 5px; font-size: 12px; font-weight: 650; color: var(--text-2); }
+input {
+  width: 100%; min-height: 36px; padding: 0 10px;
+  border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+  background: var(--surface); font: inherit; color: inherit;
+}
+button {
+  width: 100%; min-height: 38px; margin-top: 11px; padding: 0 14px;
+  border: 0; border-radius: var(--r-md);
+  background: var(--brand-500); color: #fff;
+  font: inherit; font-weight: 650; cursor: pointer;
+}
+button:hover { background: var(--brand-600); }
+button:disabled { opacity: 0.6; cursor: default; }
+button.secondary { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--line-strong); }
+button.secondary:hover { background: var(--line); }
+
+.error {
+  padding: 10px 12px; border-radius: var(--r-md);
+  background: var(--risk-bg); color: var(--risk); font-size: 12px;
+}
+
+.market-range { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.market-range > div { padding: 8px; border-radius: var(--r-md); background: var(--surface-2); }
+.market-range small { display: block; color: var(--text-3); font-size: 10px; font-weight: 650; }
+.market-range strong { display: block; margin-top: 3px; font-size: 14px; }
+
+.competitor-row {
+  display: flex; justify-content: space-between; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 12px;
+}
+.competitor-row > div:first-child { min-width: 0; flex: 1; }
+.competitor-row > div:last-child { flex: 0 0 auto; text-align: right; }
+.competitor-row span, .competitor-row small, .competitor-row strong { display: block; }
+.competitor-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.competitor-row small { margin-top: 2px; color: var(--text-3); font-size: 11px; }
+.mercado-radar-trend { padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+
+.compare-box {
+  margin-top: 10px; padding: 12px; border-radius: var(--r-md);
+  background: var(--brand-50); border: 1px solid var(--line); font-size: 12px;
+}
+
+.auth-card { background: var(--brand-50); }
+.auth-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.auth-copy { min-width: 0; }
+.auth-copy strong, .auth-copy small { display: block; }
+.auth-copy strong { font-size: 14px; }
+.auth-copy small { margin-top: 3px; color: var(--text-3); font-size: 11px; }
+.auth-dot {
+  width: 9px; height: 9px; flex: 0 0 auto; border-radius: 50%;
+  background: var(--line-strong);
+}
+.auth-dot.online { background: var(--ok); box-shadow: 0 0 0 4px rgba(24, 150, 122, 0.15); }
+.auth-actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
+.auth-actions button { margin-top: 0; }
+.auth-actions .secondary { width: auto; }
+#logoutButton[hidden] { display: none; }

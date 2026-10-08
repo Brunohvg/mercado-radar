@@ -1,0 +1,445 @@
+/* Produtos: catálogo com custo, giro e margem + editor inline de custo/fornecedor. */
+
+.products-page .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ancora o .sr-only do cabeçalho dentro da área rolável */
+.products-page .clean-table-wrap {
+  position: relative;
+}
+
+.products-page .products-kpi-scale {
+  margin-left: 2px;
+  color: var(--ink-400);
+  font-size: var(--fs-16);
+  font-weight: 500;
+}
+
+/* ---------------------------------------------------------------- */
+/* painel da tabela: barra de ferramentas + tabela encostada nas bordas */
+/* ---------------------------------------------------------------- */
+
+.products-page .products-table-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.products-page .products-table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3) var(--s-4);
+  flex-wrap: wrap;
+  padding: var(--s-4) var(--s-5);
+  border-bottom: 1px solid var(--line);
+}
+
+.products-page .products-table-title {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.products-page .products-table-title strong {
+  color: var(--ink-900);
+  font-size: var(--fs-16);
+  font-weight: 600;
+}
+
+.products-page .products-table-count {
+  padding: 1px var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  color: var(--ink-500);
+  font-family: var(--font-num);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.products-page .products-table-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex: 1 1 420px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.products-page .products-table-actions input {
+  flex: 1 1 260px;
+  max-width: 340px;
+  min-height: 38px;
+  padding-left: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237d908a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 12px center;
+}
+
+.products-page .products-table-actions select {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 184px;
+  min-height: 38px;
+}
+
+/* ---------------------------------------------------------------- */
+/* tabela                                                            */
+/* ---------------------------------------------------------------- */
+
+.products-page .products-table {
+  min-width: 1040px;
+}
+
+.products-page .products-table th:first-child,
+.products-page .products-table td:first-child {
+  padding-left: var(--s-5);
+}
+
+.products-page .products-table th:last-child,
+.products-page .products-table td:last-child {
+  padding-right: var(--s-5);
+  text-align: right;
+}
+
+.products-page .products-table th {
+  border-radius: 0;
+}
+
+.products-page .products-table .is-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.products-page .products-table td.num {
+  color: var(--ink-900);
+  font-size: var(--fs-14);
+}
+
+.products-page .products-table td.danger-value {
+  color: var(--risk);
+  font-weight: 600;
+}
+
+.products-page .products-table .clean-product-cell {
+  min-width: 300px;
+  max-width: 380px;
+}
+
+.products-page .products-sku {
+  color: var(--ink-700);
+  font-size: var(--fs-13);
+  white-space: nowrap;
+}
+
+.products-page .products-stock strong {
+  display: block;
+  color: var(--ink-900);
+  font-weight: 600;
+}
+
+.products-page .products-stock .table-subtext {
+  display: block;
+  white-space: nowrap;
+}
+
+.products-page .products-table .inline-link-button {
+  padding: 2px 0;
+}
+
+/* botão da linha que abre o editor */
+.products-page .row-menu-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  min-height: 30px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink-700);
+  font-size: var(--fs-13);
+  font-weight: 600;
+  transition: background-color 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.products-page .row-menu-button:hover {
+  border-color: var(--ink-300);
+  background: var(--surface-2);
+  color: var(--ink-900);
+}
+
+.products-page .row-menu-button:focus-visible,
+.products-page .products-table .inline-link-button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+  border-radius: var(--r-sm);
+}
+
+.products-page .row-menu-button[aria-expanded="true"] {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+  color: var(--brand-700);
+}
+
+/* linha com editor aberto */
+.products-page .products-table tr.is-editing td {
+  border-bottom-color: transparent;
+  background: var(--brand-tint-2);
+}
+
+.products-page .products-table tr.is-editing td:first-child {
+  box-shadow: inset 3px 0 0 var(--brand);
+}
+
+.products-page .products-table tbody tr.product-editor-row:hover td {
+  background: var(--brand-tint-2);
+}
+
+.products-page .products-table .product-editor-row td {
+  padding: 0 var(--s-5) var(--s-4);
+  background: var(--brand-tint-2);
+  box-shadow: inset 3px 0 0 var(--brand);
+  text-align: left;
+}
+
+/* ---------------------------------------------------------------- */
+/* editor inline de custo e fornecedor                               */
+/* ---------------------------------------------------------------- */
+
+.products-page .product-inline-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.products-page .product-inline-editor-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.products-page .product-inline-editor-head > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.products-page .product-inline-editor-head strong {
+  color: var(--ink-900);
+  font-size: var(--fs-16);
+  font-weight: 600;
+}
+
+.products-page .product-inline-editor-head small {
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+}
+
+.products-page .product-inline-editor-head a {
+  flex: none;
+}
+
+.products-page .product-inline-editor-grid {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.4fr) minmax(140px, 1fr) minmax(110px, 0.7fr) minmax(150px, 1fr) auto;
+  gap: var(--s-3);
+  align-items: end;
+}
+
+.products-page .product-inline-editor-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.products-page .product-inline-editor-grid label > span,
+.products-page .product-inline-cost > span {
+  color: var(--ink-700);
+  font-size: var(--fs-13);
+  font-weight: 500;
+}
+
+.products-page .product-inline-editor-grid input {
+  font-family: var(--font-ui);
+}
+
+.products-page .product-inline-editor-grid input[type="number"] {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+/* custo líquido: leitura calculada, não campo */
+.products-page .product-inline-cost {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: 64px;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  background: var(--brand-tint);
+}
+
+.products-page .product-inline-cost > span {
+  color: var(--brand-700);
+  font-size: var(--fs-12);
+}
+
+.products-page .product-inline-cost strong {
+  color: var(--brand-700);
+  font-family: var(--font-num);
+  font-size: var(--fs-22);
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.products-page .product-inline-editor-grid .primary {
+  min-height: 40px;
+  padding: 0 var(--s-5);
+  font-size: var(--fs-14);
+}
+
+/* faixa segmentada com a economia estimada do anúncio */
+.products-page .product-inline-economics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--line);
+  overflow: hidden;
+}
+
+.products-page .product-inline-economics > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--s-2) var(--s-4);
+  background: var(--surface-2);
+}
+
+.products-page .product-inline-economics span {
+  color: var(--ink-500);
+  font-size: var(--fs-12);
+}
+
+.products-page .product-inline-economics strong {
+  color: var(--ink-900);
+  font-family: var(--font-num);
+  font-size: var(--fs-16);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.products-page .products-empty {
+  margin: var(--s-5);
+}
+
+.products-page .products-empty span {
+  font-size: var(--fs-14);
+}
+
+/* ---------------------------------------------------------------- */
+/* responsivo                                                        */
+/* ---------------------------------------------------------------- */
+
+@media (max-width: 1180px) {
+  .products-page .product-inline-editor-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .products-page .product-inline-editor-grid label:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .products-page .product-inline-editor-grid .primary {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
+@media (max-width: 720px) {
+  .products-page .products-table-toolbar {
+    padding: var(--s-4);
+  }
+
+  .products-page .products-table-actions {
+    flex-direction: column;
+    align-items: stretch;
+    flex-basis: 100%;
+  }
+
+  .products-page .products-table-actions input,
+  .products-page .products-table-actions select {
+    flex: none;
+    width: 100%;
+    max-width: none;
+  }
+
+  .products-page .products-table th:first-child,
+  .products-page .products-table td:first-child {
+    padding-left: var(--s-4);
+  }
+
+  .products-page .products-table .clean-product-cell {
+    min-width: 230px;
+  }
+
+  .products-page .products-table th:last-child,
+  .products-page .products-table td:last-child {
+    padding-right: var(--s-4);
+  }
+
+  .products-page .products-table .product-editor-row td {
+    padding: 0 var(--s-3) var(--s-3);
+  }
+
+  .products-page .product-inline-editor {
+    position: sticky;
+    left: var(--s-3);
+    width: calc(100vw - 2 * var(--s-4) - 2px - 2 * var(--s-3));
+    padding: var(--s-4);
+  }
+
+  .products-page .product-inline-editor-head {
+    flex-direction: column;
+    gap: var(--s-2);
+  }
+
+  .products-page .product-inline-editor-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .products-page .product-inline-cost {
+    grid-column: 1 / -1;
+  }
+
+  .products-page .product-inline-editor-grid .primary {
+    justify-self: stretch;
+  }
+
+  .products-page .product-inline-economics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .products-page .products-empty {
+    margin: var(--s-4);
+  }
+}

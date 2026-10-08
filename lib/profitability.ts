@@ -12,6 +12,7 @@ export type ProfitabilityInput = {
   fixedFee: number;
   shippingCost: number;
   operatingCost: number;
+  taxPercent?: number;
   targetMarginPercent: number;
   targetRoiPercent: number;
 };
@@ -20,6 +21,7 @@ export type ProfitabilityResult = ProfitabilityInput & {
   unitCost: number;
   purchaseCost: number;
   commissionAmount: number;
+  taxAmount: number;
   amountReceived: number;
   profit: number;
   marginPercent: number;
@@ -34,17 +36,19 @@ const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 1
 
 function priceForMargin(input: ProfitabilityInput, targetMarginPercent: number) {
   const rate = input.commissionPercent / 100;
+  const taxRate = (input.taxPercent ?? 0) / 100;
   const targetMargin = targetMarginPercent / 100;
   const unitCost = input.supplierPrice * (1 - input.discountPercent / 100);
   const purchaseCost = unitCost * input.kitQuantity;
   const fixedCosts = purchaseCost + input.fixedFee + input.shippingCost + input.operatingCost;
-  const denominator = 1 - rate - targetMargin;
+  const denominator = 1 - rate - taxRate - targetMargin;
   if (denominator <= 0) return Number.POSITIVE_INFINITY;
   return fixedCosts / denominator;
 }
 
 function priceForRoi(input: ProfitabilityInput, targetRoiPercent: number) {
   const rate = input.commissionPercent / 100;
+  const taxRate = (input.taxPercent ?? 0) / 100;
   const roi = targetRoiPercent / 100;
   const unitCost = input.supplierPrice * (1 - input.discountPercent / 100);
   const purchaseCost = unitCost * input.kitQuantity;
@@ -56,7 +60,7 @@ function priceForRoi(input: ProfitabilityInput, targetRoiPercent: number) {
     input.fixedFee +
     input.shippingCost +
     requiredProfit;
-  const denominator = 1 - rate;
+  const denominator = 1 - rate - taxRate;
   if (denominator <= 0) return Number.POSITIVE_INFINITY;
   return numerator / denominator;
 }
@@ -65,8 +69,13 @@ export function analyzeProfitability(input: ProfitabilityInput): ProfitabilityRe
   const unitCost = input.supplierPrice * (1 - input.discountPercent / 100);
   const purchaseCost = unitCost * input.kitQuantity;
   const commissionAmount = input.salePrice * (input.commissionPercent / 100);
+  const taxAmount = input.salePrice * ((input.taxPercent ?? 0) / 100);
   const amountReceived =
-    input.salePrice - commissionAmount - input.fixedFee - input.shippingCost;
+    input.salePrice -
+    commissionAmount -
+    taxAmount -
+    input.fixedFee -
+    input.shippingCost;
   const profit = amountReceived - purchaseCost - input.operatingCost;
   const marginPercent = input.salePrice > 0 ? (profit / input.salePrice) * 100 : 0;
   const investment = purchaseCost + input.operatingCost;
@@ -90,6 +99,7 @@ export function analyzeProfitability(input: ProfitabilityInput): ProfitabilityRe
     unitCost: round2(unitCost),
     purchaseCost: round2(purchaseCost),
     commissionAmount: round2(commissionAmount),
+    taxAmount: round2(taxAmount),
     amountReceived: round2(amountReceived),
     profit: round2(profit),
     marginPercent: round2(marginPercent),

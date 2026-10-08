@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { recordOwnListings } from "@/lib/market-intel";
 import {
   getItemsBulk,
   getItemsCurrentPrices,
@@ -79,6 +80,9 @@ export async function syncMercadoLivreProducts() {
             categoryId: item.categoryId,
             status: item.status,
             listingTypeId: item.listingTypeId,
+            catalogProductId: item.catalogProductId,
+            userProductId: item.userProductId,
+            listingCreatedAt: item.dateCreated ? new Date(item.dateCreated) : null,
             currentPrice: price,
             availableQuantity: item.availableQuantity,
             soldQuantity: item.soldQuantity,
@@ -97,6 +101,9 @@ export async function syncMercadoLivreProducts() {
             categoryId: item.categoryId,
             status: item.status,
             listingTypeId: item.listingTypeId,
+            catalogProductId: item.catalogProductId,
+            userProductId: item.userProductId,
+            listingCreatedAt: item.dateCreated ? new Date(item.dateCreated) : null,
             currentPrice: price,
             availableQuantity: item.availableQuantity,
             soldQuantity: item.soldQuantity,
@@ -110,6 +117,28 @@ export async function syncMercadoLivreProducts() {
         });
         saved += 1;
       }
+
+      // Série oficial dos anúncios próprios (vendidos exatos + visitas da API):
+      // calibra a conversão e a idade usadas nas estimativas de terceiros.
+      await recordOwnListings(
+        details.map((item) => ({
+          id: item.id,
+          title: item.title,
+          price: prices[item.id] ?? (item.currentPrice > 0 ? item.currentPrice : null),
+          soldQuantity: item.soldQuantity,
+          visitsTotal: visits[item.id] ?? null,
+          dateCreated: item.dateCreated,
+          permalink: item.permalink,
+          thumbnail: item.thumbnail,
+          categoryId: item.categoryId,
+          catalogProductId: item.catalogProductId,
+          sellerId: item.sellerId,
+          freeShipping: item.freeShipping,
+          fulfillment: item.logisticType === "fulfillment",
+        })),
+      ).catch((error) => {
+        console.warn("[market-intel] falha ao registrar leitura oficial", error);
+      });
     }
 
     await prisma.syncRun.update({
@@ -477,6 +506,9 @@ export async function syncMercadoLivreOrders(days = 30) {
         finishedAt: new Date(),
         itemsRead: orders.length,
         itemsSaved: saved,
+        // o Radar só trata vendas por anúncio como "oficiais" se a janela
+        // tiver 30+ dias e nenhum pedido tiver ficado de fora
+        metadata: { days, total, truncated: orders.length < total },
       },
     });
 

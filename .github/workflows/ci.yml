@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feature/ml-product-intelligence-mvp-v1
+      - feature/chrome-extension-radar-v1
   pull_request:
     branches:
       - main
@@ -30,6 +31,9 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Extension syntax
+        run: node --check extension/background.js && node --check extension/content.js && node --check extension/sidepanel.js
 
       - name: Build
         run: npm run build

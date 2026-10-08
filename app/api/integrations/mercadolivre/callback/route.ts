@@ -6,6 +6,7 @@ import {
   fetchCurrentUser,
   saveMlAccount,
 } from "@/lib/mercado-livre";
+import { createExtensionAuthorizationCode } from "@/lib/extension-auth";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -17,11 +18,54 @@ export async function GET(request: Request) {
   const expectedState = store.get("ml_oauth_state")?.value;
   const verifier = store.get("ml_pkce_verifier")?.value;
 
-  const redirect = (params: string) =>
-    NextResponse.redirect(new URL(`/?${params}#integracoes`, origin));
+  const extensionFlow = store.get("radar_extension_flow")?.value === "1";
+  const extensionRedirectUri =
+    store.get("radar_extension_redirect_uri")?.value ?? null;
+  const extensionState =
+    store.get("radar_extension_state")?.value ?? null;
+  const extensionChallenge =
+    store.get("radar_extension_code_challenge")?.value ?? null;
+  const extensionDeviceId =
+    store.get("radar_extension_device_id")?.value ?? null;
+  const extensionDeviceName =
+    store.get("radar_extension_device_name")?.value ?? "Chrome";
 
-  if (!code || !state || !expectedState || state !== expectedState || !verifier) {
-    return redirect("ml_error=oauth_state");
+  const clearFlowCookies = () => {
+    store.delete("ml_oauth_state");
+    store.delete("ml_pkce_verifier");
+    store.delete("radar_extension_flow");
+    store.delete("radar_extension_redirect_uri");
+    store.delete("radar_extension_state");
+    store.delete("radar_extension_code_challenge");
+    store.delete("radar_extension_device_id");
+    store.delete("radar_extension_device_name");
+  };
+
+  const dashboardRedirect = (params: string) =>
+    NextResponse.redirect(new URL(`/integracoes?${params}`, origin));
+
+  const extensionErrorRedirect = (error: string) => {
+    if (!extensionRedirectUri || !extensionState) {
+      return dashboardRedirect(`ml_error=${encodeURIComponent(error)}`);
+    }
+
+    const redirect = new URL(extensionRedirectUri);
+    redirect.searchParams.set("error", error);
+    redirect.searchParams.set("state", extensionState);
+    return NextResponse.redirect(redirect);
+  };
+
+  if (
+    !code ||
+    !state ||
+    !expectedState ||
+    state !== expectedState ||
+    !verifier
+  ) {
+    clearFlowCookies();
+    return extensionFlow
+      ? extensionErrorRedirect("oauth_state")
+      : dashboardRedirect("ml_error=oauth_state");
   }
 
   try {
@@ -37,7 +81,7 @@ export async function GET(request: Request) {
 
     const user = await fetchCurrentUser(token.access_token);
 
-    await saveMlAccount({
+    const account = await saveMlAccount({
       userId: String(user.id ?? token.user_id),
       nickname: user.nickname,
       accessToken: token.access_token,
@@ -46,12 +90,40 @@ export async function GET(request: Request) {
       scope: token.scope,
     });
 
-    store.delete("ml_oauth_state");
-    store.delete("ml_pkce_verifier");
+    if (extensionFlow) {
+      if (
+        !extensionRedirectUri ||
+        !extensionState ||
+        !extensionChallenge ||
+        !extensionDeviceId
+      ) {
+        clearFlowCookies();
+        return extensionErrorRedirect("extension_state");
+      }
 
-    return redirect("ml_connected=1");
+      const extensionCode = await createExtensionAuthorizationCode({
+        mercadoLivreAccountId: account.id,
+        codeChallenge: extensionChallenge,
+        redirectUri: extensionRedirectUri,
+        deviceId: extensionDeviceId,
+        deviceName: extensionDeviceName,
+      });
+
+      const redirect = new URL(extensionRedirectUri);
+      redirect.searchParams.set("code", extensionCode);
+      redirect.searchParams.set("state", extensionState);
+
+      clearFlowCookies();
+      return NextResponse.redirect(redirect);
+    }
+
+    clearFlowCookies();
+    return dashboardRedirect("ml_connected=1");
   } catch (error) {
     console.error("Mercado Livre OAuth callback failed", error);
-    return redirect("ml_error=oauth_callback");
+    clearFlowCookies();
+    return extensionFlow
+      ? extensionErrorRedirect("oauth_callback")
+      : dashboardRedirect("ml_error=oauth_callback");
   }
 }

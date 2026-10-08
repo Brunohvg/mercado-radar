@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { decryptSecret, encryptSecret } from "@/lib/security";
 
@@ -20,36 +21,232 @@ function credentials() {
   return { clientId, clientSecret };
 }
 
-async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
-  try {
-    const response = await fetch(url, {
-      ...init,
-      cache: "no-store",
-      signal: AbortSignal.timeout(12000),
-    });
-    const body = await response.json().catch(() => ({}));
+export type MlApiErrorCode =
+  | "UNAUTHORIZED"
+  | "FORBIDDEN"
+  | "RATE_LIMITED"
+  | "UPSTREAM"
+  | "TIMEOUT"
+  | "HTTP";
 
-    if (!response.ok) {
-      const message =
-        typeof body?.message === "string"
-          ? body.message
-          : `Mercado Livre respondeu HTTP ${response.status}`;
-      throw new Error(message);
-    }
+/**
+ * Erro tipado da API do Mercado Livre. Continua sendo um Error comum
+ * (mesma mensagem amigável de antes), mas agora carrega status e rota para
+ * que telas e diagnósticos distingam token, permissão, limite e indisponibilidade.
+ */
+export class MlApiError extends Error {
+  readonly status: number;
+  readonly path: string;
+  readonly code: MlApiErrorCode;
 
-    return body as T;
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      (error.name === "TimeoutError" || error.name === "AbortError")
-    ) {
-      throw new Error(
-        "O Mercado Livre demorou demais para responder. Tente novamente em alguns segundos.",
-      );
-    }
-
-    throw error;
+  constructor(message: string, status: number, path: string, code: MlApiErrorCode) {
+    super(message);
+    this.name = "MlApiError";
+    this.status = status;
+    this.path = path;
+    this.code = code;
   }
+}
+
+/* ---------- limitador de concorrência (processo único) ---------- */
+const MAX_CONCURRENCY = Math.max(1, Number(process.env.ML_MAX_CONCURRENCY) || 6);
+let activeRequests = 0;
+const waiters: Array<() => void> = [];
+
+async function acquireSlot() {
+  if (activeRequests < MAX_CONCURRENCY) {
+    activeRequests += 1;
+    return;
+  }
+  // O slot é transferido diretamente para quem espera (activeRequests não muda).
+  await new Promise<void>((resolve) => waiters.push(resolve));
+}
+
+function releaseSlot() {
+  const next = waiters.shift();
+  if (next) next();
+  else activeRequests -= 1;
+}
+
+/* ---------- cache curto para GETs idempotentes ---------- */
+const CACHE_RULES: Array<{ test: RegExp; ttlMs: number }> = [
+  { test: /\/trends\//, ttlMs: 10 * 60_000 },
+  { test: /\/highlights\//, ttlMs: 10 * 60_000 },
+  { test: /\/products\/search\?/, ttlMs: 5 * 60_000 },
+  { test: /\/products\/[A-Z0-9]+(\?|$)/, ttlMs: 5 * 60_000 },
+  { test: /\/visits\/items\?/, ttlMs: 5 * 60_000 },
+  { test: /\/items(\/bulk)?\?ids=/, ttlMs: 60_000 },
+];
+const CACHE_MAX_ENTRIES = 500;
+const responseCache = new Map<string, { expiresAt: number; body: unknown }>();
+
+function cacheTtl(url: string, method: string) {
+  if (method !== "GET") return 0;
+  return CACHE_RULES.find((rule) => rule.test.test(url))?.ttlMs ?? 0;
+}
+
+function cacheKey(url: string, init?: RequestInit) {
+  const headers = new Headers(init?.headers);
+  const auth = headers.get("authorization") ?? "";
+  const who = auth
+    ? createHash("sha1").update(auth).digest("hex").slice(0, 12)
+    : "anon";
+  return `${who}|${url}`;
+}
+
+function pathOf(url: string) {
+  try {
+    return new URL(url).pathname;
+  } catch {
+    return url;
+  }
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function retryDelayMs(attempt: number, retryAfter: string | null) {
+  const seconds = retryAfter ? Number(retryAfter) : NaN;
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.min(10_000, seconds * 1000);
+  }
+  return Math.min(8000, 500 * 2 ** attempt) + Math.floor(Math.random() * 250);
+}
+
+function isTimeout(error: unknown) {
+  return (
+    error instanceof Error &&
+    (error.name === "TimeoutError" || error.name === "AbortError")
+  );
+}
+
+function httpError(status: number, path: string, apiMessage: string): MlApiError {
+  if (status === 401) {
+    return new MlApiError(
+      "A autorização do Mercado Livre expirou ou foi revogada. Reconecte a conta em Integrações.",
+      status,
+      path,
+      "UNAUTHORIZED",
+    );
+  }
+  if (status === 403) {
+    return new MlApiError(
+      "O Mercado Livre negou acesso a este recurso. A conta está conectada, mas o aplicativo precisa da permissão correspondente. Revise a integração do Mercado Livre.",
+      status,
+      path,
+      "FORBIDDEN",
+    );
+  }
+  if (status === 429) {
+    return new MlApiError(
+      "O Mercado Livre limitou temporariamente as consultas. O Radar tentará novamente quando o limite liberar.",
+      status,
+      path,
+      "RATE_LIMITED",
+    );
+  }
+  if (status >= 500) {
+    return new MlApiError(
+      "O Mercado Livre está temporariamente indisponível para esta consulta. Tente novamente em alguns instantes.",
+      status,
+      path,
+      "UPSTREAM",
+    );
+  }
+  return new MlApiError(
+    apiMessage === "forbidden"
+      ? "O Mercado Livre não autorizou esta consulta para o aplicativo conectado."
+      : apiMessage,
+    status,
+    path,
+    "HTTP",
+  );
+}
+
+async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
+  const method = (init?.method ?? "GET").toUpperCase();
+  const path = pathOf(url);
+  const ttl = cacheTtl(url, method);
+  const key = ttl ? cacheKey(url, init) : "";
+
+  if (ttl) {
+    const hit = responseCache.get(key);
+    if (hit && hit.expiresAt > Date.now()) return hit.body as T;
+    if (hit) responseCache.delete(key);
+  }
+
+  // Só repetimos GET: POST/PUT (ex.: /oauth/token) nunca devem ser reenviados.
+  const maxAttempts = method === "GET" ? 3 : 1;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    await acquireSlot();
+    let response: Response | null = null;
+    let body: unknown = {};
+
+    try {
+      response = await fetch(url, {
+        ...init,
+        cache: "no-store",
+        signal: AbortSignal.timeout(12000),
+      });
+      body = await response.json().catch(() => ({}));
+    } catch (error) {
+      lastError = isTimeout(error)
+        ? new MlApiError(
+            "O Mercado Livre demorou demais para responder. Tente novamente em alguns segundos.",
+            0,
+            path,
+            "TIMEOUT",
+          )
+        : error;
+      releaseSlot();
+      // Timeout/rede: uma única repetição.
+      if (attempt === 0 && maxAttempts > 1) {
+        await sleep(retryDelayMs(attempt, null));
+        continue;
+      }
+      throw lastError;
+    }
+
+    releaseSlot();
+
+    if (response.ok) {
+      if (ttl) {
+        if (responseCache.size >= CACHE_MAX_ENTRIES) {
+          const oldest = responseCache.keys().next().value;
+          if (oldest) responseCache.delete(oldest);
+        }
+        responseCache.set(key, { expiresAt: Date.now() + ttl, body });
+      }
+      return body as T;
+    }
+
+    const apiMessage =
+      typeof (body as { message?: unknown })?.message === "string"
+        ? String((body as { message: string }).message)
+        : `Mercado Livre respondeu HTTP ${response.status}`;
+    lastError = httpError(response.status, path, apiMessage);
+
+    const retryable =
+      response.status === 429 ||
+      response.status === 500 ||
+      response.status === 502 ||
+      response.status === 503 ||
+      response.status === 504;
+
+    if (retryable && attempt < maxAttempts - 1) {
+      await sleep(retryDelayMs(attempt, response.headers.get("retry-after")));
+      continue;
+    }
+
+    throw lastError;
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Falha ao consultar o Mercado Livre.");
 }
 
 export async function exchangeAuthorizationCode(input: {
@@ -135,39 +332,134 @@ export async function saveMlAccount(input: {
   });
 }
 
-export async function getMlSession() {
-  const account = await prisma.mercadoLivreAccount.findFirst({
-    orderBy: { updatedAt: "desc" },
-  });
+type MlAccountRecord = {
+  id: string;
+  mercadoLivreUserId: string;
+  nickname: string | null;
+  accessTokenEncrypted: string;
+  refreshTokenEncrypted: string;
+  tokenExpiresAt: Date;
+  scopes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
-  if (!account) {
-    throw new Error("Conta do Mercado Livre ainda não conectada.");
+const REFRESH_MARGIN_MS = 5 * 60 * 1000;
+
+function hasFreshToken(account: MlAccountRecord) {
+  return account.tokenExpiresAt.getTime() > Date.now() + REFRESH_MARGIN_MS;
+}
+
+// O refresh token do Mercado Livre é de uso único: duas renovações simultâneas
+// da mesma conta podem invalidar a conexão. Esta trava garante UMA renovação
+// por conta neste processo; quem chegar durante a renovação reutiliza o resultado.
+const refreshLocks = new Map<
+  string,
+  Promise<{ account: MlAccountRecord; accessToken: string }>
+>();
+
+async function refreshAccountSession(stale: MlAccountRecord) {
+  // Outra requisição/processo pode ter renovado entre a leitura e a trava.
+  const current =
+    (await prisma.mercadoLivreAccount.findUnique({ where: { id: stale.id } })) ??
+    stale;
+
+  if (hasFreshToken(current)) {
+    return {
+      account: current,
+      accessToken: decryptSecret(current.accessTokenEncrypted),
+    };
   }
 
-  if (account.tokenExpiresAt.getTime() > Date.now() + 5 * 60 * 1000) {
+  let refreshed: Awaited<ReturnType<typeof refreshAccessToken>>;
+
+  try {
+    refreshed = await refreshAccessToken(
+      decryptSecret(current.refreshTokenEncrypted),
+    );
+  } catch (error) {
+    // Se outro processo (ex.: cron) rotacionou o token enquanto tentávamos,
+    // o banco já tem um token válido: usamos ele em vez de derrubar a sessão.
+    const latest = await prisma.mercadoLivreAccount.findUnique({
+      where: { id: current.id },
+    });
+
+    if (
+      latest &&
+      latest.refreshTokenEncrypted !== current.refreshTokenEncrypted &&
+      hasFreshToken(latest)
+    ) {
+      return {
+        account: latest,
+        accessToken: decryptSecret(latest.accessTokenEncrypted),
+      };
+    }
+
+    throw error;
+  }
+
+  const updated = await prisma.mercadoLivreAccount.update({
+    where: { id: current.id },
+    data: {
+      accessTokenEncrypted: encryptSecret(refreshed.access_token),
+      refreshTokenEncrypted: refreshed.refresh_token
+        ? encryptSecret(refreshed.refresh_token)
+        : current.refreshTokenEncrypted,
+      tokenExpiresAt: new Date(Date.now() + refreshed.expires_in * 1000),
+      scopes: refreshed.scope ?? current.scopes,
+    },
+  });
+
+  return { account: updated, accessToken: refreshed.access_token };
+}
+
+async function buildMlSession(account: MlAccountRecord) {
+  if (hasFreshToken(account)) {
     return {
       account,
       accessToken: decryptSecret(account.accessTokenEncrypted),
     };
   }
 
-  const refreshed = await refreshAccessToken(
-    decryptSecret(account.refreshTokenEncrypted),
-  );
+  const running = refreshLocks.get(account.id);
+  if (running) return running;
 
-  const updated = await prisma.mercadoLivreAccount.update({
-    where: { id: account.id },
-    data: {
-      accessTokenEncrypted: encryptSecret(refreshed.access_token),
-      refreshTokenEncrypted: refreshed.refresh_token
-        ? encryptSecret(refreshed.refresh_token)
-        : account.refreshTokenEncrypted,
-      tokenExpiresAt: new Date(Date.now() + refreshed.expires_in * 1000),
-      scopes: refreshed.scope ?? account.scopes,
-    },
+  const task = refreshAccountSession(account).finally(() => {
+    refreshLocks.delete(account.id);
+  });
+  refreshLocks.set(account.id, task);
+  return task;
+}
+
+export async function getMlSession() {
+  // Painel web (single-tenant): se ADMIN_ML_ACCOUNT_ID estiver definido, usa
+  // exatamente essa conta. Sem ele mantém o comportamento anterior (conta mais
+  // recente), o que é arriscado quando há contas de extensão no mesmo banco.
+  const pinned = process.env.ADMIN_ML_ACCOUNT_ID?.trim();
+
+  const account = pinned
+    ? await prisma.mercadoLivreAccount.findUnique({ where: { id: pinned } })
+    : await prisma.mercadoLivreAccount.findFirst({
+        orderBy: { updatedAt: "desc" },
+      });
+
+  if (!account) {
+    throw new Error("Conta do Mercado Livre ainda não conectada.");
+  }
+
+  return buildMlSession(account);
+}
+
+export async function getMlSessionForAccount(accountId: string) {
+  const account = await prisma.mercadoLivreAccount.findUnique({
+    where: { id: accountId },
   });
 
-  return { account: updated, accessToken: refreshed.access_token };
+  if (!account) {
+    throw new Error("Conta do Mercado Livre vinculada à extensão não encontrada.");
+  }
+
+  return buildMlSession(account);
 }
 
 export async function getListingPriceQuote(input: {
@@ -339,21 +631,31 @@ export async function searchMarketplace(input: {
       category_id?: string;
       seller?: { id?: number | string };
       listing_type_id?: string;
-      shipping?: { free_shipping?: boolean };
+      shipping?: {
+        free_shipping?: boolean;
+        logistic_type?: string;
+        mode?: string;
+      };
     }>;
   };
 
   let raw: MarketplaceSearchResponse;
 
+  const searchUrl = `${API}/sites/MLB/search?${params.toString()}`;
+
   try {
-    raw = await jsonFetch<MarketplaceSearchResponse>(
-      `${API}/sites/MLB/search?${params.toString()}`,
-      { headers: { Authorization: `Bearer ${input.accessToken}` } },
-    );
-  } catch {
-    raw = await jsonFetch<MarketplaceSearchResponse>(
-      `${API}/sites/MLB/search?${params.toString()}`,
-    );
+    raw = await jsonFetch<MarketplaceSearchResponse>(searchUrl, {
+      headers: { Authorization: `Bearer ${input.accessToken}` },
+    });
+  } catch (authenticatedError) {
+    // Tentativa pública mantida por compatibilidade, mas o erro REAL (ex.: 403
+    // de permissão) é preservado: antes ele era substituído pelo da segunda
+    // chamada e o diagnóstico ficava enganoso.
+    try {
+      raw = await jsonFetch<MarketplaceSearchResponse>(searchUrl);
+    } catch {
+      throw authenticatedError;
+    }
   }
 
   return (raw.results ?? [])
@@ -440,90 +742,136 @@ export type SellerItemDetail = {
   categoryId: string | null;
   status: string;
   listingTypeId: string | null;
+  currentPrice: number;
+  sellerId: string | null;
+  catalogProductId: string | null;
+  userProductId: string | null;
   availableQuantity: number;
   soldQuantity: number;
+  dateCreated: string | null;
   permalink: string | null;
   thumbnail: string | null;
   freeShipping: boolean;
+  logisticType: string | null;
+  shippingMode: string | null;
   sellerSku: string | null;
   raw: unknown;
 };
+
+/**
+ * Multiget oficial. O Mercado Livre está deprecando GET /items?ids= (migração
+ * pedida até 25/10/2026) em favor de GET /items/bulk?ids=, que responde
+ * [{ id, status_code, body }] (sem body quando o item não existe). Usamos o
+ * bulk e só caímos no legado ({ code, body }) se o bulk não existir na conta.
+ * Máximo de 20 IDs por chamada. Itens que o Mercado Livre não libera para o
+ * app (403/404) são omitidos do resultado e listados em `restrictedIds`.
+ */
+const ITEMS_MULTIGET_LIMIT = 20;
+
+type MultigetEntry = {
+  id?: string;
+  code?: number;
+  status_code?: number;
+  body?: Record<string, any> & {
+    id?: string;
+    shipping?: { free_shipping?: boolean; logistic_type?: string; mode?: string };
+    attributes?: Array<{ id?: string; value_name?: string }>;
+  };
+};
+
+function toSellerItemDetail(entry: MultigetEntry): SellerItemDetail | null {
+  const body = entry.body;
+  if (!body?.id) return null;
+
+  const sellerSku =
+    body.seller_custom_field ??
+    body.attributes?.find((attribute) => attribute.id === "SELLER_SKU")
+      ?.value_name ??
+    null;
+
+  return {
+    id: String(body.id),
+    title: String(body.title ?? body.id),
+    categoryId: body.category_id ?? null,
+    status: String(body.status ?? "unknown"),
+    listingTypeId: body.listing_type_id ?? null,
+    currentPrice: Number(body.price ?? 0),
+    sellerId: body.seller_id == null ? null : String(body.seller_id),
+    catalogProductId: body.catalog_product_id ?? null,
+    userProductId: body.user_product_id ?? null,
+    availableQuantity: Number(body.available_quantity ?? 0),
+    soldQuantity: Number(body.sold_quantity ?? 0),
+    dateCreated: body.date_created ?? null,
+    permalink: body.permalink ?? null,
+    thumbnail: body.thumbnail ?? null,
+    freeShipping: Boolean(body.shipping?.free_shipping),
+    logisticType: body.shipping?.logistic_type ?? null,
+    shippingMode: body.shipping?.mode ?? null,
+    sellerSku,
+    raw: entry,
+  };
+}
+
+// Quando o bulk falha por indisponibilidade, usa o legado por 30 min e tenta de novo.
+let bulkRetryAt = 0;
+const BULK_RETRY_MS = 30 * 60 * 1000;
+
+async function fetchMultigetChunk(accessToken: string, chunk: string[]) {
+  const params = new URLSearchParams({ ids: chunk.join(",") });
+  const init = { headers: { Authorization: `Bearer ${accessToken}` } };
+
+  if (Date.now() >= bulkRetryAt) {
+    try {
+      return await jsonFetch<MultigetEntry[]>(
+        `${API}/items/bulk?${params.toString()}`,
+        init,
+      );
+    } catch (error) {
+      // 400/403/404/405: bulk indisponível para esta conta/região agora.
+      if (
+        error instanceof MlApiError &&
+        [400, 403, 404, 405].includes(error.status)
+      ) {
+        bulkRetryAt = Date.now() + BULK_RETRY_MS;
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  return jsonFetch<MultigetEntry[]>(`${API}/items?${params.toString()}`, init);
+}
+
+export async function getItemsBulkDetailed(input: {
+  accessToken: string;
+  itemIds: string[];
+}) {
+  const ids = [...new Set(input.itemIds.filter(Boolean))].slice(0, 100);
+  const items: SellerItemDetail[] = [];
+  const restrictedIds: string[] = [];
+
+  for (let offset = 0; offset < ids.length; offset += ITEMS_MULTIGET_LIMIT) {
+    const chunk = ids.slice(offset, offset + ITEMS_MULTIGET_LIMIT);
+    const raw = await fetchMultigetChunk(input.accessToken, chunk);
+
+    (Array.isArray(raw) ? raw : []).forEach((entry, index) => {
+      const code =
+        entry.status_code ?? entry.code ?? (entry.body?.id ? 200 : 404);
+      const detail = code === 200 ? toSellerItemDetail(entry) : null;
+      if (detail) items.push(detail);
+      else restrictedIds.push(entry.id ?? entry.body?.id ?? chunk[index]);
+    });
+  }
+
+  return { items, restrictedIds };
+}
 
 export async function getItemsBulk(input: {
   accessToken: string;
   itemIds: string[];
 }) {
   if (input.itemIds.length === 0) return [] as SellerItemDetail[];
-
-  const ids = input.itemIds.slice(0, 50).join(",");
-  const params = new URLSearchParams({
-    ids,
-    attributes: [
-      "body.id",
-      "body.title",
-      "body.category_id",
-      "body.status",
-      "body.listing_type_id",
-      "body.available_quantity",
-      "body.sold_quantity",
-      "body.permalink",
-      "body.thumbnail",
-      "body.shipping",
-      "body.seller_custom_field",
-      "body.attributes",
-    ].join(","),
-  });
-
-  const raw = await jsonFetch<Array<{
-    id?: string;
-    status_code?: number;
-    body?: {
-      id?: string;
-      title?: string;
-      category_id?: string;
-      status?: string;
-      listing_type_id?: string;
-      available_quantity?: number;
-      sold_quantity?: number;
-      permalink?: string;
-      thumbnail?: string;
-      seller_custom_field?: string;
-      shipping?: { free_shipping?: boolean };
-      attributes?: Array<{
-        id?: string;
-        value_name?: string;
-      }>;
-    };
-  }>>(
-    `${API}/items/bulk?${params.toString()}`,
-    { headers: { Authorization: `Bearer ${input.accessToken}` } },
-  );
-
-  return raw
-    .filter((entry) => entry.body?.id)
-    .map<SellerItemDetail>((entry) => {
-      const body = entry.body!;
-      const sellerSku =
-        body.seller_custom_field ??
-        body.attributes?.find((attribute) => attribute.id === "SELLER_SKU")
-          ?.value_name ??
-        null;
-
-      return {
-        id: String(body.id),
-        title: String(body.title ?? body.id),
-        categoryId: body.category_id ?? null,
-        status: String(body.status ?? "unknown"),
-        listingTypeId: body.listing_type_id ?? null,
-        availableQuantity: Number(body.available_quantity ?? 0),
-        soldQuantity: Number(body.sold_quantity ?? 0),
-        permalink: body.permalink ?? null,
-        thumbnail: body.thumbnail ?? null,
-        freeShipping: Boolean(body.shipping?.free_shipping),
-        sellerSku,
-        raw: entry,
-      };
-    });
+  return (await getItemsBulkDetailed(input)).items;
 }
 
 export async function getItemsCurrentPrices(input: {
@@ -861,6 +1209,99 @@ export async function getCatalogProductDetails(input: {
 }
 
 
+export type CatalogOffer = {
+  itemId: string;
+  sellerId: string | null;
+  price: number;
+  condition: string | null;
+  freeShipping: boolean;
+  logisticType: string | null;
+  officialStoreId: string | null;
+};
+
+/**
+ * Ofertas concorrentes de um produto de catálogo: GET /products/{id}/items
+ * (documentado em "Competição de catálogo"). Serve de plano B quando
+ * buy_box_winner vem vazio.
+ */
+export async function getCatalogProductOffers(input: {
+  accessToken: string;
+  productId: string;
+  limit?: number;
+}): Promise<CatalogOffer[]> {
+  const params = new URLSearchParams({ limit: String(input.limit ?? 20) });
+
+  const raw = await jsonFetch<any>(
+    `${API}/products/${input.productId}/items?${params.toString()}`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+
+  const list: any[] = Array.isArray(raw) ? raw : (raw?.results ?? []);
+
+  return list
+    .map((entry) => {
+      const itemId = String(entry?.item_id ?? entry?.id ?? "").toUpperCase();
+      return {
+        itemId,
+        sellerId: entry?.seller_id == null ? null : String(entry.seller_id),
+        price: Number(entry?.price ?? 0),
+        condition: entry?.condition ?? null,
+        freeShipping: Boolean(entry?.shipping?.free_shipping),
+        logisticType: entry?.shipping?.logistic_type ?? null,
+        officialStoreId:
+          entry?.official_store_id == null ? null : String(entry.official_store_id),
+      } satisfies CatalogOffer;
+    })
+    .filter((offer) => /^MLB\d+$/.test(offer.itemId) && offer.price > 0);
+}
+
+
+export async function getCatalogCompetition(input: {
+  accessToken: string;
+  itemId: string;
+}) {
+  return jsonFetch<{
+    item_id?: string;
+    current_price?: number;
+    currency_id?: string;
+    price_to_win?: number | null;
+    status?:
+      | "winning"
+      | "competing"
+      | "sharing_first_place"
+      | "listed"
+      | string;
+    consistent?: boolean;
+    visit_share?: string | null;
+    competitors_sharing_first_place?: number | null;
+    reason?: string[];
+    catalog_product_id?: string | null;
+    boosts?: Array<{
+      id?: string;
+      status?: string;
+      description?: string;
+    }>;
+    winner?: {
+      item_id?: string;
+      price?: number;
+      currency_id?: string;
+      boosts?: Array<{
+        id?: string;
+        status?: string;
+        description?: string;
+      }>;
+    } | null;
+  }>(
+    `${API}/items/${input.itemId}/price_to_win?siteId=MLB&version=v2`,
+    {
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+      },
+    },
+  );
+}
+
+
 export async function getExistingItemShippingQuote(input: {
   accessToken: string;
   userId: string;
@@ -894,4 +1335,205 @@ export async function getExistingItemShippingQuote(input: {
     discountRate: Number(coverage.discount?.rate ?? 0),
     promotedAmount: Number(coverage.discount?.promoted_amount ?? 0),
   };
+}
+
+
+export async function getUserProductDetails(input: {
+  accessToken: string;
+  userProductId: string;
+}) {
+  return jsonFetch<{
+    id?: string;
+    user_id?: number | string;
+    family_id?: number | string;
+    family_name?: string;
+    domain_id?: string;
+    site_id?: string;
+    attributes?: Array<{
+      id?: string;
+      name?: string;
+      values?: Array<{ id?: string | null; name?: string | null }>;
+    }>;
+  }>(
+    `${API}/user-products/${input.userProductId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+        "X-API-Version": "2",
+      },
+    },
+  );
+}
+
+export async function getItemsByUserProduct(input: {
+  accessToken: string;
+  userId: string;
+  userProductId: string;
+}) {
+  const params = new URLSearchParams({
+    user_product_id: input.userProductId,
+    limit: "50",
+  });
+
+  const raw = await jsonFetch<{
+    results?: string[];
+  }>(
+    `${API}/users/${input.userId}/items/search?${params.toString()}`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+
+  return raw.results ?? [];
+}
+
+
+export type ProductAdsAdvertiser = {
+  advertiserId: string;
+  siteId: string;
+  advertiserName: string | null;
+  accountName: string | null;
+};
+
+export async function getProductAdsAdvertisers(input: {
+  accessToken: string;
+}) {
+  const raw = await jsonFetch<{
+    advertisers?: Array<{
+      advertiser_id?: number | string;
+      site_id?: string;
+      advertiser_name?: string;
+      account_name?: string;
+    }>;
+  }>(`${API}/advertising/advertisers?product_id=PADS`, {
+    headers: {
+      Authorization: `Bearer ${input.accessToken}`,
+      "Content-Type": "application/json",
+      "Api-Version": "1",
+    },
+  });
+
+  return (raw.advertisers ?? [])
+    .filter((item) => item.advertiser_id != null && item.site_id)
+    .map<ProductAdsAdvertiser>((item) => ({
+      advertiserId: String(item.advertiser_id),
+      siteId: String(item.site_id),
+      advertiserName: item.advertiser_name ?? null,
+      accountName: item.account_name ?? null,
+    }));
+}
+
+const PRODUCT_ADS_CAMPAIGN_METRICS = [
+  "clicks",
+  "prints",
+  "ctr",
+  "cost",
+  "cpc",
+  "acos",
+  "organic_units_quantity",
+  "organic_units_amount",
+  "organic_items_quantity",
+  "direct_items_quantity",
+  "indirect_items_quantity",
+  "advertising_items_quantity",
+  "cvr",
+  "roas",
+  "sov",
+  "direct_units_quantity",
+  "indirect_units_quantity",
+  "units_quantity",
+  "direct_amount",
+  "indirect_amount",
+  "total_amount",
+].join(",");
+
+const PRODUCT_ADS_AD_GROUP_METRICS = [
+  "CLICKS",
+  "PRINTS",
+  "COST",
+  "CPC",
+  "CTR",
+  "DIRECT_AMOUNT",
+  "INDIRECT_AMOUNT",
+  "TOTAL_AMOUNT",
+  "DIRECT_UNITS_QUANTITY",
+  "INDIRECT_UNITS_QUANTITY",
+  "UNITS_QUANTITY",
+  "DIRECT_ITEMS_QUANTITY",
+  "INDIRECT_ITEMS_QUANTITY",
+  "ADVERTISING_ITEMS_QUANTITY",
+  "ORGANIC_UNITS_QUANTITY",
+  "ORGANIC_UNITS_AMOUNT",
+  "ORGANIC_ITEMS_QUANTITY",
+  "ACOS",
+  "TACOS",
+  "SOV",
+  "CVR",
+  "ROAS",
+].join(",");
+
+export async function getProductAdsCampaigns(input: {
+  accessToken: string;
+  siteId: string;
+  advertiserId: string;
+  dateFrom: string;
+  dateTo: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const params = new URLSearchParams({
+    limit: String(Math.min(Math.max(input.limit ?? 50, 1), 50)),
+    offset: String(Math.max(input.offset ?? 0, 0)),
+    date_from: input.dateFrom,
+    date_to: input.dateTo,
+    metrics: PRODUCT_ADS_CAMPAIGN_METRICS,
+    metrics_summary: "true",
+  });
+
+  return jsonFetch<{
+    paging?: { offset?: number; total?: number; limit?: number };
+    results?: Array<Record<string, any>>;
+    metrics_summary?: Record<string, number | null>;
+  }>(
+    `${API}/advertising/${input.siteId}/advertisers/${input.advertiserId}/product_ads/campaigns/search?${params.toString()}`,
+    {
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+        "api-version": "2",
+      },
+    },
+  );
+}
+
+export async function getProductAdsAdGroups(input: {
+  accessToken: string;
+  siteId: string;
+  advertiserId: string;
+  dateFrom: string;
+  dateTo: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const params = new URLSearchParams({
+    limit: String(Math.min(Math.max(input.limit ?? 50, 1), 800)),
+    offset: String(Math.max(input.offset ?? 0, 0)),
+    date_from: input.dateFrom,
+    date_to: input.dateTo,
+    metrics: PRODUCT_ADS_AD_GROUP_METRICS,
+    metrics_summary: "true",
+    sort: "desc",
+    sort_by: "cost",
+  });
+
+  return jsonFetch<{
+    paging?: { offset?: number; total?: number; limit?: number };
+    results?: Array<Record<string, any>>;
+    metrics_summary?: Record<string, number | null>;
+  }>(
+    `${API}/advertising/${input.siteId}/advertisers/${input.advertiserId}/product_ads/ad_groups/search?${params.toString()}`,
+    {
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+        "api-version": "2",
+      },
+    },
+  );
 }

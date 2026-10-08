@@ -1,0 +1,324 @@
+/* ads — Publicidade (Product Ads). Tudo prefixado por .ads-page. */
+
+/* ---------------------------------------------------------------- */
+/* leitura financeira                                                */
+/* ---------------------------------------------------------------- */
+
+.ads-page .ads-insight .clean-panel-head {
+  align-items: center;
+  margin-bottom: var(--s-3);
+}
+
+.ads-page .ads-insight-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: var(--s-5);
+  align-items: stretch;
+}
+
+.ads-page .ads-insight-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+}
+
+.ads-page .ads-insight-main > p {
+  max-width: 68ch;
+  color: var(--ink-500);
+  font-size: var(--fs-14);
+  line-height: 1.5;
+}
+
+.ads-page .ads-insight-numbers {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ads-page .ads-insight-numbers strong {
+  color: var(--ink-900);
+  white-space: nowrap;
+}
+
+.ads-page .ads-insight-numbers strong.danger-value {
+  color: var(--risk);
+}
+
+.ads-page .ads-insight-recommendation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  min-width: 0;
+  padding: var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.ads-page .ads-insight-recommendation > span {
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+}
+
+.ads-page .ads-insight-recommendation > strong {
+  color: var(--ink-900);
+  font-size: var(--fs-18);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.ads-page .ads-insight-recommendation > p {
+  color: var(--ink-700);
+  font-size: var(--fs-13);
+  line-height: 1.45;
+}
+
+.ads-page .ads-insight-recommendation > small {
+  margin-top: auto;
+  padding-top: var(--s-2);
+  color: var(--ink-400);
+  font-size: var(--fs-12);
+}
+
+.ads-page .ads-insight-recommendation.scale > strong {
+  color: var(--ok);
+}
+
+.ads-page .ads-insight-recommendation.reduce > strong,
+.ads-page .ads-insight-recommendation.pause_review > strong {
+  color: var(--risk);
+}
+
+.ads-page .ads-insight-recommendation.learn > strong {
+  color: var(--warn);
+}
+
+.ads-page .ads-insight-recommendation.hold > strong {
+  color: var(--info);
+}
+
+/* ---------------------------------------------------------------- */
+/* tabelas                                                           */
+/* ---------------------------------------------------------------- */
+
+.ads-page .ads-count {
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--s-1);
+  padding: 0 var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  color: var(--ink-500);
+  font-family: var(--font-num);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  line-height: 1.6;
+  vertical-align: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ads-page .ads-campaigns-table {
+  min-width: 980px;
+}
+
+.ads-page .ads-groups-table {
+  min-width: 1080px;
+}
+
+.ads-page .ads-groups-table th,
+.ads-page .ads-groups-table td {
+  padding-left: var(--s-2);
+  padding-right: var(--s-2);
+}
+
+.ads-page .ads-groups-table th:first-child,
+.ads-page .ads-groups-table td:first-child {
+  padding-left: var(--s-3);
+}
+
+.ads-page .ads-groups-table th {
+  white-space: normal;
+  line-height: 1.3;
+  vertical-align: bottom;
+}
+
+.ads-page .ads-table td {
+  white-space: nowrap;
+}
+
+.ads-page .ads-table td:first-child {
+  white-space: normal;
+}
+
+.ads-page .ads-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 220px;
+}
+
+.ads-page .ads-name-cell strong {
+  color: var(--ink-900);
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.ads-page .ads-groups-table .clean-product-cell {
+  min-width: 196px;
+  max-width: 206px;
+}
+
+.ads-page .ads-groups-table .clean-product-cell small {
+  font-size: var(--fs-12);
+}
+
+.ads-page .ads-nowrap {
+  white-space: nowrap;
+}
+
+.ads-page .ads-roas {
+  color: var(--ink-900);
+  font-weight: 600;
+}
+
+.ads-page .ads-profit {
+  font-weight: 600;
+}
+
+/* status da campanha / anúncio */
+.ads-page .ads-status.active {
+  background: var(--ok-tint);
+  color: var(--ok);
+}
+
+.ads-page .ads-status.paused {
+  background: var(--surface-3);
+  color: var(--ink-500);
+}
+
+/* recomendação por produto */
+.ads-page .ads-action-badge.scale {
+  background: var(--ok-tint);
+  color: var(--ok);
+}
+
+.ads-page .ads-action-badge.hold {
+  background: var(--info-tint);
+  color: var(--info);
+}
+
+.ads-page .ads-action-badge.reduce,
+.ads-page .ads-action-badge.pause_review {
+  background: var(--risk-tint);
+  color: var(--risk);
+}
+
+.ads-page .ads-action-badge.learn {
+  background: var(--warn-tint);
+  color: var(--warn);
+}
+
+.ads-page .ads-groups-panel .table-footer-note {
+  max-width: 110ch;
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------- */
+/* Product Ads indisponível                                          */
+/* ---------------------------------------------------------------- */
+
+.ads-page .ads-disabled-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-4);
+  padding: var(--s-6);
+}
+
+.ads-page .ads-disabled-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: var(--warn-tint);
+  color: var(--warn);
+}
+
+.ads-page .ads-disabled-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--s-1);
+  min-width: 0;
+}
+
+.ads-page .ads-disabled-copy strong {
+  color: var(--ink-900);
+  font-size: var(--fs-16);
+  font-weight: 600;
+}
+
+.ads-page .ads-disabled-copy p {
+  color: var(--ink-700);
+  font-size: var(--fs-14);
+}
+
+.ads-page .ads-disabled-copy small {
+  max-width: 68ch;
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+  line-height: 1.5;
+}
+
+.ads-page .ads-disabled-panel > a {
+  flex: none;
+  align-self: center;
+}
+
+/* ---------------------------------------------------------------- */
+/* responsivo                                                        */
+/* ---------------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+  .ads-page .ads-insight-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .ads-page .ads-name-cell {
+    min-width: 180px;
+  }
+
+  .ads-page .ads-insight .clean-panel-head {
+    align-items: flex-start;
+  }
+
+  .ads-page .ads-insight-numbers {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ads-page .ads-insight-numbers > div {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s-3);
+  }
+
+  .ads-page .ads-insight-numbers strong {
+    font-size: var(--fs-18);
+  }
+
+  .ads-page .ads-disabled-panel {
+    flex-wrap: wrap;
+    padding: var(--s-5) var(--s-4);
+  }
+
+  .ads-page .ads-disabled-copy {
+    flex-basis: calc(100% - 60px);
+  }
+
+  .ads-page .ads-disabled-panel > a {
+    width: 100%;
+  }
+}

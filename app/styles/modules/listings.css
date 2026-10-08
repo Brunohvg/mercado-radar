@@ -1,0 +1,888 @@
+/* anúncios — só layout e detalhes da tela; cor/tipo/forma vêm de tokens e primitivas */
+
+.listings-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+/* ---------------------------------------------------------------- */
+/* faixa de indicadores                                              */
+/* ---------------------------------------------------------------- */
+
+.listings-page .listing-overview-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 0.8fr) minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1.6fr);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  overflow: hidden;
+  box-shadow: var(--shadow-hair);
+}
+
+/* a pilha de "total" + "ativos" vira duas células da faixa */
+.listings-page .listing-overview-stack {
+  display: contents;
+}
+
+.listings-page .listing-overview-grid > .clean-kpi-card,
+.listings-page .listing-overview-stack > .clean-kpi-card {
+  justify-content: center;
+}
+
+/* células com conteúdo dentro de um <div> (ticket e score) */
+.listings-page .listing-kpi-feature > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.listings-page .listing-kpi-feature span,
+.listings-page .listing-score-head > div > span {
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+}
+
+.listings-page .listing-kpi-feature strong {
+  font-family: var(--font-num);
+  font-size: var(--fs-28);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--ink-900);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.listings-page .listing-kpi-feature small,
+.listings-page .listing-score-head > div > small {
+  color: var(--ink-400);
+  font-size: var(--fs-12);
+}
+
+/* score médio: texto à esquerda, mostrador à direita */
+.listings-page .listing-score-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "head dial"
+    "note dial";
+  align-items: center;
+  column-gap: var(--s-5);
+  row-gap: var(--s-2);
+}
+
+.listings-page .listing-score-head {
+  grid-area: head;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-width: 0;
+}
+
+.listings-page .listing-score-head > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.listings-page .listing-score-card > p {
+  grid-area: note;
+  align-self: start;
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+  line-height: 1.4;
+}
+
+/* mostrador semicircular (valor em --score, 0–100) */
+.listings-page .score-dial {
+  --score: 0;
+  --dial: 128px;
+  grid-area: dial;
+  position: relative;
+  width: var(--dial);
+  height: calc(var(--dial) / 2 + 2px);
+  overflow: hidden;
+}
+
+.listings-page .score-dial::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--dial);
+  border-radius: 50%;
+  background: conic-gradient(
+    from 270deg,
+    var(--brand) calc(var(--score) * 1.8deg),
+    var(--surface-3) calc(var(--score) * 1.8deg) 180deg,
+    transparent 180deg
+  );
+  -webkit-mask: radial-gradient(closest-side, transparent 78%, var(--ink-900) 79%);
+  mask: radial-gradient(closest-side, transparent 78%, var(--ink-900) 79%);
+}
+
+.listings-page .score-dial > div {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 1px;
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.listings-page .score-dial strong {
+  color: var(--ink-900);
+  font-size: var(--fs-28);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.listings-page .score-dial span {
+  color: var(--ink-400);
+  font-size: var(--fs-13);
+}
+
+/* ---------------------------------------------------------------- */
+/* painel da lista: barra de ferramentas                             */
+/* ---------------------------------------------------------------- */
+
+.listings-page .listings-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.listings-page .products-table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3) var(--s-4);
+  flex-wrap: wrap;
+  padding: var(--s-4) var(--s-5);
+  border-bottom: 1px solid var(--line);
+}
+
+.listings-page .products-table-toolbar > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.listings-page .products-table-toolbar > div:first-child strong {
+  color: var(--ink-900);
+  font-size: var(--fs-16);
+  font-weight: 600;
+}
+
+.listings-page .products-table-toolbar > div:first-child span {
+  min-width: 24px;
+  padding: 1px var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  color: var(--ink-500);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  text-align: center;
+}
+
+.listings-page .listings-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex: 1 1 520px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.listings-page .listings-toolbar-actions input {
+  flex: 0 1 320px;
+  min-width: 0;
+  min-height: 38px;
+  padding-left: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237d908a' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 12px center;
+}
+
+.listings-page .listings-toolbar-actions select {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 150px;
+  min-height: 38px;
+}
+
+/* ---------------------------------------------------------------- */
+/* tabela                                                            */
+/* ---------------------------------------------------------------- */
+
+.listings-page .listings-panel .clean-table-wrap {
+  container-type: inline-size;
+}
+
+.listings-page .listings-table {
+  width: 100%;
+  min-width: 1040px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--fs-13);
+}
+
+.listings-page .listings-table th,
+.listings-page .listings-table td {
+  padding-left: var(--s-2);
+  padding-right: var(--s-2);
+}
+
+.listings-page .listings-table th {
+  border-radius: 0;
+}
+
+.listings-page .listings-table th:first-child,
+.listings-page .listings-table td:first-child {
+  padding-left: var(--s-5);
+}
+
+.listings-page .listings-table th:last-child,
+.listings-page .listings-table td:last-child {
+  padding-right: var(--s-5);
+}
+
+.listings-page .listings-table .clean-product-cell {
+  min-width: 210px;
+}
+
+.listings-page .listings-table .clean-product-cell strong {
+  font-size: var(--fs-13);
+}
+
+.listings-page .listings-table .clean-product-cell small {
+  overflow: hidden;
+  font-size: var(--fs-12);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listings-page .listing-id-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.listings-page .listing-id-cell strong {
+  color: var(--ink-700);
+  font-size: var(--fs-13);
+  font-weight: 500;
+}
+
+.listings-page .listing-id-cell small {
+  color: var(--ink-400);
+  font-size: var(--fs-12);
+}
+
+/* status: ponto + rótulo */
+.listings-page .listing-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-500);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.listings-page .listing-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.listings-page .listing-status.active {
+  color: var(--ok);
+}
+
+.listings-page .listing-status.paused {
+  color: var(--warn);
+}
+
+.listings-page .listing-plan {
+  color: var(--ink-700);
+  white-space: nowrap;
+}
+
+/* canal: catálogo ganha etiqueta; tradicional fica em texto */
+.listings-page .channel-chip {
+  white-space: nowrap;
+}
+
+.listings-page .channel-chip.catalog {
+  display: inline-flex;
+  padding: 2px 9px;
+  border-radius: var(--r-pill);
+  background: var(--info-tint);
+  color: var(--info);
+  font-size: var(--fs-12);
+  font-weight: 600;
+}
+
+.listings-page .channel-chip.traditional {
+  color: var(--ink-500);
+}
+
+.listings-page .listing-price {
+  color: var(--ink-900);
+  font-family: var(--font-num);
+  font-size: var(--fs-14);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.listings-page .listings-table td.num {
+  color: var(--ink-900);
+}
+
+.listings-page .margin-good,
+.listings-page .margin-bad {
+  font-family: var(--font-num);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.listings-page .margin-good {
+  color: var(--ok);
+}
+
+.listings-page .margin-bad {
+  color: var(--warn);
+}
+
+.listings-page .listings-table td .table-muted {
+  white-space: nowrap;
+}
+
+/* score do anúncio */
+.listings-page .listing-score-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  padding: 2px 9px;
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+  color: var(--ink-700);
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.listings-page .listing-score-pill strong {
+  font-size: var(--fs-16);
+  font-weight: 600;
+}
+
+.listings-page .listing-score-pill span {
+  color: inherit;
+  font-size: var(--fs-11);
+  opacity: 0.7;
+}
+
+.listings-page .listing-score-pill.good {
+  background: var(--ok-tint);
+  color: var(--ok);
+}
+
+.listings-page .listing-score-pill.attention {
+  background: var(--warn-tint);
+  color: var(--warn);
+}
+
+.listings-page .listing-score-pill.bad {
+  background: var(--risk-tint);
+  color: var(--risk);
+}
+
+/* ações da linha */
+.listings-page .listing-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-1);
+}
+
+.listings-page .row-insight-button,
+.listings-page .row-external-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink-700);
+  font-size: var(--fs-13);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.listings-page .row-insight-button {
+  min-width: 72px;
+  padding: 0 var(--s-3);
+  color: var(--brand-600);
+}
+
+.listings-page .row-external-link {
+  width: 32px;
+  color: var(--ink-500);
+  text-decoration: none;
+}
+
+.listings-page .row-insight-button:hover:not(:disabled),
+.listings-page .row-external-link:hover {
+  border-color: var(--ink-300);
+  background: var(--surface-2);
+  color: var(--ink-900);
+}
+
+.listings-page .row-insight-button.active {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+  color: var(--brand-700);
+}
+
+.listings-page .row-insight-button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.listings-page .row-insight-button:focus-visible,
+.listings-page .row-external-link:focus-visible {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: var(--focus);
+}
+
+/* linha aberta: liga a linha ao painel de análise */
+.listings-page .listings-table tr:has(+ .listing-insight-row) td {
+  background: var(--brand-tint-2);
+  border-bottom-color: transparent;
+}
+
+/* estado vazio dentro da tabela */
+.listings-page .listings-table .listing-empty-row > td,
+.listings-page .listings-table .listing-empty-row:hover > td {
+  padding: var(--s-5);
+  background: var(--surface);
+}
+
+.listings-page .listing-empty-row .empty-result {
+  position: sticky;
+  left: var(--s-5);
+  width: calc(100cqw - 2 * var(--s-5));
+}
+
+/* ---------------------------------------------------------------- */
+/* painel de análise do anúncio (linha expandida)                     */
+/* ---------------------------------------------------------------- */
+
+.listings-page .listings-table .listing-insight-row > td,
+.listings-page .listings-table .listing-insight-row:hover > td {
+  padding: 0;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.listings-page .listing-insight-panel {
+  position: sticky;
+  left: 0;
+  width: 100cqw;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4) var(--s-5) var(--s-5);
+  border-top: 1px solid var(--line);
+}
+
+.listings-page .listing-insight-panel .listing-insight-loading {
+  border-radius: var(--r-md);
+  background: var(--surface);
+  font-size: var(--fs-13);
+}
+
+/* resumo: faixa com divisórias */
+.listings-page .listing-insight-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--line);
+  overflow: hidden;
+}
+
+.listings-page .listing-insight-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--s-3) var(--s-4);
+  background: var(--surface);
+}
+
+.listings-page .listing-insight-summary span {
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+}
+
+.listings-page .listing-insight-summary strong {
+  color: var(--ink-900);
+  font-family: var(--font-num);
+  font-size: var(--fs-22);
+  font-weight: 600;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.listings-page .listing-insight-summary small {
+  color: var(--ink-400);
+  font-size: var(--fs-12);
+  line-height: 1.4;
+}
+
+/* estratégia de preço */
+.listings-page .listing-price-strategy {
+  --tone: var(--ink-500);
+  --tone-tint: var(--surface-3);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+  align-items: center;
+  gap: var(--s-4) var(--s-6);
+  padding: var(--s-4);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--tone);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.listings-page .listing-price-strategy.raise {
+  --tone: var(--info);
+  --tone-tint: var(--info-tint);
+}
+
+.listings-page .listing-price-strategy.reduce {
+  --tone: var(--ok);
+  --tone-tint: var(--ok-tint);
+}
+
+.listings-page .listing-price-strategy.raise_or_exit {
+  --tone: var(--warn-strong);
+  --tone-tint: var(--warn-tint);
+}
+
+.listings-page .listing-price-strategy > div:first-child {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-1);
+  min-width: 0;
+}
+
+.listings-page .listing-price-strategy > div:first-child > span {
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+}
+
+.listings-page .listing-price-strategy > div:first-child > strong {
+  color: var(--ink-900);
+  font-size: var(--fs-18);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.listings-page .listing-price-strategy p {
+  max-width: 72ch;
+  color: var(--ink-700);
+  font-size: var(--fs-14);
+  line-height: 1.5;
+}
+
+.listings-page .listing-price-strategy > div:first-child > small {
+  color: var(--ink-400);
+  font-size: var(--fs-12);
+}
+
+.listings-page .listing-price-strategy-numbers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(112px, auto));
+  gap: 1px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--line);
+  overflow: hidden;
+}
+
+.listings-page .listing-price-strategy-numbers > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--s-2) var(--s-3);
+  background: var(--surface);
+}
+
+.listings-page .listing-price-strategy-numbers > div:first-child {
+  background: var(--tone-tint);
+}
+
+.listings-page .listing-price-strategy-numbers span {
+  color: var(--ink-500);
+  font-size: var(--fs-12);
+  white-space: nowrap;
+}
+
+.listings-page .listing-price-strategy-numbers strong {
+  color: var(--ink-900);
+  font-family: var(--font-num);
+  font-size: var(--fs-18);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* histórico + concorrentes */
+.listings-page .listing-insight-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: var(--s-3);
+}
+
+.listings-page .listing-history-box,
+.listings-page .listing-competitors-box {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--s-3) var(--s-4) var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.listings-page .listing-history-box > strong,
+.listings-page .listing-competitors-box > strong {
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-900);
+  font-size: var(--fs-14);
+  font-weight: 600;
+}
+
+.listings-page .listing-history-box > p,
+.listings-page .listing-competitors-box > p {
+  padding: var(--s-3) 0;
+  font-size: var(--fs-13);
+}
+
+.listings-page .listing-history-list > div,
+.listings-page .listing-competitors-list > div {
+  display: grid;
+  align-items: center;
+  gap: 0 var(--s-3);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.listings-page .listing-history-list > div:last-child,
+.listings-page .listing-competitors-list > div:last-child {
+  border-bottom: 0;
+}
+
+.listings-page .listing-history-list > div {
+  grid-template-columns: minmax(0, 1fr) 56px 76px;
+}
+
+.listings-page .listing-history-list span {
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+  font-variant-numeric: tabular-nums;
+}
+
+.listings-page .listing-history-list strong,
+.listings-page .listing-history-list small {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.listings-page .listing-history-list strong {
+  color: var(--ink-900);
+  font-size: var(--fs-14);
+  font-weight: 600;
+}
+
+.listings-page .listing-history-list small {
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+}
+
+.listings-page .listing-competitors-list > div {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title price"
+    "meta price";
+}
+
+.listings-page .listing-competitors-list span {
+  grid-area: title;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-700);
+  font-size: var(--fs-13);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listings-page .listing-competitors-list strong {
+  grid-area: price;
+  color: var(--ink-900);
+  font-family: var(--font-num);
+  font-size: var(--fs-14);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.listings-page .listing-competitors-list small {
+  grid-area: meta;
+  color: var(--ink-400);
+  font-size: var(--fs-12);
+}
+
+/* ---------------------------------------------------------------- */
+/* rodapé                                                            */
+/* ---------------------------------------------------------------- */
+
+.listings-page .listings-panel > .table-footer-note {
+  margin: 0;
+  padding: var(--s-3) var(--s-5);
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------- */
+/* responsivo                                                        */
+/* ---------------------------------------------------------------- */
+
+@media (max-width: 1180px) {
+  .listings-page .listing-overview-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .listings-page .listing-score-card {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 960px) {
+  .listings-page .listing-price-strategy {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .listings-page .listing-insight-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .listings-page .listing-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .listings-page .listing-kpi-feature {
+    grid-column: 1 / -1;
+  }
+
+  .listings-page .listing-kpi-feature strong {
+    font-size: var(--fs-22);
+  }
+
+  .listings-page .listing-score-card {
+    grid-template-areas:
+      "head head"
+      "note dial";
+  }
+
+  .listings-page .score-dial {
+    --dial: 104px;
+  }
+
+  .listings-page .score-dial strong {
+    font-size: var(--fs-22);
+  }
+
+  .listings-page .products-table-toolbar {
+    padding: var(--s-3) var(--s-4);
+  }
+
+  .listings-page .listings-toolbar-actions {
+    flex-wrap: wrap;
+    flex-basis: 100%;
+  }
+
+  .listings-page .listings-toolbar-actions input {
+    flex: 1 1 100%;
+  }
+
+  .listings-page .listings-toolbar-actions select {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .listings-page .listings-table th:first-child,
+  .listings-page .listings-table td:first-child {
+    padding-left: var(--s-4);
+  }
+
+  .listings-page .listing-insight-panel {
+    padding: var(--s-3) var(--s-4) var(--s-4);
+  }
+
+  .listings-page .listing-insight-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .listings-page .listing-insight-summary strong {
+    font-size: var(--fs-18);
+  }
+
+  .listings-page .listing-price-strategy-numbers {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .listings-page .listing-price-strategy-numbers strong {
+    font-size: var(--fs-16);
+  }
+
+  .listings-page .listing-price-strategy-numbers span {
+    white-space: normal;
+    line-height: 1.3;
+  }
+
+  .listings-page .listing-empty-row .empty-result {
+    left: var(--s-4);
+    width: calc(100cqw - 2 * var(--s-4));
+  }
+}

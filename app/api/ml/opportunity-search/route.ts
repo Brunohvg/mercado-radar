@@ -11,6 +11,7 @@ import {
   searchCatalogProducts,
 } from "@/lib/mercado-livre";
 import { calculateSearchOpportunityScore } from "@/lib/opportunity-intelligence";
+import { getMarketInsights } from "@/lib/market-intel";
 
 export const dynamic = "force-dynamic";
 
@@ -350,6 +351,30 @@ export async function POST(request: Request) {
       return Math.min(...matches.map((entry) => entry.position));
     }
 
+    // Ritmo medido pelo Radar (leituras da extensão / conta) para os mesmos
+    // anúncios, quando existir. Falha do banco nunca derruba a busca.
+    const measuredById = new Map<
+      string,
+      { salesPerDay: number; visitsPerDay: number | null }
+    >();
+    try {
+      const insights = await getMarketInsights(candidates.map((c) => c.itemId));
+      for (const insight of insights) {
+        const e = insight.estimate;
+        if (
+          (e.method === "HISTORICO" || e.method === "OFICIAL") &&
+          e.salesPerDay.value != null
+        ) {
+          measuredById.set(insight.id, {
+            salesPerDay: e.salesPerDay.value,
+            visitsPerDay: e.visitsPerDay.value,
+          });
+        }
+      }
+    } catch {
+      // sem banco ou sem histórico: segue só com os dados da API
+    }
+
     const opportunities = candidates
       .map((candidate) => {
         const item = candidate.item;
@@ -370,6 +395,8 @@ export async function POST(request: Request) {
           catalogProductId: candidate.product.id,
           listingTypeId: item?.listingTypeId ?? null,
           similarity: candidate.similarity,
+          measuredSalesPerDay: measuredById.get(candidate.itemId)?.salesPerDay ?? null,
+          measuredVisitsPerDay: measuredById.get(candidate.itemId)?.visitsPerDay ?? null,
         });
 
         const gapToMedian =
@@ -405,6 +432,8 @@ export async function POST(request: Request) {
           gapToMedian,
           score: intelligence.total,
           demandLabel: intelligence.demandLabel,
+          scorePartial: intelligence.partial,
+          rhythm: intelligence.rhythm,
           evidence: intelligence.evidence,
           salesPerDay: intelligence.salesPerDay,
           salesPerMonth: intelligence.salesPerMonth,
@@ -431,15 +460,11 @@ export async function POST(request: Request) {
       .sort((a, b) => b.score - a.score)
       .slice(0, limit);
 
-    const reliableOpportunities = opportunities.filter(
-      (item) => item.evidence !== "LOW",
-    );
-
-    const knownMonthlySales = reliableOpportunities
+    const knownMonthlySales = opportunities
       .map((item) => item.salesPerMonth)
       .filter((value): value is number => value != null);
 
-    const knownRevenue = reliableOpportunities
+    const knownRevenue = opportunities
       .map((item) => item.revenuePerMonth)
       .filter((value): value is number => value != null);
 
@@ -513,11 +538,11 @@ export async function POST(request: Request) {
       opportunities,
       methodology: {
         exact:
-          "A descoberta usa o buscador oficial de produtos do Mercado Livre. Preço e seller vêm do buy_box_winner; sem ele, da oferta mais barata em /products/{id}/items. Detalhes adicionais usam o multiget /items/bulk?ids=.",
+          "A descoberta usa o buscador oficial de produtos do Mercado Livre. Preço e vendedor vêm da oferta vencedora do catálogo; sem ela, da oferta mais barata listada. Detalhes adicionais vêm da consulta em lote de anúncios.",
         estimated:
           "Vendas/mês e faturamento/mês continuam sendo estimativas baseadas nos sinais disponíveis e são identificadas como estimativas na interface.",
         score:
-          "Score combina demanda, velocidade, relevância do produto, posição de preço, logística e qualidade da evidência.",
+          "O score combina demanda, vendas acumuladas, relevância do produto, posição de preço, logística e confiança dos dados. Sem nenhuma venda conhecida a nota é parcial e limitada a 60.",
       },
       extensionRecommended: true,
       extensionMessage:

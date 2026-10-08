@@ -1,9 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  DEFAULT_FILTERS,
+  EMPTY_TOGGLES,
+  activeFilterCount,
+  applyFilters,
+  availability,
+  countToggle,
+  countWith,
+  sortItems,
+  type FilterState,
+  type SortKey,
+  type ToggleKey,
+} from "@/lib/opportunity-filters";
 
 type Demand = "BAIXA" | "MEDIA" | "ALTA" | "EXCELENTE";
 type Evidence = "LOW" | "MEDIUM" | "HIGH";
+type Rhythm = "MEDIDO" | "VIDA" | null;
 
 type Opportunity = {
   id: string;
@@ -26,7 +40,9 @@ type Opportunity = {
   dateCreated: string | null;
   gapToMedian: number | null;
   score: number;
-  demandLabel: Demand;
+  demandLabel: Demand | null;
+  scorePartial?: boolean;
+  rhythm?: Rhythm;
   evidence: Evidence;
   salesPerDay: number | null;
   salesPerMonth: number | null;
@@ -95,18 +111,6 @@ type Trend = {
   position: number;
 };
 
-type DemandFilter = "ALL" | "HIGH" | "EXCELLENT";
-type EvidenceFilter = "ALL" | "HIGH";
-type LogisticsFilter = "ALL" | "FULL" | "FLEX";
-type Sort =
-  | "SCORE"
-  | "SALES"
-  | "REVENUE"
-  | "NEWEST"
-  | "PRICE_ASC"
-  | "SEARCH_POSITION"
-  | "BEST_SELLER";
-
 const money = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
@@ -119,44 +123,94 @@ const compactMoney = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 1,
 });
 
-function listingLabel(value: string | null) {
-  if (value === "gold_pro") return "Premium";
-  if (value === "gold_special") return "Clássico";
-  return "Outro";
+const SORT_LABELS: Record<SortKey, string> = {
+  SCORE: "Melhor oportunidade",
+  SALES: "Mais vendas por mês",
+  REVENUE: "Maior faturamento por mês",
+  NEWEST: "Mais novos",
+  PRICE_ASC: "Menor preço",
+  SEARCH_POSITION: "Posição na busca",
+  BEST_SELLER: "Ranking de mais vendidos",
+};
+
+const DEMAND_TEXT: Record<Demand, string> = {
+  EXCELENTE: "excelente",
+  ALTA: "alta",
+  MEDIA: "média",
+  BAIXA: "baixa",
+};
+
+const COMPONENT_LABEL: Record<keyof Opportunity["scoreComponents"], string> = {
+  demand: "demanda",
+  velocity: "vendas acumuladas",
+  relevance: "relevância",
+  price: "preço",
+  logistics: "logística",
+  evidence: "confiança dos dados",
+};
+
+function competitionText(value: "BAIXA" | "MEDIA" | "ALTA") {
+  return DEMAND_TEXT[value];
 }
 
-function demandLabel(value: Demand) {
-  if (value === "EXCELENTE") return "Excelente";
-  if (value === "ALTA") return "Alta";
-  if (value === "MEDIA") return "Média";
-  return "Baixa";
-}
-
-function evidenceLabel(value: Evidence) {
-  if (value === "HIGH") return "Alta confiança";
-  if (value === "MEDIUM") return "Confiança média";
-  return "Baixa confiança";
-}
-
+/* faixas coerentes: cor acompanha a nota, sem vermelho de alarme */
 function scoreTone(score: number) {
-  if (score >= 80) return "excellent";
-  if (score >= 65) return "good";
-  if (score >= 45) return "attention";
-  return "weak";
+  if (score >= 70) return "top";
+  if (score >= 50) return "good";
+  if (score >= 35) return "mid";
+  return "low";
 }
 
-function componentLabel(key: keyof Opportunity["scoreComponents"]) {
-  const labels: Record<keyof Opportunity["scoreComponents"], string> = {
-    demand: "Demanda",
-    velocity: "Velocidade",
-    relevance: "Relevância",
-    price: "Preço",
-    logistics: "Logística",
-    evidence: "Evidência",
-  };
-
-  return labels[key];
+function scoreExplanation(item: Opportunity) {
+  const entries = Object.entries(item.scoreComponents) as Array<
+    [keyof Opportunity["scoreComponents"], number]
+  >;
+  const usable = item.scorePartial
+    ? entries.filter(([key]) => key !== "demand" && key !== "velocity")
+    : entries;
+  const sorted = [...usable].sort((a, b) => b[1] - a[1]);
+  const best = sorted.slice(0, 2).map(([k, v]) => `${COMPONENT_LABEL[k]} ${v}`);
+  const worst = sorted[sorted.length - 1];
+  const lines = [
+    item.scorePartial
+      ? `Nota parcial (${item.score} de 100): este anúncio não tem vendas conhecidas, então a nota usa só relevância, preço, logística e confiança, com teto de 60.`
+      : `Nota ${item.score} de 100: combina demanda, vendas acumuladas, relevância, preço, logística e confiança dos dados.`,
+    `Pontos fortes: ${best.join(", ")}.`,
+  ];
+  if (worst && worst[1] < 50) lines.push(`Ponto fraco: ${COMPONENT_LABEL[worst[0]]} ${worst[1]}.`);
+  return lines;
 }
+
+function gapPill(gap: number | null) {
+  if (gap == null) return null;
+  const rounded = Math.round(gap);
+  if (Math.abs(gap) < 3) return { tone: "flat", text: "na mediana" };
+  if (gap < 0) return { tone: "below", text: `${Math.abs(rounded)}% abaixo da mediana` };
+  return { tone: gap >= 25 ? "above" : "flat", text: `${rounded}% acima da mediana` };
+}
+
+function formatAge(days: number) {
+  if (days >= 730) return `${Math.floor(days / 365)} anos`;
+  if (days >= 365) return "1 ano";
+  if (days >= 60) return `${Math.round(days / 30)} meses`;
+  return `${days} dias`;
+}
+
+const SCORE_OPTIONS = [50, 65, 80];
+const RELEVANCE_OPTIONS = [50, 70, 85];
+const SALES_OPTIONS = [10, 30, 100, 300];
+const REVENUE_OPTIONS = [1000, 5000, 10000, 50000];
+const AGE_OPTIONS = [90, 180, 365, 730];
+
+const TOGGLES: Array<{ key: ToggleKey; label: string }> = [
+  { key: "freeShipping", label: "Frete grátis" },
+  { key: "catalog", label: "Catálogo" },
+  { key: "full", label: "Full" },
+  { key: "flex", label: "Flex" },
+  { key: "bestSeller", label: "Mais vendidos da categoria" },
+  { key: "measured", label: "Com ritmo medido" },
+  { key: "highEvidence", label: "Alta confiança" },
+];
 
 export function OpportunityRadar() {
   const [query, setQuery] = useState("");
@@ -168,18 +222,14 @@ export function OpportunityRadar() {
   const [monitored, setMonitored] = useState<Set<string>>(new Set());
   const [monitoringId, setMonitoringId] = useState<string | null>(null);
 
-  const [demand, setDemand] = useState<DemandFilter>("ALL");
-  const [evidence, setEvidence] = useState<EvidenceFilter>("ALL");
-  const [logistics, setLogistics] = useState<LogisticsFilter>("ALL");
-  const [scoreMin, setScoreMin] = useState(0);
-  const [relevanceMin, setRelevanceMin] = useState(0);
-  const [salesMin, setSalesMin] = useState(0);
-  const [revenueMin, setRevenueMin] = useState(0);
-  const [ageMax, setAgeMax] = useState(99999);
-  const [freeShippingOnly, setFreeShippingOnly] = useState(false);
-  const [catalogOnly, setCatalogOnly] = useState(false);
-  const [bestSellerOnly, setBestSellerOnly] = useState(false);
-  const [sort, setSort] = useState<Sort>("SCORE");
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const [sort, setSort] = useState<SortKey>("SCORE");
+  const [filtersOpen, setFiltersOpen] = useState(true);
+
+  useEffect(() => {
+    // em tela estreita o painel começa recolhido para não empurrar os resultados
+    if (typeof window !== "undefined" && window.innerWidth < 900) setFiltersOpen(false);
+  }, []);
 
   const runSearch = useCallback(async (term: string) => {
     const normalized = term.trim();
@@ -211,6 +261,8 @@ export function OpportunityRadar() {
 
       setData(payload);
       setQuery(normalized);
+      setFilters(DEFAULT_FILTERS);
+      setSort("SCORE");
 
       const url = new URL(window.location.href);
       url.searchParams.set("q", normalized);
@@ -281,91 +333,52 @@ export function OpportunityRadar() {
     };
   }, [runSearch]);
 
-  const filtered = useMemo(() => {
-    const source = data?.opportunities ?? [];
+  const all = useMemo(() => data?.opportunities ?? [], [data]);
+  const avail = useMemo(() => availability(all), [all]);
 
-    const rows = source.filter((item) => {
-      if (
-        demand === "HIGH" &&
-        item.demandLabel !== "ALTA" &&
-        item.demandLabel !== "EXCELENTE"
-      ) {
-        return false;
-      }
+  const filtered = useMemo(
+    () => sortItems(applyFilters(all, filters), sort),
+    [all, filters, sort],
+  );
 
-      if (demand === "EXCELLENT" && item.demandLabel !== "EXCELENTE") {
-        return false;
-      }
+  const columns = useMemo(() => {
+    const sold = all.some((i) => i.soldQuantity > 0);
+    const visits = all.some((i) => i.visitsPerDay != null);
+    return {
+      sales: avail.sales,
+      revenue: avail.revenue,
+      sold,
+      visits: !sold && visits,
+    };
+  }, [all, avail]);
+  const hasAnyColumn = columns.sales || columns.revenue || columns.sold || columns.visits;
 
-      if (evidence === "HIGH" && item.evidence !== "HIGH") {
-        return false;
-      }
+  // se a ordenação escolhida deixar de ter dado (nova busca), volta para a nota
+  const sortOptions = (Object.keys(SORT_LABELS) as SortKey[]).filter((key) => {
+    if (key === "SALES") return avail.sales;
+    if (key === "REVENUE") return avail.revenue;
+    if (key === "NEWEST") return avail.age;
+    if (key === "BEST_SELLER") return avail.bestSeller;
+    return true;
+  });
+  const activeSort = sortOptions.includes(sort) ? sort : "SCORE";
+  const activeCount = activeFilterCount(filters);
 
-      if (logistics === "FULL" && item.logisticType !== "fulfillment") {
-        return false;
-      }
+  function patch(next: Partial<FilterState>) {
+    setFilters((current) => ({ ...current, ...next }));
+  }
 
-      if (logistics === "FLEX" && item.logisticType !== "self_service") {
-        return false;
-      }
+  function toggle(key: ToggleKey) {
+    setFilters((current) => ({
+      ...current,
+      toggles: { ...current.toggles, [key]: !current.toggles[key] },
+    }));
+  }
 
-      if (item.score < scoreMin) return false;
-      if (item.similarityPercent < relevanceMin) return false;
-      if (Number(item.salesPerMonth ?? 0) < salesMin) return false;
-      if (Number(item.revenuePerMonth ?? 0) < revenueMin) return false;
-      if (Number(item.ageDays ?? 99999) > ageMax) return false;
-      if (freeShippingOnly && !item.freeShipping) return false;
-      if (catalogOnly && !item.catalogProductId) return false;
-      if (bestSellerOnly && item.bestSellerPosition == null) return false;
-
-      return true;
-    });
-
-    return [...rows].sort((a, b) => {
-      if (sort === "SALES") {
-        return Number(b.salesPerMonth ?? 0) - Number(a.salesPerMonth ?? 0);
-      }
-
-      if (sort === "REVENUE") {
-        return Number(b.revenuePerMonth ?? 0) - Number(a.revenuePerMonth ?? 0);
-      }
-
-      if (sort === "NEWEST") {
-        return Number(a.ageDays ?? 99999) - Number(b.ageDays ?? 99999);
-      }
-
-      if (sort === "PRICE_ASC") {
-        return Number(a.price ?? Infinity) - Number(b.price ?? Infinity);
-      }
-
-      if (sort === "SEARCH_POSITION") {
-        return a.searchPosition - b.searchPosition;
-      }
-
-      if (sort === "BEST_SELLER") {
-        return (
-          Number(a.bestSellerPosition ?? 99999) -
-          Number(b.bestSellerPosition ?? 99999)
-        );
-      }
-
-      return b.score - a.score;
-    });
-  }, [
-    ageMax,
-    bestSellerOnly,
-    catalogOnly,
-    data,
-    demand,
-    evidence,
-    freeShippingOnly,
-    logistics,
-    relevanceMin,
-    revenueMin,
-    salesMin,
-    scoreMin,
-    sort,
-  ]);
+  function resetFilters() {
+    setFilters({ ...DEFAULT_FILTERS, toggles: { ...EMPTY_TOGGLES } });
+    setSort("SCORE");
+  }
 
   async function monitorOpportunity(item: Opportunity) {
     if (monitored.has(item.id)) return;
@@ -406,20 +419,23 @@ export function OpportunityRadar() {
     }
   }
 
-  function resetFilters() {
-    setDemand("ALL");
-    setEvidence("ALL");
-    setLogistics("ALL");
-    setScoreMin(0);
-    setRelevanceMin(0);
-    setSalesMin(0);
-    setRevenueMin(0);
-    setAgeMax(99999);
-    setFreeShippingOnly(false);
-    setCatalogOnly(false);
-    setBestSellerOnly(false);
-    setSort("SCORE");
+  function thresholdOptions(
+    values: number[],
+    field: "scoreMin" | "relevanceMin" | "salesMin" | "revenueMin",
+    format: (v: number) => string,
+  ) {
+    return values.map((v) => {
+      const count = countWith(all, filters, { [field]: v });
+      return (
+        <option key={v} value={v} disabled={count === 0 && filters[field] !== v}>
+          {format(v)} ({count})
+        </option>
+      );
+    });
   }
+
+  const summary = data?.summary ?? null;
+  const measuredCount = all.filter((i) => i.rhythm === "MEDIDO").length;
 
   return (
     <section className="opportunity-page">
@@ -428,9 +444,8 @@ export function OpportunityRadar() {
           <p className="page-kicker">Inteligência</p>
           <h1>Radar de oportunidades</h1>
           <p>
-            Pesquise um produto e veja demanda, velocidade de vendas, faturamento
-            estimado, faixa de preço e concorrência — com a confiança de cada
-            número.
+            Pesquise um produto e compare os anúncios: preço frente à mediana,
+            vendas e faturamento estimados por mês e a confiança de cada número.
           </p>
         </div>
       </header>
@@ -489,263 +504,237 @@ export function OpportunityRadar() {
         </div>
       </section>
 
-      {error && <div className="error opportunity-error">{error}</div>}
+      {error && <div className="error opportunity-error" role="alert">{error}</div>}
 
       {loading && (
-        <section className="opportunity-loading-grid" aria-live="polite">
+        <section className="opportunity-loading-grid" aria-live="polite" aria-label="Lendo o mercado">
           <div className="opportunity-loading-card" />
           <div className="opportunity-loading-card" />
           <div className="opportunity-loading-card" />
         </section>
       )}
 
-      {!loading && data?.summary && (
+      {!loading && summary && (
         <>
           <div className="opportunity-context-line">
             <div>
-              <h2>{data.query}</h2>
+              <h2>{data!.query}</h2>
               <span>
-                {data.category.name ??
-                  data.category.id ??
-                  "categoria aberta"}{" "}
-                ·{" "}
-                {data.category.source === "PREDICTED"
+                {data!.category.name ?? data!.category.id ?? "categoria aberta"} ·{" "}
+                {data!.category.source === "PREDICTED"
                   ? "categoria prevista pelo Mercado Livre"
-                  : data.category.source === "USER"
+                  : data!.category.source === "USER"
                     ? "categoria informada"
                     : "busca oficial de produtos"}
               </span>
             </div>
             <span>
-              Atualizado em{" "}
-              {new Date(data.generatedAt).toLocaleString("pt-BR")}
+              Atualizado em {new Date(data!.generatedAt).toLocaleString("pt-BR")}
             </span>
           </div>
 
-          <section className="clean-kpi-grid opportunity-market-summary">
-            <article className="clean-kpi-card accent">
-              <span>Mediana do mercado</span>
-              <strong>
-                {data.summary.median == null
-                  ? "—"
-                  : money.format(data.summary.median)}
+          <section className="opp-strip" aria-label="Resumo do mercado">
+            <div className="opp-strip__cell is-main">
+              <span>Preço mediano</span>
+              <strong className="num">
+                {summary.median == null ? "sem preço" : money.format(summary.median)}
               </strong>
               <small>
-                P25{" "}
-                {data.summary.p25 == null
-                  ? "—"
-                  : money.format(data.summary.p25)}{" "}
-                · P75{" "}
-                {data.summary.p75 == null
-                  ? "—"
-                  : money.format(data.summary.p75)}
+                {summary.p25 != null && summary.p75 != null
+                  ? `faixa típica ${money.format(summary.p25)} a ${money.format(summary.p75)}`
+                  : "faixa indisponível"}
               </small>
-            </article>
-
-            <article className="clean-kpi-card">
-              <span>Vendas estimadas / mês</span>
-              <strong>
-                {data.summary.medianEstimatedSalesPerMonth == null
-                  ? "—"
-                  : "~" +
-                    Math.round(
-                      data.summary.medianEstimatedSalesPerMonth,
-                    ).toLocaleString("pt-BR")}
-              </strong>
-              <small>mediana dos anúncios com histórico</small>
-            </article>
-
-            <article className="clean-kpi-card">
-              <span>Faturamento estimado / mês</span>
-              <strong>
-                {data.summary.medianEstimatedRevenuePerMonth == null
-                  ? "—"
-                  : "~" +
-                    compactMoney.format(
-                      data.summary.medianEstimatedRevenuePerMonth,
-                    )}
-              </strong>
-              <small>pela velocidade histórica</small>
-            </article>
-
-            <article className="clean-kpi-card">
+            </div>
+            {summary.medianEstimatedSalesPerMonth != null && (
+              <div className="opp-strip__cell">
+                <span>Vendas por mês</span>
+                <strong className="num">
+                  ~{Math.round(summary.medianEstimatedSalesPerMonth).toLocaleString("pt-BR")}
+                </strong>
+                <small>mediana por anúncio, estimada</small>
+              </div>
+            )}
+            {summary.medianEstimatedRevenuePerMonth != null && (
+              <div className="opp-strip__cell">
+                <span>Faturamento por mês</span>
+                <strong className="num">
+                  ~{compactMoney.format(summary.medianEstimatedRevenuePerMonth)}
+                </strong>
+                <small>mediana por anúncio, estimada</small>
+              </div>
+            )}
+            <div className="opp-strip__cell">
               <span>Concorrência</span>
-              <strong>{demandLabel(data.summary.competitionLevel)}</strong>
+              <strong>{competitionText(summary.competitionLevel)}</strong>
               <small>
-                {data.summary.uniqueSellers} vendedores ·{" "}
-                {data.summary.comparableCount} comparáveis
+                {summary.uniqueSellers} vendedores em {summary.comparableCount} anúncios
               </small>
-            </article>
-
-            <article className="clean-kpi-card">
+            </div>
+            <div className="opp-strip__cell">
               <span>Frete grátis</span>
-              <strong>{data.summary.freeShippingPercent}%</strong>
+              <strong className="num">{summary.freeShippingPercent}%</strong>
               <small>
-                Full {data.summary.fullPercent}% · Flex {data.summary.flexPercent}% ·
-                Catálogo {data.summary.catalogPercent}%
+                Full {summary.fullPercent}% · Flex {summary.flexPercent}%
               </small>
-            </article>
-
-            <article className="clean-kpi-card">
-              <span>Preço confirmado</span>
-              <strong>{data.summary.exactPricePercent}%</strong>
-              <small>
-                {data.summary.highEvidenceCount} anúncios com alta confiança
-              </small>
-            </article>
+            </div>
           </section>
 
           <section className="opportunity-workspace">
-            <aside className="opportunity-filter-panel" aria-label="Filtros">
-              <div className="opportunity-filter-head">
-                <strong>Filtros</strong>
-                <button type="button" onClick={resetFilters}>
+            <aside className="opp-filters" aria-label="Filtros">
+              <div className="opp-filters__head">
+                <button
+                  type="button"
+                  className="opp-filters__toggle"
+                  aria-expanded={filtersOpen}
+                  aria-controls="opp-filters-body"
+                  onClick={() => setFiltersOpen((open) => !open)}
+                >
+                  Filtros
+                  {activeCount > 0 && <b className="opp-filters__badge">{activeCount}</b>}
+                </button>
+                <button
+                  type="button"
+                  className="opp-filters__clear"
+                  onClick={resetFilters}
+                  disabled={activeCount === 0}
+                >
                   Limpar
                 </button>
               </div>
 
-              <label>
-                <span>Demanda</span>
-                <select
-                  value={demand}
-                  onChange={(event) =>
-                    setDemand(event.target.value as DemandFilter)
-                  }
-                >
-                  <option value="ALL">Qualquer</option>
-                  <option value="HIGH">Alta ou excelente</option>
-                  <option value="EXCELLENT">Só excelente</option>
-                </select>
-              </label>
+              <div id="opp-filters-body" className="opp-filters__body" hidden={!filtersOpen}>
+                {avail.demand && (
+                  <fieldset className="opp-field">
+                    <legend>Demanda</legend>
+                    <div className="opp-seg" role="radiogroup" aria-label="Demanda">
+                      {(
+                        [
+                          ["ALL", "Todas"],
+                          ["HIGH", "Alta ou mais"],
+                          ["EXCELLENT", "Excelente"],
+                        ] as const
+                      ).map(([value, label]) => {
+                        const count = countWith(all, filters, { demand: value });
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            role="radio"
+                            aria-checked={filters.demand === value}
+                            disabled={count === 0 && filters.demand !== value}
+                            className={filters.demand === value ? "is-on" : undefined}
+                            onClick={() => patch({ demand: value })}
+                          >
+                            {label} <em>{count}</em>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                )}
 
-              <label>
-                <span>Radar Score</span>
-                <select
-                  value={scoreMin}
-                  onChange={(event) => setScoreMin(Number(event.target.value))}
-                >
-                  <option value={0}>Qualquer</option>
-                  <option value={50}>50+</option>
-                  <option value={65}>65+</option>
-                  <option value={80}>80+</option>
-                </select>
-              </label>
-
-              <label>
-                <span>Relevância</span>
-                <select
-                  value={relevanceMin}
-                  onChange={(event) =>
-                    setRelevanceMin(Number(event.target.value))
-                  }
-                >
-                  <option value={0}>Qualquer</option>
-                  <option value={50}>50%+</option>
-                  <option value={70}>70%+</option>
-                  <option value={85}>85%+</option>
-                </select>
-              </label>
-
-              <label>
-                <span>Vendas / mês</span>
-                <select
-                  value={salesMin}
-                  onChange={(event) => setSalesMin(Number(event.target.value))}
-                >
-                  <option value={0}>Qualquer</option>
-                  <option value={10}>10+</option>
-                  <option value={30}>30+</option>
-                  <option value={100}>100+</option>
-                  <option value={300}>300+</option>
-                </select>
-              </label>
-
-              <label>
-                <span>Faturamento / mês</span>
-                <select
-                  value={revenueMin}
-                  onChange={(event) =>
-                    setRevenueMin(Number(event.target.value))
-                  }
-                >
-                  <option value={0}>Qualquer</option>
-                  <option value={1000}>R$ 1 mil+</option>
-                  <option value={5000}>R$ 5 mil+</option>
-                  <option value={10000}>R$ 10 mil+</option>
-                  <option value={50000}>R$ 50 mil+</option>
-                </select>
-              </label>
-
-              <label>
-                <span>Idade do anúncio</span>
-                <select
-                  value={ageMax}
-                  onChange={(event) => setAgeMax(Number(event.target.value))}
-                >
-                  <option value={99999}>Qualquer</option>
-                  <option value={90}>Até 90 dias</option>
-                  <option value={180}>Até 180 dias</option>
-                  <option value={365}>Até 1 ano</option>
-                  <option value={730}>Até 2 anos</option>
-                </select>
-              </label>
-
-              <label>
-                <span>Evidência</span>
-                <select
-                  value={evidence}
-                  onChange={(event) =>
-                    setEvidence(event.target.value as EvidenceFilter)
-                  }
-                >
-                  <option value="ALL">Qualquer</option>
-                  <option value="HIGH">Alta confiança</option>
-                </select>
-              </label>
-
-              <label>
-                <span>Logística</span>
-                <select
-                  value={logistics}
-                  onChange={(event) =>
-                    setLogistics(event.target.value as LogisticsFilter)
-                  }
-                >
-                  <option value="ALL">Qualquer</option>
-                  <option value="FULL">Só Full</option>
-                  <option value="FLEX">Só Flex</option>
-                </select>
-              </label>
-
-              <div className="opportunity-check-group">
-                <label className="opportunity-check">
-                  <input
-                    type="checkbox"
-                    checked={freeShippingOnly}
-                    onChange={(event) =>
-                      setFreeShippingOnly(event.target.checked)
-                    }
-                  />
-                  <span>Só frete grátis</span>
+                <label className="opp-field">
+                  <span>Score mínimo</span>
+                  <select
+                    value={filters.scoreMin}
+                    onChange={(event) => patch({ scoreMin: Number(event.target.value) })}
+                  >
+                    <option value={0}>Qualquer ({countWith(all, filters, { scoreMin: 0 })})</option>
+                    {thresholdOptions(SCORE_OPTIONS, "scoreMin", (v) => `${v} ou mais`)}
+                  </select>
                 </label>
 
-                <label className="opportunity-check">
-                  <input
-                    type="checkbox"
-                    checked={catalogOnly}
-                    onChange={(event) => setCatalogOnly(event.target.checked)}
-                  />
-                  <span>Só catálogo</span>
+                <label className="opp-field">
+                  <span>Relevância mínima</span>
+                  <select
+                    value={filters.relevanceMin}
+                    onChange={(event) => patch({ relevanceMin: Number(event.target.value) })}
+                  >
+                    <option value={0}>Qualquer ({countWith(all, filters, { relevanceMin: 0 })})</option>
+                    {thresholdOptions(RELEVANCE_OPTIONS, "relevanceMin", (v) => `${v}% ou mais`)}
+                  </select>
                 </label>
 
-                <label className="opportunity-check">
-                  <input
-                    type="checkbox"
-                    checked={bestSellerOnly}
-                    onChange={(event) => setBestSellerOnly(event.target.checked)}
-                  />
-                  <span>Só mais vendidos</span>
-                </label>
+                {avail.sales && (
+                  <label className="opp-field">
+                    <span>Vendas por mês</span>
+                    <select
+                      value={filters.salesMin}
+                      onChange={(event) => patch({ salesMin: Number(event.target.value) })}
+                    >
+                      <option value={0}>Qualquer ({countWith(all, filters, { salesMin: 0 })})</option>
+                      {thresholdOptions(SALES_OPTIONS, "salesMin", (v) => `${v} ou mais`)}
+                    </select>
+                  </label>
+                )}
+
+                {avail.revenue && (
+                  <label className="opp-field">
+                    <span>Faturamento por mês</span>
+                    <select
+                      value={filters.revenueMin}
+                      onChange={(event) => patch({ revenueMin: Number(event.target.value) })}
+                    >
+                      <option value={0}>Qualquer ({countWith(all, filters, { revenueMin: 0 })})</option>
+                      {thresholdOptions(REVENUE_OPTIONS, "revenueMin", (v) =>
+                        `R$ ${(v / 1000).toLocaleString("pt-BR")} mil ou mais`,
+                      )}
+                    </select>
+                  </label>
+                )}
+
+                {avail.age && (
+                  <label className="opp-field">
+                    <span>Idade do anúncio</span>
+                    <select
+                      value={filters.ageMax ?? 0}
+                      onChange={(event) => {
+                        const v = Number(event.target.value);
+                        patch({ ageMax: v === 0 ? null : v });
+                      }}
+                    >
+                      <option value={0}>Qualquer ({countWith(all, filters, { ageMax: null })})</option>
+                      {AGE_OPTIONS.map((v) => {
+                        const count = countWith(all, filters, { ageMax: v });
+                        return (
+                          <option key={v} value={v} disabled={count === 0 && filters.ageMax !== v}>
+                            Até {formatAge(v)} ({count})
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </label>
+                )}
+
+                {!avail.sales && (
+                  <p className="opp-filters__note">
+                    Filtros de vendas, faturamento e idade aparecem quando o Mercado Livre
+                    libera esses dados para os anúncios da busca.
+                  </p>
+                )}
+
+                <div className="opp-switches" role="group" aria-label="Características">
+                  {TOGGLES.map(({ key, label }) => {
+                    const on = filters.toggles[key];
+                    const count = countToggle(all, filters, key);
+                    const disabled = !on && count === 0;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        role="switch"
+                        aria-checked={on}
+                        disabled={disabled}
+                        className="opp-switch"
+                        onClick={() => toggle(key)}
+                      >
+                        <span className="opp-switch__label">{label}</span>
+                        <em>{on ? filtered.length : count}</em>
+                        <i aria-hidden="true" />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </aside>
 
@@ -753,267 +742,177 @@ export function OpportunityRadar() {
               <div className="opportunity-results-toolbar">
                 <div className="opportunity-filter-result" aria-live="polite">
                   <strong>{filtered.length}</strong>
-                  <span>anúncio(s) após filtros</span>
+                  <span>
+                    {filtered.length === all.length
+                      ? filtered.length === 1 ? "anúncio" : "anúncios"
+                      : `de ${all.length} anúncios`}
+                  </span>
+                  {measuredCount > 0 && <small>{measuredCount} com ritmo medido</small>}
                 </div>
 
                 <label className="opportunity-sort">
-                  <span>Ordenar por</span>
+                  <span>Ordenar</span>
                   <select
-                    value={sort}
-                    onChange={(event) => setSort(event.target.value as Sort)}
+                    value={activeSort}
+                    onChange={(event) => setSort(event.target.value as SortKey)}
                   >
-                    <option value="SCORE">Melhor oportunidade</option>
-                    <option value="SALES">Mais vendas / mês</option>
-                    <option value="REVENUE">Maior faturamento / mês</option>
-                    <option value="NEWEST">Mais novos</option>
-                    <option value="PRICE_ASC">Menor preço</option>
-                    <option value="SEARCH_POSITION">Posição na busca</option>
-                    <option value="BEST_SELLER">Ranking mais vendidos</option>
+                    {sortOptions.map((key) => (
+                      <option key={key} value={key}>
+                        {SORT_LABELS[key]}
+                      </option>
+                    ))}
                   </select>
                 </label>
               </div>
+
+              {!hasAnyColumn && (
+                <p className="opp-missing" role="note">
+                  <strong>Sem vendas nem faturamento por enquanto.</strong> O Mercado Livre não
+                  liberou idade e vendidos destes {all.length} anúncios. Abra-os com a extensão em
+                  dias diferentes e o Radar mede o ritmo de cada um.{" "}
+                  <a href="/extensao">Ver a extensão</a>
+                </p>
+              )}
 
               {filtered.length === 0 ? (
                 <div className="module-empty opportunity-empty">
                   <strong>Nenhum anúncio passou pelos filtros</strong>
                   <span>Afrouxe algum filtro ou pesquise outro termo.</span>
+                  <button type="button" className="secondary inline" onClick={resetFilters}>
+                    Limpar filtros
+                  </button>
                 </div>
               ) : (
-                <div className="opportunity-result-grid">
-                  {filtered.map((item) => (
-                    <article className="opportunity-result-card" key={item.id}>
-                      <div className="opportunity-result-media">
-                        {item.thumbnail ? (
-                          <img src={item.thumbnail} alt="" loading="lazy" />
-                        ) : (
-                          <div className="opportunity-image-fallback">
-                            Sem foto
+                <ol className="opp-list">
+                  {filtered.map((item) => {
+                    const gap = gapPill(item.gapToMedian);
+                    const tone = scoreTone(item.score);
+                    return (
+                      <li className="opp-row" key={item.id} data-opportunity-id={item.id}>
+                        <div className="opp-thumb">
+                          {item.thumbnail ? (
+                            <img src={item.thumbnail} alt="" loading="lazy" />
+                          ) : (
+                            <span aria-hidden="true">Sem foto</span>
+                          )}
+                        </div>
+
+                        <div className="opp-main">
+                          <h3>
+                            {item.permalink ? (
+                              <a href={item.permalink} target="_blank" rel="noreferrer">
+                                {item.title}
+                              </a>
+                            ) : (
+                              item.title
+                            )}
+                          </h3>
+                          <div className="opp-meta">
+                            {item.demandLabel ? (
+                              <span className={"opp-demand is-" + item.demandLabel.toLowerCase()}>
+                                Demanda {DEMAND_TEXT[item.demandLabel]}
+                              </span>
+                            ) : (
+                              <span className="opp-demand is-none">Sem ritmo medido</span>
+                            )}
+                            {item.catalogProductId && <span>Catálogo</span>}
+                            {item.logisticType === "fulfillment" && <span className="is-full">Full</span>}
+                            {item.logisticType === "self_service" && <span>Flex</span>}
+                            {item.freeShipping && <span>Frete grátis</span>}
+                            {item.bestSellerPosition != null && (
+                              <span className="is-best">{item.bestSellerPosition}º mais vendido</span>
+                            )}
+                            <small>{item.searchPosition}º na busca</small>
                           </div>
+                        </div>
+
+                        <div className="opp-price">
+                          <strong className="num">
+                            {item.price == null ? "sem preço" : money.format(item.price)}
+                          </strong>
+                          {gap && <span className={"opp-gap is-" + gap.tone}>{gap.text}</span>}
+                        </div>
+
+                        {hasAnyColumn && !(item.salesPerMonth != null || item.revenuePerMonth != null || item.soldQuantity > 0 || item.visitsPerDay != null) && (
+                          <p className="opp-metrics opp-metrics--empty">
+                            Sem vendas conhecidas deste anúncio. Abra-o com a extensão em outro dia para medir o ritmo.
+                          </p>
+                        )}
+                        {hasAnyColumn && (item.salesPerMonth != null || item.revenuePerMonth != null || item.soldQuantity > 0 || item.visitsPerDay != null) && (
+                          <dl className="opp-metrics">
+                            {columns.sales && (
+                              <div>
+                                <dt>Vendas por mês</dt>
+                                <dd className="num">
+                                  {item.salesPerMonth == null
+                                    ? <span className="opp-none">sem dado</span>
+                                    : "~" + Math.round(item.salesPerMonth).toLocaleString("pt-BR")}
+                                </dd>
+                                {item.salesPerMonth != null && (
+                                  <small>{item.rhythm === "MEDIDO" ? "medido pelo Radar" : "média desde a criação"}</small>
+                                )}
+                              </div>
+                            )}
+                            {columns.revenue && (
+                              <div>
+                                <dt>Faturamento por mês</dt>
+                                <dd className="num">
+                                  {item.revenuePerMonth == null
+                                    ? <span className="opp-none">sem dado</span>
+                                    : "~" + compactMoney.format(item.revenuePerMonth)}
+                                </dd>
+                                {item.revenuePerMonth != null && <small>vendas × preço</small>}
+                              </div>
+                            )}
+                            {columns.sold && (
+                              <div>
+                                <dt>Vendidos no total</dt>
+                                <dd className="num">
+                                  {item.soldQuantity > 0
+                                    ? item.soldQuantity.toLocaleString("pt-BR")
+                                    : <span className="opp-none">sem dado</span>}
+                                </dd>
+                                {item.soldQuantity > 0 && <small>acumulado</small>}
+                              </div>
+                            )}
+                            {columns.visits && (
+                              <div>
+                                <dt>Visitas por dia</dt>
+                                <dd className="num">
+                                  {item.visitsPerDay == null
+                                    ? <span className="opp-none">sem dado</span>
+                                    : "~" + Math.round(item.visitsPerDay).toLocaleString("pt-BR")}
+                                </dd>
+                              </div>
+                            )}
+                          </dl>
                         )}
 
-                        <div className="opportunity-result-rank">
-                          #{item.searchPosition} na busca
-                        </div>
-                      </div>
-
-                      <div className="opportunity-result-main">
-                        <div className="opportunity-card-heading">
-                          <span
-                            className={
-                              "opportunity-demand " +
-                              item.demandLabel.toLowerCase()
-                            }
+                        <div className="opp-score">
+                          <button
+                            type="button"
+                            className={"opp-score__chip is-" + tone}
+                            aria-describedby={"tip-" + item.id}
+                            aria-label={`Score ${item.score} de 100${item.scorePartial ? ", parcial" : ""}. Ver explicação`}
                           >
-                            Demanda {demandLabel(item.demandLabel).toLowerCase()}
-                          </span>
-                          <span className="opportunity-evidence">
-                            <span
-                              className="signal"
-                              data-level={
-                                item.evidence === "HIGH"
-                                  ? 3
-                                  : item.evidence === "MEDIUM"
-                                    ? 2
-                                    : 1
-                              }
-                              aria-hidden="true"
-                            >
-                              <i />
-                              <i />
-                              <i />
-                            </span>
-                            {evidenceLabel(item.evidence)}
-                          </span>
-                          <span className="opportunity-relevance">
-                            {item.similarityPercent}% relevante
-                          </span>
-                        </div>
-
-                        <h3>{item.title}</h3>
-
-                        <div className="opportunity-price-row">
-                          <strong>
-                            {item.price == null
-                              ? "—"
-                              : money.format(item.price)}
-                          </strong>
-                          {item.gapToMedian != null && (
-                            <span
-                              className={
-                                item.gapToMedian <= 0
-                                  ? "price-below"
-                                  : "price-above"
-                              }
-                            >
-                              {item.gapToMedian >= 0 ? "+" : ""}
-                              {item.gapToMedian.toLocaleString("pt-BR", {
-                                minimumFractionDigits: 1,
-                                maximumFractionDigits: 1,
-                              })}
-                              % vs mediana
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div
-                        className={
-                          "opportunity-score-panel " + scoreTone(item.score)
-                        }
-                      >
-                        <span>Radar Score</span>
-                        <div
-                          className={
-                            "opportunity-score " + scoreTone(item.score)
-                          }
-                        >
-                          <strong>{item.score}</strong>
-                          <span>/100</span>
-                        </div>
-
-                        <details className="opportunity-score-details">
-                          <summary>Por que essa nota?</summary>
-                          <div className="opportunity-score-breakdown">
-                            {(
-                              Object.entries(
-                                item.scoreComponents,
-                              ) as Array<
-                                [
-                                  keyof Opportunity["scoreComponents"],
-                                  number,
-                                ]
-                              >
-                            ).map(([key, value]) => (
-                              <div key={key}>
-                                <span>{componentLabel(key)}</span>
-                                <div>
-                                  <i style={{ width: value + "%" }} />
-                                </div>
-                                <strong>{value}</strong>
-                              </div>
+                            <b className="num">{item.score}</b>
+                            <span>{item.scorePartial ? "parcial" : "score"}</span>
+                          </button>
+                          <div className="opp-tip" role="tooltip" id={"tip-" + item.id}>
+                            {scoreExplanation(item).map((line) => (
+                              <p key={line}>{line}</p>
                             ))}
                           </div>
-                        </details>
-                      </div>
-
-                      <dl className="opportunity-metric-grid">
-                        <div className="is-key">
-                          <dt>Vendas / mês</dt>
-                          <dd>
-                            {item.salesPerMonth == null
-                              ? "Sem histórico"
-                              : "~" +
-                                Math.round(
-                                  item.salesPerMonth,
-                                ).toLocaleString("pt-BR")}
-                          </dd>
-                          <small>estimado</small>
                         </div>
 
-                        <div className="is-key">
-                          <dt>Faturamento / mês</dt>
-                          <dd>
-                            {item.revenuePerMonth == null
-                              ? "—"
-                              : "~" +
-                                compactMoney.format(item.revenuePerMonth)}
-                          </dd>
-                          <small>estimado</small>
-                        </div>
-
-                        <div>
-                          <dt>Vendas / dia</dt>
-                          <dd>
-                            {item.salesPerDay == null
-                              ? "—"
-                              : "~" +
-                                item.salesPerDay.toLocaleString("pt-BR", {
-                                  maximumFractionDigits: 1,
-                                })}
-                          </dd>
-                          <small>ritmo histórico</small>
-                        </div>
-
-                        <div>
-                          <dt>Visitas / dia</dt>
-                          <dd>
-                            {item.visitsPerDay == null
-                              ? "—"
-                              : "~" +
-                                item.visitsPerDay.toLocaleString("pt-BR", {
-                                  maximumFractionDigits: 1,
-                                })}
-                          </dd>
-                          <small>ritmo histórico</small>
-                        </div>
-
-                        <div>
-                          <dt>Vendidos</dt>
-                          <dd>{item.soldQuantity.toLocaleString("pt-BR")}</dd>
-                          <small>total do anúncio</small>
-                        </div>
-
-                        <div>
-                          <dt>Idade</dt>
-                          <dd>
-                            {item.ageDays == null
-                              ? "—"
-                              : item.ageDays.toLocaleString("pt-BR") +
-                                " dias"}
-                          </dd>
-                          <small>dado do anúncio</small>
-                        </div>
-                      </dl>
-
-                      <div className="opportunity-result-foot">
-                        <div className="opportunity-tags">
-                          <span>{listingLabel(item.listingTypeId)}</span>
-                          <span>
-                            {item.catalogProductId
-                              ? "Catálogo"
-                              : "Tradicional"}
-                          </span>
-                          {item.freeShipping && <span>Frete grátis</span>}
-                          {item.logisticType === "fulfillment" && (
-                            <span className="is-full">Full</span>
-                          )}
-                          {item.logisticType === "self_service" && (
-                            <span>Flex</span>
-                          )}
-                          {item.bestSellerPosition != null && (
-                            <span className="is-best">
-                              {item.bestSellerPosition}º mais vendido
-                            </span>
-                          )}
-                          {item.visits != null && (
-                            <span>
-                              {item.visits.toLocaleString("pt-BR")} visitas
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="opportunity-card-actions">
-                          {item.permalink && (
-                            <a
-                              className="inline-link-button secondary-action"
-                              href={item.permalink}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Abrir anúncio
-                            </a>
-                          )}
-
+                        <div className="opp-actions">
                           <button
                             type="button"
                             className={
                               "secondary inline opportunity-monitor-action " +
                               (monitored.has(item.id) ? "is-monitored" : "")
                             }
-                            disabled={
-                              monitored.has(item.id) ||
-                              monitoringId === item.id
-                            }
+                            disabled={monitored.has(item.id) || monitoringId === item.id}
                             onClick={() => void monitorOpportunity(item)}
                           >
                             {monitored.has(item.id)
@@ -1022,51 +921,43 @@ export function OpportunityRadar() {
                                 ? "Salvando..."
                                 : "Monitorar"}
                           </button>
-
-                          <a
-                            className="primary inline"
-                            href={
-                              "/analisar?q=" +
-                              encodeURIComponent(item.title)
-                            }
-                          >
-                            Analisar custo e margem
+                          <a className="primary inline" href={"/analisar?q=" + encodeURIComponent(item.title)}>
+                            Analisar custo
                           </a>
                         </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
+                      </li>
+                    );
+                  })}
+                </ol>
               )}
             </div>
           </section>
 
-          {data.extensionRecommended && data.extensionMessage && (
+          {data!.extensionRecommended && data!.extensionMessage && (
             <section className="opportunity-extension-banner">
               <div>
-                <span>Visão completa do marketplace</span>
-                <strong>Analise todos os anúncios visíveis com a Extensão Radar</strong>
-                <p>{data.extensionMessage}</p>
+                <strong>Quer ver todos os anúncios da busca?</strong>
+                <p>{data!.extensionMessage}</p>
               </div>
               <a className="secondary" href="/extensao">
-                Abrir Extensão Radar
+                Abrir a extensão
               </a>
             </section>
           )}
 
-          {data.methodology && (
+          {data!.methodology && (
             <section className="opportunity-methodology" aria-label="Como os números são calculados">
               <div>
                 <strong>Dados reais</strong>
-                <p>{data.methodology.exact}</p>
+                <p>{data!.methodology.exact}</p>
               </div>
               <div>
                 <strong>Estimativas</strong>
-                <p>{data.methodology.estimated}</p>
+                <p>{data!.methodology.estimated}</p>
               </div>
               <div>
-                <strong>Radar Score</strong>
-                <p>{data.methodology.score}</p>
+                <strong>Score</strong>
+                <p>{data!.methodology.score}</p>
               </div>
             </section>
           )}
@@ -1082,7 +973,7 @@ export function OpportunityRadar() {
           </span>
           {data.extensionRecommended && (
             <a className="secondary inline" href="/extensao">
-              Abrir Extensão Radar
+              Abrir a extensão
             </a>
           )}
         </div>
@@ -1090,11 +981,6 @@ export function OpportunityRadar() {
 
       {!loading && !data && (
         <section className="opportunity-first-state">
-          <div className="opportunity-first-state-icon" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </div>
           <div className="opportunity-first-state-copy">
             <h2>Comece por um produto real</h2>
             <p>
@@ -1104,14 +990,14 @@ export function OpportunityRadar() {
             <ul>
               <li>
                 <strong>Faixa de preço</strong>
-                <span>mediana, P25 e P75 do mercado</span>
+                <span>mediana e faixa típica do mercado</span>
               </li>
               <li>
                 <strong>Demanda por anúncio</strong>
                 <span>vendas e faturamento estimados por mês</span>
               </li>
               <li>
-                <strong>Radar Score</strong>
+                <strong>Score</strong>
                 <span>nota de 0 a 100 com a confiança de cada dado</span>
               </li>
             </ul>

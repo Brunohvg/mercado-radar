@@ -348,6 +348,112 @@
     };
   }
 
+
+  /**
+   * Extras de card lidos só do DOM (não vão para o servidor):
+   *  - isCatalog: o card aponta para uma página de catálogo (/p/MLB…).
+   *  - listingKind: "Catálogo", "Premium" ou "Clássico". Premium é inferido pelo
+   *    parcelamento sem juros; Clássico, pela ausência dele (o ML não mostra o
+   *    tipo no card). `inferred` avisa a UI para dizer isso no balão.
+   */
+  function cardExtras(card) {
+    const { productId } = cardIds(card);
+    const text = normalize(card.textContent || "");
+    const hasPrice = Boolean(cardPrice(card));
+    let kind = null;
+    let inferred = false;
+    if (productId) kind = "Catálogo";
+    else if (text.includes("sem juros")) {
+      kind = "Premium";
+      inferred = true;
+    } else if (hasPrice) {
+      kind = "Clássico";
+      inferred = true;
+    }
+    return { isCatalog: Boolean(productId), listingKind: kind, inferred };
+  }
+
+  /** Onde colocar o selo de tipo/idade: a área da imagem do card. */
+  function cardMediaAnchor(card) {
+    const direct = first(
+      [".poly-card__portada", ".ui-search-result__image", ".ui-search-result-image__element", ".poly-component__picture"],
+      card,
+    );
+    if (direct) {
+      return direct.tagName === "IMG" || direct.tagName === "PICTURE" ? direct.parentElement : direct;
+    }
+    const img = card.querySelector("img");
+    return img ? img.parentElement : null;
+  }
+
+  const SELLER_SELECTORS = [
+    ".ui-pdp-seller",
+    ".ui-vip-seller-info",
+    "[class*='ui-pdp-seller__']",
+    ".ui-pdp-container__row--seller-info",
+  ];
+
+  const REPUTATION = [
+    [/light-?green|lightgreen|verde-?claro/i, "Verde claro", "ok"],
+    [/green|verde/i, "Verde", "ok"],
+    [/yellow|amarel/i, "Amarelo", "warn"],
+    [/orange|laranja/i, "Laranja", "warn"],
+    [/red|vermelh/i, "Vermelho", "risk"],
+  ];
+
+  /**
+   * Cartão do vendedor: só o que a página mostra. Cada campo é null quando não
+   * foi lido; a UI não desenha chip para campo nulo.
+   */
+  function sellerInfo(fallbackName) {
+    const root = first(SELLER_SELECTORS);
+    const scope = root || document.querySelector(".ui-pdp-container--column-right, .ui-vip-core-container--column__right");
+    const text = scope ? String(scope.textContent || "").replace(/\s+/g, " ") : "";
+
+    const name =
+      textOf(document, [".ui-pdp-seller__link-trigger", ".ui-pdp-seller__header__title", ".ui-pdp-seller__link-trigger-button"]) ||
+      fallbackName ||
+      "";
+
+    let sales = null;
+    const salesMatch = text.match(/\+\s*(\d{1,3}(?:\.\d{3})+|\d+)\s*(mil)?\s*vendas/i);
+    if (salesMatch) sales = "+" + salesMatch[1] + (salesMatch[2] ? " mil" : "") + " vendas";
+
+    let city = null;
+    const cityMatch = text.match(/([A-ZÀ-Ú][A-Za-zÀ-ú'. ]{2,40})\s+-\s+([A-Z]{2})\b/);
+    if (cityMatch) city = cityMatch[1].trim() + " - " + cityMatch[2];
+
+    let reputation = null;
+    const thermo = root?.querySelector("[class*='thermometer'], [class*='reputation']");
+    if (thermo) {
+      // Só confia se a cor for inequívoca: se o termômetro lista várias cores, não mostra nada.
+      const tokens = [thermo, ...thermo.querySelectorAll("*")]
+        .map((el) => String(el.className?.baseVal ?? el.className ?? ""))
+        .join(" ")
+        .split(/\s+/);
+      const found = new Map();
+      for (const token of tokens) {
+        const rule = REPUTATION.find(([re]) => re.test(token));
+        if (rule) found.set(rule[1], rule);
+      }
+      if (found.size === 1) {
+        const [, label, tone] = [...found.values()][0];
+        reputation = { label, tone };
+      }
+    }
+    const leader = text.match(/MercadoL[ií]der(?:\s+(Platinum|Gold|Silver))?/i);
+
+    if (!name && !sales && !city && !reputation && !leader) return null;
+    return {
+      name: name.trim().slice(0, 80) || null,
+      city,
+      sales,
+      reputation,
+      leader: leader ? leader[0].replace(/\s+/g, " ") : null,
+      anchor: root,
+    };
+  }
+
   function jsonLdProduct() {
     for (const script of document.querySelectorAll("script[type='application/ld+json']")) {
       try {
@@ -549,6 +655,9 @@
     parseRating,
     cardIds,
     cardObservation,
+    cardExtras,
+    cardMediaAnchor,
+    sellerInfo,
     pageIds,
     pageObservation,
     currentReference,

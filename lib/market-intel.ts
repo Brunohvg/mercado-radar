@@ -369,6 +369,9 @@ export type MarketItemInsight = {
   freeShipping: boolean;
   fulfillment: boolean;
   bestSellerLabel: string | null;
+  /** anúncio de catálogo (página de produto) */
+  catalogProductId: string | null;
+  sellerName: string | null;
   isOwn: boolean;
   firstSeenAt: string;
   lastSeenAt: string;
@@ -527,6 +530,8 @@ export async function getMarketInsights(ids: string[]): Promise<MarketItemInsigh
         freeShipping: item.freeShipping,
         fulfillment: item.fulfillment,
         bestSellerLabel: item.bestSellerLabel,
+        catalogProductId: item.catalogProductId,
+        sellerName: item.sellerName,
         isOwn: item.isOwn,
         firstSeenAt: item.firstSeenAt.toISOString(),
         lastSeenAt: item.lastSeenAt.toISOString(),

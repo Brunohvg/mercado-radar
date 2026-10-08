@@ -31,6 +31,8 @@ type Insight = {
   freeShipping: boolean;
   fulfillment: boolean;
   bestSellerLabel: string | null;
+  catalogProductId?: string | null;
+  sellerName?: string | null;
   isOwn: boolean;
   firstSeenAt: string;
   lastSeenAt: string;
@@ -62,24 +64,56 @@ type SeriesPoint = {
 
 type Detail = { insight: Insight; series: SeriesPoint[] };
 
-const METHOD: Record<Estimate["method"], { label: string; tone: string; hint: string }> = {
-  OFICIAL: { label: "Oficial", tone: "official", hint: "Pedidos e visitas reais da sua conta." },
-  HISTORICO: { label: "Histórico", tone: "history", hint: "Medido pela diferença entre leituras do Radar." },
-  VIDA: { label: "Estimativa", tone: "estimate", hint: "Vendidos acumulados ÷ idade do anúncio." },
-  PAGINA: { label: "Página", tone: "page", hint: "Só o acumulado que a página mostra; ainda sem ritmo." },
+const CONFIDENCE = ["Só acumulado", "Confiança baixa", "Confiança média", "Confiança alta"];
+
+type Tier = "MEDIDO" | "ESTIMADO" | "ACUMULADO";
+
+const TIER: Record<Tier, { label: string; hint: string }> = {
+  MEDIDO: { label: "Medido", hint: "Ritmo medido pela diferença entre leituras do Radar, ou pedidos reais da sua conta." },
+  ESTIMADO: { label: "Estimado", hint: "Vendidos acumulados divididos pela idade do anúncio: uma média desde a criação." },
+  ACUMULADO: { label: "Acumulado", hint: "Só o total de vendidos que a página mostra. O ritmo por dia ainda não pôde ser medido." },
 };
 
-const CONFIDENCE = ["Sem medição", "Confiança baixa", "Confiança média", "Confiança alta"];
-
 const SORTS = {
-  revenue: "Maior faturamento/dia",
-  sales: "Mais vendas/dia",
-  visits: "Mais visitas/dia",
+  revenue: "Maior faturamento",
+  sales: "Mais vendas por dia",
   score: "Melhor score",
-  recent: "Visto mais recentemente",
+  recent: "Visto recentemente",
+  priceAsc: "Menor preço",
+  priceDesc: "Maior preço",
 } as const;
 
 type SortKey = keyof typeof SORTS;
+type Scope = "all" | "own" | "market";
+type Switches = { measured: boolean; catalog: boolean; full: boolean; freeShipping: boolean };
+
+function tierOf(item: Insight): Tier {
+  const m = item.estimate.method;
+  if (m === "OFICIAL" || m === "HISTORICO") return "MEDIDO";
+  if (m === "VIDA") return "ESTIMADO";
+  return "ACUMULADO";
+}
+
+/* faturamento acumulado = piso de vendidos × preço (não é por dia) */
+function accumulated(item: Insight) {
+  const sold = item.estimate.sold.lower;
+  if (sold == null || item.price == null || sold <= 0) return null;
+  return sold * item.price;
+}
+
+const DEMAND_TEXT: Record<NonNullable<Insight["demand"]>, string> = {
+  EXCELENTE: "Excelente",
+  ALTA: "Alta",
+  MEDIA: "Média",
+  BAIXA: "Baixa",
+};
+
+const SWITCHES: Array<{ key: keyof Switches; label: string; test: (i: Insight) => boolean }> = [
+  { key: "measured", label: "Com ritmo medido", test: (i) => tierOf(i) === "MEDIDO" },
+  { key: "catalog", label: "Catálogo", test: (i) => Boolean(i.catalogProductId) },
+  { key: "full", label: "Full", test: (i) => i.fulfillment },
+  { key: "freeShipping", label: "Frete grátis", test: (i) => i.freeShipping },
+];
 
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -119,20 +153,6 @@ function Signal({ level }: { level: number }) {
       <i />
       <i />
       <i />
-    </span>
-  );
-}
-
-function SourceBadge({ estimate }: { estimate: Estimate }) {
-  const meta = METHOD[estimate.method];
-  return (
-    <span
-      className={`source-badge source-badge--${meta.tone}`}
-      title={`${meta.hint} ${CONFIDENCE[estimate.confidence]}.`}
-    >
-      <Signal level={estimate.confidence} />
-      {meta.label}
-      <span className="sr-only">, {CONFIDENCE[estimate.confidence].toLowerCase()}</span>
     </span>
   );
 }
@@ -219,12 +239,73 @@ function SeriesChart({
   );
 }
 
+function passes(item: Insight, scope: Scope, sw: Switches) {
+  if (scope === "own" && !item.isOwn) return false;
+  if (scope === "market" && item.isOwn) return false;
+  for (const def of SWITCHES) {
+    if (sw[def.key] && !def.test(item)) return false;
+  }
+  return true;
+}
+
+function sortRows(items: Insight[], sort: SortKey) {
+  const copy = [...items];
+  const rate = (i: Insight) => (tierOf(i) === "ACUMULADO" ? 0 : 1);
+  switch (sort) {
+    case "sales":
+      return copy.sort(
+        (a, b) =>
+          rate(b) - rate(a) ||
+          (b.estimate.salesPerDay.value ?? -1) - (a.estimate.salesPerDay.value ?? -1) ||
+          b.score - a.score,
+      );
+    case "score":
+      return copy.sort((a, b) => b.score - a.score);
+    case "recent":
+      return copy.sort((a, b) => new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime());
+    case "priceAsc":
+      return copy.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
+    case "priceDesc":
+      return copy.sort((a, b) => (b.price ?? -1) - (a.price ?? -1));
+    default:
+      // faturamento por dia primeiro; quem só tem acumulado vem depois, pelo acumulado
+      return copy.sort(
+        (a, b) =>
+          rate(b) - rate(a) ||
+          (rate(a)
+            ? (b.estimate.revenuePerDay.value ?? -1) - (a.estimate.revenuePerDay.value ?? -1)
+            : (accumulated(b) ?? -1) - (accumulated(a) ?? -1)),
+      );
+  }
+}
+
+function ConfidenceCell({ item }: { item: Insight }) {
+  const level = item.estimate.confidence;
+  const tier = tierOf(item);
+  return (
+    <span className="market-conf" title={`${TIER[tier].hint} ${CONFIDENCE[level]}.`}>
+      <Signal level={level} />
+      <span>
+        {tier === "ACUMULADO" ? "Só acumulado" : CONFIDENCE[level].replace("Confiança ", "")}
+        {tier !== "ACUMULADO" && <small>{TIER[tier].label.toLowerCase()}</small>}
+      </span>
+    </span>
+  );
+}
+
 export function MarketIntelligence() {
   const [data, setData] = useState<ListPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
-  const [scope, setScope] = useState<"market" | "own" | "all">("market");
+
+  // O menu da extensão abre /mercado?q=termo.
+  useEffect(() => {
+    const initial = new URLSearchParams(window.location.search).get("q");
+    if (initial?.trim()) setQuery(initial.trim().slice(0, 120));
+  }, []);
+  const [scope, setScope] = useState<Scope>("all");
+  const [sw, setSw] = useState<Switches>({ measured: false, catalog: false, full: false, freeShipping: false });
   const [sort, setSort] = useState<SortKey>("revenue");
   const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail] = useState<Detail | null>(null);
@@ -236,7 +317,7 @@ export function MarketIntelligence() {
     setLoading(true);
     setError("");
     try {
-      const params = new URLSearchParams({ scope });
+      const params = new URLSearchParams({ scope: "all", limit: "200" });
       if (query.trim()) params.set("q", query.trim());
       const response = await fetch(`/api/market/items?${params}`, { cache: "no-store" });
       const body = await response.json();
@@ -248,7 +329,7 @@ export function MarketIntelligence() {
     } finally {
       if (seq === loadSeq.current) setLoading(false);
     }
-  }, [scope, query]);
+  }, [query]);
 
   useEffect(() => {
     const timer = setTimeout(() => void load(), query ? 300 : 0);
@@ -277,27 +358,33 @@ export function MarketIntelligence() {
     };
   }, [selected]);
 
-  const rows = useMemo(() => {
-    const items = [...(data?.items ?? [])];
-    const key = (item: Insight) => {
-      switch (sort) {
-        case "sales":
-          return item.estimate.salesPerDay.value ?? -1;
-        case "visits":
-          return item.estimate.visitsPerDay.value ?? -1;
-        case "score":
-          return item.score;
-        case "recent":
-          return new Date(item.lastSeenAt).getTime();
-        default:
-          return item.estimate.revenuePerDay.value ?? -1;
-      }
-    };
-    return items.sort((a, b) => key(b) - key(a));
-  }, [data, sort]);
+  const all = useMemo(() => data?.items ?? [], [data]);
+  const rows = useMemo(() => sortRows(all.filter((i) => passes(i, scope, sw)), sort), [all, scope, sw, sort]);
+
+  const scopeCount = (value: Scope) => all.filter((i) => passes(i, value, sw)).length;
+  const switchCount = (key: keyof Switches) =>
+    all.filter((i) => passes(i, scope, { ...sw, [key]: true })).length;
+  const activeSwitches = Object.values(sw).filter(Boolean).length;
+
+  const measured = all.filter((i) => tierOf(i) === "MEDIDO").length;
+  const estimated = all.filter((i) => tierOf(i) === "ESTIMADO").length;
+  const noRhythm = all.filter((i) => tierOf(i) === "ACUMULADO").length;
+  const total = data ? data.summary.marketItems + data.summary.ownItems : 0;
+
+  // colunas sem nenhum dado nas linhas visíveis somem
+  const cols = {
+    sales: rows.some((i) => i.estimate.salesPerDay.value != null),
+    revenue: rows.some((i) => i.estimate.revenuePerDay.value != null || accumulated(i) != null),
+    demand: rows.some((i) => i.demand != null),
+  };
 
   const conversion = data?.calibration.conversion;
-  const totalRevenue = rows.reduce((sum, r) => sum + (r.estimate.revenuePerDay.value ?? 0), 0);
+
+  function resetFilters() {
+    setSw({ measured: false, catalog: false, full: false, freeShipping: false });
+    setScope("all");
+    setQuery("");
+  }
 
   return (
     <section className="market-page">
@@ -306,8 +393,8 @@ export function MarketIntelligence() {
           <p className="page-kicker">Inteligência</p>
           <h1>Mercado</h1>
           <p>
-            Vendas, faturamento e visitas por dia dos anúncios que você abriu no Mercado Livre,
-            de qualquer vendedor. Cada nova visita a um anúncio deixa a medição mais precisa.
+            Vendas e faturamento por dia dos anúncios que você abriu no Mercado Livre, de qualquer
+            vendedor. Cada nova visita a um anúncio deixa a medição mais precisa.
           </p>
         </div>
         <div className="page-header-actions">
@@ -318,298 +405,409 @@ export function MarketIntelligence() {
       </header>
 
       {data && (
-        <section className="clean-kpi-grid market-kpis" aria-label="Resumo da medição">
-          <article className="clean-kpi-card">
-            <span>Anúncios observados</span>
-            <strong>{n(data.summary.marketItems, 0)}</strong>
-            <small>de outros vendedores</small>
-          </article>
-          <article className="clean-kpi-card">
-            <span>Medidos por histórico</span>
-            <strong>{n(data.summary.withHistory, 0)}</strong>
-            <small>com duas ou mais leituras no tempo</small>
-          </article>
-          <article className="clean-kpi-card">
-            <span>Leituras gravadas</span>
-            <strong>{n(data.summary.snapshots, 0)}</strong>
-            <small>{n(data.summary.ownItems, 0)} anúncios seus calibram o modelo</small>
-          </article>
-          <article className="clean-kpi-card accent">
-            <span>Faturamento/dia na lista</span>
-            <strong>{money(totalRevenue)}</strong>
+        <section className="market-strip" aria-label="Resumo da medição">
+          <div className="market-strip__cell">
+            <span>Itens monitorados</span>
+            <strong className="num">{n(total, 0)}</strong>
+            <small>{all.length < total ? `mostrando os ${n(all.length, 0)} mais recentes` : "todos na lista"}</small>
+          </div>
+          <div className="market-strip__cell">
+            <span>Com ritmo medido</span>
+            <strong className="num">{n(measured, 0)}</strong>
+            <small>duas ou mais leituras em dias diferentes</small>
+          </div>
+          <div className="market-strip__cell">
+            <span>Em estimativa</span>
+            <strong className="num">{n(estimated, 0)}</strong>
+            <small>vendidos ÷ idade do anúncio</small>
+          </div>
+          <div className="market-strip__cell">
+            <span>Sua conta</span>
+            <strong className="num">{n(data.summary.ownItems, 0)}</strong>
             <small>
-              conversão {conversion ? n(conversion.value * 100) + "%" : "—"}{" "}
-              {conversion?.source === "SUA_CONTA" ? "da sua conta" : "padrão de mercado"}
+              {conversion?.source === "SUA_CONTA"
+                ? `calibram a conversão: ${n(conversion.value * 100)}%`
+                : "sincronize em Integrações para calibrar"}
             </small>
-          </article>
+          </div>
         </section>
       )}
 
-      {error && <div className="error">{error}</div>}
+      {error && <div className="error" role="alert">{error}</div>}
 
-      <div className={"market-layout" + (selected ? " has-detail" : "")}>
-        <section className="clean-panel table-panel market-list">
-          <div className="table-toolbar">
-            <div className="market-search">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <circle cx="11" cy="11" r="7" />
-                <path d="m20 20-3.5-3.5" />
-              </svg>
-              <input
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar por título ou MLB"
-                aria-label="Buscar anúncio observado"
-              />
-            </div>
-            <div className="market-filters">
-              <select value={scope} onChange={(event) => setScope(event.target.value as typeof scope)} aria-label="Quais anúncios">
-                <option value="market">Concorrentes</option>
-                <option value="own">Meus anúncios</option>
-                <option value="all">Todos</option>
-              </select>
-              <select value={sort} onChange={(event) => setSort(event.target.value as SortKey)} aria-label="Ordenar">
-                {Object.entries(SORTS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
+      <section className="clean-panel market-list" aria-label="Anúncios observados">
+        <div className="market-toolbar">
+          <div className="market-search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar por título ou código MLB"
+              aria-label="Buscar anúncio observado"
+            />
           </div>
 
-          {loading && !data ? (
-            <div className="clean-loading market-inset">Carregando anúncios observados…</div>
-          ) : rows.length === 0 ? (
-            <div className="module-empty market-inset">
-              <strong>{query ? "Nenhum anúncio com esse termo" : "Nenhum anúncio observado ainda"}</strong>
-              <p>
-                {query
-                  ? "Tente outro termo ou troque o filtro de anúncios."
-                  : "Com a extensão instalada, navegue por buscas e anúncios no Mercado Livre. Cada página que você abrir aparece aqui com vendas, faturamento e visitas por dia."}
-              </p>
-              {!query && (
-                <Link className="primary" href="/extensao">
-                  Instalar a extensão
-                </Link>
-              )}
-            </div>
-          ) : (
-            <div className="clean-table-wrap">
-              <table className="clean-table market-table">
-                <thead>
-                  <tr>
-                    <th>Anúncio</th>
-                    <th className="is-num">Preço</th>
-                    <th className="is-num">Vendas/dia</th>
-                    <th className="is-num">Faturamento/dia</th>
-                    <th className="is-num">Visitas/dia</th>
-                    <th>Medição</th>
-                    <th className="is-num">Score</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((item) => {
-                    const e = item.estimate;
-                    const isSelected = selected === item.id;
-                    return (
-                      <tr
-                        key={item.id}
-                        className={isSelected ? "is-selected" : undefined}
-                        onClick={() => setSelected(isSelected ? null : item.id)}
-                      >
-                        <td>
-                          <div className="clean-product-cell">
-                            {item.thumbnail ? (
-                              <img src={item.thumbnail} alt="" loading="lazy" />
-                            ) : (
-                              <span className="clean-product-thumb">MR</span>
-                            )}
-                            <div>
-                              <button
-                                type="button"
-                                className="market-row-title"
-                                aria-expanded={isSelected}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  setSelected(isSelected ? null : item.id);
-                                }}
-                              >
-                                {item.title}
-                              </button>
-                              <small>
-                                {item.id}
-                                {item.isOwn ? " · seu anúncio" : ""}
-                                {item.fulfillment ? " · Full" : item.freeShipping ? " · frete grátis" : ""}
-                              </small>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="is-num" data-label="Preço">{item.price == null ? "—" : brl.format(item.price)}</td>
-                        <td className="is-num" data-label="Vendas/dia">
-                          <span className="market-value">{n(e.salesPerDay.value)}</span>
-                          {span(e.salesPerDay, (v) => n(v)) && (
-                            <span className="table-subtext">{span(e.salesPerDay, (v) => n(v))}</span>
-                          )}
-                        </td>
-                        <td className="is-num" data-label="Faturamento/dia">
-                          <span className="market-value market-value--strong">{money(e.revenuePerDay.value)}</span>
-                          {span(e.revenuePerDay, money) && <span className="table-subtext">{span(e.revenuePerDay, money)}</span>}
-                        </td>
-                        <td className="is-num" data-label="Visitas/dia">
-                          <span className="market-value">{n(e.visitsPerDay.value, 0)}</span>
-                          {span(e.visitsPerDay, (v) => n(v, 0)) && (
-                            <span className="table-subtext">{span(e.visitsPerDay, (v) => n(v, 0))}</span>
-                          )}
-                        </td>
-                        <td data-label="Medição">
-                          <SourceBadge estimate={e} />
-                          <span className="table-subtext">visto {relative(item.lastSeenAt)}</span>
-                        </td>
-                        <td className="is-num" data-label="Score">
-                          <span className={"market-score " + (item.score >= 65 ? "is-high" : item.score >= 45 ? "is-mid" : "is-low")}>
-                            {item.score}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        {selected && (
-          <aside className="clean-panel market-detail" aria-label="Detalhes do anúncio">
-            <div className="market-detail__head">
-              <div>
-                <span>{selected}</span>
-                <strong>{detail?.insight.title ?? "Carregando…"}</strong>
-              </div>
-              <button type="button" className="icon-button" aria-label="Fechar detalhes" onClick={() => setSelected(null)}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                  <path d="M6 6l12 12M18 6 6 18" />
-                </svg>
+          <div className="market-seg" role="radiogroup" aria-label="De quem são os anúncios">
+            {(
+              [
+                ["all", "Todos"],
+                ["own", "Meus"],
+                ["market", "Mercado"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={scope === value}
+                className={scope === value ? "is-on" : undefined}
+                onClick={() => setScope(value)}
+              >
+                {label} <em>{scopeCount(value)}</em>
               </button>
-            </div>
+            ))}
+          </div>
 
-            {detailError && <div className="error">{detailError}</div>}
-            {!detail && !detailError && <div className="clean-loading">Carregando histórico…</div>}
+          <label className="market-sort">
+            <span>Ordenar</span>
+            <select value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>
+              {Object.entries(SORTS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
 
-            {detail && (
+        <div className="market-switches" role="group" aria-label="Filtros">
+          {SWITCHES.map(({ key, label }) => {
+            const on = sw[key];
+            const count = switchCount(key);
+            return (
+              <button
+                key={key}
+                type="button"
+                role="switch"
+                aria-checked={on}
+                disabled={!on && count === 0}
+                className="market-switch"
+                onClick={() => setSw((cur) => ({ ...cur, [key]: !cur[key] }))}
+              >
+                <i aria-hidden="true" />
+                {label}
+                <em>{count}</em>
+              </button>
+            );
+          })}
+          {(activeSwitches > 0 || scope !== "all" || query) && (
+            <button type="button" className="market-clear" onClick={resetFilters}>
+              Limpar filtros
+            </button>
+          )}
+          <span className="market-count" aria-live="polite">
+            {rows.length} {rows.length === 1 ? "anúncio" : "anúncios"}
+          </span>
+        </div>
+
+        {loading && !data ? (
+          <div className="clean-loading market-inset">Carregando anúncios observados…</div>
+        ) : all.length === 0 ? (
+          <div className="module-empty market-inset">
+            <strong>{query ? "Nenhum anúncio com esse termo" : "Nenhum anúncio observado ainda"}</strong>
+            <p>
+              {query
+                ? "Tente outro termo."
+                : "Com a extensão instalada, navegue por buscas e anúncios no Mercado Livre. Cada página que você abrir aparece aqui com vendas e faturamento por dia."}
+            </p>
+            {!query && (
+              <Link className="primary" href="/extensao">
+                Instalar a extensão
+              </Link>
+            )}
+          </div>
+        ) : (
+          <>
+            {noRhythm > 0 && (
+              <p className="market-note" role="note">
+                <strong>
+                  {noRhythm} {noRhythm === 1 ? "anúncio ainda sem ritmo" : "anúncios ainda sem ritmo"}.
+                </strong>{" "}
+                Abra {noRhythm === 1 ? "o anúncio" : "os anúncios"} de novo em outro dia e o Radar mede as vendas
+                por dia. Até lá, mostramos só o acumulado (vendidos × preço), que não é por dia.
+              </p>
+            )}
+
+            {rows.length === 0 ? (
+              <div className="module-empty market-inset">
+                <strong>Nenhum anúncio com esses filtros</strong>
+                <p>Desligue algum filtro para ver mais anúncios.</p>
+                <button type="button" className="secondary inline" onClick={resetFilters}>
+                  Limpar filtros
+                </button>
+              </div>
+            ) : (
               <>
-                <div className="market-detail__meta">
-                  <SourceBadge estimate={detail.insight.estimate} />
-                  <span>{CONFIDENCE[detail.insight.estimate.confidence]}</span>
-                  {detail.insight.permalink && (
-                    <a href={detail.insight.permalink} target="_blank" rel="noreferrer" className="inline-link-button">
-                      Abrir no Mercado Livre
-                    </a>
-                  )}
-                </div>
+              <div className="market-colhead" aria-hidden="true">
+                <span className="market-colhead__thumb" />
+                <span className="market-colhead__main">Anúncio</span>
+                <span className="market-cell--price">Preço</span>
+                {cols.demand && <span className="market-cell--demand">Demanda</span>}
+                {cols.revenue && <span className="market-colhead__cell">Faturamento ~/dia</span>}
+                {cols.sales && <span className="market-colhead__cell">Vendas ~/dia</span>}
+                <span className="market-cell--conf">Confiança</span>
+                <span className="market-colhead__chev" />
+              </div>
+              <ol className="market-rows">
+                {rows.map((item) => {
+                  const e = item.estimate;
+                  const tier = tierOf(item);
+                  const open = selected === item.id;
+                  const acc = accumulated(item);
+                  const rev = e.revenuePerDay.value;
+                  const sales = e.salesPerDay.value;
+                  return (
+                    <li key={item.id} className={"market-row" + (open ? " is-open" : "")}>
+                      <button
+                        type="button"
+                        className="market-row__head"
+                        aria-expanded={open}
+                        aria-controls={"detail-" + item.id}
+                        onClick={() => setSelected(open ? null : item.id)}
+                      >
+                        <span className="market-thumb">
+                          {item.thumbnail ? <img src={item.thumbnail} alt="" loading="lazy" /> : <b aria-hidden="true">MR</b>}
+                        </span>
+                        <span className="market-main">
+                          <strong>{item.title}</strong>
+                          <span className="market-meta">
+                            <span>{item.isOwn ? "Seu anúncio" : (item.sellerName ?? item.id)}</span>
+                            {item.catalogProductId && <em>Catálogo</em>}
+                            {item.fulfillment && <em className="is-full">Full</em>}
+                            {item.freeShipping && <em>Frete grátis</em>}
+                            <small>visto {relative(item.lastSeenAt)}</small>
+                          </span>
+                        </span>
+                        <span className="market-cells">
+                        <span className="market-cell market-cell--price" data-label="Preço">
+                          <b className="num">{item.price == null ? "sem preço" : brl.format(item.price)}</b>
+                        </span>
+                        {cols.demand && (
+                          <span className="market-cell market-cell--demand" data-label="Demanda">
+                            {item.demand ? (
+                              <span className={"market-pill is-" + item.demand.toLowerCase()}>
+                                {DEMAND_TEXT[item.demand]}
+                              </span>
+                            ) : null}
+                          </span>
+                        )}
+                        {cols.revenue && (
+                          <span className="market-cell" data-label="Faturamento por dia">
+                            {rev != null ? (
+                              <>
+                                <b className="num">~{money(rev)}</b>
+                                <small>{span(e.revenuePerDay, money) ?? "por dia"}</small>
+                              </>
+                            ) : acc != null ? (
+                              <>
+                                <b className="num is-acc">{money(acc)}</b>
+                                <small>acumulado</small>
+                              </>
+                            ) : (
+                              <small className="market-none">sem ritmo</small>
+                            )}
+                          </span>
+                        )}
+                        {cols.sales && (
+                          <span className="market-cell" data-label="Vendas por dia">
+                            {sales != null ? (
+                              <>
+                                <b className="num">~{n(sales)}</b>
+                                <small>{span(e.salesPerDay, (v) => n(v)) ?? "por dia"}</small>
+                              </>
+                            ) : (
+                              <small className="market-none">sem ritmo</small>
+                            )}
+                          </span>
+                        )}
+                        <span className="market-cell market-cell--conf" data-label="Confiança">
+                          <ConfidenceCell item={item} />
+                        </span>
+                        </span>
+                        <span className="market-chev" aria-hidden="true" />
+                      </button>
 
-                <div className="market-readouts">
-                  <div>
-                    <span>Vendas/dia</span>
-                    <strong className="num">{n(detail.insight.estimate.salesPerDay.value)}</strong>
-                    <small>{span(detail.insight.estimate.salesPerDay, (v) => n(v)) ?? " "}</small>
-                  </div>
-                  <div>
-                    <span>Faturamento/dia</span>
-                    <strong className="num">{money(detail.insight.estimate.revenuePerDay.value)}</strong>
-                    <small>{span(detail.insight.estimate.revenuePerDay, money) ?? " "}</small>
-                  </div>
-                  <div>
-                    <span>Visitas/dia</span>
-                    <strong className="num">{n(detail.insight.estimate.visitsPerDay.value, 0)}</strong>
-                    <small>{span(detail.insight.estimate.visitsPerDay, (v) => n(v, 0)) ?? " "}</small>
-                  </div>
-                </div>
-
-                <dl className="market-facts">
-                  <div>
-                    <dt>Vendidos (total)</dt>
-                    <dd>
-                      {detail.insight.estimate.sold.lower == null
-                        ? "—"
-                        : detail.insight.estimate.sold.exact
-                          ? n(detail.insight.estimate.sold.lower, 0)
-                          : `${n(detail.insight.estimate.sold.lower, 0)} a ${n(detail.insight.estimate.sold.upper, 0)}`}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Avaliações</dt>
-                    <dd>
-                      {n(detail.insight.reviews, 0)}
-                      {detail.insight.rating != null ? ` · nota ${n(detail.insight.rating)}` : ""}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Idade do anúncio</dt>
-                    <dd>
-                      {detail.insight.estimate.ageDays.value == null
-                        ? "—"
-                        : `${n(detail.insight.estimate.ageDays.value, 0)} dias${detail.insight.estimate.ageDays.source === "ID_ESTIMADO" ? " (estimada)" : ""}`}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Conversão usada</dt>
-                    <dd>{n(detail.insight.estimate.conversion.value * 100)}%</dd>
-                  </div>
-                  <div>
-                    <dt>Primeira leitura</dt>
-                    <dd>{new Date(detail.insight.firstSeenAt).toLocaleDateString("pt-BR")}</dd>
-                  </div>
-                  <div>
-                    <dt>Leituras</dt>
-                    <dd>{n(detail.series.length, 0)}</dd>
-                  </div>
-                </dl>
-
-                <div className="market-charts">
-                  <SeriesChart
-                    title="Avaliações acumuladas"
-                    points={detail.series
-                      .filter((p) => p.reviews != null)
-                      .map((p) => ({ at: p.at, value: p.reviews as number }))}
-                    format={(v) => n(v, 0)}
-                    emptyText="Aparece a partir da segunda leitura com avaliações."
-                  />
-                  <SeriesChart
-                    title="Preço"
-                    points={detail.series
-                      .filter((p) => p.price != null)
-                      .map((p) => ({ at: p.at, value: p.price as number }))}
-                    format={(v) => brl.format(v)}
-                    emptyText="Aparece a partir da segunda leitura."
-                  />
-                </div>
-
-                <section className="market-basis">
-                  <strong>Como o Radar calculou</strong>
-                  <ul>
-                    {detail.insight.estimate.basis.map((line) => (
-                      <li key={line}>{line}</li>
-                    ))}
-                  </ul>
-                </section>
+                      {open && (
+                        <div className="market-detail" id={"detail-" + item.id}>
+                          {detailError && <div className="error">{detailError}</div>}
+                          {!detail && !detailError && <div className="clean-loading">Carregando histórico…</div>}
+                          {detail && detail.insight.id === item.id && <DetailBody detail={detail} tier={tier} />}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
               </>
             )}
-          </aside>
+          </>
         )}
-      </div>
+      </section>
 
       {data && (
         <p className="market-footnote">
           Os números de outros vendedores são estimativas: a API do Mercado Livre só libera vendas e visitas
           exatas dos seus próprios anúncios. O Radar mede o ritmo pela diferença entre leituras da página
-          (avaliações e faixa de vendidos) e mostra sempre o intervalo provável.
-          {conversion?.source !== "SUA_CONTA" &&
-            " Sincronize seus anúncios em Integrações para calibrar a conversão com os seus números."}
+          (avaliações e faixa de vendidos) e mostra a faixa provável. O til (~) marca todo número estimado.
         </p>
       )}
     </section>
+  );
+}
+
+function DetailBody({ detail, tier }: { detail: Detail; tier: Tier }) {
+  const { insight, series } = detail;
+  const e = insight.estimate;
+  const acc = accumulated(insight);
+  const reviewsPts = series.filter((p) => p.reviews != null).map((p) => ({ at: p.at, value: p.reviews as number }));
+  const pricePts = series.filter((p) => p.price != null).map((p) => ({ at: p.at, value: p.price as number }));
+  const soldPts = series
+    .filter((p) => (p.soldExact ?? p.soldLower) != null)
+    .map((p) => ({ at: p.at, value: (p.soldExact ?? p.soldLower) as number }));
+  const charts = [
+    { title: "Vendidos acumulados", points: soldPts, format: (v: number) => n(v, 0) },
+    { title: "Avaliações acumuladas", points: reviewsPts, format: (v: number) => n(v, 0) },
+    { title: "Preço", points: pricePts, format: (v: number) => brl.format(v) },
+  ].filter((c) => c.points.length >= 2 && new Set(c.points.map((p) => p.value)).size >= 2);
+
+  const readouts = [
+    e.salesPerDay.value != null && {
+      label: "Vendas por dia",
+      value: "~" + n(e.salesPerDay.value),
+      sub: span(e.salesPerDay, (v) => n(v)),
+      tip: "Avaliações novas por dia × vendas por avaliação do anúncio, ou vendidos ÷ idade.",
+    },
+    e.revenuePerDay.value != null
+      ? {
+          label: "Faturamento por dia",
+          value: "~" + money(e.revenuePerDay.value),
+          sub: span(e.revenuePerDay, money),
+          tip: "Vendas por dia × preço atual.",
+        }
+      : acc != null && {
+          label: "Faturamento acumulado",
+          value: money(acc),
+          sub: "piso de vendidos × preço",
+          tip: "Não é por dia: é o mínimo de vendidos que a página mostra vezes o preço.",
+        },
+    e.visitsPerDay.value != null && {
+      label: "Visitas por dia",
+      value: "~" + n(e.visitsPerDay.value, 0),
+      sub: span(e.visitsPerDay, (v) => n(v, 0)),
+      tip: "Vendas por dia ÷ conversão.",
+    },
+  ].filter(Boolean) as Array<{ label: string; value: string; sub: string | null; tip: string }>;
+
+  return (
+    <div className="market-detail__grid">
+      <div className="market-detail__col">
+        <div className="market-detail__tags">
+          <span className={"market-tier is-" + tier.toLowerCase()} title={TIER[tier].hint}>
+            {TIER[tier].label}
+          </span>
+          <span>{CONFIDENCE[e.confidence]}</span>
+          <span>{insight.id}</span>
+          {insight.permalink && (
+            <a href={insight.permalink} target="_blank" rel="noreferrer" className="inline-link-button">
+              Abrir no Mercado Livre
+            </a>
+          )}
+        </div>
+
+        {readouts.length > 0 && (
+          <div className="market-readouts">
+            {readouts.map((r) => (
+              <div key={r.label} title={r.tip}>
+                <span>{r.label}</span>
+                <strong className="num">{r.value}</strong>
+                <small>{r.sub ?? " "}</small>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <dl className="market-facts">
+          {e.sold.lower != null && (
+            <div>
+              <dt>Vendidos no total</dt>
+              <dd>
+                {e.sold.exact ? n(e.sold.lower, 0) : `${n(e.sold.lower, 0)} a ${n(e.sold.upper, 0)}`}
+              </dd>
+            </div>
+          )}
+          {insight.reviews != null && (
+            <div>
+              <dt>Avaliações</dt>
+              <dd>
+                {n(insight.reviews, 0)}
+                {insight.rating != null ? ` · nota ${n(insight.rating)}` : ""}
+              </dd>
+            </div>
+          )}
+          {e.ageDays.value != null && (
+            <div>
+              <dt>Idade do anúncio</dt>
+              <dd>
+                {n(e.ageDays.value, 0)} dias{e.ageDays.source === "ID_ESTIMADO" ? " (estimada)" : ""}
+              </dd>
+            </div>
+          )}
+          {e.visitsPerDay.value != null && (
+            <div>
+              <dt>Conversão usada</dt>
+              <dd>{n(e.conversion.value * 100)}%</dd>
+            </div>
+          )}
+          <div>
+            <dt>Primeira leitura</dt>
+            <dd>{new Date(insight.firstSeenAt).toLocaleDateString("pt-BR")}</dd>
+          </div>
+          <div>
+            <dt>Leituras</dt>
+            <dd>{n(series.length, 0)}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div className="market-detail__col">
+        {charts.length > 0 ? (
+          <div className="market-charts">
+            {charts.map((c) => (
+              <div key={c.title}>
+                <SeriesChart title={c.title} points={c.points} format={c.format} emptyText="" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="market-detail__empty">
+            Este anúncio tem {series.length === 1 ? "só 1 leitura" : "poucas leituras"}. Abra-o de novo em outro dia
+            para o Radar desenhar o histórico de vendidos, avaliações e preço.
+          </p>
+        )}
+
+        <section className="market-basis">
+          <strong>Como o Radar calculou</strong>
+          <ul>
+            {e.basis.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </section>
+      </div>
+    </div>
   );
 }

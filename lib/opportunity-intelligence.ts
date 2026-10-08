@@ -10,11 +10,17 @@ export type SearchOpportunityInput = {
   catalogProductId: string | null;
   listingTypeId: string | null;
   similarity: number;
+  /** ritmo medido pelo Radar (histórico/oficial) para este anúncio, se houver */
+  measuredSalesPerDay?: number | null;
+  measuredVisitsPerDay?: number | null;
 };
 
 export type SearchOpportunityScore = {
   total: number;
-  demandLabel: "BAIXA" | "MEDIA" | "ALTA" | "EXCELENTE";
+  /** null quando não há vendas nem idade para medir demanda (não inventamos). */
+  demandLabel: "BAIXA" | "MEDIA" | "ALTA" | "EXCELENTE" | null;
+  /** true quando o score não enxerga vendas: nota parcial, teto 60. */
+  partial: boolean;
   evidence: "LOW" | "MEDIUM" | "HIGH";
   salesPerDay: number | null;
   salesPerMonth: number | null;
@@ -22,6 +28,8 @@ export type SearchOpportunityScore = {
   revenuePerDay: number | null;
   revenuePerMonth: number | null;
   ageDays: number | null;
+  /** como o ritmo foi obtido: MEDIDO (leituras do Radar) | VIDA (vendidos ÷ idade) | null */
+  rhythm: "MEDIDO" | "VIDA" | null;
   components: {
     demand: number;
     velocity: number;
@@ -53,12 +61,21 @@ export function calculateSearchOpportunityScore(
   const visits =
     input.visits == null ? null : Math.max(0, Number(input.visits));
 
+  const measured =
+    input.measuredSalesPerDay != null && input.measuredSalesPerDay >= 0
+      ? input.measuredSalesPerDay
+      : null;
   const salesPerDay =
-    ageDays != null && soldQuantity > 0 ? soldQuantity / ageDays : null;
+    measured ??
+    (ageDays != null && soldQuantity > 0 ? soldQuantity / ageDays : null);
   const salesPerMonth =
     salesPerDay == null ? null : salesPerDay * 30;
   const visitsPerDay =
-    ageDays != null && visits != null ? visits / ageDays : null;
+    input.measuredVisitsPerDay != null
+      ? input.measuredVisitsPerDay
+      : ageDays != null && visits != null
+        ? visits / ageDays
+        : null;
   const revenuePerDay =
     salesPerDay == null
       ? null
@@ -111,7 +128,7 @@ export function calculateSearchOpportunityScore(
   const availableSignals = [
     input.price > 0,
     ageDays != null,
-    soldQuantity >= 0,
+    soldQuantity > 0,
     visits != null,
     input.similarity >= 0.4,
   ].filter(Boolean).length;
@@ -121,30 +138,56 @@ export function calculateSearchOpportunityScore(
       Math.min(20, Math.max(0, 8 - input.searchPosition) * 2.5),
   );
 
-  const total = Math.round(
-    demand * 0.34 +
-      velocity * 0.24 +
-      relevance * 0.16 +
-      price * 0.11 +
-      logistics * 0.05 +
-      evidence * 0.1,
-  );
+  const hasSalesSignal = salesPerMonth != null || soldQuantity > 0;
+  const rhythm: SearchOpportunityScore["rhythm"] =
+    measured != null ? "MEDIDO" : salesPerDay != null ? "VIDA" : null;
+  const total = hasSalesSignal
+    ? Math.round(
+        demand * 0.34 +
+          velocity * 0.24 +
+          relevance * 0.16 +
+          price * 0.11 +
+          logistics * 0.05 +
+          evidence * 0.1,
+      )
+    : // Sem nenhum sinal de vendas, a nota só enxerga relevância, preço,
+      // logística e evidência. Renormaliza esses pesos e limita a 60 para
+      // não competir com anúncios que têm ritmo medido.
+      Math.min(
+        60,
+        Math.round(
+          ((relevance * 0.16 + price * 0.11 + logistics * 0.05 + evidence * 0.1) /
+            0.42) *
+            0.65,
+        ),
+      );
 
   const evidenceLabel =
     evidence >= 78 ? "HIGH" : evidence >= 56 ? "MEDIUM" : "LOW";
 
-  const demandLabel =
-    total >= 80
-      ? "EXCELENTE"
-      : total >= 65
-        ? "ALTA"
-        : total >= 45
-          ? "MEDIA"
-          : "BAIXA";
+  // Demanda vem do ritmo de vendas, não da nota (a nota depende de preço e
+  // logística e fazia tudo cair em "baixa").
+  const demandLabel: SearchOpportunityScore["demandLabel"] =
+    salesPerDay != null
+      ? salesPerDay >= 10
+        ? "EXCELENTE"
+        : salesPerDay >= 3
+          ? "ALTA"
+          : salesPerDay >= 0.7
+            ? "MEDIA"
+            : "BAIXA"
+      : soldQuantity > 0
+        ? soldQuantity >= 5000
+          ? "ALTA"
+          : soldQuantity >= 500
+            ? "MEDIA"
+            : "BAIXA"
+        : null;
 
   return {
     total,
     demandLabel,
+    partial: !hasSalesSignal,
     evidence: evidenceLabel,
     salesPerDay: salesPerDay == null ? null : round1(salesPerDay),
     salesPerMonth: salesPerMonth == null ? null : round1(salesPerMonth),
@@ -153,6 +196,7 @@ export function calculateSearchOpportunityScore(
     revenuePerMonth:
       revenuePerMonth == null ? null : round1(revenuePerMonth),
     ageDays,
+    rhythm,
     components: {
       demand: Math.round(demand),
       velocity: Math.round(velocity),

@@ -544,6 +544,11 @@ try {
   await check(
     "order sync allocates a shared shipment once and preserves unknown shipping",
     async () => {
+      const activated = await req("/api/workspace/clients", operator, "PATCH", {
+        id: userA.id,
+        active: true,
+      });
+      assert.equal(activated.status, 200, activated.text);
       const fresh = await login(emailA);
       const r = await req("/api/ml/sales?days=30&refresh=1", fresh);
       assert.equal(r.status, 200, r.text);

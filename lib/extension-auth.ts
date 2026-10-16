@@ -34,9 +34,7 @@ function encode(value: unknown) {
 }
 
 function sign(value: string) {
-  return createHmac("sha256", signingKey())
-    .update(value)
-    .digest("base64url");
+  return createHmac("sha256", signingKey()).update(value).digest("base64url");
 }
 
 function issueAccessToken(input: {
@@ -148,7 +146,8 @@ export async function exchangeExtensionAuthorizationCode(input: {
   });
 
   if (
-    !authCode || !authCode.account.workspace.active ||
+    !authCode ||
+    !authCode.account.workspace.active ||
     authCode.consumedAt ||
     authCode.expiresAt.getTime() <= Date.now() ||
     authCode.redirectUri !== input.redirectUri ||
@@ -165,7 +164,11 @@ export async function exchangeExtensionAuthorizationCode(input: {
 
   const access = await prisma.$transaction(async (tx) => {
     const consumed = await tx.radarExtensionAuthCode.updateMany({
-      where: { id: authCode.id, consumedAt: null, expiresAt: { gt: new Date() } },
+      where: {
+        id: authCode.id,
+        consumedAt: null,
+        expiresAt: { gt: new Date() },
+      },
       data: { consumedAt: new Date() },
     });
     if (!consumed.count) return null;
@@ -214,8 +217,7 @@ export async function exchangeExtensionAuthorizationCode(input: {
     accessToken: accessToken.token,
     accessTokenExpiresIn: accessToken.expiresIn,
     refreshToken,
-    refreshTokenExpiresIn:
-      REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60,
+    refreshTokenExpiresIn: REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60,
     plan: access.plan,
   };
 }
@@ -231,7 +233,8 @@ export async function refreshExtensionSession(input: {
   });
 
   if (
-    !access || !access.account.workspace.active ||
+    !access ||
+    !access.account.workspace.active ||
     access.revokedAt ||
     access.deviceId !== input.deviceId ||
     (access.expiresAt && access.expiresAt.getTime() <= Date.now())
@@ -246,7 +249,12 @@ export async function refreshExtensionSession(input: {
   );
 
   const rotated = await prisma.radarExtensionAccess.updateMany({
-    where: { id: access.id, tokenHash, revokedAt: null, expiresAt: { gt: new Date() } },
+    where: {
+      id: access.id,
+      tokenHash,
+      revokedAt: null,
+      expiresAt: { gt: new Date() },
+    },
     data: {
       tokenHash: nextHash,
       expiresAt: nextExpiry,
@@ -265,8 +273,7 @@ export async function refreshExtensionSession(input: {
     accessToken: accessToken.token,
     accessTokenExpiresIn: accessToken.expiresIn,
     refreshToken: nextRefreshToken,
-    refreshTokenExpiresIn:
-      REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60,
+    refreshTokenExpiresIn: REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60,
     plan: access.account.workspace.plan,
   };
 }
@@ -301,7 +308,8 @@ export async function getExtensionSession(request: Request) {
   });
 
   if (
-    !access || !access.account.workspace.active ||
+    !access ||
+    !access.account.workspace.active ||
     access.revokedAt ||
     access.mercadoLivreAccountId !== payload.accountId ||
     access.deviceId !== payload.deviceId ||
@@ -313,13 +321,29 @@ export async function getExtensionSession(request: Request) {
   const day = utcDay();
   const workspaceId = access.account.workspaceId;
   const allowed = await prisma.$transaction(async (tx) => {
-    await tx.radarWorkspaceUsage.upsert({ where: { workspaceId_day: { workspaceId, day } }, create: { workspaceId, day }, update: {} });
-    const used = await tx.radarWorkspaceUsage.updateMany({ where: { workspaceId, day, requests: { lt: access.account.workspace.dailyRequestLimit } }, data: { requests: { increment: 1 } } });
-    if (!used.count) return false;
-    await tx.radarExtensionUsage.upsert({ where: { accessId_day: { accessId: access.id, day } }, create: { accessId: access.id, day, requests: 1 }, update: { requests: { increment: 1 } } });
+    // Prisma's empty-update upsert may read then INSERT, racing on the first
+    // request of the UTC day. PostgreSQL must create/increment/check in one step.
+    if (access.account.workspace.dailyRequestLimit <= 0) return false;
+    const used = await tx.$queryRaw<Array<{ requests: number }>>`
+      INSERT INTO "RadarWorkspaceUsage" ("workspaceId", "day", "requests")
+      VALUES (${workspaceId}, ${day}::date, 1)
+      ON CONFLICT ("workspaceId", "day") DO UPDATE
+        SET "requests" = "RadarWorkspaceUsage"."requests" + 1
+        WHERE "RadarWorkspaceUsage"."requests" < ${access.account.workspace.dailyRequestLimit}
+      RETURNING "requests"
+    `;
+    if (!used.length) return false;
+    await tx.radarExtensionUsage.upsert({
+      where: { accessId_day: { accessId: access.id, day } },
+      create: { accessId: access.id, day, requests: 1 },
+      update: { requests: { increment: 1 } },
+    });
     return true;
   });
-  if (!allowed) throw new Error("Limite diário da extensão atingido para sua operação. O limite é compartilhado entre dispositivos e renova à 0h UTC.");
+  if (!allowed)
+    throw new Error(
+      "Limite diário da extensão atingido para sua operação. O limite é compartilhado entre dispositivos e renova à 0h UTC.",
+    );
 
   await prisma.radarExtensionAccess.update({
     where: { id: access.id },

@@ -770,6 +770,7 @@ try {
       assert.ok(!r.json.checks.some((c) => c.key === "application"));
     },
   );
+  let secondDeviceToken;
   await check(
     "workspace quota is shared across extension devices",
     async () => {
@@ -792,6 +793,7 @@ try {
           "https://" + "a".repeat(32) + ".chromiumapp.org/radar-auth",
       });
       assert.equal(token.status, 200, token.text);
+      secondDeviceToken = token.json.access_token;
       await db.query(
         'UPDATE "RadarWorkspace" SET "dailyRequestLimit"=2 WHERE id=$1',
         [userA.workspaceId],
@@ -819,6 +821,33 @@ try {
       );
     },
   );
+  await check("concurrent calls respect the shared daily cap", async () => {
+    await db.query('DELETE FROM "RadarWorkspaceUsage" WHERE "workspaceId"=$1', [
+      userA.workspaceId,
+    ]);
+    const results = await Promise.all(
+      Array.from({ length: 8 }, (_, index) =>
+        req("/api/extension/auth/session", "", "GET", undefined, {
+          authorization:
+            "Bearer " + (index % 2 ? secondDeviceToken : access.access_token),
+        }),
+      ),
+    );
+    assert.equal(
+      results.filter((r) => r.status === 200).length,
+      2,
+      JSON.stringify(results.map((r) => r.text)),
+    );
+    assert.equal(results.filter((r) => r.status === 429).length, 6);
+    const used = (
+      await db.query(
+        'SELECT requests FROM "RadarWorkspaceUsage" WHERE "workspaceId"=$1',
+        [userA.workspaceId],
+      )
+    ).rows;
+    assert.equal(used.length, 1);
+    assert.equal(used[0].requests, 2);
+  });
   await check(
     "suspension immediately revokes web and extension access",
     async () => {

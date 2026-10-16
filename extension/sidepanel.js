@@ -15,6 +15,9 @@
     selected: new Set(),
     result: null,
     comparisonTarget: null,
+    focusedId: null,
+    lastIntent: null,
+    contextRequest: 0,
     server: "https://radar.optarys.com.br",
   };
   const brl = (n) =>
@@ -37,7 +40,12 @@
       minute: "2-digit",
     });
   const current = () =>
-    state.context?.page === "product" ? state.context.items?.[0] : null;
+    state.focusedId
+      ? state.context?.items?.find((item) => item.id === state.focusedId) ||
+        null
+      : state.context?.page === "product"
+        ? state.context.items?.[0]
+        : null;
   function node(tag, text, className) {
     const el = document.createElement(tag);
     if (text != null) el.textContent = String(text);
@@ -119,6 +127,19 @@
   }
   for (const button of document.querySelectorAll(".tabs button"))
     button.addEventListener("click", () => showTab(button.dataset.tab));
+  for (const button of document.querySelectorAll("[data-tool]"))
+    button.addEventListener("click", () => {
+      $("toolMenu").open = false;
+      if (button.dataset.tool === "connection") {
+        $("connectionCard").scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      } else {
+        showTab(button.dataset.tool);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
   function evidenceLine(title, description, pending = false) {
     const el = node("div", null, "evidence-line");
     el.append(node("span", null, "evidence-dot" + (pending ? " pending" : "")));
@@ -129,7 +150,8 @@
   }
   function renderPage() {
     const obs = current(),
-      search = state.context?.page === "search";
+      search = state.context?.page === "search" && !obs;
+    $("backToSearch").hidden = !(obs && state.context?.page === "search");
     $("productTitle").textContent =
       obs?.title ||
       (search
@@ -187,11 +209,14 @@
         ),
       );
     $("pageNote").textContent = obs
-      ? "Vendas totais × preço atual não comprovam faturamento histórico. Sem pedidos da conta, o Radar não afirma lucro ou vendas mensais do concorrente."
+      ? "Leitura pública deste anúncio. Simule a margem com os custos da sua operação."
       : search
-        ? "Use Comparar para selecionar produtos equivalentes. A página do Mercado Livre permanece sem alterações."
+        ? "Selecione anúncios equivalentes em Preços. Você pode simular um produto sem sair da busca."
         : "O Radar não lê outras abas nem navega por anúncios automaticamente.";
     $("watchCard").hidden = !obs;
+    $("quickActions").hidden = !obs;
+    $("searchActions").hidden = !search;
+    $("calcEmpty").hidden = Boolean(obs);
     $("calculatorForm").hidden = !obs;
     $("retryApi").hidden = !obs;
     $("evidence").replaceChildren(
@@ -277,32 +302,33 @@
     $("apiBase").value = state.server;
     $("dashboardLink").href = state.server;
     $("monitorLink").href = state.server + "/monitoramento";
+    $("menuMonitorLink").href = state.server + "/monitoramento";
   }
-  async function loadContext(force = false) {
-    const context = await chrome.runtime
-      .sendMessage({ type: "RADAR_CONTEXT_GET" })
-      .catch(() => null);
-    const key = JSON.stringify(
-      context ? { ...context, updatedAt: null } : null,
-    );
-    if (!force && key === state.key) return;
-    state.key = key;
-    state.context = context;
+  function resetAnalysis() {
     state.item = null;
-    const revision = ++state.revision;
+    state.revision++;
+    state.calcRevision++;
     state.result = null;
     state.calcBusy = false;
-    $("calculate").disabled = false;
-    $("quoteButton").disabled = false;
-    $("marketButton").disabled = false;
-    $("retryApi").disabled = false;
+    for (const id of [
+      "calculate",
+      "quoteButton",
+      "marketButton",
+      "retryApi",
+      "watchButton",
+    ])
+      $(id).disabled = false;
     state.candidates = [];
     state.selected.clear();
     $("calcResult").hidden = true;
     $("candidates").replaceChildren();
     $("marketRange").replaceChildren();
     $("sampleNote").textContent = "";
-    $("watchButton").disabled = false;
+    $("candidateFilter").value = "";
+    $("candidateSort").value = "position";
+    $("candidateTools").hidden = true;
+    $("selectAll").hidden = true;
+    $("clearSelection").hidden = true;
     $("watchButton").textContent = "Monitorar por novas leituras";
     $("watchStatus").textContent = "";
     notice("calcStatus", "");
@@ -323,10 +349,90 @@
     $("logisticType").value = obs?.fulfillment ? "fulfillment" : "drop_off";
     $("manualFees").checked = false;
     $("manualFeeFields").hidden = true;
-    if (context?.page === "search") {
+    for (const input of $("calculatorForm").querySelectorAll("[aria-invalid]"))
+      input.removeAttribute("aria-invalid");
+  }
+  function focusProduct(id) {
+    state.focusedId = id;
+    resetAnalysis();
+    state.comparisonTarget = current();
+  }
+  function applyIntent(intent) {
+    if (
+      !intent ||
+      intent.id === state.lastIntent ||
+      intent.tabId !== state.context?.tabId ||
+      Date.now() - intent.issuedAt > 120000 ||
+      intent.issuedAt > Date.now() + 5000
+    )
+      return;
+    if (
+      intent.referenceId &&
+      !state.context.items.some((i) => i.id === intent.referenceId)
+    )
+      return;
+    state.lastIntent = intent.id;
+    if (intent.referenceId) focusProduct(intent.referenceId);
+    else if (state.focusedId && state.context.page === "search")
+      focusProduct(null);
+    if (intent.tab === "connection") {
+      $("connectionCard").scrollIntoView({ block: "start" });
+      return;
+    }
+    if (intent.tab === "market" && state.context.page === "search") {
+      setCandidates(
+        state.context.items.map((item) => ({
+          ...item,
+          source: "VISIBLE_SEARCH",
+          capturedAt: state.context.updatedAt,
+        })),
+      );
+      for (const id of intent.selectedIds || [])
+        if (state.candidates.some((i) => i.id === id)) state.selected.add(id);
+      renderCandidates();
+      renderSample();
+    }
+    showTab(
+      ["summary", "calculator", "market"].includes(intent.tab)
+        ? intent.tab
+        : "summary",
+    );
+    window.scrollTo({ top: 0 });
+  }
+  $("backToSearch").addEventListener("click", () => {
+    focusProduct(null);
+    setCandidates(
+      state.context.items.map((item) => ({
+        ...item,
+        source: "VISIBLE_SEARCH",
+        capturedAt: state.context.updatedAt,
+      })),
+    );
+    showTab("market");
+  });
+  async function loadContext(force = false) {
+    const requestId = ++state.contextRequest;
+    const context = await chrome.runtime
+      .sendMessage({ type: "RADAR_CONTEXT_GET" })
+      .catch(() => null);
+    if (requestId !== state.contextRequest) return;
+    const key = JSON.stringify(
+      context ? { ...context, updatedAt: null } : null,
+    );
+    if (!force && key === state.key) return;
+    state.key = key;
+    const keepFocus =
+      state.context?.tabId === context?.tabId &&
+      state.context?.url === context?.url &&
+      context?.items?.some((i) => i.id === state.focusedId);
+    if (!keepFocus) state.focusedId = null;
+    state.context = context;
+    resetAnalysis();
+    if (context?.page === "search" && !current()) {
       const stored = await chrome.storage.session.get([
         "radarComparisonTarget",
       ]);
+      if (requestId !== state.contextRequest) return;
       state.comparisonTarget = stored.radarComparisonTarget || null;
       setCandidates(
         context.items.map((item) => ({
@@ -337,8 +443,13 @@
       );
       showTab("market");
     } else {
-      state.comparisonTarget = obs;
+      state.comparisonTarget = current();
     }
+    const intents = await chrome.storage.session.get(["radarPanelIntent"]);
+    if (requestId !== state.contextRequest) return;
+    applyIntent(intents.radarPanelIntent);
+    const revision = state.revision,
+      obs = current();
     if (context?.items?.length && usableQuietly()) {
       const response = await request("/api/extension/observations", "POST", {
         page: context.page,
@@ -355,8 +466,10 @@
         );
       else {
         notice("globalStatus", "");
-        const insight = response.body.items?.[0];
-        if (obs && insight?.estimate?.method === "OFICIAL") {
+        const insight = response.body.items?.find(
+          (item) => item.id === obs?.id,
+        );
+        if (obs && insight?.isOwn && insight.estimate?.method === "OFICIAL") {
           const e = insight.estimate;
           $("evidence").append(
             evidenceLine(
@@ -621,18 +734,45 @@
   function setCandidates(items) {
     state.candidates = [
       ...new Map(
-        items.filter((i) => Number(i.price) > 0).map((i) => [i.id, i]),
+        items
+          .filter((i) => Number(i.price) > 0 && i.id !== current()?.id)
+          .map((i) => [i.id, i]),
       ).values(),
     ];
     state.selected.clear();
+    renderCandidates();
+    renderSample();
+  }
+  function visibleCandidates() {
+    const query = $("candidateFilter").value.trim().toLocaleLowerCase("pt-BR");
+    const items = state.candidates.filter(
+      (i) => !query || i.title.toLocaleLowerCase("pt-BR").includes(query),
+    );
+    if ($("candidateSort").value === "price-asc")
+      items.sort((a, b) => a.price - b.price);
+    if ($("candidateSort").value === "price-desc")
+      items.sort((a, b) => b.price - a.price);
+    return items;
+  }
+  function renderCandidates() {
     $("candidates").replaceChildren();
-    $("selectAll").hidden = !state.candidates.length;
-    for (const item of state.candidates) {
+    $("candidateTools").hidden = !state.candidates.length;
+    const visible = visibleCandidates();
+    $("selectAll").hidden = !visible.length;
+    $("candidateCount").textContent =
+      visible.length +
+      " de " +
+      state.candidates.length +
+      " anúncios · " +
+      state.selected.size +
+      " selecionados";
+    for (const item of visible) {
       const row = node("article", null, "candidate"),
         label = node("label", null, "check"),
         input = document.createElement("input");
       input.type = "checkbox";
       input.value = item.id;
+      input.checked = state.selected.has(item.id);
       label.append(input, node("span", item.title));
       input.addEventListener("change", () => {
         if (input.checked) state.selected.add(item.id);
@@ -647,6 +787,23 @@
           stamp(item.capturedAt || new Date()),
       );
       row.append(info);
+      if (
+        state.context?.page === "search" &&
+        state.context.items.some((i) => i.id === item.id)
+      ) {
+        const analyze = node(
+          "button",
+          "Simular lucro",
+          "candidate-action secondary",
+        );
+        analyze.type = "button";
+        analyze.addEventListener("click", () => {
+          focusProduct(item.id);
+          showTab("calculator");
+          window.scrollTo({ top: 0 });
+        });
+        row.append(analyze);
+      }
       const href = safeLink(item.permalink);
       if (href) {
         const link = node("a", "Ver anúncio ↗");
@@ -657,9 +814,23 @@
       }
       $("candidates").append(row);
     }
-    renderSample();
   }
+  $("candidateFilter").addEventListener("input", renderCandidates);
+  $("candidateSort").addEventListener("change", renderCandidates);
+  $("clearSelection").addEventListener("click", () => {
+    state.selected.clear();
+    renderCandidates();
+    renderSample();
+  });
   function renderSample() {
+    $("clearSelection").hidden = !state.selected.size;
+    $("candidateCount").textContent =
+      visibleCandidates().length +
+      " de " +
+      state.candidates.length +
+      " anúncios · " +
+      state.selected.size +
+      " selecionados";
     const prices = state.candidates
       .filter((i) => state.selected.has(i.id))
       .map((i) => Number(i.price));
@@ -881,6 +1052,10 @@
     }
   });
   chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "session" && changes.radarPanelIntent)
+      void loadContext().then(() =>
+        applyIntent(changes.radarPanelIntent.newValue),
+      );
     if (
       area === "session" &&
       Object.keys(changes).some((k) => k.startsWith("radarContext:"))

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Mercado Radar",
-  "version": "0.7.0",
-  "description": "Leitura transparente de anúncios, comparação de amostras e simulação de lucro no painel lateral.",
+  "version": "0.8.0",
+  "description": "Análise na busca e no produto, comparação de anúncios e calculadora de lucro com origem dos dados.",
   "permissions": ["storage", "sidePanel", "identity"],
   "host_permissions": [
     "https://*.mercadolivre.com.br/*",
@@ -22,7 +22,7 @@
         "https://*.mercadolivre.com.br/jms/*",
         "https://*.mercadolivre.com.br/gz/*"
       ],
-      "js": ["selectors.js", "content.js"],
+      "js": ["selectors.js", "panel-model.js", "content.js"],
       "run_at": "document_idle"
     }
   ],

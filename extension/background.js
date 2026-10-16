@@ -290,7 +290,10 @@ async function logout() {
   }
 
   await clearTokens();
-  await chrome.storage.session.remove(["radarComparisonTarget"]);
+  await chrome.storage.session.remove([
+    "radarComparisonTarget",
+    "radarPanelIntent",
+  ]);
   await chrome.storage.sync.remove([
     "radarTaxPercent",
     "radarOperatingCost",
@@ -317,13 +320,46 @@ async function activeContext() {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (sender.id !== chrome.runtime.id) return false;
   if (message?.type === "RADAR_OPEN_PANEL") {
-    if (!sender.tab?.id) {
+    if (
+      !sender.tab?.id ||
+      !/^https:\/\/([a-z0-9-]+\.)*mercadolivre\.com\.br\//i.test(
+        sender.url || "",
+      )
+    ) {
       sendResponse({ ok: false });
       return false;
     }
     chrome.sidePanel
       .open({ tabId: sender.tab.id })
-      .then(() => sendResponse({ ok: true }))
+      .then(async () => {
+        // A single-use UI intent; page observations still come from the active tab.
+        await chrome.storage.session.set({
+          radarPanelIntent: {
+            id: crypto.randomUUID(),
+            tabId: sender.tab.id,
+            issuedAt: Date.now(),
+            tab: ["summary", "calculator", "market", "connection"].includes(
+              message.tab,
+            )
+              ? message.tab
+              : "summary",
+            referenceId: /^MLB(?:U)?\d{5,}$/.test(message.referenceId || "")
+              ? message.referenceId
+              : null,
+            selectedIds: Array.isArray(message.selectedIds)
+              ? [
+                  ...new Set(
+                    message.selectedIds.filter(
+                      (id) =>
+                        typeof id === "string" && /^MLB(?:U)?\d{5,}$/.test(id),
+                    ),
+                  ),
+                ].slice(0, 60)
+              : [],
+          },
+        });
+        sendResponse({ ok: true });
+      })
       .catch(() => sendResponse({ ok: false }));
     return true;
   }

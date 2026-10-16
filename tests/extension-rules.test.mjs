@@ -280,10 +280,17 @@ test("native panel opening stays in the user gesture and page messages are origi
   const h = await backgroundHarness();
   const result = h.call(
     { type: "RADAR_OPEN_PANEL" },
-    { id: "a".repeat(32), tab: { id: 1 } },
+    {
+      id: "a".repeat(32),
+      tab: { id: 1 },
+      url: "https://www.mercadolivre.com.br/fio/up/MLBU5074600649",
+    },
   );
   assert.equal(h.opened.length, 1);
   assert.equal((await result).ok, true);
+  assert.equal(h.sessionWrites[0].radarPanelIntent.tabId, 1);
+  assert.equal(h.sessionWrites[0].radarPanelIntent.tab, "summary");
+  h.sessionWrites.length = 0;
   assert.equal(
     (
       await h.call(

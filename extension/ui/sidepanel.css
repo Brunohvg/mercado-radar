@@ -117,6 +117,109 @@ h2 {
   align-items: center;
   margin-bottom: 12px;
 }
+.brand-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tool-menu {
+  position: relative;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.tool-menu > summary {
+  list-style: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 36px;
+  border: 1px solid #cbdcd6;
+  border-radius: 10px;
+  background: white;
+  font-size: 18px;
+}
+.tool-menu > summary::-webkit-details-marker {
+  display: none;
+}
+.tool-menu nav {
+  position: absolute;
+  right: 0;
+  top: 44px;
+  width: min(244px, calc(100vw - 40px));
+  padding: 7px;
+  border: 1px solid #d5e3d8;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 12px 40px #12382e22;
+  z-index: 5;
+}
+.tool-menu button,
+.tool-menu a {
+  display: block;
+  margin: 0;
+  padding: 10px;
+  min-height: 38px;
+  border: 0;
+  border-radius: 7px;
+  background: white;
+  color: #315647;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+}
+.tool-menu button:hover,
+.tool-menu a:hover {
+  background: #eef6f0;
+}
+.back-link {
+  border: 0;
+  background: transparent;
+  color: #4d725f;
+  min-height: 30px;
+  margin: 0 0 8px;
+  padding: 0;
+  font-size: 11px;
+  text-align: left;
+}
+.back-link:hover {
+  background: transparent;
+  color: #08735e;
+}
+.quick-actions button {
+  text-align: left;
+  margin-top: 8px;
+  padding: 13px;
+}
+.quick-actions button span {
+  display: block;
+  margin-top: 5px;
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.85;
+}
+.evidence-details {
+  padding-top: 14px;
+}
+.evidence-details summary {
+  min-height: 20px;
+}
+.candidate-tools {
+  border-top: 1px solid #e0e9e2;
+  margin-top: 15px;
+  padding-top: 12px;
+}
+.candidate-tools label {
+  margin-top: 8px;
+}
+.candidate-action {
+  margin: 8px 0 0 24px;
+  width: auto;
+  min-height: 30px;
+  font-size: 11px;
+  padding: 6px 10px;
+}
 .brand-copy {
   display: flex;
   gap: 10px;

@@ -11,12 +11,12 @@ export default function ExtensionPage() {
               <p className="page-kicker">Configuração</p>
               <h1>Extensão Radar</h1>
               <p>
-                Leitura de anúncios e simulação no painel lateral, com a origem
-                de cada dado.
+                Analise na busca e no produto, compare preços e simule seu
+                lucro, com a origem de cada dado.
               </p>
             </div>
             <span className="status-chip attention extension-install-beta">
-              Beta 0.7.0
+              Beta 0.8.0
             </span>
           </header>
 
@@ -104,15 +104,15 @@ export default function ExtensionPage() {
                 <span>Comparação de preços</span>
                 <strong>Ativos</strong>
                 <small>
-                  amostra revisada de anúncios equivalentes, sem alterar os
-                  cards
+                  marque anúncios na busca e leve a amostra revisada ao painel
                 </small>
               </div>
               <div>
-                <span>Painel lateral</span>
+                <span>Ferramentas contextuais</span>
                 <strong>Ativo</strong>
                 <small>
-                  calculadora com custos explícitos e monitoramento por leitura
+                  menu rápido, calculadora por anúncio e monitoramento por
+                  leitura
                 </small>
               </div>
               <div>

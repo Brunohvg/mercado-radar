@@ -14,17 +14,43 @@
           <img src="icons/icon48.png" alt="" />
           <div>
             <strong>Mercado Radar</strong
-            ><small>Decida com margem · 0.7.0</small>
+            ><small>Decida com margem · 0.8.0</small>
           </div>
         </div>
-        <button
-          id="refresh"
-          class="icon-button secondary"
-          title="Atualizar leitura"
-          aria-label="Atualizar leitura"
-        >
-          ↻
-        </button>
+        <div class="brand-actions">
+          <details id="toolMenu" class="tool-menu">
+            <summary aria-label="Menu de ferramentas">☰</summary>
+            <nav aria-label="Acesso rápido">
+              <button type="button" data-tool="summary">
+                Análise da página
+              </button>
+              <button type="button" data-tool="calculator">
+                Calculadora de lucro
+              </button>
+              <button type="button" data-tool="market">
+                Pesquisa e comparação
+              </button>
+              <a
+                id="menuMonitorLink"
+                href="https://radar.optarys.com.br/monitoramento"
+                target="_blank"
+                rel="noopener"
+                >Meus monitoramentos ↗</a
+              >
+              <button type="button" data-tool="connection">
+                Conta e configurações
+              </button>
+            </nav>
+          </details>
+          <button
+            id="refresh"
+            class="icon-button secondary"
+            title="Atualizar leitura"
+            aria-label="Atualizar leitura"
+          >
+            ↻
+          </button>
+        </div>
       </header>
       <div class="connection">
         <span id="authDot" class="auth-dot"></span
@@ -39,6 +65,9 @@
       </div>
       <p id="globalStatus" class="notice" role="status" hidden></p>
       <section id="contextCard" class="card">
+        <button id="backToSearch" class="back-link" hidden>
+          ← Voltar à pesquisa
+        </button>
         <p class="eyebrow">Página aberta</p>
         <h1 id="productTitle">Abra um anúncio ou uma busca do Mercado Livre</h1>
         <p id="reference" class="muted"></p>
@@ -47,29 +76,35 @@
         <p id="pageNote" class="muted"></p>
       </section>
       <nav class="tabs" aria-label="Ferramentas do Radar">
-        <button data-tab="summary" aria-current="page">Leitura</button
-        ><button data-tab="calculator">Simular lucro</button
-        ><button data-tab="market">Comparar</button>
+        <button data-tab="summary" aria-current="page">Análise</button
+        ><button data-tab="calculator">Lucro</button
+        ><button data-tab="market">Preços</button>
       </nav>
       <section id="summary" class="tab-page">
-        <div class="card">
-          <div class="section-head">
-            <h2>Origem dos dados</h2>
-            <span class="badge">Transparência</span>
-          </div>
-          <div id="evidence"></div>
-          <button id="retryApi" class="secondary">
-            Consultar detalhes pela API
+        <div id="searchActions" class="card quick-actions" hidden>
+          <h2>Escolha seu próximo produto</h2>
+          <p class="muted">
+            Compare os anúncios carregados e simule um candidato sem sair da
+            busca.
+          </p>
+          <button data-tool="market">Ver anúncios desta pesquisa →</button>
+        </div>
+        <div id="quickActions" class="card quick-actions">
+          <p class="eyebrow">Próximo passo</p>
+          <button data-tool="calculator">
+            Simular meu lucro
+            <span>Informe seu custo e confira a margem →</span>
           </button>
-          <div id="apiFacts" class="facts"></div>
-          <p id="apiStatus" class="muted" role="status"></p>
+          <button data-tool="market" class="secondary">
+            Comparar preços
+            <span>Confira uma amostra de produtos equivalentes →</span>
+          </button>
         </div>
         <div id="watchCard" class="card">
           <h2>Acompanhar preço</h2>
           <p class="muted">
-            Salve esta leitura. O histórico avança quando você abre o anúncio
-            com o painel do Radar. Não promete consulta automática de dados
-            restritos.
+            Salve o anúncio e acompanhe o preço por novas leituras. O histórico
+            é atualizado ao revisitar com o painel aberto.
           </p>
           <button id="watchButton">Monitorar por novas leituras</button>
           <p id="watchStatus" class="muted" role="status"></p>
@@ -82,8 +117,27 @@
             >Ver meu monitoramento ↗</a
           >
         </div>
+        <details id="evidenceDetails" class="card evidence-details">
+          <summary>Origem dos dados e detalhes da API</summary>
+          <div id="evidence"></div>
+          <button id="retryApi" class="secondary">
+            Consultar detalhes pela API
+          </button>
+          <div id="apiFacts" class="facts"></div>
+          <p id="apiStatus" class="muted" role="status"></p>
+        </details>
       </section>
       <section id="calculator" class="tab-page" hidden>
+        <div id="calcEmpty" class="card" hidden>
+          <h2>Qual produto vamos simular?</h2>
+          <p class="muted">
+            Na busca, clique em Analisar sobre a foto de um produto. Você também
+            pode abrir um anúncio do Mercado Livre.
+          </p>
+          <button data-tool="market" class="secondary">
+            Escolher um produto da pesquisa
+          </button>
+        </div>
         <form id="calculatorForm" class="card" novalidate>
           <h2>Quanto sobra para você?</h2>
           <p class="muted">
@@ -240,13 +294,31 @@
           <p id="marketStatus" class="notice" role="status" hidden></p>
           <div id="marketRange" class="grid" aria-live="polite"></div>
           <p id="sampleNote" class="muted"></p>
+          <div id="candidateTools" class="candidate-tools" hidden>
+            <label for="candidateFilter">Filtrar esta lista</label>
+            <input
+              id="candidateFilter"
+              type="search"
+              placeholder="Marca, medida ou palavra do título"
+            />
+            <label for="candidateSort">Ordenar esta lista no Radar</label>
+            <select id="candidateSort">
+              <option value="position">Ordem da página</option>
+              <option value="price-asc">Menor preço</option>
+              <option value="price-desc">Maior preço</option>
+            </select>
+            <p id="candidateCount" class="muted"></p>
+          </div>
           <button id="selectAll" class="secondary" hidden>
-            Selecionar os anúncios visíveis que conferi
+            Selecionar os resultados filtrados que conferi
+          </button>
+          <button id="clearSelection" class="back-link" hidden>
+            Limpar seleção
           </button>
           <div id="candidates"></div>
         </div>
       </section>
-      <section class="card auth-card">
+      <section id="connectionCard" class="card auth-card">
         <h2>Sua conexão</h2>
         <p id="authSubtitle" class="muted">
           Cada cliente usa a própria conta do Radar e autoriza o seu Mercado

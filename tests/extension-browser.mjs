@@ -63,9 +63,18 @@ try {
     route.fulfill({ body: fixture, contentType: "text/html" }),
   );
   host.on("pageerror", (error) => errors.push(error.message));
-  await host.addInitScript(() => {
+  const contentStub = () => {
     window.__messages = [];
+    window.__hostQa = { auth: true };
     window.chrome = {
+      storage: {
+        sync: { get: async () => ({}), set: async () => {} },
+        onChanged: {
+          addListener(fn) {
+            window.__hostQa.change = fn;
+          },
+        },
+      },
       runtime: {
         onMessage: {
           addListener(fn) {
@@ -74,11 +83,19 @@ try {
         },
         sendMessage: async (message) => {
           window.__messages.push(message);
+          if (message.type === "RADAR_FETCH")
+            return window.__hostQa.auth
+              ? {
+                  ok: true,
+                  body: { note: "Salvo. Atualiza por novas leituras." },
+                }
+              : { ok: false, status: 401 };
           return { ok: true };
         },
       },
     };
-  });
+  };
+  await host.addInitScript(contentStub);
   await host.goto("https://www.mercadolivre.com.br/fio/up/MLBU5074600649");
   const geometry = () =>
     host.evaluate(() =>
@@ -99,11 +116,23 @@ try {
   await host.addScriptTag({
     path: new URL("selectors.js", extension).pathname,
   });
+  await host.addScriptTag({
+    path: new URL("panel-model.js", extension).pathname,
+  });
   await host.addScriptTag({ path: new URL("content.js", extension).pathname });
+  await host.locator('[data-radar-owned="product"]').waitFor();
   await check(
     "host layout, price, recommendation IDs and native purchase button",
     async () => {
-      assert.deepEqual(await geometry(), before);
+      const after = await geometry();
+      for (let i = 0; i < after.length; i++) {
+        assert.equal(after[i].style, before[i].style);
+        assert.equal(after[i].text, before[i].text);
+        const a = JSON.parse(after[i].rect),
+          b = JSON.parse(before[i].rect);
+        assert.equal(a.x, b.x);
+        assert.equal(a.width, b.width);
+      }
       assert.equal(
         await host.evaluate(() => document.documentElement.scrollWidth),
         overflow,
@@ -116,7 +145,7 @@ try {
       assert.equal(observation.listingTypeHint, null);
       assert.equal(observation.categoryId, null);
       assert.equal(observation.soldLower, 25);
-      assert.equal(await host.locator("[data-radar-owned]").count(), 1);
+      assert.equal(await host.locator("[data-radar-owned]").count(), 2);
       await host.locator("#native-buy").click();
       assert.equal(
         await host.locator("#native-buy").getAttribute("data-clicked"),
@@ -135,17 +164,264 @@ try {
       await host.waitForFunction(() =>
         window.__messages.some((m) => m.context?.items?.[0]?.price === 19.9),
       );
-      assert.equal(await host.locator("[data-radar-owned]").count(), 1);
+      assert.equal(await host.locator("[data-radar-owned]").count(), 2);
       const own = await host
-        .locator("[data-radar-owned]")
+        .locator('[data-radar-owned="launcher"]')
         .evaluate((el) =>
-          el.shadowRoot.querySelector("button").getAttribute("aria-label"),
+          el.shadowRoot
+            .querySelector(".launcher-button")
+            .getAttribute("aria-label"),
         );
-      assert.match(own, /painel lateral/);
+      assert.match(own, /menu/);
+    },
+  );
+  await check(
+    "product shortcuts, direct monitoring, menu and hide/restore",
+    async () => {
+      const product = host.locator('[data-radar-owned="product"]');
+      await product
+        .getByRole("button", { name: "Calcular lucro", exact: true })
+        .click();
+      assert.equal(
+        await host.evaluate(
+          () =>
+            __messages.filter((m) => m.type === "RADAR_OPEN_PANEL").at(-1)
+              .referenceId,
+        ),
+        "MLBU5074600649",
+      );
+      assert.equal(
+        await host.evaluate(
+          () =>
+            __messages.filter((m) => m.type === "RADAR_OPEN_PANEL").at(-1).tab,
+        ),
+        "calculator",
+      );
+      await host.evaluate(() => {
+        __hostQa.auth = false;
+      });
+      await product
+        .getByRole("button", { name: "Monitorar preço", exact: true })
+        .click();
+      await product
+        .getByText("Entre na sua conta Radar", { exact: false })
+        .waitFor();
+      assert.equal(
+        await product
+          .getByRole("button", { name: "Monitorar preço", exact: true })
+          .isEnabled(),
+        true,
+      );
+      await host.evaluate(() => {
+        __hostQa.auth = true;
+      });
+      await product
+        .getByRole("button", { name: "Monitorar preço", exact: true })
+        .click();
+      await product
+        .getByRole("button", { name: "Monitorado ✓", exact: true })
+        .waitFor();
+      const request = await host.evaluate(() =>
+        __messages.filter((m) => m.path === "/api/extension/watchlist").at(-1),
+      );
+      assert.equal(request.body.observation.id, "MLBU5074600649");
+      assert.equal(request.body.observation.price, 19.9);
+      await host.evaluate(() =>
+        __hostQa.change(
+          { radarAccessToken: { oldValue: "client-a", newValue: "client-b" } },
+          "local",
+        ),
+      );
+      await product
+        .getByRole("button", { name: "Monitorar preço", exact: true })
+        .waitFor();
+      assert.equal(
+        await product
+          .getByRole("button", { name: "Monitorar preço", exact: true })
+          .isEnabled(),
+        true,
+      );
+      const launcher = host.locator('[data-radar-owned="launcher"]');
+      await launcher
+        .getByRole("button", {
+          name: "Abrir menu do Mercado Radar",
+          exact: true,
+        })
+        .click();
+      await launcher
+        .getByRole("button", { name: "Calculadora de lucro", exact: true })
+        .waitFor();
+      await host.keyboard.press("Escape");
+      assert.equal(await launcher.locator("nav").isVisible(), false);
+      await product
+        .getByRole("button", { name: "Ocultar", exact: true })
+        .click();
+      assert.equal(
+        await host.locator('[data-radar-owned="product"]').count(),
+        0,
+      );
+      await launcher
+        .getByRole("button", {
+          name: "Abrir menu do Mercado Radar",
+          exact: true,
+        })
+        .click();
+      await launcher
+        .getByRole("button", { name: "Mostrar análise na página", exact: true })
+        .click();
+      await host.locator('[data-radar-owned="product"]').waitFor();
     },
   );
   if (artifacts)
     await host.screenshot({ path: artifacts + "/host-unchanged.png" });
+
+  const searchPage = await browser.newPage({
+    viewport: { width: 1366, height: 900 },
+  });
+  searchPage.on("pageerror", (error) => errors.push(error.message));
+  await searchPage.addInitScript(contentStub);
+  const searchFixture = await readFile(
+    new URL("tests/fixtures/extension-search.html", root),
+    "utf8",
+  );
+  await searchPage.route("https://lista.mercadolivre.com.br/**", (route) =>
+    route.fulfill({ body: searchFixture, contentType: "text/html" }),
+  );
+  await searchPage.goto("https://lista.mercadolivre.com.br/fio-encerado");
+  const cardGeometry = () =>
+    searchPage.locator(".poly-card").evaluateAll((nodes) =>
+      nodes.map((el) => ({
+        rect: el.getBoundingClientRect().toJSON(),
+        style: el.getAttribute("style"),
+        html: el.innerHTML,
+      })),
+    );
+  const searchBefore = await cardGeometry();
+  for (const name of ["selectors.js", "panel-model.js", "content.js"])
+    await searchPage.addScriptTag({ path: new URL(name, extension).pathname });
+  await searchPage.locator('[data-radar-owned="search"]').waitFor();
+  await check(
+    "search toolbar and photo shortcuts preserve native card sizes and content",
+    async () => {
+      const after = await cardGeometry();
+      const delta = after[0].rect.y - searchBefore[0].rect.y;
+      assert.ok(delta > 0);
+      for (let i = 0; i < after.length; i++) {
+        assert.equal(after[i].style, searchBefore[i].style);
+        assert.equal(after[i].html, searchBefore[i].html);
+        assert.equal(after[i].rect.width, searchBefore[i].rect.width);
+        assert.equal(after[i].rect.height, searchBefore[i].rect.height);
+        assert.equal(after[i].rect.x, searchBefore[i].rect.x);
+        assert.equal(after[i].rect.y - searchBefore[i].rect.y, delta);
+      }
+      assert.equal(
+        await searchPage.locator('[data-radar-owned="card"]').count(),
+        8,
+      );
+      const first = searchPage.locator('[data-radar-owned="card"]').first();
+      await first.locator(".analyze").click();
+      assert.equal(
+        await searchPage.evaluate(
+          () =>
+            __messages.filter((m) => m.type === "RADAR_OPEN_PANEL").at(-1)
+              .referenceId,
+        ),
+        "MLBU5074600640",
+      );
+      assert.equal(
+        searchPage.url(),
+        "https://lista.mercadolivre.com.br/fio-encerado",
+      );
+    },
+  );
+  await check(
+    "reviewed selection computes only its sample and opens comparison with those IDs",
+    async () => {
+      const shortcuts = searchPage.locator('[data-radar-owned="card"]');
+      await shortcuts.nth(0).locator(".choose").click();
+      await shortcuts.nth(1).locator(".choose").click();
+      await searchPage.evaluate(() => {
+        const clone = document.querySelector("#results li").cloneNode(true);
+        clone.id = "duplicate-card";
+        document.querySelector("#results").append(clone);
+      });
+      await searchPage.waitForFunction(
+        () =>
+          document.querySelectorAll('[data-radar-owned="card"]').length === 9,
+      );
+      assert.doesNotMatch(
+        await searchPage
+          .locator('[data-radar-owned="search"] .surface')
+          .innerText(),
+        /mediana/,
+      );
+      assert.equal(
+        await searchPage.locator('[data-radar-owned="search"] h2').innerText(),
+        "8 anúncios para analisar",
+      );
+      await searchPage.evaluate(() =>
+        document.getElementById("duplicate-card").remove(),
+      );
+      await searchPage.waitForFunction(
+        () =>
+          document.querySelectorAll('[data-radar-owned="card"]').length === 8,
+      );
+      await shortcuts.nth(2).locator(".choose").click();
+      const toolbar = searchPage.locator('[data-radar-owned="search"]');
+      await toolbar.getByText(/mediana.*19,90/).waitFor();
+      await toolbar
+        .getByRole("button", { name: "Comparar (3)", exact: true })
+        .click();
+      const intent = await searchPage.evaluate(() =>
+        __messages.filter((m) => m.type === "RADAR_OPEN_PANEL").at(-1),
+      );
+      assert.equal(intent.tab, "market");
+      assert.deepEqual(intent.selectedIds, [
+        "MLBU5074600640",
+        "MLBU5074600641",
+        "MLBU5074600642",
+      ]);
+      if (artifacts)
+        await searchPage.screenshot({
+          path: artifacts + "/contextual-search.png",
+        });
+      const launcher = searchPage.locator('[data-radar-owned="launcher"]');
+      await launcher
+        .getByRole("button", {
+          name: "Abrir menu do Mercado Radar",
+          exact: true,
+        })
+        .click();
+      if (artifacts)
+        await searchPage.screenshot({
+          path: artifacts + "/contextual-menu.png",
+        });
+      await searchPage.keyboard.press("Escape");
+      await searchPage.evaluate(() =>
+        document.querySelector("#results li").remove(),
+      );
+      await searchPage.waitForFunction(
+        () =>
+          document.querySelectorAll('[data-radar-owned="card"]').length === 7,
+      );
+      for (const width of [680, 390]) {
+        await searchPage.setViewportSize({ width, height: 900 });
+        await searchPage.waitForTimeout(100);
+        assert.equal(
+          await searchPage.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+          true,
+        );
+        for (const rect of await searchPage
+          .locator('[data-radar-owned="card"]:visible')
+          .evaluateAll((els) =>
+            els.map((el) => el.getBoundingClientRect().toJSON()),
+          ))
+          assert.ok(rect.x >= 0 && rect.right <= width);
+      }
+    },
+  );
 
   const page = await browser.newPage({ viewport: { width: 390, height: 900 } });
   page.on("pageerror", (error) => errors.push(error.message));
@@ -181,6 +457,16 @@ try {
       activate(context) {
         this.context = context;
         events.activated?.();
+      },
+      intent(value) {
+        const data = {
+          id: crypto.randomUUID(),
+          issuedAt: Date.now(),
+          selectedIds: [],
+          ...value,
+        };
+        store.radarPanelIntent = data;
+        events.changed?.({ radarPanelIntent: { newValue: data } }, "session");
       },
     };
     const qa = window.__qa;
@@ -340,6 +626,7 @@ try {
   await check(
     "restricted details keep calculator and monitoring available",
     async () => {
+      await page.locator("#evidenceDetails summary").click();
       await page.locator("#retryApi").click();
       await page
         .locator("#apiStatus")
@@ -469,6 +756,87 @@ try {
       path: artifacts + "/extension-comparison.png",
       fullPage: true,
     });
+  await check(
+    "card shortcuts focus the correct product and comparison retains reviewed IDs",
+    async () => {
+      await page.evaluate(() => {
+        __qa.activate({
+          page: "search",
+          items: __qa.candidates,
+          query: "fio",
+          tabId: 2,
+          url: "https://lista.mercadolivre.com.br/fio",
+          updatedAt: new Date().toISOString(),
+        });
+      });
+      await page
+        .locator("#productTitle")
+        .filter({ hasText: "Anúncios desta busca" })
+        .waitFor();
+      await page.evaluate(() =>
+        __qa.intent({
+          tabId: 2,
+          tab: "calculator",
+          referenceId: __qa.candidates[1].id,
+        }),
+      );
+      await page.locator("#calculator").waitFor({ state: "visible" });
+      assert.equal(await page.locator("#salePrice").inputValue(), "30,00");
+      assert.equal(await page.locator("#backToSearch").isVisible(), true);
+      await page.locator("#supplierPrice").fill("10");
+      await page.locator("#shippingCost").fill("0");
+      await page.locator("#calculate").click();
+      await page.locator("#calcResult").waitFor({ state: "visible" });
+      assert.equal(
+        await page.evaluate(
+          () =>
+            __qa.calls
+              .filter((c) => c.path === "/api/extension/profitability")
+              .at(-1).body.itemId,
+        ),
+        "MLBU9000000001",
+      );
+      await page.evaluate(() =>
+        __qa.intent({
+          tabId: 99,
+          tab: "calculator",
+          referenceId: __qa.candidates[0].id,
+        }),
+      );
+      await page.waitForTimeout(50);
+      assert.equal(await page.locator("#salePrice").inputValue(), "30,00");
+      await page.evaluate(() =>
+        __qa.intent({
+          tabId: 2,
+          tab: "market",
+          selectedIds: __qa.candidates.map((c) => c.id),
+        }),
+      );
+      await page.locator("#market").waitFor({ state: "visible" });
+      assert.equal(await page.locator("#candidates input:checked").count(), 3);
+      assert.match(await page.locator("#marketRange").innerText(), /30,00/);
+      assert.equal(await page.locator("#backToSearch").isVisible(), false);
+      await page.locator("#candidateSort").selectOption("price-desc");
+      assert.match(
+        await page.locator("#candidates .candidate-price").first().innerText(),
+        /40,00/,
+      );
+      assert.deepEqual(
+        await page.evaluate(() => __qa.context.items.map((i) => i.price)),
+        [20, 30, 40],
+      );
+      await page.locator("#candidateFilter").fill("inexistente");
+      assert.equal(await page.locator("#candidates .candidate").count(), 0);
+      assert.match(
+        await page.locator("#candidateCount").innerText(),
+        /3 selecionados/,
+      );
+      await page.locator("#candidateFilter").fill("");
+      assert.equal(await page.locator("#candidates input:checked").count(), 3);
+      await page.locator("#clearSelection").click();
+      assert.equal(await page.locator("#marketRange .metric").count(), 0);
+    },
+  );
   await check(
     "search context and unrelated tabs do not reuse the prior product",
     async () => {

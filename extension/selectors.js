@@ -762,6 +762,46 @@
     return Boolean(currentReference()) && Boolean(document.querySelector("h1"));
   }
 
+  // Insert only in a vertical content flow. Unknown layouts keep the menu/panel.
+  // No native element receives styles or a new wrapper from the extension.
+  function verticalParent(element) {
+    const parent = element?.parentElement;
+    if (
+      !parent ||
+      element.closest("a, button, form") ||
+      parent === document.body
+    )
+      return false;
+    const style = getComputedStyle(parent);
+    return (
+      !(
+        style.display.includes("flex") &&
+        !style.flexDirection.startsWith("column")
+      ) &&
+      !(
+        style.display.includes("grid") &&
+        style.gridTemplateColumns.split(/\s+/).length > 1
+      )
+    );
+  }
+
+  function contextualProductAnchor() {
+    for (const selector of [".ui-pdp-price", ".ui-pdp-header"]) {
+      const element = document.querySelector(selector);
+      if (verticalParent(element)) return { element, position: "afterend" };
+    }
+    return null;
+  }
+
+  function contextualSearchAnchor() {
+    const element = document.querySelector(
+      "ol.ui-search-layout, ul.ui-search-layout, .ui-search-layout, [data-testid='search-results']",
+    );
+    return verticalParent(element)
+      ? { element, position: "beforebegin" }
+      : null;
+  }
+
   /**
    * Diagnóstico de compatibilidade com o layout atual do ML.
    * Retorna { ok, problems[] } e nunca lança.
@@ -826,6 +866,8 @@
     extractQuery,
     findSidebar,
     findPdpAnchor,
+    contextualProductAnchor,
+    contextualSearchAnchor,
     isProductPage,
     healthCheck,
   };

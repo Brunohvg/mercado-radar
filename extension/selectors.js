@@ -802,6 +802,25 @@
       : null;
   }
 
+  function contextualProductAnalysisAnchor() {
+    let element = document.querySelector(".ui-pdp-price");
+    while (element && element !== document.body) {
+      if (
+        element.matches(
+          ".ui-pdp-container__row, main, .ui-pdp-container--pdp",
+        ) &&
+        element.querySelector(
+          ".ui-pdp-gallery, .ui-pdp-gallery__figure, .gallery",
+        ) &&
+        element.querySelector("h1") &&
+        (element.parentElement === document.body || verticalParent(element))
+      )
+        return { element, position: "afterend" };
+      element = element.parentElement;
+    }
+    return null;
+  }
+
   /**
    * Diagnóstico de compatibilidade com o layout atual do ML.
    * Retorna { ok, problems[] } e nunca lança.
@@ -867,6 +886,7 @@
     findSidebar,
     findPdpAnchor,
     contextualProductAnchor,
+    contextualProductAnalysisAnchor,
     contextualSearchAnchor,
     isProductPage,
     healthCheck,

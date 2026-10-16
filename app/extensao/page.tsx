@@ -11,12 +11,12 @@ export default function ExtensionPage() {
               <p className="page-kicker">Configuração</p>
               <h1>Extensão Radar</h1>
               <p>
-                Analise na busca e no produto, compare preços e simule seu
-                lucro, com a origem de cada dado.
+                Abra um produto e veja a análise automática de demanda, tarifas,
+                preços e margem, com a origem de cada dado.
               </p>
             </div>
             <span className="status-chip attention extension-install-beta">
-              Beta 0.8.0
+              Beta 0.9.0
             </span>
           </header>
 

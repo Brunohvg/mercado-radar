@@ -54,7 +54,7 @@ jobs:
         run: npm test
 
       - name: Extension syntax
-        run: node --check extension/background.js && node --check extension/content.js && node --check extension/sidepanel.js && node --check extension/selectors.js && node --check extension/panel-model.js
+        run: node --check extension/background.js && node --check extension/content.js && node --check extension/sidepanel.js && node --check extension/selectors.js && node --check extension/panel-model.js && node --check extension/product-analysis.js
 
       - name: Chromium for extension regression
         run: npx playwright install --with-deps chromium

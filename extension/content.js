@@ -9,8 +9,9 @@
   )
     return;
   const S = globalThis.RadarSelectors,
-    M = globalThis.RadarPanelModel;
-  if (!S || !M) return;
+    M = globalThis.RadarPanelModel,
+    A = globalThis.RadarProductAnalysis;
+  if (!S || !M || !A) return;
   const owned = new Set(),
     cards = new Map(),
     selected = new Set(),
@@ -21,6 +22,7 @@
     dead = false,
     enabled = true,
     productSurface,
+    productDetailSurface,
     searchSurface,
     productKey = "",
     searchKey = "";
@@ -170,87 +172,112 @@
         "Conexão interrompida. Recarregue a extensão e tente novamente.";
     }
   }
+  const productAnalysis = A.createController({
+    send: (message) => chrome.runtime.sendMessage(message),
+    preferences: () =>
+      chrome.storage.sync.get([
+        "radarTaxPercent",
+        "radarOperatingCost",
+        "radarTargetMarginPercent",
+        "radarTargetRoiPercent",
+      ]),
+    changed: (state) => {
+      if (
+        productSurface &&
+        state.obs &&
+        productSurface?.observation?.id === state.obs?.id &&
+        productSurface?.observation?.price === state.obs?.price
+      ) {
+        productSurface.analysisView?.render(state);
+        productDetailSurface?.analysisView?.render(state);
+      }
+    },
+  });
   function renderProduct(obs) {
     const anchor = S.contextualProductAnchor();
     if (!enabled || !obs || !anchor) {
       remove(productSurface);
+      remove(productDetailSurface);
       productSurface = null;
+      productDetailSurface = null;
       productKey = "";
       return;
     }
     const key = JSON.stringify(obs);
     if (productSurface?.host.isConnected && key === productKey) return;
     remove(productSurface);
+    remove(productDetailSurface);
+    productDetailSurface = null;
     productKey = key;
     const view = (productSurface = surface("product")),
       card = el("section", null, "surface"),
       inner = el("div", null, "inner"),
       head = el("div", null, "head");
-    head.append(brand(), el("span", "Leitura da página", "tag"));
+    view.observation = obs;
+    head.append(brand(), el("span", "Análise automática", "tag"));
     inner.append(head);
-    const facts = el("div", null, "facts");
-    for (const [label, value] of [
-      ["Preço deste anúncio", brl(obs.price)],
-      [
-        "Vendidos · acumulado",
-        obs.soldLower == null
-          ? obs.soldLabel || "Não informado"
-          : (obs.soldHasPlus ? "+" : "") + number(obs.soldLower),
-      ],
-    ]) {
-      const fact = el("div", null, "fact");
-      fact.append(el("small", label), el("strong", value));
-      facts.append(fact);
-    }
-    inner.append(facts);
-    const details = [
-      obs.referenceKind === "CATALOG"
-        ? "Catálogo"
-        : obs.referenceKind === "USER_PRODUCT"
-          ? "Produto do vendedor"
-          : "Anúncio",
-      obs.fulfillment ? "Full na página" : null,
-      obs.rating == null
-        ? null
-        : "★ " +
-          number(obs.rating) +
-          (obs.reviews == null
-            ? ""
-            : " · " + number(obs.reviews) + " avaliações"),
-    ].filter(Boolean);
-    inner.append(el("div", details.join(" · "), "subline"));
-    const actions = el("div", null, "actions");
-    actions.append(
-      button(
-        "Calcular lucro",
-        () => openPanel("calculator", obs.id),
-        "primary",
-      ),
-      button("Comparar preços", () => openPanel("market", obs.id)),
-    );
+    const largeAnchor = S.contextualProductAnalysisAnchor();
+    if (largeAnchor) {
+      const full = (productDetailSurface = surface("product-analysis")),
+        fullCard = el("section", null, "surface"),
+        fullBody = el("div", null, "inner");
+      full.host.style.setProperty(
+        "max-width",
+        "min(1180px, calc(100% - 32px))",
+        "important",
+      );
+      full.host.style.setProperty("margin", "16px auto", "important");
+      fullCard.style.containerType = "inline-size";
+      const fullHead = el("div", null, "head");
+      fullHead.append(brand(), el("span", "Análise do produto", "tag"));
+      fullBody.append(fullHead);
+      full.analysisView = A.mount(fullBody, productAnalysis, {
+        connect: () => openPanel("connection"),
+        advanced: () => openPanel("calculator", obs.id),
+      });
+      fullCard.append(fullBody);
+      full.root.append(fullCard);
+      largeAnchor.element.insertAdjacentElement(
+        largeAnchor.position,
+        full.host,
+      );
+      view.analysisView = A.mountSummary(inner, productAnalysis, {
+        adjust: () => {
+          full.host.scrollIntoView({ behavior: "smooth", block: "start" });
+        },
+      });
+    } else
+      view.analysisView = A.mount(inner, productAnalysis, {
+        connect: () => openPanel("connection"),
+        advanced: () => openPanel("calculator", obs.id),
+      });
     const watch = button(
       watches.has(obs.id) ? "Monitorado ✓" : "Monitorar preço",
       () => void monitor(obs, view),
       "watch",
     );
     watch.disabled = watches.has(obs.id);
-    const secondary = el("div", null, "actions");
-    secondary.style.marginTop = "7px";
-    secondary.append(
-      watch,
-      button("Ver análise ↗", () => openPanel("summary", obs.id)),
-    );
+    const actions = el("div", null, "actions");
+    actions.style.marginTop = "10px";
+    actions.append(watch);
     const status = el("p", watches.get(obs.id) || "", "status");
     status.setAttribute("role", "status");
-    inner.append(actions, secondary, status);
+    inner.append(actions, status);
     const foot = el("div", null, "foot");
     foot.append(
-      el("p", "Leitura pública · vendas sem período informado."),
+      el("p", "Leitura pública e dados autorizados da sua conta."),
       button("Ocultar", () => void setEnabled(false), "link"),
     );
     card.append(inner, foot);
     view.root.append(card);
     anchor.element.insertAdjacentElement(anchor.position, view.host);
+    if (
+      productAnalysis.state.obs?.id === obs.id &&
+      productAnalysis.state.obs?.price === obs.price
+    ) {
+      view.analysisView.render(productAnalysis.state);
+      productDetailSurface?.analysisView?.render(productAnalysis.state);
+    }
   }
   function renderSearch(value) {
     const anchor = S.contextualSearchAnchor();
@@ -433,6 +460,9 @@
     );
     for (const id of selected) if (!ids.has(id)) selected.delete(id);
     renderProduct(value.page === "product" ? value.items[0] : null);
+    if (enabled && value.page === "product" && productSurface)
+      void productAnalysis.load(value.items[0]);
+    else productAnalysis.clear();
     renderSearch(value);
     renderCards(value);
     visibilityButton.textContent = enabled
@@ -534,7 +564,7 @@
   menu.append(
     links,
     visibilityButton,
-    el("div", "Mercado Radar · 0.8.0", "version"),
+    el("div", "Mercado Radar · 0.9.0", "version"),
   );
   const launcherNotice = el("div", "", "notice");
   launcherNotice.hidden = true;
@@ -588,8 +618,23 @@
     if (!document.hidden) void publish(true);
   });
   chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "sync" && changes.radarPreferencesWorkspace) {
+      productAnalysis.clear();
+      refreshUi(context());
+    } else if (
+      area === "sync" &&
+      [
+        "radarTaxPercent",
+        "radarOperatingCost",
+        "radarTargetMarginPercent",
+        "radarTargetRoiPercent",
+      ].some((k) => changes[k]) &&
+      productAnalysis.state.auth?.authenticated
+    )
+      productAnalysis.refresh();
     if (area === "local" && changes.radarAccessToken) {
       sessionRevision++;
+      productAnalysis.clear();
       watches.clear();
       productKey = "";
       refreshUi(context());

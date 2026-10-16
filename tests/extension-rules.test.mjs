@@ -11,6 +11,9 @@ const sandbox = {
     href: "https://www.mercadolivre.com.br/produto/up/MLBU5074600649",
   },
   URL,
+  URLSearchParams,
+  setTimeout,
+  clearTimeout,
 };
 vm.createContext(sandbox);
 vm.runInContext(
@@ -26,6 +29,123 @@ vm.runInContext(
 );
 const S = sandbox.RadarSelectors,
   M = sandbox.RadarPanelModel;
+vm.runInContext(
+  await readFile(
+    new URL("../extension/product-analysis.js", import.meta.url),
+    "utf8",
+  ),
+  sandbox,
+);
+const A = sandbox.RadarProductAnalysis;
+const measured = (rate, method = "HISTORICO", isOwn = false) => ({
+  isOwn,
+  estimate: { method, windowDays: 30, salesPerDay: { value: rate } },
+});
+
+test("demanda usa janela medida; faixas alta, média e baixa são explícitas", () => {
+  for (const [rate, expected] of [
+    [0, "BAIXA"],
+    [0.69, "BAIXA"],
+    [0.7, "MEDIA"],
+    [3, "ALTA"],
+    [10, "EXCELENTE"],
+  ])
+    assert.equal(A.demand(measured(rate)).level, expected);
+  assert.equal(A.demand(measured(5, "OFICIAL", true)).level, "ALTA");
+  assert.equal(A.demand(measured(5, "OFICIAL", false)).level, null);
+  assert.equal(A.demand(measured(5, "PAGINA")).level, null);
+  assert.equal(A.demand(null).level, null);
+  const lifetime = measured(5, "VIDA");
+  lifetime.estimate.ageDays = { value: 200, source: "API" };
+  lifetime.estimate.sold = { exact: true };
+  assert.match(A.demand(lifetime).title, /histórica/);
+});
+test("oportunidade separa alta demanda, margem ruim e dados insuficientes", () => {
+  const good = { profit: 20, marginPercent: 25, verdict: "GOOD" };
+  assert.equal(A.opportunity(measured(4), good).title, "Boa oportunidade");
+  assert.equal(
+    A.opportunity(measured(4), { ...good, profit: -1, verdict: "BAD" }).title,
+    "Ruim para este custo",
+  );
+  assert.match(A.opportunity(measured(0.1), good).title, /pouco giro/);
+  assert.match(A.opportunity(null, good).title, /demanda a confirmar/);
+  assert.notEqual(A.opportunity(measured(4), null).title, "Boa oportunidade");
+});
+test("repasse não esconde frete ausente nem chama saldo antes da compra de lucro", () => {
+  const quote = {
+    fees: { commissionAmount: 12, fixedFee: 4, shippingCost: null },
+    shippingKnown: false,
+  };
+  assert.equal(A.receipt(quote, 100).value, 84);
+  assert.match(A.receipt(quote, 100).label, /antes do frete/);
+  quote.shippingKnown = true;
+  quote.fees.shippingCost = 0;
+  assert.equal(A.receipt(quote, 100).shippingKnown, true);
+  quote.fees.shippingCost = 10;
+  assert.equal(A.receipt(quote, 100).value, 74);
+  assert.equal(A.receipt({}, 100), null);
+});
+test("resposta de produto anterior não sobrescreve anúncio novo nem aplica custo de terceiro", async () => {
+  let finishOld, began;
+  const started = new Promise((resolve) => {
+    began = resolve;
+  });
+  const ctrl = A.createController({
+    changed() {},
+    preferences: async () => ({ radarTaxPercent: 0 }),
+    send: async (m) => {
+      if (m.type === "RADAR_AUTH_STATUS")
+        return { authenticated: true, extensionProtocol: 2 };
+      if (m.path.startsWith("/api/extension/item?")) {
+        if (m.path.includes("MLBU11111111")) {
+          began();
+          return new Promise((resolve) => {
+            finishOld = resolve;
+          });
+        }
+        return {
+          ok: true,
+          body: {
+            item: { id: "MLB22222222", isOwn: false },
+            savedCost: { supplierPrice: 999, discountPercent: 0 },
+          },
+        };
+      }
+      return {
+        ok: true,
+        body: {
+          items: [],
+          competitors: [],
+          fees: {
+            commissionAmount: 1,
+            commissionPercent: 12,
+            fixedFee: 4,
+            shippingCost: null,
+          },
+        },
+      };
+    },
+  });
+  const first = ctrl.load({
+    id: "MLBU11111111",
+    title: "Produto A",
+    price: 10,
+  });
+  await started;
+  await ctrl.load({ id: "MLBU22222222", title: "Produto B", price: 20 });
+  finishOld({
+    ok: true,
+    body: {
+      item: { id: "MLB11111111", isOwn: true },
+      savedCost: { supplierPrice: 5, discountPercent: 0 },
+    },
+  });
+  await first;
+  assert.equal(ctrl.state.obs.id, "MLBU22222222");
+  assert.equal(ctrl.state.item.id, "MLB22222222");
+  assert.equal(ctrl.state.fields.cost, "");
+  ctrl.clear();
+});
 
 test("UP, catálogo e anúncio são referências distintas", () => {
   assert.equal(

@@ -65,10 +65,16 @@ try {
   host.on("pageerror", (error) => errors.push(error.message));
   const contentStub = () => {
     window.__messages = [];
-    window.__hostQa = { auth: true };
+    window.__hostQa = {
+      auth: true,
+      own: false,
+      rate: null,
+      prefs: {},
+      delay: 0,
+    };
     window.chrome = {
       storage: {
-        sync: { get: async () => ({}), set: async () => {} },
+        sync: { get: async () => window.__hostQa.prefs, set: async () => {} },
         onChanged: {
           addListener(fn) {
             window.__hostQa.change = fn;
@@ -83,13 +89,106 @@ try {
         },
         sendMessage: async (message) => {
           window.__messages.push(message);
-          if (message.type === "RADAR_FETCH")
-            return window.__hostQa.auth
-              ? {
-                  ok: true,
-                  body: { note: "Salvo. Atualiza por novas leituras." },
-                }
-              : { ok: false, status: 401 };
+          const qa = window.__hostQa;
+          if (message.type === "RADAR_AUTH_STATUS")
+            return { authenticated: qa.auth, extensionProtocol: 2 };
+          if (message.type === "RADAR_FETCH") {
+            if (!qa.auth) return { ok: false, status: 401 };
+            const ok = (body) => ({ ok: true, status: 200, body });
+            if (message.path === "/api/extension/watchlist")
+              return ok({ note: "Salvo. Atualiza por novas leituras." });
+            if (message.path === "/api/extension/observations")
+              return ok({
+                items: message.body.items.map((item) => ({
+                  id: item.id,
+                  isOwn: qa.own,
+                  estimate: {
+                    method:
+                      qa.rate == null
+                        ? "PAGINA"
+                        : qa.own
+                          ? "OFICIAL"
+                          : "HISTORICO",
+                    windowDays: qa.rate == null ? null : 30,
+                    salesPerDay: { value: qa.rate },
+                    sold: { exact: false },
+                  },
+                })),
+              });
+            if (message.path.startsWith("/api/extension/item?"))
+              return ok({
+                item: qa.own
+                  ? {
+                      id: "MLB999000001",
+                      isOwn: true,
+                      listingTypeId: "gold_special",
+                      logisticType: "drop_off",
+                      categoryId: "MLB1234",
+                    }
+                  : null,
+                savedCost: qa.own
+                  ? { supplierPrice: 5, discountPercent: 0, source: "LISTING" }
+                  : null,
+              });
+            if (message.path.startsWith("/api/extension/market?"))
+              return ok({
+                competitors: [20, 30, 40].map((price, i) => ({
+                  id: "MLBU700000000" + i,
+                  title: "Fio encerado preto 165m 2mm",
+                  price,
+                })),
+              });
+            if (message.path === "/api/extension/profitability") {
+              if (qa.delay)
+                await new Promise((resolve) => setTimeout(resolve, qa.delay));
+              const p = message.body,
+                rate = p.listingType === "PREMIUM" ? 16.5 : 12;
+              const round = (v) => Math.round((v + Number.EPSILON) * 100) / 100;
+              const shippingKnown =
+                qa.own && p.listingType === "CLASSIC" && p.shippingCost == null;
+              const shipping = p.shippingCost ?? (shippingKnown ? 0 : null);
+              const fees = {
+                commissionPercent: rate,
+                commissionAmount: round((p.salePrice * rate) / 100),
+                fixedFee: 4,
+                shippingCost: shipping,
+                taxPercent: p.taxPercent ?? null,
+              };
+              let result = null;
+              if (!p.quoteOnly && shipping != null && p.taxPercent != null) {
+                const profit = round(
+                  p.salePrice -
+                    fees.commissionAmount -
+                    4 -
+                    shipping -
+                    p.supplierPrice -
+                    round((p.salePrice * p.taxPercent) / 100) -
+                    p.operatingCost,
+                );
+                const marginPercent = (profit / p.salePrice) * 100;
+                result = {
+                  profit,
+                  marginPercent,
+                  roiPercent:
+                    (profit / (p.supplierPrice + p.operatingCost)) * 100,
+                  verdict:
+                    profit <= 0 || marginPercent < 10
+                      ? "BAD"
+                      : marginPercent < 20
+                        ? "TIGHT"
+                        : "GOOD",
+                };
+              }
+              return ok({
+                result,
+                fees,
+                shippingKnown,
+                feeSource: "MERCADO_LIVRE_API",
+                categorySource: qa.own ? "API" : "PREDICTED",
+              });
+            }
+            throw new Error("Unexpected content test path: " + message.path);
+          }
           return { ok: true };
         },
       },
@@ -119,6 +218,9 @@ try {
   await host.addScriptTag({
     path: new URL("panel-model.js", extension).pathname,
   });
+  await host.addScriptTag({
+    path: new URL("product-analysis.js", extension).pathname,
+  });
   await host.addScriptTag({ path: new URL("content.js", extension).pathname });
   await host.locator('[data-radar-owned="product"]').waitFor();
   await check(
@@ -145,7 +247,7 @@ try {
       assert.equal(observation.listingTypeHint, null);
       assert.equal(observation.categoryId, null);
       assert.equal(observation.soldLower, 25);
-      assert.equal(await host.locator("[data-radar-owned]").count(), 2);
+      assert.equal(await host.locator("[data-radar-owned]").count(), 3);
       await host.locator("#native-buy").click();
       assert.equal(
         await host.locator("#native-buy").getAttribute("data-clicked"),
@@ -164,7 +266,7 @@ try {
       await host.waitForFunction(() =>
         window.__messages.some((m) => m.context?.items?.[0]?.price === 19.9),
       );
-      assert.equal(await host.locator("[data-radar-owned]").count(), 2);
+      assert.equal(await host.locator("[data-radar-owned]").count(), 3);
       const own = await host
         .locator('[data-radar-owned="launcher"]')
         .evaluate((el) =>
@@ -176,11 +278,133 @@ try {
     },
   );
   await check(
+    "product analysis, both commissions and candidate prices load without clicks",
+    async () => {
+      const product = host.locator('[data-radar-owned="product-analysis"]');
+      await product
+        .locator(".auto-types button")
+        .first()
+        .filter({ hasText: "12%" })
+        .waitFor();
+      await product
+        .locator(".auto-types button")
+        .last()
+        .filter({ hasText: "16,5%" })
+        .waitFor();
+      await product
+        .locator(".auto-receipt > strong")
+        .filter({ hasText: "13,51" })
+        .waitFor();
+      assert.match(
+        await product.locator(".auto-badge").innerText(),
+        /a confirmar/,
+      );
+      assert.match(
+        await product.locator(".auto-grid").first().innerText(),
+        /-33,67%/,
+      );
+      const calls = await host.evaluate(() => __messages);
+      assert.equal(
+        calls.filter((m) => m.type === "RADAR_OPEN_PANEL").length,
+        0,
+      );
+      assert.ok(calls.some((m) => m.path === "/api/extension/observations"));
+      const quotes = calls.filter(
+        (m) => m.path === "/api/extension/profitability",
+      );
+      assert.ok(
+        quotes.some(
+          (m) => m.body.quoteOnly && m.body.listingType === "CLASSIC",
+        ),
+      );
+      assert.ok(
+        quotes.some(
+          (m) => m.body.quoteOnly && m.body.listingType === "PREMIUM",
+        ),
+      );
+      const countBefore = await host.evaluate(
+        () => __messages.filter((m) => m.type === "RADAR_FETCH").length,
+      );
+      await host.waitForTimeout(650);
+      assert.equal(
+        await host.evaluate(
+          () => __messages.filter((m) => m.type === "RADAR_FETCH").length,
+        ),
+        countBefore,
+        "owned UI changes must not cause request loops",
+      );
+    },
+  );
+  await check(
+    "saved own costs show opportunity and profit automatically; edits can reveal a loss",
+    async () => {
+      const product = host.locator('[data-radar-owned="product-analysis"]');
+      await host.evaluate(() => {
+        __hostQa.own = true;
+        __hostQa.rate = 4;
+        __hostQa.prefs = { radarTaxPercent: 0 };
+        __hostQa.change(
+          { radarAccessToken: { oldValue: "a", newValue: "b" } },
+          "local",
+        );
+      });
+      await product
+        .locator(".auto-result > strong")
+        .filter({ hasText: "8,51" })
+        .waitFor();
+      assert.match(
+        await product.locator(".auto-verdict strong").innerText(),
+        /Boa oportunidade/,
+      );
+      assert.equal(
+        await product.locator(".auto-badge").innerText(),
+        "Alta demanda",
+      );
+      assert.equal(await product.locator("#radar-auto-cost").inputValue(), "5");
+      await product.locator(".auto-types button").last().click();
+      await product.locator("#radar-auto-shipping").fill("0");
+      await product
+        .locator(".auto-result > strong")
+        .filter({ hasText: "7,62" })
+        .waitFor();
+      await product.locator("#radar-auto-cost").fill("18");
+      await product
+        .locator(".auto-result > strong")
+        .filter({ hasText: "5,38" })
+        .waitFor();
+      assert.equal(
+        await product.locator(".auto-verdict strong").innerText(),
+        "Ruim para este custo",
+      );
+      assert.equal(
+        await host
+          .locator('[data-radar-owned="product"] .auto-summary h2')
+          .innerText(),
+        "Ruim para este custo",
+      );
+      for (const width of [390, 680, 1366]) {
+        await host.setViewportSize({ width, height: 900 });
+        assert.equal(
+          await product
+            .locator(".surface")
+            .evaluate((el) => el.scrollWidth <= el.clientWidth),
+          true,
+        );
+      }
+      if (artifacts)
+        await host.screenshot({
+          path: artifacts + "/automatic-product.png",
+          fullPage: true,
+        });
+    },
+  );
+  await check(
     "product shortcuts, direct monitoring, menu and hide/restore",
     async () => {
       const product = host.locator('[data-radar-owned="product"]');
-      await product
-        .getByRole("button", { name: "Calcular lucro", exact: true })
+      await host
+        .locator('[data-radar-owned="product-analysis"]')
+        .getByRole("button", { name: "Calculadora completa ↗", exact: true })
         .click();
       assert.equal(
         await host.evaluate(
@@ -297,7 +521,12 @@ try {
       })),
     );
   const searchBefore = await cardGeometry();
-  for (const name of ["selectors.js", "panel-model.js", "content.js"])
+  for (const name of [
+    "selectors.js",
+    "panel-model.js",
+    "product-analysis.js",
+    "content.js",
+  ])
     await searchPage.addScriptTag({ path: new URL(name, extension).pathname });
   await searchPage.locator('[data-radar-owned="search"]').waitFor();
   await check(
@@ -897,6 +1126,24 @@ try {
   console.log(`EXTENSION_BROWSER_OK ${checks} checks; no browser errors`);
 } catch (error) {
   for (const p of browser.contexts().flatMap((c) => c.pages())) {
+    if (await p.locator('[data-radar-owned="product"]').count()) {
+      console.error(
+        "PRODUCT_DEBUG",
+        await p
+          .locator('[data-radar-owned="product"] .auto-analysis')
+          .innerText(),
+        await p.evaluate(() =>
+          __messages
+            .filter((m) => m.path === "/api/extension/profitability")
+            .slice(-3),
+        ),
+      );
+      if (artifacts)
+        await p.screenshot({
+          path: artifacts + "/automatic-failure.png",
+          fullPage: true,
+        });
+    }
     if (p.url().includes("sidepanel")) {
       console.error(
         "PANEL_DEBUG",

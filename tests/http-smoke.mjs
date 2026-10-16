@@ -519,6 +519,66 @@ try {
     permalink: "https://www.mercadolivre.com.br/fio/up/MLBU5074600649",
   };
   await check(
+    "automatic analysis reuses only exact own listing or workspace SKU costs",
+    async () => {
+      const path = "/api/extension/item?id=MLB999000001&kind=ITEM";
+      await db.query(
+        'UPDATE "MercadoLivreProduct" SET "discountPercent"=10 WHERE "mlItemId"=$1',
+        ["MLB999000001"],
+      );
+      const own = await req(path, "", "GET", undefined, extensionHeaders());
+      assert.equal(own.status, 200, own.text);
+      assert.equal(own.json.item.isOwn, true);
+      assert.equal(own.json.savedCost.supplierPrice, 40);
+      assert.equal(own.json.savedCost.discountPercent, 10);
+      assert.equal(own.json.savedCost.source, "LISTING");
+      await db.query(
+        'UPDATE "MercadoLivreProduct" SET "supplierPrice"=NULL, sku=$2 WHERE "mlItemId"=$1',
+        ["MLB999000001", "SAME-SKU"],
+      );
+      await db.query(
+        'UPDATE "Product" SET "supplierPrice"=999 WHERE "workspaceId"=$1',
+        [userB.workspaceId],
+      );
+      const sku = await req(path, "", "GET", undefined, extensionHeaders());
+      assert.equal(sku.json.savedCost.supplierPrice, 40);
+      assert.equal(sku.json.savedCost.source, "SKU");
+      const codeB = prefix + "cost-isolation-code";
+      await insert("RadarExtensionAuthCode", {
+        id: prefix + "authcodeB",
+        codeHash: createHash("sha256").update(codeB).digest("base64url"),
+        mercadoLivreAccountId: accounts[1],
+        codeChallenge: challenge,
+        redirectUri:
+          "https://" + "a".repeat(32) + ".chromiumapp.org/radar-auth",
+        deviceId: "cost-isolation-device-b",
+        expiresAt: future,
+      });
+      const tokenB = await req("/api/extension/auth/token", "", "POST", {
+        grant_type: "authorization_code",
+        code: codeB,
+        code_verifier: verifier,
+        redirect_uri:
+          "https://" + "a".repeat(32) + ".chromiumapp.org/radar-auth",
+      });
+      assert.equal(tokenB.status, 200, tokenB.text);
+      const other = await req(path, "", "GET", undefined, {
+        authorization: "Bearer " + tokenB.json.access_token,
+      });
+      assert.equal(other.status, 200, other.text);
+      assert.equal(other.json.item.isOwn, false);
+      assert.equal(other.json.savedCost, null);
+      await db.query(
+        'UPDATE "MercadoLivreProduct" SET "supplierPrice"=40, "discountPercent"=0, sku=NULL WHERE "mlItemId"=$1',
+        ["MLB999000001"],
+      );
+      await db.query(
+        'UPDATE "Product" SET "supplierPrice"=40 WHERE "workspaceId"=$1',
+        [userB.workspaceId],
+      );
+    },
+  );
+  await check(
     "restricted User Product keeps a useful page-only response",
     async () => {
       const r = await req(

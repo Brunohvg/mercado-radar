@@ -8,6 +8,7 @@ import {
   MlApiError,
 } from "@/lib/mercado-livre";
 import { referenceIdSchema } from "@/lib/extension-observation";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 const schema = z.object({
@@ -50,6 +51,7 @@ export async function GET(request: Request) {
     NextResponse.json({
       referenceId: id,
       item: null,
+      savedCost: null,
       availability: "PAGE_ONLY",
       restricted: upstreamStatus === 403,
       upstreamStatus,
@@ -94,11 +96,51 @@ export async function GET(request: Request) {
         403,
       );
     const isOwn = item.sellerId === session.account.mercadoLivreUserId;
+    let savedCost = null;
+    if (isOwn) {
+      const listing = await prisma.mercadoLivreProduct.findFirst({
+        where: {
+          mlItemId: item.id,
+          sellerUserId: session.account.mercadoLivreUserId,
+        },
+        select: {
+          supplierPrice: true,
+          discountPercent: true,
+          sku: true,
+          updatedAt: true,
+        },
+      });
+      const sku = listing?.sku || item.sellerSku;
+      const product =
+        listing?.supplierPrice == null && sku
+          ? await prisma.product.findFirst({
+              where: {
+                workspaceId: session.account.workspaceId,
+                sku,
+                active: true,
+              },
+              select: {
+                supplierPrice: true,
+                discountPercent: true,
+                updatedAt: true,
+              },
+            })
+          : null;
+      const cost = listing?.supplierPrice != null ? listing : product;
+      if (cost && cost.supplierPrice != null)
+        savedCost = {
+          supplierPrice: Number(cost.supplierPrice),
+          discountPercent: Number(cost.discountPercent),
+          source: listing?.supplierPrice != null ? "LISTING" : "SKU",
+          updatedAt: cost.updatedAt.toISOString(),
+        };
+    }
     return NextResponse.json({
       referenceId: id,
       resolvedItemId: item.id,
       availability: "API",
       source: "MERCADO_LIVRE_API",
+      savedCost,
       item: {
         id: item.id,
         title: item.title,

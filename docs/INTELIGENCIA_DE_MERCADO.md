@@ -1,68 +1,39 @@
-# Inteligência de mercado (v4)
+# Inteligência de mercado: evidência e limites
 
-Como o Mercado Radar mostra **vendas/dia, faturamento/dia e visitas/dia de anúncios de qualquer vendedor**
-sem acesso privilegiado à API do Mercado Livre.
+Atualizado em 16/10/2026 para a extensão 0.7.0.
 
-## O que a API permite (out/2026)
+O Radar mantém leituras datadas de páginas abertas pelo usuário e separa essas observações de pedidos e métricas autorizados da própria conta.
 
-| Recurso | Anúncio seu | Anúncio de terceiro |
-|---|---|---|
-| `/items/bulk?ids=` (substitui `/items?ids=`, prazo 25/10/2026) | completo | `sold_quantity`, `available_quantity` e datas ocultos |
-| `/visits/items`, `/items/{id}/visits/time_window` | sim | 403 |
-| `/orders/search` | sim | não |
-| `/products/{id}` (`buy_box_winner`) | sim | sim |
-| `/sites/MLB/search` | bloqueado para muitas apps desde 2025 | idem |
+| Dado                       | Fonte utilizável                                    | Apresentação                                                 |
+| -------------------------- | --------------------------------------------------- | ------------------------------------------------------------ |
+| Preço atual público        | DOM do anúncio/card aberto                          | Valor lido e horário                                         |
+| `+N vendidos`              | Texto do ML                                         | Acumulado com limite inferior, sem período ou teto inventado |
+| Nota e avaliações          | Página do produto                                   | Não são vendas do vendedor nem visitas                       |
+| Unidades em período        | Pedidos sincronizados da própria conta              | Exige janela recente e completa                              |
+| Variação de contador exato | Duas leituras datadas do mesmo contador             | Média observada no intervalo, não previsão                   |
+| Idade                      | Data conhecida da API                               | Sem inferência por número MLB/MLBU                           |
+| Visitas                    | Recurso oficial autorizado e período correspondente | Sem derivação por uma taxa de conversão presumida            |
+| Faixa de preço             | Três ou mais anúncios equivalentes selecionados     | Amostra datada, com origem e revisão de kit/medida/condição  |
 
-Conclusão: números exatos de terceiros não existem para um app comum. Ferramentas do mercado
-(Cargoos, Real Trends, Hunter etc.) mostram **estimativas**. O Radar faz o mesmo, mas diz o método,
-a confiança e o intervalo de cada número.
+Sem evidência de ritmo, score e demanda ficam ausentes. Não há “demanda baixa” só porque um produto mostra poucos vendidos. O cálculo `vendidos × preço atual` também não comprova faturamento histórico: preços e condições podem ter mudado.
 
-## Arquitetura
+A versão anterior tentava inferir vendas por avaliações, visitas por conversão calibrada e idade por sequência numérica. Essas heurísticas foram retiradas do fluxo ativo por não sustentarem a precisão que a interface sugeria.
 
-```
-página do ML aberta pelo usuário
-  └─ extensão (selectors.js) lê: preço, faixa de vendidos, avaliações, nota, frete, Full, "mais vendido"
-       └─ POST /api/extension/observations
-            ├─ grava MarketItem + MarketItemSnapshot (1 leitura a cada 6 h por anúncio, ou quando algo muda)
-            └─ devolve estimativas (lib/market-intel.ts → lib/market-estimates.ts)
-cron /api/cron/radar-monitoring
-  └─ sincroniza seus anúncios → leitura OWN_API (vendidos exatos + visitas) → calibra o modelo
-painel /mercado
-  └─ GET /api/market/items e /api/market/items/{id}
-```
+## Persistência e isolamento
 
-A extensão não navega sozinha, não abre páginas, não usa a sessão do Mercado Livre e não chama
-endpoints internos: só lê a página que você já abriu.
+- `MarketItem` e snapshots pertencem ao workspace.
+- MLB de anúncio, MLBU de User Product e catálogo são identificados separadamente no adaptador da página. IDs de recomendações não fornecem a identidade da página aberta.
+- O painel envia somente os cards/anúncio da aba ativa, quando está aberto e autenticado. Não há robô navegando por páginas fechadas.
+- Monitoramento `PAGE` acompanha novas visitas com o painel aberto. Monitoramento `API` depende de recursos autorizados e do agendador.
+- Contadores desconhecidos e limites inferiores não são usados como deltas exatos de vendas.
 
-## Métodos de estimativa (lib/market-estimates.ts)
+## Arquivos
 
-| Método | Quando | Como | Confiança |
-|---|---|---|---|
-| **Oficial** | anúncio seu, pedidos sincronizados há ≤ 3 dias | unidades vendidas em 30 dias; visitas pela diferença das leituras oficiais | alta |
-| **Histórico** | ≥ 2 leituras com ≥ 2 dias de distância | Δavaliações/Δdias × (vendidos ÷ avaliações do próprio anúncio), limitado pela mudança de faixa de vendidos | média (≥ 3 avaliações novas em ≥ 5 dias) ou baixa |
-| **Estimativa** | 1 leitura + idade conhecida | vendidos acumulados (faixa) ÷ idade | baixa |
-| **Página** | 1 leitura, sem idade | só o acumulado | sem medição |
+- `extension/selectors.js`: leitura de DOM.
+- `extension/content.js`: contexto por aba e lançador isolado.
+- `extension/sidepanel.js`: leitura, comparação e simulação.
+- `lib/market-estimates.ts`: regras de evidência temporal.
+- `lib/market-intel.ts`: persistência e consulta por workspace.
+- `lib/page-watchlist.ts`: acompanhamento por leitura.
 
-- **Faixa de vendidos**: "+1000 vendidos" vira o intervalo [1000, 2000) pela escada de faixas do ML.
-- **Idade do anúncio**: data da API quando existe; senão, interpolada pelo número do anúncio (IDs MLB
-  são sequenciais) usando âncoras de anúncios com data conhecida (os seus, por exemplo).
-- **Visitas** = vendas ÷ conversão. A conversão é a mediana dos seus anúncios (vendidos ÷ visitas
-  oficiais); sem dados seus, usa a faixa típica 1,2%–5% e avisa.
-- **Catálogo**: em anúncios de catálogo as avaliações são do produto (todos os vendedores). A razão
-  vendidos ÷ avaliações do próprio anúncio converte o ritmo do produto na fatia deste anúncio.
-
-Quanto mais você navega, melhor fica: cada busca aberta grava leituras de até 60 anúncios.
-
-## Banco
-
-Migração `prisma/migrations/202610071900_market_intelligence` cria `MarketItem` e
-`MarketItemSnapshot`. É aplicada sozinha no deploy (`prisma migrate deploy` no start do container).
-Retenção: o cron apaga leituras com mais de 1 ano.
-
-## Limitações conhecidas
-
-- Tudo de terceiros é estimativa; o intervalo mostrado é o que importa.
-- O parser do DOM depende do layout do ML. Toda leitura fica em `extension/selectors.js`, com
-  JSON-LD e texto como reserva, e o aviso de layout alterado continua ativo.
-- Frete de anúncio de terceiro não entra na calculadora (depende de peso e reputação de quem vende);
-  a tela avisa isso.
+Veja [mapa de APIs e permissões](MERCADO_LIVRE_API_MAP.md) e [instalação e QA](../extension/README.md).

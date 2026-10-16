@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - 'feature/**'
+      - "feature/**"
   pull_request:
     branches:
       - main
-      - 'feature/**'
+      - "feature/**"
 
 jobs:
   validate:
@@ -30,7 +30,7 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://radar_test:radar_test@127.0.0.1:5432/radar_test?schema=public
-      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_TELEMETRY_DISABLED: "1"
 
     steps:
       - name: Checkout
@@ -54,7 +54,16 @@ jobs:
         run: npm test
 
       - name: Extension syntax
-        run: node --check extension/background.js && node --check extension/content.js && node --check extension/sidepanel.js
+        run: node --check extension/background.js && node --check extension/content.js && node --check extension/sidepanel.js && node --check extension/selectors.js && node --check extension/panel-model.js
+
+      - name: Chromium for extension regression
+        run: npx playwright install --with-deps chromium
+
+      - name: Extension layout and interaction regression
+        run: npm run test:extension
+
+      - name: Production extension package
+        run: node scripts/build-extension.mjs
 
       - name: Build
         run: npm run build
@@ -67,9 +76,9 @@ jobs:
       - name: Migration upgrade with existing data
         run: node tests/migration-upgrade.mjs
         env:
-          RADAR_TEST_DATABASE: '1'
+          RADAR_TEST_DATABASE: "1"
 
       - name: HTTP isolation and authentication smoke tests
         run: npm run test:integration
         env:
-          RADAR_TEST_DATABASE: '1'
+          RADAR_TEST_DATABASE: "1"

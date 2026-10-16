@@ -3,6 +3,7 @@ if (process.env.RADAR_TEST_DATABASE !== "1")
   throw new Error("ML fixture loader requires an isolated test database.");
 const original = globalThis.fetch;
 const prefix = process.env.RADAR_TEST_FIXTURE_PREFIX;
+let refreshCount = 0;
 globalThis.fetch = async (input, init) => {
   const url = new URL(
     typeof input === "string" ? input : (input.url ?? String(input)),
@@ -37,6 +38,67 @@ globalThis.fetch = async (input, init) => {
     ],
     ...extra,
   });
+  const denied = () =>
+    new Response(
+      JSON.stringify({ error: "forbidden", message: "fixture restricted" }),
+      { status: 403, headers: { "content-type": "application/json" } },
+    );
+  if (url.pathname === "/oauth/token") {
+    refreshCount++;
+    return json({
+      access_token: prefix + "ml-refresh-" + refreshCount,
+      refresh_token: prefix + "ml-refresh-token-" + refreshCount,
+      expires_in: 21600,
+      scope: "read offline_access",
+    });
+  }
+  if (url.pathname === "/users/me")
+    return json({ id: seller, nickname: "Teste A" });
+  if (url.pathname === `/users/${seller}/items/search`)
+    return json({ results: [item] });
+  if (url.pathname === "/items" || url.pathname === "/items/bulk")
+    return json(
+      (url.searchParams.get("ids") || "")
+        .split(",")
+        .map((id) =>
+          id === item
+            ? {
+                code: 200,
+                body: {
+                  id,
+                  title: "Kit ilhós",
+                  price: 100,
+                  category_id: "MLB1234",
+                  seller_id: seller,
+                  listing_type_id: "gold_special",
+                  sold_quantity: 205,
+                  available_quantity: 20,
+                  shipping: { free_shipping: false, logistic_type: "drop_off" },
+                },
+              }
+            : { code: 403, body: { id } },
+        ),
+    );
+  if (url.pathname === "/sites/MLB/listing_prices") {
+    const rate =
+      url.searchParams.get("listing_type_id") === "gold_pro" ? 0.165 : 0.12;
+    return json({
+      sale_fee_amount:
+        Math.round((Number(url.searchParams.get("price")) * rate + 4) * 100) /
+        100,
+      sale_fee_details: { fixed_fee: 4, percentage_fee: rate * 100 },
+    });
+  }
+  if (url.pathname === "/sites/MLB/domain_discovery/search")
+    return json([{ category_id: "MLB1234", category_name: "Fios" }]);
+  if (
+    url.pathname.startsWith("/user-products/") ||
+    url.pathname.startsWith("/products") ||
+    url.pathname.startsWith("/trends/") ||
+    url.pathname.startsWith("/advertising/") ||
+    url.pathname.includes("items_visits")
+  )
+    return denied();
   if (url.pathname === "/orders/search")
     return json({
       paging: { total: 4 },

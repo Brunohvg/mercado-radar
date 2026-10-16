@@ -10,14 +10,14 @@ Este trabalho prepara um piloto com acessos individuais. Não representa lançam
 
 Páginas oficiais consultadas em 15/10/2026:
 
-| Referência | Capacidade divulgada | Decisão no Radar |
-| --- | --- | --- |
-| [Cargoos](https://cargoos.com.br/) e [calculadora](https://cargoos.com.br/calculadora/mercado-livre) | Extensão, margem, concorrência, EAN e monitoramento | Manter análise na página e melhorar clareza de custos, origem e decisão |
-| [Real Trends](https://www.real-trends.com/br/Ferramentas) | Concorrência, gestão, preços e múltiplas contas | Priorizar recomendação financeira revisável; sem alteração automática de anúncio |
-| [Nubimetrics](https://www.nubimetrics.com/br/product/mercado) | Oferta, demanda, categorias, tendências e sazonalidade | Não confundir busca ou volume acumulado com venda futura garantida |
-| [Central Real Trends](https://ajuda.real-trends.com/pt-BR/articles/2905851-quais-atividades-dos-meus-concorrentes-posso-ver) | Dados de concorrentes podem ser aproximados | Preservar indicação de estimativa e qualidade da evidência |
-| [API de custos](https://developers.mercadolivre.com.br/pt_br/comissao-por-vender) | Tarifas dependem do contexto da venda | Cotar novamente quando preço ou logística mudarem |
-| [API de envios](https://developers.mercadolivre.com.br/pt_br/registre-o-seu-aplicativo/gerenciamento-de-envios) | Um envio pode conter vários pedidos | Conferir membros do envio e ratear custo uma única vez |
+| Referência                                                                                                                   | Capacidade divulgada                                   | Decisão no Radar                                                                 |
+| ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| [Cargoos](https://cargoos.com.br/) e [calculadora](https://cargoos.com.br/calculadora/mercado-livre)                         | Extensão, margem, concorrência, EAN e monitoramento    | Manter análise na página e melhorar clareza de custos, origem e decisão          |
+| [Real Trends](https://www.real-trends.com/br/Ferramentas)                                                                    | Concorrência, gestão, preços e múltiplas contas        | Priorizar recomendação financeira revisável; sem alteração automática de anúncio |
+| [Nubimetrics](https://www.nubimetrics.com/br/product/mercado)                                                                | Oferta, demanda, categorias, tendências e sazonalidade | Não confundir busca ou volume acumulado com venda futura garantida               |
+| [Central Real Trends](https://ajuda.real-trends.com/pt-BR/articles/2905851-quais-atividades-dos-meus-concorrentes-posso-ver) | Dados de concorrentes podem ser aproximados            | Preservar indicação de estimativa e qualidade da evidência                       |
+| [API de custos](https://developers.mercadolivre.com.br/pt_br/comissao-por-vender)                                            | Tarifas dependem do contexto da venda                  | Cotar novamente quando preço ou logística mudarem                                |
+| [API de envios](https://developers.mercadolivre.com.br/pt_br/registre-o-seu-aplicativo/gerenciamento-de-envios)              | Um envio pode conter vários pedidos                    | Conferir membros do envio e ratear custo uma única vez                           |
 
 A hipótese comercial do Radar é ajudar o revendedor a comprar, precificar e repor com lucro. Não copiamos código, marca, imagens ou promessas comerciais dos concorrentes. Geolocalização de vendas de terceiros não foi implementada sem uma fonte verificável.
 
@@ -105,3 +105,21 @@ Migration: `202610152100_commercial_workspaces`.
 - [ ] Empacotamento e publicação/revisão da extensão na Chrome Web Store.
 
 Até fechar esses gates, a entrega deve ser chamada de piloto com acessos controlados, não SaaS público pronto.
+
+## Correção da extensão — 16/10/2026
+
+A versão 0.7.0 substitui os cartões/colunas injetados por uma única superfície no painel lateral do Chrome. Não altera os cards, ordenação, estilos ou colunas do Mercado Livre. O site mantém seus botões nativos e a extensão só adiciona um lançador fixo isolado.
+
+Foram corrigidos: leitura de IDs de recomendações como se fossem o anúncio aberto, confusão entre MLB/MLBU/catálogo, modalidade inferida de parcelamento, dependência de API restrita para monitorar, cálculo sem caminho visível para informar frete/tarifas, perda de clique por alteração de altura no blur do formulário, resultado obsoleto após editar entradas e contexto compartilhado entre abas.
+
+Removidos os atalhos estatísticos que inferiam vendas por avaliações, visitas por conversão padrão e idade por número do anúncio. Acumulado × preço atual não é exibido como faturamento histórico. Sem janela/counter exato, score e demanda ficam desconhecidos.
+
+A calculadora aceita tarifa API ou manual explícita, e informa categoria sugerida, origem do frete e limites da simulação. Comparação usa anúncios selecionados de uma amostra datada, com mínimo de três. Monitoramento de página informa que atualiza por novas visitas; snapshots registram origem e se a quantidade é conhecida ou limite inferior.
+
+Nova migration: `202610161300_extension_observation_sources`. Preserva acompanhamentos anteriores como API. Backup e homologação continuam necessários.
+
+O login solicita leitura + offline_access; a renovação ML usa bloqueio de linha no PostgreSQL para serializar réplicas. O diagnóstico por cliente diferencia recursos principais, opcionais e ausência de amostra. O mapa completo de famílias relevantes, permissões, limites e próximos usos está em [MERCADO_LIVRE_API_MAP.md](MERCADO_LIVRE_API_MAP.md).
+
+Validação da revisão: regras de domínio, testes HTTP com API restrita simulada, migrações e regressões no navegador (geometria do site, botão nativo, preços, MLBU, calculadora, comparação e troca de abas). As fixtures são sintéticas; homologação no Mercado Livre real continua pendente. O anúncio das capturas retornou uma página de erro ao ser aberto neste ambiente.
+
+**Atualização tem duas partes:** implantar a branch no backend e atualizar/recarregar a extensão no Chrome. Apenas deploy no Coolify não atualiza uma extensão sem compactação. Recarregar também as abas ML para retirar a UI da versão anterior. Nenhum merge ou deploy de produção foi feito nesta revisão.

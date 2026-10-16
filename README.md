@@ -126,13 +126,11 @@ Metas, imposto, desconto, operação e prazos são configuráveis em **Metas e c
 - [ ] histórico previsto × realizado
 - [ ] lead time de fornecedor e estoque de segurança configurável
 
-
 ## Próximo foco
 
 Validar em produção os cinco fluxos reais: busca/scan, análise, oportunidades, lucro realizado e Product Health. Depois disso, fechar processamento automático de `orders_v2`, previsto × realizado e reposição com lead time.
 
 A camada de IA do MVP terá custo zero: apenas provedor gratuito ou modelo self-hosted, sempre opcional e desacoplado do motor financeiro.
-
 
 ## Documentação de desenvolvimento
 
@@ -158,3 +156,13 @@ npm run build
 ```
 
 Testes de integração exigem banco isolado e `RADAR_TEST_DATABASE=1`; veja `.github/workflows/ci.yml`.
+
+## Extensão 0.7.0 e APIs por cliente
+
+A revisão de 16/10/2026 move as ferramentas para o painel lateral, corrige IDs MLB/MLBU, explicita as fontes e elimina estimativas sem evidência. Monitoramento público funciona por novas leituras; comparação exige amostra revisada; a calculadora permite custos e tarifas manuais identificados.
+
+- [Instalação, atualização e validação da extensão](extension/README.md)
+- [Mapa de APIs, grants, limitações e prioridades de integração](docs/MERCADO_LIVRE_API_MAP.md)
+- [Preparação comercial e homologação](docs/COMMERCIAL_READINESS.md)
+
+Atualize o backend e os arquivos da extensão para a mesma branch. Depois recarregue a extensão e as abas do Mercado Livre.

@@ -1,5 +1,7 @@
 # Mercado Radar — Roadmap da Extensão
 
+> Registro histórico anterior à extensão 0.7.0. Para estado atual, autenticação individual, limites de dados públicos e passos de configuração, consulte [mapa de APIs](MERCADO_LIVRE_API_MAP.md) e [guia da extensão](../extension/README.md). Chave global, cards injetados e inferências de visitas/vendas não fazem parte do fluxo atual.
+
 ## Visão
 
 A extensão é a camada operacional do Mercado Radar dentro do Mercado Livre.
@@ -128,6 +130,7 @@ Objetivo comercial futuro: vender acesso ao Radar como SaaS, com planos e recurs
 ## Fase 8 — Produto comercial
 
 Backend:
+
 - usuários;
 - organizações/workspaces;
 - múltiplas contas ML;
@@ -143,6 +146,7 @@ Backend:
 - revogação remota.
 
 Planos possíveis:
+
 - Free: score e poucas análises/mês;
 - Pro: calculadora, busca enriquecida e monitoramento;
 - Business: múltiplas contas, equipe, Ads e automações.
@@ -190,17 +194,16 @@ Mercado Livre
 
 A extensão é um cliente do produto, não o produto inteiro.
 
-
 ## Auditoria competitiva
 
 A matriz detalhada das capacidades públicas observadas no Cargoos e a evolução equivalente/mais inteligente do Radar está em `docs/CARGOOS_FEATURE_AUDIT.md`.
 
 Regra: replicar capacidades úteis, não código, identidade visual ou ativos de terceiros.
 
-
 ## Progresso adicional — 06/10/2026
 
 ### Dashboard web
+
 - [x] Visual System v3 claro e unificado.
 - [x] Sidebar recolhível com persistência local.
 - [x] Dashboard executivo.
@@ -210,6 +213,7 @@ Regra: replicar capacidades úteis, não código, identidade visual ou ativos de
 - [x] Monitoramento.
 
 ### Extensão
+
 - [x] Instalação unpacked documentada em `extension/README.md`.
 - [x] Backend local permitido no Manifest para desenvolvimento.
 - [x] Botão Monitorar este anúncio.
@@ -219,6 +223,7 @@ Regra: replicar capacidades úteis, não código, identidade visual ou ativos de
 - [x] Recomendação para não entrar em guerra de preço quando a margem não fecha.
 
 ### Próxima sequência
+
 1. [x] margem personalizada diretamente nos cards de busca;
 2. [x] estratégia de preço competitivo saudável com margem mínima;
 3. [x] concorrentes enriquecidos com score, demanda e velocidade;
@@ -229,6 +234,7 @@ Regra: replicar capacidades úteis, não código, identidade visual ou ativos de
 8. [ ] multi-conta, autenticação individual e planos.
 
 ### Entregas adicionais desta rodada
+
 - [x] EAN/GTIN em lote com validação de checksum;
 - [x] importação CSV/TXT no navegador;
 - [x] faixa de preços por EAN e exportação CSV;
@@ -238,6 +244,7 @@ Regra: replicar capacidades úteis, não código, identidade visual ou ativos de
 - [x] cobertura de lucro exibida para evitar falsa precisão.
 
 ### Próxima sequência comercial
+
 1. autenticação individual da aplicação e extensão;
 2. workspaces;
 3. múltiplas contas Mercado Livre;
@@ -246,7 +253,6 @@ Regra: replicar capacidades úteis, não código, identidade visual ou ativos de
 6. limites e rate limiting;
 7. billing;
 8. onboarding e publicação na Chrome Web Store.
-
 
 ## Progresso — Anúncios e Ads
 
@@ -259,12 +265,12 @@ Regra: replicar capacidades úteis, não código, identidade visual ou ativos de
 - [x] recomendação de orçamento: escalar, manter, reduzir, revisar/pausar ou coletar mais dados;
 - [x] recomendação condicionada à cobertura de custos para evitar decisões com falsa precisão.
 
-
 ## Radar de Oportunidades v2
 
 A tela antiga baseada em tendências semanais deixou de ser o fluxo principal.
 
 ### Implementado
+
 - [x] busca direta independente de trends;
 - [x] fallback quando a categoria prevista tem baixa aderência;
 - [x] matching com penalidade para modelo/medida/quantidade incompatível;

@@ -3,6 +3,7 @@ import {
   randomBytes,
   scryptSync,
   createCipheriv,
+  createDecipheriv,
   createHash,
 } from "node:crypto";
 import { spawn } from "node:child_process";
@@ -38,6 +39,8 @@ const child = spawn(
     env: {
       ...process.env,
       RADAR_TEST_FIXTURE_PREFIX: prefix,
+      MERCADO_LIVRE_CLIENT_ID: "radar-test-app",
+      MERCADO_LIVRE_CLIENT_SECRET: "radar-test-secret",
       ADMIN_EMAIL: "operator@radar.test",
       ADMIN_PASSWORD_HASH: hash,
       APP_ENCRYPTION_KEY: "radar-testing-encryption-key-never-for-production",
@@ -459,6 +462,315 @@ try {
     },
   );
   await check(
+    "concurrent ML refresh is serialized in the database",
+    async () => {
+      await db.query(
+        'UPDATE "MercadoLivreAccount" SET "tokenExpiresAt"=$2 WHERE id=$1',
+        [accounts[0], new Date(Date.now() - 60000)],
+      );
+      const responses = await Promise.all(
+        Array.from({ length: 4 }, () =>
+          req("/api/extension/auth/session", "", "GET", undefined, {
+            authorization: "Bearer " + access.access_token,
+          }),
+        ),
+      );
+      assert.ok(
+        responses.every((r) => r.status === 200),
+        JSON.stringify(responses.map((r) => r.text)),
+      );
+      const row = (
+        await db.query(
+          'SELECT "accessTokenEncrypted" FROM "MercadoLivreAccount" WHERE id=$1',
+          [accounts[0]],
+        )
+      ).rows[0];
+      const [, iv, tag, encrypted] = row.accessTokenEncrypted.split(".");
+      const c = createDecipheriv(
+        "aes-256-gcm",
+        createHash("sha256")
+          .update("radar-testing-encryption-key-never-for-production")
+          .digest(),
+        Buffer.from(iv, "base64url"),
+      );
+      c.setAuthTag(Buffer.from(tag, "base64url"));
+      assert.equal(
+        Buffer.concat([
+          c.update(Buffer.from(encrypted, "base64url")),
+          c.final(),
+        ]).toString(),
+        prefix + "ml-refresh-1",
+      );
+    },
+  );
+  const extensionHeaders = () => ({
+    authorization: "Bearer " + access.access_token,
+  });
+  const pageReading = {
+    id: "MLBU5074600649",
+    referenceKind: "USER_PRODUCT",
+    title: "Fio cordone encerado preto 165m 2mm",
+    price: 17.9,
+    soldLower: 25,
+    soldHasPlus: true,
+    soldLabel: "+25 vendidos",
+    reviews: 100,
+    rating: 4.8,
+    permalink: "https://www.mercadolivre.com.br/fio/up/MLBU5074600649",
+  };
+  await check(
+    "restricted User Product keeps a useful page-only response",
+    async () => {
+      const r = await req(
+        "/api/extension/item?id=" + pageReading.id,
+        "",
+        "GET",
+        undefined,
+        extensionHeaders(),
+      );
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.availability, "PAGE_ONLY");
+      assert.equal(r.json.item, null);
+    },
+  );
+  await check(
+    "observations accept MLBU and do not fabricate competitor velocity",
+    async () => {
+      const r = await req(
+        "/api/extension/observations",
+        "",
+        "POST",
+        { page: "product", items: [pageReading] },
+        extensionHeaders(),
+      );
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.items[0].id, pageReading.id);
+      assert.equal(r.json.items[0].score, null);
+      assert.equal(r.json.items[0].demand, null);
+      assert.equal(r.json.items[0].estimate.visitsPerDay.value, null);
+    },
+  );
+  await check(
+    "page monitoring saves without private API access and stays isolated",
+    async () => {
+      const r = await req(
+        "/api/extension/watchlist",
+        "",
+        "POST",
+        { itemId: pageReading.id, observation: pageReading },
+        extensionHeaders(),
+      );
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.trackingMode, "PAGE");
+      const a = await req("/api/monitoring/watchlist", cookieA),
+        b = await req("/api/monitoring/watchlist", cookieB);
+      const item = a.json.items.find((i) => i.mlItemId === pageReading.id);
+      assert.equal(item.soldQuantity, 25);
+      assert.equal(item.soldIsLowerBound, true);
+      assert.equal(item.score, null);
+      assert.ok(!b.json.items.some((i) => i.mlItemId === pageReading.id));
+      const bad = await req(
+        "/api/extension/watchlist",
+        "",
+        "POST",
+        { itemId: "MLBU12345678", observation: pageReading },
+        extensionHeaders(),
+      );
+      assert.equal(bad.status, 400);
+      await insert("RadarWatchItem", {
+        id: prefix + "api-watch",
+        sellerUserId: prefix + "100",
+        mlItemId: "MLB999000001",
+        title: "API existente",
+        currentPrice: 100,
+        score: 80,
+        active: true,
+        updatedAt: now,
+      });
+      const preserve = await req(
+        "/api/extension/watchlist",
+        "",
+        "POST",
+        {
+          itemId: "MLB999000001",
+          observation: {
+            ...pageReading,
+            id: "MLB999000001",
+            referenceKind: "ITEM",
+            price: 99,
+          },
+        },
+        extensionHeaders(),
+      );
+      assert.equal(preserve.status, 200, preserve.text);
+      assert.equal(preserve.json.trackingMode, "API");
+      assert.equal(Number(preserve.json.watchItem.currentPrice), 100);
+    },
+  );
+  await check(
+    "revisiting a watched page updates price and marks missing counters unknown",
+    async () => {
+      const r = await req(
+        "/api/extension/observations",
+        "",
+        "POST",
+        {
+          page: "product",
+          items: [
+            { ...pageReading, price: 19.9, soldLower: null, soldLabel: null },
+          ],
+        },
+        extensionHeaders(),
+      );
+      assert.equal(r.status, 200, r.text);
+      const list = await req(
+        "/api/extension/watchlist",
+        "",
+        "GET",
+        undefined,
+        extensionHeaders(),
+      );
+      const item = list.json.items.find((i) => i.mlItemId === pageReading.id);
+      assert.equal(item.currentPrice, 19.9);
+      assert.equal(item.soldQuantity, null);
+      assert.equal(item.trackingMode, "PAGE");
+      assert.ok(item.snapshots.length >= 2);
+    },
+  );
+  await check(
+    "price range uses workspace observations when catalogue access is denied",
+    async () => {
+      const readings = [20, 30, 40].map((price, i) => ({
+        ...pageReading,
+        id: "MLBU800000000" + i,
+        price,
+      }));
+      const obs = await req(
+        "/api/extension/observations",
+        "",
+        "POST",
+        { page: "search", query: "Fio cordone", items: readings },
+        extensionHeaders(),
+      );
+      assert.equal(obs.status, 200, obs.text);
+      const r = await req(
+        "/api/extension/market?" +
+          new URLSearchParams({
+            title: pageReading.title,
+            itemId: pageReading.id,
+            currentPrice: "17.9",
+          }),
+        "",
+        "GET",
+        undefined,
+        extensionHeaders(),
+      );
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.apiStatus, 403);
+      assert.equal(r.json.market.count, 3);
+      assert.equal(r.json.market.median, 30);
+      assert.ok(r.json.competitors.every((i) => i.source === "OBSERVED_PAGE"));
+      assert.equal(r.json.needsReview, true);
+    },
+  );
+  const simulation = {
+    itemId: pageReading.id,
+    title: pageReading.title,
+    salePrice: 17.9,
+    supplierPrice: 10.9,
+    listingType: "PREMIUM",
+  };
+  await check(
+    "missing tax and freight produce partial costs, not a false profit or error page",
+    async () => {
+      const r = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        { ...simulation, quoteOnly: true },
+        extensionHeaders(),
+      );
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.result, null);
+      assert.ok(r.json.needs.includes("taxPercent"));
+      assert.ok(r.json.needs.includes("shippingCost"));
+      assert.equal(r.json.feeSource, "MERCADO_LIVRE_API");
+    },
+  );
+  await check(
+    "manual fees and explicit zero freight calculate correctly without competitor API",
+    async () => {
+      const r = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        {
+          ...simulation,
+          taxPercent: 0,
+          shippingCost: 0,
+          manualFees: { commissionPercent: 16.5, fixedFee: 0 },
+        },
+        extensionHeaders(),
+      );
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.result.profit, 4.05);
+      assert.equal(r.json.feeSource, "MANUAL");
+      assert.equal(r.json.shippingKnown, false);
+      const save = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        {
+          ...simulation,
+          taxPercent: 0,
+          shippingCost: 0,
+          manualFees: { commissionPercent: 16.5, fixedFee: 0 },
+          save: true,
+        },
+        extensionHeaders(),
+      );
+      assert.equal(save.status, 422);
+    },
+  );
+  await check(
+    "simulated modality overrides the original listing modality",
+    async () => {
+      const r = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        {
+          ...simulation,
+          itemId: "MLB999000001",
+          salePrice: 100,
+          taxPercent: 0,
+          shippingCost: 0,
+          listingType: "PREMIUM",
+        },
+        extensionHeaders(),
+      );
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.result.commissionPercent, 16.5);
+      assert.equal(r.json.item.listingType, "PREMIUM");
+    },
+  );
+  await check(
+    "optional API restrictions do not mark core integration unhealthy",
+    async () => {
+      const r = await req(
+        "/api/integrations/mercadolivre/diagnostics",
+        cookieA,
+      );
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.summary.healthy, true);
+      assert.equal(
+        r.json.checks.find((c) => c.key === "productAds").state,
+        "RESTRICTED",
+      );
+      assert.ok(!r.json.checks.some((c) => c.key === "application"));
+    },
+  );
+  await check(
     "workspace quota is shared across extension devices",
     async () => {
       const code2 = prefix + "second-authorization-code";
@@ -482,6 +794,10 @@ try {
       assert.equal(token.status, 200, token.text);
       await db.query(
         'UPDATE "RadarWorkspace" SET "dailyRequestLimit"=2 WHERE id=$1',
+        [userA.workspaceId],
+      );
+      await db.query(
+        'DELETE FROM "RadarWorkspaceUsage" WHERE "workspaceId"=$1',
         [userA.workspaceId],
       );
       for (const value of [access.access_token, token.json.access_token])

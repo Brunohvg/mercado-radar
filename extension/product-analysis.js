@@ -126,6 +126,210 @@
       reason: "Informe o custo de compra para avaliar a margem neste preço.",
     };
   }
+  function cardMetrics(observation, insight) {
+    const obs = observation || {},
+      d = demand(insight?.id === obs.id ? insight : null),
+      sold =
+        Number.isSafeInteger(obs.soldLower) && obs.soldLower >= 0
+          ? obs.soldLower
+          : null,
+      price = numeric(obs.price) && obs.price > 0 ? obs.price : null,
+      countLabel =
+        sold == null ? null : num(sold) + (obs.soldHasPlus ? "+" : ""),
+      recent = d.rate != null && insight.estimate.method !== "VIDA";
+    const signal = d.level
+      ? {
+          text: {
+            EXCELENTE: "Excelente",
+            ALTA: "Alta",
+            MEDIA: "Média",
+            BAIXA: "Baixa",
+          }[d.level],
+          label:
+            insight.estimate.method === "VIDA"
+              ? "demanda histórica"
+              : "demanda medida",
+          tone:
+            { EXCELENTE: "excellent", ALTA: "high", MEDIA: "medium" }[
+              d.level
+            ] || "",
+          detail: d.basis,
+        }
+      : sold != null
+        ? {
+            text: countLabel + " vendas",
+            label: "sinal de demanda",
+            tone: sold > 0 ? "observed" : "",
+            detail:
+              "Vendas acumuladas exibidas na página. Sem período, esse total não classifica o ritmo de vendas atual.",
+          }
+        : {
+            text: obs.bestSellerLabel ? "Mais vendido" : "Não informado",
+            label: obs.bestSellerLabel ? "selo da página" : "vendas na página",
+            tone: obs.bestSellerLabel ? "observed" : "",
+            detail:
+              obs.bestSellerLabel ||
+              "A página não exibe quantidade vendida. Avaliações não são contadas como vendas.",
+          };
+    if (recent && price != null && Number.isFinite(d.rate * price))
+      return {
+        signal,
+        amount: brl(d.rate * price),
+        label: "receita est./dia",
+        kind: "daily",
+        basis: "Ritmo medido × preço atual",
+        detail:
+          d.basis +
+          " Ritmo medido × preço atual. Estimativa bruta; não é faturamento recebido.",
+      };
+    // This is a public reference at today's price, never historical revenue.
+    const totalCents =
+      sold != null && price != null ? Math.round(price * 100) * sold : null;
+    if (totalCents != null && Number.isSafeInteger(totalCents))
+      return {
+        signal,
+        amount: (obs.soldHasPlus ? "≥ " : "") + brl(totalCents / 100),
+        label: "fat. de referência",
+        kind: "reference",
+        basis: countLabel + " vendidos × preço atual",
+        detail:
+          "Base pública: " +
+          countLabel +
+          " vendidos × " +
+          brl(price) +
+          " hoje. Projeção bruta do acumulado ao preço atual; o valor das vendas passadas e o período não são conhecidos. Não informa lucro.",
+      };
+    if (d.rate != null)
+      return {
+        signal,
+        amount: num(d.rate) + " un./dia",
+        label: "média histórica",
+        kind: "rate",
+        basis: "Média desde a criação",
+        detail: d.basis,
+      };
+    return {
+      signal,
+      amount: sold == null ? "Vendas ausentes" : "Preço ausente",
+      label: "fat. de referência",
+      kind: "missing",
+      basis: "Preço × quantidade vendida",
+      detail:
+        sold == null
+          ? "Falta a quantidade vendida na página para calcular a referência bruta."
+          : "Falta o preço atual na página para calcular a referência bruta.",
+    };
+  }
+  function decision(observation, insight, result, advertising) {
+    let r = result;
+    if (
+      r &&
+      numeric(advertising?.profitAfterAds) &&
+      numeric(advertising?.marginAfterAdsPercent)
+    ) {
+      const profit = advertising.profitAfterAds,
+        margin = advertising.marginAfterAdsPercent;
+      const investment = r.purchaseCost + r.operatingCost;
+      r = {
+        ...r,
+        profit,
+        marginPercent: margin,
+        verdict:
+          profit <= 0 || margin < 10
+            ? "BAD"
+            : margin < (r.targetMarginPercent ?? 20) ||
+                (investment > 0 &&
+                  (profit / investment) * 100 < (r.targetRoiPercent ?? 30))
+              ? "TIGHT"
+              : r.verdict,
+      };
+    }
+    if (r && numeric(r.profit) && numeric(r.marginPercent)) {
+      const suffix = advertising ? " após Ads" : "";
+      if (r.profit <= 0 || r.marginPercent < 10 || r.verdict === "BAD")
+        return {
+          title:
+            r.profit <= 0
+              ? "Não compensa neste custo"
+              : "Margem baixa para entrar",
+          tone: "bad",
+          reason:
+            r.profit < 0
+              ? "Prejuízo de " +
+                brl(Math.abs(r.profit)) +
+                " por venda" +
+                suffix +
+                "."
+              : "Sobra " +
+                brl(r.profit) +
+                " por venda" +
+                suffix +
+                "; margem de " +
+                pct(r.marginPercent) +
+                ".",
+        };
+      if (r.verdict === "TIGHT")
+        return {
+          title: "Margem apertada para sua meta",
+          tone: "warn",
+          reason:
+            "Sobra " +
+            brl(r.profit) +
+            " por venda" +
+            suffix +
+            ". A simulação não atinge todas as suas metas.",
+        };
+      const d = demand(insight);
+      if (d.level === "BAIXA")
+        return {
+          title: "Margem boa · giro baixo",
+          tone: "warn",
+          reason:
+            "O ritmo medido pede cautela com estoque. " +
+            brl(r.profit) +
+            " por venda" +
+            suffix +
+            ".",
+        };
+      const o = opportunity(insight, r);
+      return {
+        ...o,
+        title:
+          o.title === "Boa oportunidade"
+            ? o.title
+            : "Margem boa · confirme o giro",
+        reason:
+          "Sobra " +
+          brl(r.profit) +
+          " por venda" +
+          suffix +
+          ". " +
+          (o.title === "Boa oportunidade"
+            ? "Demanda recente alta e metas atendidas."
+            : "A margem está calculada; o giro recente ainda exige confirmação."),
+      };
+    }
+    const d = demand(insight);
+    if (d.level) return opportunity(insight, null);
+    if (
+      Number.isSafeInteger(observation?.soldLower) &&
+      observation.soldLower > 0
+    )
+      return {
+        title: "Vale simular seu custo",
+        tone: "neutral",
+        reason:
+          num(observation.soldLower) +
+          (observation.soldHasPlus ? "+" : "") +
+          " vendidos no total. Informe seu custo para avaliar o lucro; o giro recente não está confirmado.",
+      };
+    return {
+      title: "Confirme vendas e custos",
+      tone: "neutral",
+      reason:
+        "A página não comprova o giro recente. Informe seu custo para avaliar a margem neste preço.",
+    };
+  }
   function receipt(quote, price) {
     const f = quote?.fees;
     if (
@@ -538,11 +742,23 @@
       },
       {
         label:
-          s.insight?.estimate?.method === "VIDA"
-            ? "Vendas/dia · histórica"
-            : "Vendas/dia",
-        value: d.rate == null ? "Sem período" : num(d.rate),
-        detail: d.basis,
+          d.rate == null &&
+          Number.isSafeInteger(s.obs?.soldLower) &&
+          s.obs.soldLower >= 0
+            ? "Vendas acumuladas · página"
+            : s.insight?.estimate?.method === "VIDA"
+              ? "Vendas/dia · histórica"
+              : "Vendas/dia",
+        value:
+          d.rate == null
+            ? Number.isSafeInteger(s.obs?.soldLower) && s.obs.soldLower >= 0
+              ? (s.obs.soldHasPlus ? "+" : "") + num(s.obs.soldLower)
+              : "Sem período"
+            : num(d.rate),
+        detail:
+          d.rate == null
+            ? "Acumulado visível na página, sem período informado. Não representa vendas por dia."
+            : d.basis,
       },
       {
         label: "Ofertas no catálogo",
@@ -683,7 +899,8 @@
       profit,
       profitDetails,
     );
-    form.append(helper, resultBox);
+    form.prepend(resultBox);
+    form.append(helper);
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       void controller.calculate();
@@ -729,18 +946,17 @@
       render(s) {
         if (!s.obs) return;
         const d = demand(s.insight),
-          o = opportunity(s.insight, s.result),
+          o = decision(s.obs, s.insight, s.result),
           quote = s.quotes[s.listingType],
           received = receipt(quote, s.obs.price),
           f = quote?.fees;
         verdict.className = "auto-verdict " + o.tone;
-        verdictTitle.textContent =
-          s.status === "loading" && !s.insight
-            ? "Analisando este produto…"
-            : o.title;
+        verdictTitle.textContent = o.title;
         reason.textContent = o.reason;
         badge.className = "auto-badge " + d.tone;
-        badge.textContent = d.title;
+        badge.textContent = d.level
+          ? d.title
+          : cardMetrics(s.obs, s.insight).signal.text;
         metrics[0].textContent = brl(s.obs.price);
         metrics[1].textContent =
           s.sample?.gap == null
@@ -864,8 +1080,9 @@
         profitDetails.textContent =
           "Margem " +
           pct(s.result?.marginPercent) +
-          " · ROI " +
-          pct(s.result?.roiPercent);
+          (numeric(s.result?.minimumSuggestedPrice)
+            ? " · Preço para sua meta " + brl(s.result.minimumSuggestedPrice)
+            : "");
         marketSummary.textContent = s.sample
           ? "Faixa preliminar · " +
             brl(s.sample.p25) +
@@ -907,14 +1124,13 @@
     };
     const style = make("style");
     style.textContent =
-      ".auto-summary{padding-top:11px}.auto-summary h2{font-size:15px;line-height:1.4}.auto-summary h2.good{color:#146e46}.auto-summary h2.bad{color:#a14430}.auto-summary h2.warn{color:#916a21}.auto-summary p{font-size:10px;margin-top:5px}.auto-summary .mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.auto-summary .mini-grid div{padding:8px;background:#f4f8f4;border-radius:8px;min-width:0}.auto-summary small{display:block;font-size:9px}.auto-summary strong{display:block;font-size:18px;overflow-wrap:anywhere}.auto-summary button{font-size:10px;padding:3px;min-height:25px;margin-top:6px;border:0;background:transparent}";
+      ".auto-summary{padding-top:11px}.auto-summary h2{font-size:15px;line-height:1.4}.auto-summary h2.good{color:#146e46}.auto-summary h2.bad{color:#a14430}.auto-summary h2.warn{color:#916a21}.auto-summary p{font-size:10px;margin-top:5px}.auto-summary .mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.auto-summary .mini-grid:has(>div[hidden]){grid-template-columns:1fr}.auto-summary .mini-grid div{padding:8px;background:#f4f8f4;border-radius:8px;min-width:0}.auto-summary small{display:block;font-size:9px}.auto-summary strong{display:block;font-size:18px;overflow-wrap:anywhere}.auto-summary button{font-size:10px;padding:3px;min-height:25px;margin-top:6px;border:0;background:transparent}";
     const wrap = make("div", "auto-summary"),
       title = make("h2"),
       evidence = make("p"),
       grid = make("div", "mini-grid"),
       values = [],
       labels = [];
-    const intelligence = make("div", "mini-grid");
     for (let i = 0; i < 2; i++) {
       const box = make("div"),
         label = make("small"),
@@ -928,31 +1144,18 @@
     edit.type = "button";
     edit.textContent = "Ver análise e ajustar custo ↓";
     edit.addEventListener("click", adjust);
-    wrap.append(title, evidence, intelligence, grid, edit);
+    wrap.append(title, evidence, grid, edit);
     root.append(style, wrap);
     return {
       render(s) {
         const d = demand(s.insight),
-          o = opportunity(s.insight, s.result),
+          o = decision(s.obs, s.insight, s.result),
           received = receipt(s.quotes[s.listingType], s.obs?.price);
-        title.textContent =
-          s.status === "loading" && !s.insight
-            ? "Analisando este produto…"
-            : o.title;
+        title.textContent = o.title;
         title.className = o.tone;
-        evidence.textContent =
-          d.title + (d.rate == null ? "" : " · " + num(d.rate) + " un./dia");
-        intelligence.replaceChildren();
-        for (const fact of marketMetrics(s)) {
-          const box = make("div"),
-            label = make("small"),
-            value = make("strong");
-          label.textContent = fact.label;
-          value.textContent = fact.value;
-          box.title = fact.detail;
-          box.append(label, value);
-          intelligence.append(box);
-        }
+        evidence.textContent = d.level
+          ? d.title + " · " + num(d.rate) + " un./dia"
+          : cardMetrics(s.obs, s.insight).signal.text + " · sinal público";
         labels[0].textContent = s.result
           ? "Lucro por venda"
           : received?.shippingEstimated
@@ -969,11 +1172,14 @@
           : s.sample?.gap == null
             ? "Sem amostra"
             : (s.sample.gap > 0 ? "+" : "") + pct(s.sample.gap);
+        labels[1].parentElement.hidden = !s.result && !s.sample;
       },
     };
   }
   globalThis.RadarProductAnalysis = {
     marketMetrics,
+    cardMetrics,
+    decision,
     demand,
     opportunity,
     receipt,

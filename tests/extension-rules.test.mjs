@@ -71,6 +71,92 @@ test("oportunidade separa alta demanda, margem ruim e dados insuficientes", () =
   assert.match(A.opportunity(null, good).title, /demanda a confirmar/);
   assert.notEqual(A.opportunity(measured(4), null).title, "Boa oportunidade");
 });
+test("card aproveita o acumulado e o preço da página sem inventar faturamento histórico ou demanda diária", () => {
+  const obs = {
+    id: "MLB1234567890",
+    price: 17.88,
+    soldLower: 100,
+    soldHasPlus: true,
+  };
+  const card = A.cardMetrics(obs, null);
+  assert.equal(card.signal.text, "100+ vendas");
+  assert.equal(card.label, "fat. de referência");
+  assert.equal(card.amount, "≥ R$\u00a01.788,00");
+  assert.match(card.detail, /vendas passadas e o período não são conhecidos/);
+  assert.equal(A.demand(null).level, null);
+  const changedPrice = A.cardMetrics({ ...obs, price: 20 }, null);
+  assert.equal(changedPrice.amount, "≥ R$\u00a02.000,00");
+  assert.equal(
+    A.cardMetrics({ ...obs, soldHasPlus: false }, null).amount,
+    "R$\u00a01.788,00",
+  );
+});
+test("conclusão exige custos para viabilidade e considera perda após Ads", () => {
+  const obs = { id: "MLB1234567890", soldLower: 100, soldHasPlus: true };
+  const good = {
+    profit: 25,
+    marginPercent: 25,
+    verdict: "GOOD",
+    purchaseCost: 40,
+    operatingCost: 0,
+  };
+  assert.equal(A.decision(obs, null, null).title, "Vale simular seu custo");
+  assert.equal(
+    A.decision(obs, null, good).title,
+    "Margem boa · confirme o giro",
+  );
+  assert.equal(A.decision(obs, measured(4), good).title, "Boa oportunidade");
+  assert.equal(A.decision(obs, measured(0.1), good).tone, "warn");
+  const afterAds = A.decision(obs, measured(4), good, {
+    profitAfterAds: -2,
+    marginAfterAdsPercent: -2,
+  });
+  assert.equal(afterAds.title, "Não compensa neste custo");
+  assert.match(afterAds.reason, /2,00.*após Ads/);
+  assert.equal(
+    A.decision(obs, measured(4), good, {
+      profitAfterAds: 12,
+      marginAfterAdsPercent: 12,
+    }).tone,
+    "warn",
+  );
+});
+test("card diferencia zero explícito, dado ausente e avaliações sem quantidade vendida", () => {
+  const obs = { id: "MLB1234567890", price: 17.88, reviews: 100 };
+  assert.equal(A.cardMetrics(obs, null).kind, "missing");
+  assert.equal(
+    A.cardMetrics({ ...obs, soldLower: 0 }, null).amount,
+    "R$\u00a00,00",
+  );
+  assert.equal(
+    A.cardMetrics({ ...obs, price: null, soldLower: 100 }, null).amount,
+    "Preço ausente",
+  );
+  for (const soldLower of [NaN, Infinity, -1, "100", 1.5])
+    assert.equal(A.cardMetrics({ ...obs, soldLower }, null).kind, "missing");
+  const best = A.cardMetrics({ ...obs, bestSellerLabel: "Mais vendido" }, null);
+  assert.equal(best.signal.text, "Mais vendido");
+  assert.equal(best.kind, "missing");
+});
+test("ritmo de uma referência não preenche outra e projeção diária acompanha o preço atual", () => {
+  const obs = {
+    id: "MLB1234567890",
+    price: 20,
+    soldLower: 100,
+    soldHasPlus: true,
+  };
+  const insight = { ...measured(4), id: obs.id, price: 10 };
+  assert.equal(A.cardMetrics(obs, insight).amount, "R$\u00a080,00");
+  assert.equal(A.cardMetrics(obs, insight).kind, "daily");
+  assert.equal(
+    A.cardMetrics(obs, { ...insight, id: "MLB9999999999" }).kind,
+    "reference",
+  );
+  assert.equal(
+    A.cardMetrics(obs, { ...insight, ...measured(4, "OFICIAL", false) }).kind,
+    "reference",
+  );
+});
 test("repasse não esconde frete ausente nem chama saldo antes da compra de lucro", () => {
   const quote = {
     fees: { commissionAmount: 12, fixedFee: 4, shippingCost: null },

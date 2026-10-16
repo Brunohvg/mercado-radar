@@ -46,7 +46,7 @@
     .inner{padding:14px}.head{display:flex;gap:8px;align-items:center;justify-content:space-between}.brand{display:flex;gap:7px;align-items:center;font-size:12px;font-weight:750;letter-spacing:-.25px}.mark{display:grid;place-items:center;flex:none;width:25px;height:25px;border-radius:8px;color:white;background:#087f6b;font-size:13px;font-weight:800}.tag{font-size:9px;letter-spacing:.4px;color:#52755f;background:#f0f6f0;border-radius:5px;padding:4px 6px;text-transform:uppercase;white-space:nowrap}
     .facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}.fact{min-width:0}.fact small{display:block}.fact strong{display:block;font-size:18px;letter-spacing:-.4px;overflow-wrap:anywhere}.subline{margin-bottom:12px;font-size:11px;color:#60786a;overflow-wrap:anywhere}.actions{display:flex;flex-wrap:wrap;gap:7px}.actions button{flex:1;min-width:90px}.foot{border-top:1px solid #e5ede7;padding:9px 14px;background:#f8faf8;display:flex;justify-content:space-between;gap:8px;align-items:center}.foot p{font-size:10px;max-width:82%}.status{font-size:11px;margin-top:10px;color:#406a53;overflow-wrap:anywhere}.status.error{color:#9b4738}.status button{margin-top:7px;display:block}
     .toolbar .inner{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}.toolbar .copy{flex:1;min-width:150px}.toolbar h2{margin-top:6px}.toolbar p{margin-top:3px}.toolbar .actions{align-items:center}.toolbar .actions button{flex:0 0 auto;white-space:nowrap}.toolbar .foot p{max-width:none}
-    .card-intel{margin:0;min-width:0}.intel-box{border:1px solid #e4e8e5;border-radius:7px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:8px 5px;gap:6px;background:#fff}.intel-cell{min-width:0;text-align:center}.intel-cell small{display:block;font-size:9px;color:#82918a;margin-top:3px}.intel-pill{display:inline-block;font-size:10px;line-height:1.3;padding:1px 7px;border-radius:4px;border:1px solid #e1e6e2;background:#f7f8f7;color:#718075;max-width:100%;overflow-wrap:anywhere}.intel-pill.excellent{color:#366a18;background:#ebf8d8;border-color:#cce1b8}.intel-pill.high{color:#25629c;background:#e9f2ff;border-color:#cbdcf7}.intel-pill.medium{color:#8b6c25;background:#fff6db;border-color:#eadfb9}.intel-number{display:block;font-size:12px;font-weight:650;color:#287d58;line-height:1.4;overflow-wrap:anywhere}.intel-number.unknown{display:inline-block;font-size:10px;font-weight:400;border:1px dashed #dce3dd;border-radius:5px;padding:1px 6px;color:#8c988f}.intel-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:5px;min-height:19px}.intel-foot small{font-size:9px;color:#94a198}.intel-foot label{display:flex;gap:5px;align-items:center;font-size:10px;color:#6c8173;cursor:pointer;white-space:nowrap}.intel-foot input{appearance:auto;accent-color:#087f6b;width:12px;height:12px;margin:0;cursor:pointer}.card-intel.selected .intel-box{border-color:#85b39a;background:#f5faf6}.card-intel.selected .intel-foot label{color:#08745e}.intel-meta{font-size:9px;color:#798d80;display:flex;justify-content:space-between;gap:6px;margin-bottom:4px}.intel-meta:empty{display:none}
+    .card-intel{margin:0;min-width:0}.intel-box{border:1px solid #e4e8e5;border-radius:7px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:8px 5px;gap:6px;background:#fff}.intel-cell{min-width:0;text-align:center}.intel-cell small{display:block;font-size:9px;color:#82918a;margin-top:3px}.intel-pill{display:inline-block;font-size:10px;line-height:1.3;padding:1px 7px;border-radius:4px;border:1px solid #e1e6e2;background:#f7f8f7;color:#718075;max-width:100%;overflow-wrap:anywhere}.intel-pill.observed{color:#296746;background:#edf6ef;border-color:#d4e5d9}.intel-basis{font-size:9px;color:#6c8173;text-align:center;margin-top:5px;overflow-wrap:anywhere}.intel-pill.excellent{color:#366a18;background:#ebf8d8;border-color:#cce1b8}.intel-pill.high{color:#25629c;background:#e9f2ff;border-color:#cbdcf7}.intel-pill.medium{color:#8b6c25;background:#fff6db;border-color:#eadfb9}.intel-number{display:block;font-size:12px;font-weight:650;color:#287d58;line-height:1.4;overflow-wrap:anywhere}.intel-number.reference{font-size:11px;letter-spacing:-.15px}.intel-number.unknown{display:inline-block;font-size:10px;font-weight:400;border:1px dashed #dce3dd;border-radius:5px;padding:1px 6px;color:#8c988f}.intel-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:5px;min-height:19px}.intel-foot small{font-size:9px;color:#94a198}.intel-foot label{display:flex;gap:5px;align-items:center;font-size:10px;color:#6c8173;cursor:pointer;white-space:nowrap}.intel-foot .intel-opportunity{font-size:10px;font-weight:600;line-height:1.3;color:#587363}.intel-foot input{appearance:auto;accent-color:#087f6b;width:12px;height:12px;margin:0;cursor:pointer}.card-intel.selected .intel-box{border-color:#85b39a;background:#f5faf6}.card-intel.selected .intel-foot label{color:#08745e}.intel-meta{font-size:9px;color:#798d80;display:flex;justify-content:space-between;gap:6px;margin-bottom:4px}.intel-meta:empty{display:none}
     .launcher{position:relative;width:48px;height:48px}.launcher-button{width:48px;height:48px;min-height:48px;border:1px solid #ffffff80;border-radius:16px;background:#087f6b;color:white;font:800 16px system-ui;box-shadow:0 4px 20px #12382e30}.launcher-button:hover{background:#056450}.menu{position:absolute;right:0;bottom:60px;width:min(264px,calc(100vw - 32px));background:white;border:1px solid #d5e3d8;border-radius:14px;padding:8px;box-shadow:0 12px 42px #12382e26}.menu .brand{padding:8px 8px 12px;border-bottom:1px solid #e5ece6;margin-bottom:4px}.menu button,.menu a{width:100%;display:flex;align-items:center;gap:10px;min-height:40px;text-align:left;font-size:12px;color:#315647;background:transparent;border:0;border-radius:7px;padding:10px;margin:0;font-weight:500}.menu button:hover,.menu a:hover{background:#eef6f0}.menu .group{border-top:1px solid #e5ece6;margin-top:4px;padding-top:4px}.menu .key{font-size:15px;width:18px;color:#698270;text-align:center;flex:none}.menu .version{font-size:10px;color:#7b8d80;padding:8px 10px 3px}.notice{position:absolute;right:0;bottom:60px;width:250px;padding:12px;border:1px solid #d5e3d8;border-radius:12px;background:white;color:#315647;font-size:12px;box-shadow:0 4px 20px #12382e30}
     @media(max-width:340px){.inner{padding:11px}.fact strong{font-size:16px}.actions button{min-width:75px;padding:8px}.tag{font-size:8px}.toolbar .inner{gap:9px}}
   `;
@@ -468,11 +468,13 @@
           metrics = el("div", null, "intel-box"),
           left = el("div", null, "intel-cell"),
           right = el("div", null, "intel-cell"),
-          pill = el("span", "Sem período", "intel-pill"),
+          pill = el("span", "Lendo página", "intel-pill"),
+          signalLabel = el("small", "sinal de demanda"),
           amount = el("span", "Sem dados", "intel-number unknown"),
           amountLabel = el("small", "vendas"),
+          basis = el("p", null, "intel-basis"),
           meta = el("div", null, "intel-meta");
-        left.append(pill, el("small", "demanda"));
+        left.append(pill, signalLabel);
         right.append(amount, amountLabel);
         metrics.append(left, right);
         const foot = el("div", null, "intel-foot"),
@@ -488,10 +490,21 @@
           else selected.delete(view.id);
           refreshUi(context());
         });
-        foot.append(el("small", "Radar"), label);
-        box.append(meta, metrics, foot);
+        const conclusion = el("small", "", "intel-opportunity");
+        foot.append(conclusion, label);
+        box.append(meta, metrics, basis, foot);
         view.root.append(box);
-        view.nodes = { box, pill, amount, amountLabel, choose, meta };
+        view.nodes = {
+          box,
+          pill,
+          signalLabel,
+          amount,
+          amountLabel,
+          basis,
+          choose,
+          meta,
+          conclusion,
+        };
         view.fits = [...anchor.resize, ...(anchor.grid ? [anchor.grid] : [])];
         for (const node of anchor.resize) fit(node, "data-radar-card-fit");
         if (anchor.grid) fit(anchor.grid, "data-radar-grid-fit");
@@ -499,56 +512,36 @@
         cards.set(card, view);
       }
       const insight = searchAnalysis.insights.get(obs.id),
-        d = A.demand(insight),
+        data = A.cardMetrics(obs, insight),
         n = view.nodes;
-      n.pill.textContent =
-        {
-          EXCELENTE: "Excelente",
-          ALTA: "Alta",
-          MEDIA: "Média",
-          BAIXA: "Baixa",
-        }[d.level] || "Sem período";
-      n.pill.className =
-        "intel-pill" +
-        ({ EXCELENTE: " excellent", ALTA: " high", MEDIA: " medium" }[
-          d.level
-        ] || "");
-      n.pill.title = d.basis;
-      const revenue = insight?.estimate?.revenuePerDay?.value;
-      if (
-        d.rate != null &&
-        insight.estimate.method !== "VIDA" &&
-        insight.price === obs.price &&
-        typeof revenue === "number" &&
-        Number.isFinite(revenue) &&
-        revenue >= 0
-      ) {
-        n.amount.textContent = brl(revenue);
-        n.amountLabel.textContent = "receita est./dia";
-        n.amount.className = "intel-number";
-        n.amount.title =
-          d.basis +
-          " Ritmo medido × preço atual. Estimativa bruta; não é faturamento recebido.";
-      } else if (d.rate != null) {
-        n.amount.textContent = number(d.rate) + " un./dia";
-        n.amountLabel.textContent =
-          insight.estimate.method === "VIDA"
-            ? "média histórica"
-            : "ritmo medido";
-        n.amount.className = "intel-number";
-        n.amount.title = d.basis;
-      } else {
-        n.amount.textContent =
-          obs.soldLabel?.replace(/\s*vendidos?\b/i, "").trim() ||
-          (obs.soldLower == null
-            ? "Sem dados"
-            : (obs.soldHasPlus ? "+" : "") + number(obs.soldLower));
-        n.amountLabel.textContent =
-          obs.soldLower == null ? "vendas por período" : "vendidos no total";
-        n.amount.className =
-          "intel-number" + (obs.soldLower == null ? " unknown" : "");
-        n.amount.title = "O acumulado não informa ritmo nem faturamento.";
-      }
+      n.pill.textContent = data.signal.text;
+      n.pill.className = "intel-pill " + data.signal.tone;
+      n.pill.title = data.signal.detail;
+      n.signalLabel.textContent = data.signal.label;
+      n.amount.textContent = data.amount;
+      n.amountLabel.textContent = data.label;
+      n.amount.className =
+        "intel-number " + (data.kind === "missing" ? "unknown" : data.kind);
+      n.amount.title = data.detail;
+      n.amount.setAttribute(
+        "aria-label",
+        data.label + ": " + data.amount + ". " + data.detail,
+      );
+      n.basis.textContent = data.basis;
+      n.basis.title = data.detail;
+      const conclusion = A.decision(obs, insight, null);
+      n.conclusion.textContent =
+        conclusion.title === "Vale simular seu custo"
+          ? "Vale simular"
+          : conclusion.title;
+      n.conclusion.title = conclusion.reason;
+      n.conclusion.setAttribute(
+        "aria-label",
+        "Leitura da oportunidade: " +
+          conclusion.title +
+          ". " +
+          conclusion.reason,
+      );
       n.meta.replaceChildren();
       if (obs.catalogProductId || obs.referenceKind === "CATALOG")
         n.meta.append(el("span", "Catálogo"));
@@ -697,7 +690,7 @@
   menu.append(
     links,
     visibilityButton,
-    el("div", "Mercado Radar · 0.10.0", "version"),
+    el("div", "Mercado Radar · 0.10.1", "version"),
   );
   const launcherNotice = el("div", "", "notice");
   launcherNotice.hidden = true;

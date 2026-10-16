@@ -1,3 +1,4 @@
+import { getWorkspaceSettings } from "@/lib/workspace-settings";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
@@ -87,8 +88,12 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const refresh = url.searchParams.get("refresh") === "1";
     const session = await getMlSession();
+    const settings = await getWorkspaceSettings(session.account.workspaceId);
     const sellerUserId = session.account.mercadoLivreUserId;
 
+    const lastOrderSync = await prisma.syncRun.findFirst({ where: { workspaceId: session.account.workspaceId, kind: "ML_ORDERS", status: "SUCCESS" }, orderBy: { finishedAt: "desc" } });
+    const syncMeta = lastOrderSync?.metadata as { days?: number; truncated?: boolean } | null;
+    const historyComplete = Boolean(lastOrderSync?.finishedAt && Date.now() - lastOrderSync.finishedAt.getTime() < 36 * 60 * 60 * 1000 && (syncMeta?.days ?? 0) >= 30 && syncMeta?.truncated === false);
     const count = await prisma.mercadoLivreProduct.count({
       where: { sellerUserId },
     });
@@ -105,7 +110,6 @@ export async function GET(request: Request) {
         { soldQuantity: "desc" },
         { updatedAt: "desc" },
       ],
-      take: 200,
     });
 
     const recentFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -113,7 +117,7 @@ export async function GET(request: Request) {
       where: {
         order: {
           sellerUserId,
-          status: { not: "cancelled" },
+          status: "paid", refundDetected: false,
           dateCreated: { gte: recentFrom },
         },
       },
@@ -121,7 +125,7 @@ export async function GET(request: Request) {
         order: {
           select: {
             status: true,
-            dateCreated: true,
+            dateCreated: true, economicsVersion: true, profitabilityStatus: true,
           },
         },
       },
@@ -133,7 +137,7 @@ export async function GET(request: Request) {
 
     const localProducts = skuValues.length
       ? await prisma.product.findMany({
-          where: { sku: { in: skuValues } },
+          where: { workspaceId: session.account.workspaceId, sku: { in: skuValues } },
           select: {
             sku: true,
             supplierPrice: true,
@@ -174,7 +178,7 @@ export async function GET(request: Request) {
       current.units += row.quantity;
       current.revenue += revenue;
 
-      if (row.profit != null) {
+      if (row.profit != null && row.order.economicsVersion === 1 && row.order.profitabilityStatus === "REALIZED") {
         current.realizedProfit += Number(row.profit);
         current.profitKnownRevenue += revenue;
       }
@@ -230,10 +234,11 @@ export async function GET(request: Request) {
           item.currentPrice == null ? null : Number(item.currentPrice);
 
         if (
+          url.searchParams.get("quote") === "1" &&
           unitCost != null &&
           currentPrice != null &&
           currentPrice > 0 &&
-          item.categoryId
+          item.categoryId && settings.taxPercent != null
         ) {
           const listingType = listingTypeFromId(item.listingTypeId);
 
@@ -258,7 +263,7 @@ export async function GET(request: Request) {
             const saleFee = feeQuote.saleFeeAmount;
             const shippingCost = shippingQuote.shippingCost;
             const amountReceived = currentPrice - saleFee - shippingCost;
-            const estimatedProfit = amountReceived - unitCost;
+            const estimatedProfit = amountReceived - unitCost - Number(settings.operatingCostDefault) - currentPrice * Number(settings.taxPercent) / 100;
             const estimatedMarginPercent =
               currentPrice > 0
                 ? (estimatedProfit / currentPrice) * 100
@@ -284,22 +289,28 @@ export async function GET(request: Request) {
           | "OBSERVE" = "OBSERVE";
 
         const decisionMargin =
-          realizedMargin ?? estimatedEconomics?.estimatedMarginPercent ?? null;
+          estimatedEconomics?.estimatedMarginPercent ?? realizedMargin ?? null;
 
         if (unitCost == null) {
           healthAction = "ADD_COST";
-        } else if (decisionMargin != null && decisionMargin < 15) {
+        } else if (decisionMargin != null && decisionMargin < 10) {
           healthAction = "STOP_BUYING";
+        } else if (decisionMargin == null || (!estimatedEconomics && recentItems.some((row) => row.mlItemId === item.mlItemId && row.unitCost != null && Math.abs(Number(row.unitCost) - unitCost) >= 0.01))) {
+          healthAction = "VALIDATE_PROFIT";
+        } else if (decisionMargin < Number(settings.targetMarginPercent)) {
+          healthAction = "WATCH";
+        } else if (!historyComplete) {
+          healthAction = "VALIDATE_PROFIT";
         } else if (
           recent.units > 0 &&
           coverageDays != null &&
-          coverageDays <= 7
+          coverageDays <= settings.leadTimeDays + settings.safetyStockDays
         ) {
           healthAction = "RESTOCK";
         } else if (
           recent.units > 0 &&
           coverageDays != null &&
-          coverageDays <= 14
+          coverageDays <= settings.leadTimeDays + settings.safetyStockDays + 7
         ) {
           healthAction = "WATCH";
         } else if (recent.units > 0 && decisionMargin != null) {
@@ -309,11 +320,8 @@ export async function GET(request: Request) {
         }
 
         const targetStock =
-          dailyVelocity > 0 ? Math.ceil(dailyVelocity * 21) : 0;
-        const suggestedReorder = Math.max(
-          0,
-          targetStock - item.availableQuantity,
-        );
+          dailyVelocity > 0 ? Math.ceil(dailyVelocity * Math.max(settings.stockCoverageDays, settings.leadTimeDays + settings.safetyStockDays)) : 0;
+        const suggestedReorder = healthAction === "RESTOCK" && historyComplete ? Math.max(0, targetStock - item.availableQuantity) : 0;
         const capitalNeeded =
           unitCost != null && suggestedReorder > 0
             ? unitCost * suggestedReorder

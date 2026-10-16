@@ -19,6 +19,7 @@ type FormState = {
   fixedFee: string;
   shippingCost: string;
   operatingCost: string;
+  taxPercent: string;
   targetMarginPercent: string;
   targetRoiPercent: string;
   categoryId: string;
@@ -166,6 +167,7 @@ const initial: FormState = {
   fixedFee: "0",
   shippingCost: "0",
   operatingCost: "0",
+  taxPercent: "0",
   targetMarginPercent: "20",
   targetRoiPercent: "30",
   categoryId: "",
@@ -252,6 +254,7 @@ function toInput(form: FormState, override?: Partial<{
       override?.commissionPercent ?? number(form.commissionPercent),
     fixedFee: override?.fixedFee ?? number(form.fixedFee),
     shippingCost: override?.shippingCost ?? number(form.shippingCost),
+    taxPercent: number(form.taxPercent),
     operatingCost: number(form.operatingCost),
     targetMarginPercent: number(form.targetMarginPercent),
     targetRoiPercent: number(form.targetRoiPercent),
@@ -260,6 +263,18 @@ function toInput(form: FormState, override?: Partial<{
 
 export function ProductAnalyzer() {
   const [form, setForm] = useState<FormState>(initial);
+  const [financialConfigured, setFinancialConfigured] = useState(false);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/workspace", { cache: "no-store" }).then((r) => r.ok ? r.json() : null).then((body) => {
+      if (!active || !body) return;
+      setFinancialConfigured(body.settings.taxPercent != null);
+      setForm((current) => ({ ...current, taxPercent: String(body.settings.taxPercent ?? 0),
+        operatingCost: String(body.settings.operatingCostDefault), discountPercent: String(body.settings.defaultDiscountPercent),
+        targetMarginPercent: String(body.settings.targetMarginPercent), targetRoiPercent: String(body.settings.targetRoiPercent) }));
+    }).catch(() => {});
+    return () => { active = false; };
+  }, []);
   const [analysis, setAnalysis] = useState<ProfitabilityResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [quoteLoading, setQuoteLoading] = useState(false);
@@ -485,7 +500,7 @@ export function ProductAnalyzer() {
     number(form.supplierPrice) > 0 && number(form.salePrice) > 0;
 
   const currentPreview = useMemo(
-    () => (hasCoreInputs ? analyzeProfitability(toInput(form)) : null),
+    () => { if (!hasCoreInputs) return null; try { return analyzeProfitability(toInput(form)); } catch { return null; } },
     [form, hasCoreInputs],
   );
 
@@ -493,6 +508,7 @@ export function ProductAnalyzer() {
     0,
     number(form.salePrice) -
       (number(form.salePrice) * number(form.commissionPercent)) / 100 -
+      number(form.salePrice) * number(form.taxPercent) / 100 -
       number(form.fixedFee) -
       number(form.shippingCost) -
       number(form.operatingCost) -
@@ -526,14 +542,14 @@ export function ProductAnalyzer() {
       10: 0.88,
     };
 
-    return [1, 2, 3, 5, 10].map((kitQuantity) =>
+    try { return [1, 2, 3, 5, 10].map((kitQuantity) =>
       analyzeProfitability(
         toInput(form, {
           kitQuantity,
           salePrice: basePrice * kitQuantity * discounts[kitQuantity],
         }),
       ),
-    );
+    ); } catch { return []; }
   }, [form, hasCoreInputs]);
 
   function field<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -872,7 +888,8 @@ export function ProductAnalyzer() {
           heightCm: number(form.heightCm),
           widthCm: number(form.widthCm),
           lengthCm: number(form.lengthCm),
-          operatingCost: number(form.operatingCost),
+          taxPercent: number(form.taxPercent),
+    operatingCost: number(form.operatingCost),
           targetMarginPercent: number(form.targetMarginPercent),
           targetRoiPercent: number(form.targetRoiPercent),
         }),
@@ -1404,6 +1421,11 @@ export function ProductAnalyzer() {
             </small>
           </div>
           <div className="field field-goal">
+            <label htmlFor="analysis-tax">Imposto sobre a venda (%)</label>
+            <input id="analysis-tax" type="number" min="0" max="50" step="0.01" value={form.taxPercent} onChange={(e) => field("taxPercent", e.target.value)} />
+            {!financialConfigured && <small className="field-hint neutral">Prévia com imposto informado. <a href="/configuracoes">Confirme o perfil financeiro</a> para apurar vendas.</small>}
+          </div>
+          <div className="field field-goal">
             <label>Custo operacional</label>
             <input
               type="number"
@@ -1561,7 +1583,7 @@ export function ProductAnalyzer() {
 
               <div className="recommendation">
                 <span>Preço mínimo para suas metas</span>
-                <strong>{money.format(analysis.minimumSuggestedPrice)}</strong>
+                <strong>{analysis.minimumSuggestedPrice == null ? "Meta inviável" : money.format(analysis.minimumSuggestedPrice)}</strong>
                 <small>
                   Ponto de equilíbrio: {money.format(analysis.breakEvenPrice)}.
                   Este preço mínimo é financeiro; competitividade depende da validação de mercado.
@@ -1958,7 +1980,7 @@ export function ProductAnalyzer() {
                   <td>{money.format(item.profit)}</td>
                   <td>{item.marginPercent.toFixed(1)}%</td>
                   <td>{item.roiPercent.toFixed(1)}%</td>
-                  <td>{money.format(item.minimumSuggestedPrice)}</td>
+                  <td>{item.minimumSuggestedPrice == null ? "Meta inviável" : money.format(item.minimumSuggestedPrice)}</td>
                   <td>
                     <span
                       className={

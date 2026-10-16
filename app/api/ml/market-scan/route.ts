@@ -1,3 +1,4 @@
+import { getWorkspaceSettings } from "@/lib/workspace-settings";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -22,6 +23,7 @@ const schema = z.object({
   heightCm: z.coerce.number().positive().max(300),
   widthCm: z.coerce.number().positive().max(300),
   lengthCm: z.coerce.number().positive().max(300),
+  taxPercent: z.coerce.number().min(0).max(50).optional(),
   operatingCost: z.coerce.number().min(0).default(0),
   targetMarginPercent: z.coerce.number().min(0).max(80).default(20),
   targetRoiPercent: z.coerce.number().min(0).max(500).default(30),
@@ -188,6 +190,9 @@ export async function POST(request: Request) {
 
     const input = parsed.data;
     const session = await getMlSession();
+    const settings = await getWorkspaceSettings(session.account.workspaceId);
+    if (input.taxPercent == null && settings.taxPercent == null) return NextResponse.json({ error: "Confirme seu imposto em Metas e configurações." }, { status: 422 });
+    const taxPercent = input.taxPercent ?? Number(settings.taxPercent);
 
     const searchResults = await searchMarketplace({
       accessToken: session.accessToken,
@@ -301,6 +306,7 @@ export async function POST(request: Request) {
       commissionPercent: currentFee.commissionPercent,
       fixedFee: currentFee.fixedFee,
       shippingCost: currentShipping.shippingCost,
+      taxPercent,
       operatingCost: input.operatingCost,
       targetMarginPercent: input.targetMarginPercent,
       targetRoiPercent: input.targetRoiPercent,
@@ -312,7 +318,7 @@ export async function POST(request: Request) {
         : 0;
 
     const netBeforeProductAtMedian =
-      medianPrice - medianFee.saleFeeAmount - medianShipping.shippingCost;
+      medianPrice - medianFee.saleFeeAmount - medianShipping.shippingCost - medianPrice * taxPercent / 100;
 
     const marginLimit =
       netBeforeProductAtMedian -

@@ -32,6 +32,7 @@ const schema = z.object({
   categoryId: z.string().trim().regex(/^MLB\d+$/i).optional(),
   listingType: z.enum(["CLASSIC", "PREMIUM"]).optional(),
   freeShipping: z.boolean().optional(),
+  shippingCost: z.coerce.number().min(0).max(10000).optional(),
 });
 
 export async function POST(request: Request) {
@@ -139,16 +140,16 @@ export async function POST(request: Request) {
         listingType,
         freeShipping: item.freeShipping,
       })
-        : Promise.reject(new Error("frete de terceiro"))
-      ).catch(() => ({
-        shippingCost: 0,
-        billableWeight: 0,
-        discountRate: 0,
-        promotedAmount: 0,
-        raw: null,
-      })),
+        : Promise.resolve(null)
+      ).catch(() => null),
     ]);
-    const shippingKnown = isOwnItem && shipping.raw != null;
+    const shippingKnown = Boolean(isOwnItem && shipping?.raw != null);
+    const shippingCost = shipping?.shippingCost ?? parsed.data.shippingCost ?? null;
+    if (shippingCost == null) {
+      const fees = { commissionPercent: fee.commissionPercent, commissionAmount: price * fee.commissionPercent / 100, fixedFee: fee.fixedFee, shippingCost: null, taxPercent: parsed.data.taxPercent, taxAmount: price * parsed.data.taxPercent / 100 };
+      if (parsed.data.supplierPrice === 0 && !parsed.data.save) return NextResponse.json({ item, fees, shippingKnown: false, shippingSource: "UNAVAILABLE", result: null });
+      return NextResponse.json({ error: "Frete indisponível para este anúncio. Informe seu frete estimado nas configurações da extensão ou analise um anúncio próprio.", fees, shippingKnown: false, result: null }, { status: 422 });
+    }
 
     const analysis = analyzeProfitability({
       productName: item.title,
@@ -159,14 +160,14 @@ export async function POST(request: Request) {
       listingType,
       commissionPercent: fee.commissionPercent,
       fixedFee: fee.fixedFee,
-      shippingCost: shipping.shippingCost,
+      shippingCost,
       operatingCost: parsed.data.operatingCost,
       taxPercent: parsed.data.taxPercent,
       targetMarginPercent: parsed.data.targetMarginPercent,
       targetRoiPercent: parsed.data.targetRoiPercent,
     });
 
-    const strategy = parsed.data.marketReferencePrice
+    const strategy = parsed.data.marketReferencePrice && analysis.minimumSuggestedPrice != null
       ? buildCompetitivePriceStrategy({
           currentPrice: price,
           marketReferencePrice: parsed.data.marketReferencePrice,
@@ -177,16 +178,19 @@ export async function POST(request: Request) {
 
     let savedAnalysisId: string | null = null;
 
+    if (parsed.data.save && !shippingKnown) return NextResponse.json({ error: "A simulação usa frete estimado. Confirme a logística na análise do painel antes de salvar uma decisão." }, { status: 422 });
+    if (parsed.data.save && analysis.minimumSuggestedPrice == null) return NextResponse.json({ error: "A meta de margem é inviável com estas taxas." }, { status: 400 });
     if (parsed.data.save) {
       const localProduct = item.sellerSku
         ? await prisma.product.findUnique({
-            where: { sku: item.sellerSku },
+            where: { workspaceId_sku: { workspaceId: session.account.workspaceId, sku: item.sellerSku } },
             select: { id: true },
           })
         : null;
 
       const saved = await prisma.productAnalysis.create({
         data: {
+          workspaceId: session.account.workspaceId,
           productId: localProduct?.id ?? null,
           productName: item.title,
           listingType,
@@ -207,7 +211,7 @@ export async function POST(request: Request) {
           roiPercent: analysis.roiPercent,
           targetMarginPercent: analysis.targetMarginPercent,
           targetRoiPercent: analysis.targetRoiPercent,
-          minimumSuggestedPrice: analysis.minimumSuggestedPrice,
+          minimumSuggestedPrice: analysis.minimumSuggestedPrice!,
           verdict: analysis.verdict,
           source: "EXTENSION",
           metadata: {
@@ -234,11 +238,12 @@ export async function POST(request: Request) {
         isOwn: isOwnItem,
       },
       shippingKnown,
+      shippingSource: shippingKnown ? "MERCADO_LIVRE_API" : "MANUAL_ESTIMATE",
       fees: {
         commissionPercent: fee.commissionPercent,
         commissionAmount: analysis.commissionAmount,
         fixedFee: fee.fixedFee,
-        shippingCost: shipping.shippingCost,
+        shippingCost,
         taxPercent: parsed.data.taxPercent,
         taxAmount: analysis.taxAmount,
       },

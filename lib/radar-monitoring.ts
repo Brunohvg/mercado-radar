@@ -4,6 +4,7 @@ import {
   getItemsCurrentPrices,
   getItemsVisitTotals,
   getMlSession,
+  getMlSessionForAccount,
 } from "@/lib/mercado-livre";
 import { calculateRadarOpportunityScore } from "@/lib/radar-score";
 
@@ -119,8 +120,8 @@ function createChangeAlerts(input: {
   return alerts;
 }
 
-export async function refreshRadarWatchlist(input?: { limit?: number }) {
-  const session = await getMlSession();
+export async function refreshRadarWatchlist(input?: { limit?: number; accountId?: string }) {
+  const session = input?.accountId ? await getMlSessionForAccount(input.accountId) : await getMlSession();
   const sellerUserId = session.account.mercadoLivreUserId;
   const limit = Math.min(Math.max(input?.limit ?? 100, 1), 200);
 

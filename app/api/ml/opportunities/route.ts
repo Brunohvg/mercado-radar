@@ -1,3 +1,4 @@
+import { getWorkspaceSettings } from "@/lib/workspace-settings";
 import { NextResponse } from "next/server";
 import {
   getCatalogProductDetails,
@@ -72,6 +73,10 @@ function average(values: number[]) {
 async function analyzeTrend(input: {
   accessToken: string;
   userId: string;
+  taxPercent: number;
+  operatingCost: number;
+  targetMarginPercent: number;
+  targetRoiPercent: number;
   keyword: string;
   position: number;
 }) {
@@ -284,12 +289,12 @@ async function analyzeTrend(input: {
     }),
   ]);
 
-  const targetMargin = 0.2;
-  const targetRoi = 0.3;
-  const operatingCost = 1;
+  const targetMargin = input.targetMarginPercent / 100;
+  const targetRoi = input.targetRoiPercent / 100;
+  const operatingCost = input.operatingCost;
 
   const netBeforeProduct =
-    marketMedian - fee.saleFeeAmount - shipping.shippingCost;
+    marketMedian - fee.saleFeeAmount - shipping.shippingCost - marketMedian * input.taxPercent / 100;
   const marginLimit =
     netBeforeProduct - operatingCost - marketMedian * targetMargin;
   const roiLimit =
@@ -331,6 +336,8 @@ async function analyzeTrend(input: {
 export async function GET() {
   try {
     const session = await getMlSession();
+    const settings = await getWorkspaceSettings(session.account.workspaceId);
+    if (settings.taxPercent == null) return NextResponse.json({ error: "Confirme imposto e operação em Metas e configurações antes de calcular o teto de compra." }, { status: 422 });
     const trends = await getTrends({
       accessToken: session.accessToken,
     });
@@ -343,6 +350,8 @@ export async function GET() {
       const result = await analyzeTrend({
         accessToken: session.accessToken,
         userId: session.account.mercadoLivreUserId,
+        taxPercent: Number(settings.taxPercent), operatingCost: Number(settings.operatingCostDefault),
+        targetMarginPercent: Number(settings.targetMarginPercent), targetRoiPercent: Number(settings.targetRoiPercent),
         keyword: trend.keyword,
         position: index + 1,
       }).catch(() => null);

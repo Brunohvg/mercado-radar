@@ -358,7 +358,7 @@ export async function POST(request: Request) {
       { salesPerDay: number; visitsPerDay: number | null }
     >();
     try {
-      const insights = await getMarketInsights(candidates.map((c) => c.itemId));
+      const insights = await getMarketInsights(session.account.workspaceId, candidates.map((c) => c.itemId));
       for (const insight of insights) {
         const e = insight.estimate;
         if (

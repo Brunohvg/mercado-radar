@@ -88,12 +88,14 @@ export async function POST(request: Request) {
     }));
 
     await recordObservations({
+      workspaceId: session.account.workspaceId,
+      sellerUserId: session.account.mercadoLivreUserId,
       source: page === "product" ? "PRODUCT_PAGE" : "SEARCH_CARD",
       query: query ?? null,
       listings,
     });
 
-    const insights = await getMarketInsights(listings.map((l) => l.id));
+    const insights = await getMarketInsights(session.account.workspaceId, listings.map((l) => l.id));
 
     return NextResponse.json({
       items: insights,

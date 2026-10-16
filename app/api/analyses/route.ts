@@ -1,3 +1,4 @@
+import { getWorkspaceId } from "@/lib/workspace-auth";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -12,6 +13,7 @@ export async function GET(request: Request) {
     );
 
     const analyses = await prisma.productAnalysis.findMany({
+      where: { workspaceId: await getWorkspaceId() },
       orderBy: { createdAt: "desc" },
       take: limit,
       include: {
@@ -78,7 +80,8 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    await prisma.productAnalysis.delete({ where: { id } });
+    const result = await prisma.productAnalysis.deleteMany({ where: { id, workspaceId: await getWorkspaceId() } });
+    if (!result.count) return NextResponse.json({ error: "Análise não encontrada." }, { status: 404 });
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message =

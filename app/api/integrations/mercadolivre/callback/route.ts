@@ -1,3 +1,4 @@
+import { getUserSession } from "@/lib/workspace-auth";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getPublicOrigin } from "@/lib/public-url";
@@ -15,6 +16,8 @@ export async function GET(request: Request) {
   const state = url.searchParams.get("state");
 
   const store = await cookies();
+  const radarUser = await getUserSession();
+  const flowWorkspace = store.get("ml_oauth_workspace")?.value;
   const expectedState = store.get("ml_oauth_state")?.value;
   const verifier = store.get("ml_pkce_verifier")?.value;
 
@@ -31,6 +34,7 @@ export async function GET(request: Request) {
     store.get("radar_extension_device_name")?.value ?? "Chrome";
 
   const clearFlowCookies = () => {
+    store.delete("ml_oauth_workspace");
     store.delete("ml_oauth_state");
     store.delete("ml_pkce_verifier");
     store.delete("radar_extension_flow");
@@ -56,6 +60,7 @@ export async function GET(request: Request) {
   };
 
   if (
+    !radarUser || !flowWorkspace || radarUser.workspaceId !== flowWorkspace ||
     !code ||
     !state ||
     !expectedState ||
@@ -82,6 +87,7 @@ export async function GET(request: Request) {
     const user = await fetchCurrentUser(token.access_token);
 
     const account = await saveMlAccount({
+      workspaceId: radarUser!.workspaceId,
       userId: String(user.id ?? token.user_id),
       nickname: user.nickname,
       accessToken: token.access_token,

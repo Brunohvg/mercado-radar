@@ -1,3 +1,4 @@
+import { getWorkspaceId } from "@/lib/workspace-auth";
 import { NextResponse } from "next/server";
 import { getMarketItemHistory } from "@/lib/market-intel";
 
@@ -13,7 +14,7 @@ export async function GET(
   }
 
   try {
-    const history = await getMarketItemHistory(id);
+    const history = await getMarketItemHistory(await getWorkspaceId(), id);
     if (!history) {
       return NextResponse.json(
         { error: "O Radar ainda não observou este anúncio." },

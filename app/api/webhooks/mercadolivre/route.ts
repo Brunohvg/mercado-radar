@@ -5,10 +5,10 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 const notificationSchema = z.object({
-  _id: z.string().optional(),
-  resource: z.string().min(1),
+  _id: z.string().max(200).optional(),
+  resource: z.string().min(1).max(2048).startsWith("/"),
   user_id: z.union([z.string(), z.number()]),
-  topic: z.string().min(1),
+  topic: z.string().min(1).max(100),
   application_id: z.union([z.string(), z.number()]).optional(),
   attempts: z.coerce.number().int().positive().optional(),
   sent: z.string().optional(),
@@ -31,7 +31,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const payload = await request.json();
+    const payload = await request.json().catch(() => null);
     const parsed = notificationSchema.safeParse(payload);
 
     // Mercado Livre recomenda responder rapidamente. Payloads inválidos
@@ -49,13 +49,16 @@ export async function POST(request: Request) {
     const configuredAppId = process.env.MERCADO_LIVRE_CLIENT_ID;
     if (
       configuredAppId &&
-      event.application_id != null &&
-      String(event.application_id) !== configuredAppId
+      String(event.application_id ?? "") !== configuredAppId
     ) {
       console.warn("Ignoring Mercado Livre notification for another application");
       return NextResponse.json({ ok: true, accepted: false });
     }
 
+    const account = await prisma.mercadoLivreAccount.findFirst({
+      where: { mercadoLivreUserId: String(event.user_id), workspace: { active: true } }, select: { id: true },
+    });
+    if (!account) return NextResponse.json({ ok: true, accepted: false });
     await prisma.mercadoLivreNotification.upsert({
       where: { externalId },
       update: {

@@ -1,3 +1,4 @@
+import { getWorkspaceId } from "@/lib/workspace-auth";
 import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { decryptSecret, encryptSecret } from "@/lib/security";
@@ -305,6 +306,7 @@ async function refreshAccessToken(refreshToken: string) {
 }
 
 export async function saveMlAccount(input: {
+  workspaceId: string;
   userId: string;
   nickname?: string;
   accessToken: string;
@@ -312,8 +314,12 @@ export async function saveMlAccount(input: {
   expiresIn: number;
   scope?: string;
 }) {
+  const otherAccount = await prisma.mercadoLivreAccount.findFirst({ where: { workspaceId: input.workspaceId, mercadoLivreUserId: { not: input.userId } } });
+  if (otherAccount) throw new Error("O piloto permite uma conta do Mercado Livre por operação. Reconecte a conta já vinculada.");
+  const existing = await prisma.mercadoLivreAccount.findUnique({ where: { mercadoLivreUserId: input.userId } });
+  if (existing && existing.workspaceId !== input.workspaceId) throw new Error("Esta conta já está vinculada a outro cliente.");
   return prisma.mercadoLivreAccount.upsert({
-    where: { mercadoLivreUserId: input.userId },
+    where: { mercadoLivreUserId: input.userId, workspaceId: input.workspaceId },
     update: {
       nickname: input.nickname,
       accessTokenEncrypted: encryptSecret(input.accessToken),
@@ -322,6 +328,7 @@ export async function saveMlAccount(input: {
       scopes: input.scope,
     },
     create: {
+      workspaceId: input.workspaceId,
       mercadoLivreUserId: input.userId,
       nickname: input.nickname,
       accessTokenEncrypted: encryptSecret(input.accessToken),
@@ -333,6 +340,7 @@ export async function saveMlAccount(input: {
 }
 
 type MlAccountRecord = {
+  workspaceId: string;
   id: string;
   mercadoLivreUserId: string;
   nickname: string | null;
@@ -431,17 +439,13 @@ async function buildMlSession(account: MlAccountRecord) {
   return task;
 }
 
-export async function getMlSession() {
-  // Painel web (single-tenant): se ADMIN_ML_ACCOUNT_ID estiver definido, usa
-  // exatamente essa conta. Sem ele mantém o comportamento anterior (conta mais
-  // recente), o que é arriscado quando há contas de extensão no mesmo banco.
-  const pinned = process.env.ADMIN_ML_ACCOUNT_ID?.trim();
+export async function getWorkspaceMlAccount(workspaceId: string) {
+  const pinned = workspaceId === "default" ? process.env.ADMIN_ML_ACCOUNT_ID?.trim() : undefined;
+  return prisma.mercadoLivreAccount.findFirst({ where: { workspaceId, ...(pinned ? { id: pinned } : {}) }, orderBy: { createdAt: "asc" } });
+}
 
-  const account = pinned
-    ? await prisma.mercadoLivreAccount.findUnique({ where: { id: pinned } })
-    : await prisma.mercadoLivreAccount.findFirst({
-        orderBy: { updatedAt: "desc" },
-      });
+export async function getMlSession() {
+  const account = await getWorkspaceMlAccount(await getWorkspaceId());
 
   if (!account) {
     throw new Error("Conta do Mercado Livre ainda não conectada.");
@@ -455,7 +459,7 @@ export async function getMlSessionForAccount(accountId: string) {
     where: { id: accountId },
   });
 
-  if (!account) {
+  if (!account || !(await prisma.radarWorkspace.findUnique({ where: { id: account.workspaceId } }))?.active) {
     throw new Error("Conta do Mercado Livre vinculada à extensão não encontrada.");
   }
 
@@ -489,7 +493,8 @@ export async function getListingPriceQuote(input: {
     throw new Error("Mercado Livre não retornou tarifa para essa combinação.");
   }
 
-  const saleFeeAmount = Number(quote.sale_fee_amount ?? 0);
+  const saleFeeAmount = Number(quote.sale_fee_amount);
+  if (quote.sale_fee_amount == null || !Number.isFinite(saleFeeAmount) || saleFeeAmount < 0) throw new Error("Tarifa indisponível para este anúncio.");
   const fixedFee = Number(quote.sale_fee_details?.fixed_fee ?? 0);
   const variableFee = Math.max(0, saleFeeAmount - fixedFee);
   const commissionPercent =
@@ -535,13 +540,13 @@ export async function getShippingQuote(input: {
   );
 
   const coverage = raw?.coverage?.all_country;
-  if (!coverage) {
+  if (!coverage || coverage.list_cost == null || !Number.isFinite(Number(coverage.list_cost)) || Number(coverage.list_cost) < 0) {
     throw new Error("Mercado Livre não retornou cotação de frete.");
   }
 
   return {
     raw,
-    shippingCost: Number(coverage.list_cost ?? 0),
+    shippingCost: Number(coverage.list_cost),
     billableWeight: Number(coverage.billable_weight ?? input.weightGrams),
     discountRate: Number(coverage.discount?.rate ?? 0),
     promotedAmount: Number(coverage.discount?.promoted_amount ?? 0),
@@ -1107,6 +1112,7 @@ export async function getShipmentCosts(input: {
     },
   );
 
+  if (!raw.senders?.length || raw.senders.some((s) => s.cost == null || !Number.isFinite(Number(s.cost)))) throw new Error("Custo de frete realizado ainda indisponível.");
   const sellerCost = (raw.senders ?? []).reduce(
     (sum, sender) => sum + Number(sender.cost ?? 0),
     0,
@@ -1120,6 +1126,17 @@ export async function getShipmentCosts(input: {
   };
 }
 
+
+export async function getShipmentOrderIds(input: { accessToken: string; shipmentId: string; sellerUserId: string }) {
+  const rows = await jsonFetch<Array<{ order_id?: string | number; sender_id?: string | number }>>(
+    `${API}/shipments/${input.shipmentId}/items`,
+    { headers: { Authorization: `Bearer ${input.accessToken}`, "x-format-new": "true" } },
+  );
+  if (!Array.isArray(rows) || !rows.length || rows.some((row) => row.order_id == null || (row.sender_id != null && String(row.sender_id) !== input.sellerUserId))) {
+    throw new Error("Pedidos do envio ainda não disponíveis para rateio.");
+  }
+  return [...new Set(rows.map((row) => String(row.order_id)))];
+}
 
 export async function getOrderShipment(input: {
   accessToken: string;
@@ -1324,13 +1341,13 @@ export async function getExistingItemShippingQuote(input: {
   );
 
   const coverage = raw?.coverage?.all_country;
-  if (!coverage) {
+  if (!coverage || coverage.list_cost == null || !Number.isFinite(Number(coverage.list_cost)) || Number(coverage.list_cost) < 0) {
     throw new Error("Mercado Livre não retornou o custo de envio do anúncio.");
   }
 
   return {
     raw,
-    shippingCost: Number(coverage.list_cost ?? 0),
+    shippingCost: Number(coverage.list_cost),
     billableWeight: Number(coverage.billable_weight ?? 0),
     discountRate: Number(coverage.discount?.rate ?? 0),
     promotedAmount: Number(coverage.discount?.promoted_amount ?? 0),

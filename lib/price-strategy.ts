@@ -23,11 +23,12 @@ const round2 = (value: number) =>
 export function buildCompetitivePriceStrategy(input: {
   currentPrice: number;
   marketReferencePrice: number;
-  minimumSuggestedPrice: number;
+  minimumSuggestedPrice: number | null;
   breakEvenPrice: number;
 }): CompetitivePriceStrategy {
   const currentPrice = Math.max(0, input.currentPrice);
   const marketReferencePrice = Math.max(0, input.marketReferencePrice);
+  if (input.minimumSuggestedPrice == null) throw new Error("Meta de margem inviável com estas taxas. Revise suas metas.");
   const safeFloor = Math.max(0, input.minimumSuggestedPrice);
   const breakEvenPrice = Math.max(0, input.breakEvenPrice);
 

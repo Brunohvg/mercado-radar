@@ -1,3 +1,4 @@
+import { getWorkspaceSettings } from "@/lib/workspace-settings";
 import { NextResponse } from "next/server";
 import { getExtensionSession } from "@/lib/extension-auth";
 
@@ -11,8 +12,11 @@ export async function GET(request: Request) {
       );
     }
 
+    const settings = await getWorkspaceSettings(session.account.workspaceId);
     return NextResponse.json({
       authenticated: true,
+      workspaceId: session.account.workspaceId,
+      preferences: { taxPercent: settings.taxPercent == null ? null : Number(settings.taxPercent), operatingCost: Number(settings.operatingCostDefault), targetMarginPercent: Number(settings.targetMarginPercent), targetRoiPercent: Number(settings.targetRoiPercent), updatedAt: settings.updatedAt },
       account: {
         userId: session.account.mercadoLivreUserId,
         nickname: session.account.nickname,
@@ -21,9 +25,9 @@ export async function GET(request: Request) {
         id: session.access.id,
         deviceId: session.access.deviceId,
         name: session.access.name,
-        plan: session.access.plan,
+        plan: session.account.workspace.plan,
         capabilities: session.access.capabilities,
-        dailyRequestLimit: session.access.dailyRequestLimit,
+        dailyRequestLimit: session.account.workspace.dailyRequestLimit,
         lastUsedAt: session.access.lastUsedAt,
         expiresAt: session.access.expiresAt,
       },

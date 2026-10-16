@@ -1,9 +1,11 @@
+import { getWorkspaceId } from "@/lib/workspace-auth";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { randomUrlSafe, sha256UrlSafe } from "@/lib/security";
 import { getPublicOrigin } from "@/lib/public-url";
 
 export async function GET(request: Request) {
+  const workspaceId = await getWorkspaceId();
   const clientId = process.env.MERCADO_LIVRE_CLIENT_ID;
 
   if (!clientId) {
@@ -31,6 +33,7 @@ export async function GET(request: Request) {
     maxAge: 10 * 60,
   };
 
+  store.set("ml_oauth_workspace", workspaceId, cookieOptions);
   store.set("ml_oauth_state", state, cookieOptions);
   store.set("ml_pkce_verifier", verifier, cookieOptions);
 

@@ -1,3 +1,5 @@
+import { getWorkspaceMlAccount } from "@/lib/mercado-livre";
+import { getWorkspaceId } from "@/lib/workspace-auth";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -11,9 +13,8 @@ export async function GET() {
   );
 
   try {
-    const account = await prisma.mercadoLivreAccount.findFirst({
-      orderBy: { updatedAt: "desc" },
-    });
+    const workspaceId = await getWorkspaceId();
+    const account = await getWorkspaceMlAccount(workspaceId);
 
     return NextResponse.json({
       configured,

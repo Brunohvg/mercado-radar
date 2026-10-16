@@ -156,7 +156,7 @@ export async function GET(request: Request) {
 
     if (unitCost == null && product.sku) {
       const local = await prisma.product.findUnique({
-        where: { sku: product.sku },
+        where: { workspaceId_sku: { workspaceId: session.account.workspaceId, sku: product.sku } },
         select: {
           supplierPrice: true,
           discountPercent: true,
@@ -181,7 +181,7 @@ export async function GET(request: Request) {
     ) {
       const listingType = listingTypeFromId(product.listingTypeId);
       const settings = await prisma.appSettings.findUnique({
-        where: { id: "default" },
+        where: { id: session.account.workspaceId },
       });
 
       const targetMarginPercent = Number(
@@ -192,6 +192,7 @@ export async function GET(request: Request) {
         settings?.operatingCostDefault ?? 1,
       );
 
+      if (settings?.taxPercent == null) throw new Error("Confirme o imposto em Metas e configurações para analisar a rentabilidade.");
       const [fee, shipping] = await Promise.all([
         getListingPriceQuote({
           accessToken: session.accessToken,
@@ -206,13 +207,7 @@ export async function GET(request: Request) {
           price: currentPrice,
           listingType,
           freeShipping: product.freeShipping,
-        }).catch(() => ({
-          shippingCost: 0,
-          billableWeight: 0,
-          discountRate: 0,
-          promotedAmount: 0,
-          raw: null,
-        })),
+        }),
       ]);
 
       profitability = analyzeProfitability({
@@ -226,7 +221,7 @@ export async function GET(request: Request) {
         fixedFee: fee.fixedFee,
         shippingCost: shipping.shippingCost,
         operatingCost,
-        taxPercent: 0,
+        taxPercent: Number(settings.taxPercent),
         targetMarginPercent,
         targetRoiPercent,
       });
@@ -243,7 +238,7 @@ export async function GET(request: Request) {
               : null;
 
       if (marketReferencePrice != null) {
-        strategy = buildCompetitivePriceStrategy({
+        strategy = profitability.minimumSuggestedPrice == null ? null : buildCompetitivePriceStrategy({
           currentPrice,
           marketReferencePrice,
           minimumSuggestedPrice: profitability.minimumSuggestedPrice,

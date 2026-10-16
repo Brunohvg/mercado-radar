@@ -65,6 +65,8 @@ const toNum = (value: unknown) => {
  * ou antes disso se preço, faixa de vendidos ou avaliações mudaram.
  */
 export async function recordObservations(input: {
+  workspaceId: string;
+  sellerUserId: string;
   source: ObservationSource;
   query?: string | null;
   listings: ObservedListing[];
@@ -77,7 +79,7 @@ export async function recordObservations(input: {
 
   const [existing, own] = await Promise.all([
     prisma.marketItem.findMany({
-      where: { id: { in: ids } },
+      where: { workspaceId: input.workspaceId, id: { in: ids } },
       select: {
         id: true,
         lastPrice: true,
@@ -87,7 +89,7 @@ export async function recordObservations(input: {
       },
     }),
     prisma.mercadoLivreProduct.findMany({
-      where: { mlItemId: { in: ids } },
+      where: { sellerUserId: input.sellerUserId, mlItemId: { in: ids } },
       select: { mlItemId: true },
     }),
   ]);
@@ -148,9 +150,9 @@ export async function recordObservations(input: {
     // upsert (ON CONFLICT): duas abas enviando o mesmo anúncio novo não colidem
     writes.push(
       prisma.marketItem.upsert({
-        where: { id: l.id },
+        where: { workspaceId_id: { workspaceId: input.workspaceId, id: l.id } },
         update: { ...data, ...(takeSnapshot ? { observationCount: { increment: 1 } } : {}) },
-        create: { id: l.id, ...data, observationCount: 1, firstSeenAt: now, lastSnapshotAt: now },
+        create: { workspaceId: input.workspaceId, id: l.id, ...data, observationCount: 1, firstSeenAt: now, lastSnapshotAt: now },
       }),
     );
 
@@ -174,7 +176,7 @@ export async function recordObservations(input: {
   await prisma.$transaction(writes);
 
   if (snapshots.length) {
-    await prisma.marketItemSnapshot.createMany({ data: snapshots });
+    await prisma.marketItemSnapshot.createMany({ data: snapshots.map((snapshot) => ({ ...snapshot, workspaceId: input.workspaceId })) });
   }
 
   return { saved: snapshots.length };
@@ -195,6 +197,7 @@ function dedupeById(listings: ObservedListing[]) {
  * de produtos): vendidos exatos e visitas totais da API.
  */
 export async function recordOwnListings(
+  workspaceId: string,
   items: Array<{
     id: string;
     title: string;
@@ -213,7 +216,7 @@ export async function recordOwnListings(
 ) {
   const now = new Date();
   const known = await prisma.marketItem.findMany({
-    where: { id: { in: items.map((i) => i.id) } },
+    where: { workspaceId, id: { in: items.map((i) => i.id) } },
     select: { id: true, lastSoldLower: true, lastPrice: true, lastSnapshotAt: true },
   });
   const knownById = new Map(known.map((k) => [k.id, k]));
@@ -245,14 +248,15 @@ export async function recordOwnListings(
     };
 
     await prisma.marketItem.upsert({
-      where: { id: item.id },
+      where: { workspaceId_id: { workspaceId, id: item.id } },
       update: { ...data, ...(takeSnapshot ? { observationCount: { increment: 1 } } : {}) },
-      create: { id: item.id, ...data, observationCount: 1, firstSeenAt: now, lastSnapshotAt: now },
+      create: { workspaceId, id: item.id, ...data, observationCount: 1, firstSeenAt: now, lastSnapshotAt: now },
     });
 
     if (!takeSnapshot) continue;
     await prisma.marketItemSnapshot.create({
       data: {
+        workspaceId,
         itemId: item.id,
         observedAt: now,
         source: "OWN_API",
@@ -277,23 +281,25 @@ type CalibrationState = {
   expiresAt: number;
 };
 
-let calibrationCache: CalibrationState | null = null;
+const calibrationCache = new Map<string, CalibrationState>();
 
-export async function getCalibration(): Promise<CalibrationState> {
-  if (calibrationCache && calibrationCache.expiresAt > Date.now()) return calibrationCache;
+export async function getCalibration(workspaceId: string): Promise<CalibrationState> {
+  const cached = calibrationCache.get(workspaceId);
+  if (cached && cached.expiresAt > Date.now()) return cached;
 
   const [own, dated, reviewed] = await Promise.all([
     prisma.mercadoLivreProduct.findMany({
+      where: { sellerUserId: { in: (await prisma.mercadoLivreAccount.findMany({ where: { workspaceId }, select: { mercadoLivreUserId: true } })).map((a) => a.mercadoLivreUserId) } },
       select: { mlItemId: true, listingCreatedAt: true, soldQuantity: true, visitsTotal: true },
       take: 2000,
     }),
     prisma.marketItem.findMany({
-      where: { dateCreated: { not: null } },
+      where: { workspaceId, dateCreated: { not: null } },
       select: { id: true, dateCreated: true },
       take: 5000,
     }),
     prisma.marketItem.findMany({
-      where: { lastReviews: { gte: 20 }, lastSoldLower: { gte: 100 }, isOwn: false },
+      where: { workspaceId, lastReviews: { gte: 20 }, lastSoldLower: { gte: 100 }, isOwn: false },
       select: { lastReviews: true, lastSoldLower: true, lastSoldUpper: true },
       take: 5000,
     }),
@@ -344,13 +350,15 @@ export async function getCalibration(): Promise<CalibrationState> {
   ].filter((a): a is { id: number; at: number } => a.id != null);
   const uniqueAnchors = [...new Map(anchors.map((a) => [a.id, a])).values()];
 
-  calibrationCache = {
+  const state: CalibrationState = {
     calibration: { conversion, soldPerReview },
     idToDate: buildIdDateModel(uniqueAnchors),
     anchors: uniqueAnchors.length,
     expiresAt: Date.now() + 15 * 60_000,
   };
-  return calibrationCache;
+  if (calibrationCache.size >= 200) calibrationCache.delete(calibrationCache.keys().next().value!);
+  calibrationCache.set(workspaceId, state);
+  return state;
 }
 
 /* ------------------------------------------------------------------ */
@@ -380,12 +388,12 @@ export type MarketItemInsight = {
   demand: ReturnType<typeof demandFrom>;
 };
 
-async function officialFactsFor(ids: string[], ageById: Map<string, number | null>) {
+async function officialFactsFor(workspaceId: string, ids: string[], ageById: Map<string, number | null>) {
   const facts = new Map<string, OfficialFacts>();
   if (!ids.length) return facts;
 
   const lastOrdersSync = await prisma.syncRun.findFirst({
-    where: { kind: "ML_ORDERS", status: "SUCCESS" },
+    where: { workspaceId, kind: "ML_ORDERS", status: "SUCCESS" },
     orderBy: { finishedAt: "desc" },
     select: { finishedAt: true, metadata: true },
   });
@@ -404,7 +412,7 @@ async function officialFactsFor(ids: string[], ageById: Map<string, number | nul
     by: ["mlItemId"],
     where: {
       mlItemId: { in: ids },
-      order: { is: { dateCreated: { gte: since }, status: { notIn: ["cancelled", "invalid"] } } },
+      order: { is: { dateCreated: { gte: since }, status: "paid", sellerUserId: { in: (await prisma.mercadoLivreAccount.findMany({ where: { workspaceId }, select: { mercadoLivreUserId: true } })).map((a) => a.mercadoLivreUserId) } } },
     },
     _sum: { quantity: true },
   });
@@ -431,15 +439,15 @@ function visitsPerDayFromSnapshots(snaps: Array<{ observedAt: Date; visitsTotal:
   return Math.max(0, (last.visitsTotal! - first.visitsTotal!) / days);
 }
 
-export async function getMarketInsights(ids: string[]): Promise<MarketItemInsight[]> {
+export async function getMarketInsights(workspaceId: string, ids: string[]): Promise<MarketItemInsight[]> {
   const unique = [...new Set(ids.map((id) => id.toUpperCase()))].slice(0, 200);
   if (!unique.length) return [];
 
   const since = new Date(Date.now() - 120 * DAY_MS);
   const [items, snapshots, state] = await Promise.all([
-    prisma.marketItem.findMany({ where: { id: { in: unique } } }),
+    prisma.marketItem.findMany({ where: { workspaceId, id: { in: unique } } }),
     prisma.marketItemSnapshot.findMany({
-      where: { itemId: { in: unique }, observedAt: { gte: since } },
+      where: { workspaceId, itemId: { in: unique }, observedAt: { gte: since } },
       orderBy: { observedAt: "asc" },
       select: {
         itemId: true,
@@ -452,12 +460,12 @@ export async function getMarketInsights(ids: string[]): Promise<MarketItemInsigh
         visitsTotal: true,
       },
     }),
-    getCalibration(),
+    getCalibration(workspaceId),
   ]);
 
   const ownIds = items.filter((i) => i.isOwn).map((i) => i.id);
   const official = await officialFactsFor(
-    ownIds,
+    workspaceId, ownIds,
     new Map(
       items
         .filter((i) => i.isOwn)
@@ -548,12 +556,12 @@ export async function getMarketInsights(ids: string[]): Promise<MarketItemInsigh
 }
 
 /** Série temporal de um anúncio para gráficos. */
-export async function getMarketItemHistory(id: string) {
+export async function getMarketItemHistory(workspaceId: string, id: string) {
   const itemId = id.toUpperCase();
   const [item, snapshots] = await Promise.all([
-    prisma.marketItem.findUnique({ where: { id: itemId } }),
+    prisma.marketItem.findUnique({ where: { workspaceId_id: { workspaceId, id: itemId } } }),
     prisma.marketItemSnapshot.findMany({
-      where: { itemId },
+      where: { workspaceId, itemId },
       orderBy: { observedAt: "desc" },
       take: 500,
     }),
@@ -561,7 +569,7 @@ export async function getMarketItemHistory(id: string) {
   if (!item) return null;
   snapshots.reverse();
 
-  const [insight] = await getMarketInsights([itemId]);
+  const [insight] = await getMarketInsights(workspaceId, [itemId]);
   return {
     insight,
     series: snapshots.map((s) => ({

@@ -16,7 +16,7 @@ export default function ExtensionPage() {
               </p>
             </div>
             <span className="status-chip attention extension-install-beta">
-              Beta 0.9.0
+              Beta 0.9.1
             </span>
           </header>
 
@@ -111,8 +111,8 @@ export default function ExtensionPage() {
                 <span>Ferramentas contextuais</span>
                 <strong>Ativo</strong>
                 <small>
-                  menu rápido, calculadora por anúncio e monitoramento por
-                  leitura
+                  indicadores nos cards, análise automática no produto e menu
+                  rápido
                 </small>
               </div>
               <div>

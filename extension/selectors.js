@@ -763,12 +763,14 @@
   }
 
   // Insert only in a vertical content flow. Unknown layouts keep the menu/panel.
-  // No native element receives styles or a new wrapper from the extension.
-  function verticalParent(element) {
+  // A title link can have a sibling indicator, never content injected inside it.
+  function verticalParent(element, allowTitleLink = false) {
     const parent = element?.parentElement;
     if (
       !parent ||
-      element.closest("a, button, form") ||
+      (allowTitleLink && element.matches("a") ? parent : element).closest(
+        "a, button, form",
+      ) ||
       parent === document.body
     )
       return false;
@@ -800,6 +802,52 @@
     return verticalParent(element)
       ? { element, position: "beforebegin" }
       : null;
+  }
+
+  function contextualCardAnchor(card) {
+    const title = first(TITLE_SELECTORS, card);
+    const element =
+      title?.closest(
+        ".poly-component__title-wrapper, .ui-search-item__group--title, h2, h3",
+      ) || title;
+    if (
+      !element ||
+      !card.contains(element) ||
+      element.parentElement?.closest("a") ||
+      !verticalParent(element, true) ||
+      getComputedStyle(card).position === "absolute"
+    )
+      return null;
+    const resize = [];
+    let node = element.parentElement;
+    while (node && card.contains(node)) {
+      resize.push(node);
+      if (node === card) break;
+      node = node.parentElement;
+    }
+    const grid = card.closest(
+      "ol.ui-search-layout, ul.ui-search-layout, .ui-search-layout",
+    );
+    if (
+      resize.some((node) => getComputedStyle(node).position === "absolute") ||
+      [...resize, ...(grid ? [grid] : [])].some((node) =>
+        [
+          "height",
+          "max-height",
+          ...(node === grid ? ["grid-template-rows"] : []),
+        ].some(
+          (property) =>
+            node.style.getPropertyPriority(property) === "important",
+        ),
+      )
+    )
+      return null;
+    return {
+      element,
+      position: "afterend",
+      resize,
+      grid,
+    };
   }
 
   function contextualProductAnalysisAnchor() {
@@ -888,6 +936,7 @@
     contextualProductAnchor,
     contextualProductAnalysisAnchor,
     contextualSearchAnchor,
+    contextualCardAnchor,
     isProductPage,
     healthCheck,
   };

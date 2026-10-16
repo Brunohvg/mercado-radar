@@ -97,24 +97,39 @@ try {
             const ok = (body) => ({ ok: true, status: 200, body });
             if (message.path === "/api/extension/watchlist")
               return ok({ note: "Salvo. Atualiza por novas leituras." });
-            if (message.path === "/api/extension/observations")
-              return ok({
-                items: message.body.items.map((item) => ({
-                  id: item.id,
-                  isOwn: qa.own,
-                  estimate: {
-                    method:
-                      qa.rate == null
-                        ? "PAGINA"
-                        : qa.own
-                          ? "OFICIAL"
-                          : "HISTORICO",
-                    windowDays: qa.rate == null ? null : 30,
-                    salesPerDay: { value: qa.rate },
-                    sold: { exact: false },
-                  },
-                })),
-              });
+            if (message.path === "/api/extension/observations") {
+              const result = {
+                items: message.body.items.map((item) => {
+                  const rate = Object.hasOwn(qa.rates || {}, item.id)
+                    ? qa.rates[item.id]
+                    : qa.rate;
+                  return {
+                    id: item.id,
+                    price: item.price,
+                    isOwn: qa.own,
+                    estimate: {
+                      method:
+                        rate == null
+                          ? "PAGINA"
+                          : qa.own
+                            ? "OFICIAL"
+                            : "HISTORICO",
+                      windowDays: rate == null ? null : 30,
+                      salesPerDay: { value: rate },
+                      revenuePerDay: {
+                        value: rate == null ? null : rate * item.price,
+                      },
+                      sold: { exact: false },
+                    },
+                  };
+                }),
+              };
+              if (qa.holdObservations)
+                await new Promise((resolve) => {
+                  qa.releaseObservations = resolve;
+                });
+              return ok(result);
+            }
             if (message.path.startsWith("/api/extension/item?"))
               return ok({
                 item: qa.own
@@ -512,13 +527,36 @@ try {
     route.fulfill({ body: searchFixture, contentType: "text/html" }),
   );
   await searchPage.goto("https://lista.mercadolivre.com.br/fio-encerado");
+  await searchPage.evaluate(() => {
+    __hostQa.rate = 1;
+    __hostQa.rates = {
+      MLBU5074600640: 4,
+      MLBU5074600641: 0.2,
+      MLBU5074600642: null,
+      MLBU5074600643: 12,
+    };
+    const sold = document.createElement("p");
+    sold.textContent = "+100 vendidos";
+    document.querySelectorAll(".poly-card__content")[2].append(sold);
+  });
   const cardGeometry = () =>
     searchPage.locator(".poly-card").evaluateAll((nodes) =>
-      nodes.map((el) => ({
-        rect: el.getBoundingClientRect().toJSON(),
-        style: el.getAttribute("style"),
-        html: el.innerHTML,
-      })),
+      nodes.map((el) => {
+        const native = el.cloneNode(true);
+        for (const owned of native.querySelectorAll("[data-radar-owned]"))
+          owned.remove();
+        for (const fitted of native.querySelectorAll("[data-radar-card-fit]"))
+          fitted.removeAttribute("data-radar-card-fit");
+        return {
+          rect: el.getBoundingClientRect().toJSON(),
+          photo: el
+            .querySelector(".poly-card__portada")
+            .getBoundingClientRect()
+            .toJSON(),
+          style: el.getAttribute("style"),
+          html: native.innerHTML,
+        };
+      }),
     );
   const searchBefore = await cardGeometry();
   for (const name of [
@@ -530,7 +568,7 @@ try {
     await searchPage.addScriptTag({ path: new URL(name, extension).pathname });
   await searchPage.locator('[data-radar-owned="search"]').waitFor();
   await check(
-    "search toolbar and photo shortcuts preserve native card sizes and content",
+    "compact indicators sit after titles, reserve height and preserve photos, columns and native content",
     async () => {
       const after = await cardGeometry();
       const delta = after[0].rect.y - searchBefore[0].rect.y;
@@ -539,28 +577,157 @@ try {
         assert.equal(after[i].style, searchBefore[i].style);
         assert.equal(after[i].html, searchBefore[i].html);
         assert.equal(after[i].rect.width, searchBefore[i].rect.width);
-        assert.equal(after[i].rect.height, searchBefore[i].rect.height);
+        assert.ok(after[i].rect.height > searchBefore[i].rect.height);
         assert.equal(after[i].rect.x, searchBefore[i].rect.x);
-        assert.equal(after[i].rect.y - searchBefore[i].rect.y, delta);
+        assert.equal(after[i].photo.width, searchBefore[i].photo.width);
+        assert.equal(after[i].photo.height, searchBefore[i].photo.height);
+        if (i < 4)
+          assert.equal(after[i].rect.y - searchBefore[i].rect.y, delta);
+        if (i >= 4) assert.ok(after[i].rect.top >= after[i - 4].rect.bottom);
+        assert.equal(after[i].rect.bottom, after[Math.floor(i / 4) * 4].rect.bottom);
       }
       assert.equal(
         await searchPage.locator('[data-radar-owned="card"]').count(),
         8,
       );
       const first = searchPage.locator('[data-radar-owned="card"]').first();
-      await first.locator(".analyze").click();
+      await first.locator(".intel-pill").filter({ hasText: "Alta" }).waitFor();
       assert.equal(
         await searchPage.evaluate(
-          () =>
-            __messages.filter((m) => m.type === "RADAR_OPEN_PANEL").at(-1)
-              .referenceId,
+          () => __messages.filter((m) => m.type === "RADAR_OPEN_PANEL").length,
         ),
-        "MLBU5074600640",
+        0,
+      );
+      assert.equal(
+        await searchPage.locator('[data-radar-owned="card"] .analyze').count(),
+        0,
+      );
+      assert.equal(
+        await searchPage
+          .locator(".poly-card__portada [data-radar-owned]")
+          .count(),
+        0,
+      );
+      assert.equal(
+        await first.locator(".intel-number").innerText(),
+        "R$ 71,60",
+      );
+      assert.equal(
+        await first.locator(".intel-cell small").last().innerText(),
+        "receita est./dia",
+      );
+      assert.match(
+        await first.locator(".intel-number").getAttribute("title"),
+        /30 dias.*Estimativa bruta/,
+      );
+      assert.deepEqual(
+        await searchPage
+          .locator('[data-radar-owned="card"] .intel-pill')
+          .allTextContents(),
+        [
+          "Alta",
+          "Baixa",
+          "Sem período",
+          "Excelente",
+          "Média",
+          "Média",
+          "Média",
+          "Média",
+        ],
+      );
+      const unknown = searchPage.locator('[data-radar-owned="card"]').nth(2);
+      assert.equal(await unknown.locator(".intel-number").innerText(), "+100");
+      assert.equal(
+        await unknown.locator(".intel-cell small").last().innerText(),
+        "vendidos no total",
+      );
+      assert.equal(
+        await searchPage
+          .locator(".poly-component__title")
+          .first()
+          .getAttribute("href"),
+        "https://www.mercadolivre.com.br/fio/up/MLBU5074600640",
+      );
+      assert.equal(
+        await searchPage.locator(".poly-card").evaluateAll((cards) =>
+          cards.every((card) => {
+            const intel = card.querySelector('[data-radar-owned="card"]');
+            const title = card.querySelector(".poly-component__title");
+            const price = card.querySelector(".poly-price__current");
+            return (
+              title.nextElementSibling === intel &&
+              intel.getBoundingClientRect().bottom <=
+                price.getBoundingClientRect().top &&
+              price.getBoundingClientRect().bottom <=
+                card.getBoundingClientRect().bottom
+            );
+          }),
+        ),
+        true,
       );
       assert.equal(
         searchPage.url(),
         "https://lista.mercadolivre.com.br/fio-encerado",
       );
+    },
+  );
+  await check(
+    "search uses one automatic batch and restores native heights when hidden",
+    async () => {
+      const calls = () =>
+        searchPage.evaluate(
+          () =>
+            __messages.filter((m) => m.path === "/api/extension/observations")
+              .length,
+        );
+      assert.equal(await calls(), 1);
+      await searchPage
+        .locator('[data-radar-owned="card"] .choose')
+        .first()
+        .check();
+      await searchPage.waitForTimeout(650);
+      assert.equal(await calls(), 1);
+      await searchPage
+        .locator('[data-radar-owned="card"] .choose')
+        .first()
+        .uncheck();
+      const launcher = searchPage.locator('[data-radar-owned="launcher"]');
+      await launcher
+        .getByRole("button", {
+          name: "Abrir menu do Mercado Radar",
+          exact: true,
+        })
+        .click();
+      await launcher
+        .getByRole("button", { name: "Ocultar análise na página", exact: true })
+        .click();
+      assert.equal(
+        await searchPage
+          .locator(
+            '[data-radar-owned="card"], [data-radar-owned="card-layout"], [data-radar-card-fit], [data-radar-grid-fit]',
+          )
+          .count(),
+        0,
+      );
+      assert.deepEqual(await cardGeometry(), searchBefore);
+      await searchPage.waitForTimeout(650);
+      assert.equal(await calls(), 1);
+      await launcher
+        .getByRole("button", {
+          name: "Abrir menu do Mercado Radar",
+          exact: true,
+        })
+        .click();
+      await launcher
+        .getByRole("button", { name: "Mostrar análise na página", exact: true })
+        .click();
+      await searchPage
+        .locator('[data-radar-owned="card"]')
+        .first()
+        .locator(".intel-pill")
+        .filter({ hasText: "Alta" })
+        .waitFor();
+      assert.equal(await calls(), 2);
     },
   );
   await check(
@@ -651,6 +818,24 @@ try {
       }
     },
   );
+
+  await check("search clears prior session insights and ignores its late batch response", async () => {
+    await searchPage.evaluate(() => {
+      __hostQa.holdObservations = true;
+      __hostQa.change({radarAccessToken: {newValue: "next-session"}}, "local");
+    });
+    await searchPage.waitForFunction(() => typeof __hostQa.releaseObservations === "function");
+    await searchPage.evaluate(() => {
+      __hostQa.auth = false;
+      __hostQa.change({radarAccessToken: {newValue: null}}, "local");
+    });
+    const pills = searchPage.locator('[data-radar-owned="card"] .intel-pill');
+    assert.ok((await pills.allTextContents()).every((text) => text === "Sem período"));
+    await searchPage.evaluate(() => __hostQa.releaseObservations());
+    await searchPage.waitForTimeout(650);
+    assert.ok((await pills.allTextContents()).every((text) => text === "Sem período"));
+    assert.equal(await searchPage.locator('[data-radar-owned="card"] .intel-number').filter({hasText: "R$"}).count(), 0);
+  });
 
   const page = await browser.newPage({ viewport: { width: 390, height: 900 } });
   page.on("pageerror", (error) => errors.push(error.message));
@@ -1125,12 +1310,13 @@ try {
   assert.deepEqual(errors, []);
   console.log(`EXTENSION_BROWSER_OK ${checks} checks; no browser errors`);
 } catch (error) {
+  console.error("BROWSER_FAILURE", error);
   for (const p of browser.contexts().flatMap((c) => c.pages())) {
-    if (await p.locator('[data-radar-owned="product"]').count()) {
+    if (await p.locator('[data-radar-owned="product-analysis"]').count()) {
       console.error(
         "PRODUCT_DEBUG",
         await p
-          .locator('[data-radar-owned="product"] .auto-analysis')
+          .locator('[data-radar-owned="product-analysis"] .auto-analysis')
           .innerText(),
         await p.evaluate(() =>
           __messages
@@ -1144,6 +1330,11 @@ try {
           fullPage: true,
         });
     }
+    if (p.url().startsWith("https://lista.mercadolivre.com.br") && artifacts)
+      await p.screenshot({
+        path: artifacts + "/search-failure.png",
+        fullPage: true,
+      });
     if (p.url().includes("sidepanel")) {
       console.error(
         "PANEL_DEBUG",

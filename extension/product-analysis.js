@@ -135,19 +135,30 @@
     )
       return null;
     const shipKnown = quote.shippingKnown === true && numeric(f.shippingCost);
+    const estimated =
+      quote.shippingEstimated === true && numeric(f.shippingCost);
+    const manual =
+      quote.shippingSource === "MANUAL_ESTIMATE" && numeric(f.shippingCost);
+    const applied = shipKnown || estimated || manual;
     return {
       value:
         Math.round(
           (price -
             f.commissionAmount -
             f.fixedFee -
-            (shipKnown ? f.shippingCost : 0)) *
+            (applied ? f.shippingCost : 0)) *
             100,
         ) / 100,
-      label: shipKnown
-        ? "Repasse após tarifas e frete"
-        : "Após tarifas, antes do frete",
+      label: estimated
+        ? "Repasse com frete estimado"
+        : manual
+          ? "Repasse com frete informado"
+          : shipKnown
+            ? "Repasse após tarifas e frete"
+            : "Após tarifas, antes do frete",
       shippingKnown: shipKnown,
+      shippingEstimated: estimated,
+      shippingApplied: applied,
     };
   }
   function createController({ send, preferences, changed }) {
@@ -163,6 +174,7 @@
         auth: null,
         taxConfigured: false,
         insight: null,
+        analytics: null,
         item: null,
         quotes: {},
         candidates: [],
@@ -208,7 +220,9 @@
       const quote = state.quotes[state.listingType];
       const shipping =
         M.money(state.fields.shipping) ??
-        (quote?.shippingKnown ? quote.fees.shippingCost : null);
+        (quote?.shippingKnown || quote?.shippingEstimated
+          ? quote.fees.shippingCost
+          : null);
       return {
         cost: M.money(state.fields.cost),
         tax: M.money(state.fields.tax),
@@ -231,7 +245,8 @@
         shippingCost:
           quoteOnly ||
           (!state.edited.has("shipping") &&
-            state.quotes[listingType]?.shippingKnown)
+            (state.quotes[listingType]?.shippingKnown ||
+              state.quotes[listingType]?.shippingEstimated))
             ? undefined
             : (fields.shipping ?? undefined),
         targetMarginPercent: state.settings.margin,
@@ -337,6 +352,7 @@
         obs.soldLabel,
         obs.rating,
         obs.reviews,
+        obs.catalogProductId,
       ]);
       if (!force && key === currentKey) return;
       const previous = state,
@@ -418,10 +434,32 @@
               kind:
                 obs.referenceKind ||
                 (obs.id.startsWith("MLBU") ? "USER_PRODUCT" : "ITEM"),
+              ...(obs.catalogProductId
+                ? { catalogProductId: obs.catalogProductId }
+                : {}),
             }),
         );
         if (!alive(revision)) return;
         state.item = r?.ok ? r.body?.item || null : null;
+        const analytics = (async () => {
+          const catalogId =
+            state.item?.catalogProductId || obs.catalogProductId;
+          const data = await request(
+            "/api/extension/item?" +
+              new URLSearchParams({
+                id: state.item?.id || obs.id,
+                kind: state.item?.id
+                  ? "ITEM"
+                  : obs.referenceKind ||
+                    (obs.id.startsWith("MLBU") ? "USER_PRODUCT" : "ITEM"),
+                analyticsOnly: "1",
+                ...(catalogId ? { catalogProductId: catalogId } : {}),
+              }),
+          );
+          if (!alive(revision)) return;
+          state.analytics = data?.ok ? data.body?.analytics || null : null;
+          emit();
+        })();
         const cost = state.item?.isOwn ? r.body?.savedCost : null;
         if (
           cost &&
@@ -444,8 +482,9 @@
             state.item?.listingTypeId === "gold_pro" ? "PREMIUM" : "CLASSIC";
         emit();
         if (!(obs.price > 0)) return;
-        await Promise.allSettled(
-          ["CLASSIC", "PREMIUM"].map(async (type) => {
+        await Promise.allSettled([
+          analytics,
+          ...["CLASSIC", "PREMIUM"].map(async (type) => {
             const data = payload(true, type),
               quote = await request(
                 "/api/extension/profitability",
@@ -459,7 +498,7 @@
             emit();
             if (type === state.listingType) void calculate();
           }),
-        );
+        ]);
       })();
       await Promise.allSettled([history, market, details]);
       if (!alive(revision)) return;
@@ -477,6 +516,62 @@
         return state;
       },
     };
+  }
+  function marketMetrics(s) {
+    const d = demand(s.insight),
+      a = s.analytics,
+      c = a?.catalog,
+      sample = c?.visitsSample,
+      visits = sample?.perDay ?? a?.itemVisits?.perDay;
+    return [
+      {
+        label: sample ? "Visitas/dia · ofertas" : "Visitas/dia · anúncio",
+        value: numeric(visits) ? num(visits) : "Sem acesso",
+        detail: sample
+          ? sample.offersMeasured +
+            " ofertas medidas em " +
+            num(sample.days) +
+            " dias. Soma das ofertas; não visitantes únicos do catálogo."
+          : a?.itemVisits
+            ? "API · " + num(a.itemVisits.days) + " dias."
+            : "A API não disponibilizou visitas datadas para esta referência.",
+      },
+      {
+        label:
+          s.insight?.estimate?.method === "VIDA"
+            ? "Vendas/dia · histórica"
+            : "Vendas/dia",
+        value: d.rate == null ? "Sem período" : num(d.rate),
+        detail: d.basis,
+      },
+      {
+        label: "Ofertas no catálogo",
+        value:
+          c?.totalReported != null
+            ? num(c.totalReported)
+            : c?.offersObserved != null
+              ? num(c.offersObserved) + " vistas"
+              : "Não disponível",
+        detail:
+          c?.offersObserved != null
+            ? num(c.offersObserved) +
+              " ofertas carregadas. " +
+              num(c.fullOffersObserved) +
+              " Full identificadas nessa amostra."
+            : "Catálogo não identificado ou ofertas indisponíveis. Não representa todos os produtos parecidos.",
+      },
+      {
+        label: "Visitas Full · amostra",
+        value: numeric(sample?.fullVisitSharePercent)
+          ? pct(sample.fullVisitSharePercent)
+          : "Sem acesso",
+        detail: sample
+          ? "Participação nas visitas das " +
+            num(sample.offersMeasured) +
+            " ofertas medidas. Cobertura parcial pode não representar o catálogo inteiro."
+          : "Quantidade de ofertas Full não comprova participação nas visitas.",
+      },
+    ];
   }
   function mount(root, controller, { connect, advanced }) {
     const $ = (tag, text, cls) => {
@@ -503,7 +598,7 @@
     container.append(overview);
     const grid = $("div", null, "auto-grid"),
       metrics = [];
-    for (const label of ["Vendas por dia", "Preço vs. candidatos"]) {
+    for (const label of ["Preço na página", "Preço vs. candidatos"]) {
       const box = $("div", null, "auto-metric"),
         value = $("strong", "—");
       box.append($("small", label), value);
@@ -513,6 +608,8 @@
     const source = $("p", "", "auto-source"),
       publicLine = $("p", "", "auto-readout");
     overview.append(grid, source, publicLine);
+    const marketGrid = $("div", null, "auto-grid");
+    overview.append(marketGrid);
     const payout = $("div", null, "auto-receipt"),
       payoutLabel = $("small"),
       payoutValue = $("strong"),
@@ -644,8 +741,7 @@
         reason.textContent = o.reason;
         badge.className = "auto-badge " + d.tone;
         badge.textContent = d.title;
-        metrics[0].textContent =
-          d.rate == null ? "Sem período" : num(d.rate) + " un.";
+        metrics[0].textContent = brl(s.obs.price);
         metrics[1].textContent =
           s.sample?.gap == null
             ? "Sem amostra"
@@ -670,6 +766,13 @@
         ]
           .filter(Boolean)
           .join(" · ");
+        marketGrid.replaceChildren();
+        for (const fact of marketMetrics(s)) {
+          const box = $("div", null, "auto-metric");
+          box.title = fact.detail;
+          box.append($("small", fact.label), $("strong", fact.value));
+          marketGrid.append(box);
+        }
         payoutLabel.textContent = received?.label || "Repasse após tarifas";
         payoutValue.textContent = received
           ? brl(received.value)
@@ -709,7 +812,7 @@
           ["Tarifa fixa", f?.fixedFee],
           [
             "Frete do vendedor",
-            received?.shippingKnown ? f.shippingCost : null,
+            received?.shippingApplied ? f.shippingCost : null,
           ],
         ]) {
           const row = $("div");
@@ -732,7 +835,7 @@
         }
         syncInput(taxEdit, s.fields.tax);
         costSource.textContent = s.costSource;
-        fieldWraps.shipping.hidden = received?.shippingKnown === true;
+        fieldWraps.shipping.hidden = received?.shippingApplied === true;
         fieldWraps.tax.hidden = s.taxConfigured;
         missing.hidden = fieldWraps.shipping.hidden && fieldWraps.tax.hidden;
         helper.textContent = s.calculating
@@ -744,7 +847,8 @@
                   M.money(s.fields.cost) == null
                     ? "Informe o custo de compra."
                     : null,
-                  !received?.shippingKnown && M.money(s.fields.shipping) == null
+                  !received?.shippingApplied &&
+                  M.money(s.fields.shipping) == null
                     ? "Confirme seu frete."
                     : null,
                   M.money(s.fields.tax) == null
@@ -810,6 +914,7 @@
       grid = make("div", "mini-grid"),
       values = [],
       labels = [];
+    const intelligence = make("div", "mini-grid");
     for (let i = 0; i < 2; i++) {
       const box = make("div"),
         label = make("small"),
@@ -823,7 +928,7 @@
     edit.type = "button";
     edit.textContent = "Ver análise e ajustar custo ↓";
     edit.addEventListener("click", adjust);
-    wrap.append(title, evidence, grid, edit);
+    wrap.append(title, evidence, intelligence, grid, edit);
     root.append(style, wrap);
     return {
       render(s) {
@@ -837,11 +942,24 @@
         title.className = o.tone;
         evidence.textContent =
           d.title + (d.rate == null ? "" : " · " + num(d.rate) + " un./dia");
+        intelligence.replaceChildren();
+        for (const fact of marketMetrics(s)) {
+          const box = make("div"),
+            label = make("small"),
+            value = make("strong");
+          label.textContent = fact.label;
+          value.textContent = fact.value;
+          box.title = fact.detail;
+          box.append(label, value);
+          intelligence.append(box);
+        }
         labels[0].textContent = s.result
           ? "Lucro por venda"
-          : received?.shippingKnown
-            ? "Repasse após frete"
-            : "Após tarifas · antes do frete";
+          : received?.shippingEstimated
+            ? "Com frete estimado"
+            : received?.shippingKnown
+              ? "Repasse após frete"
+              : "Após tarifas · antes do frete";
         values[0].textContent = brl(s.result?.profit ?? received?.value);
         labels[1].textContent = s.result
           ? "Margem simulada"
@@ -855,6 +973,7 @@
     };
   }
   globalThis.RadarProductAnalysis = {
+    marketMetrics,
     demand,
     opportunity,
     receipt,

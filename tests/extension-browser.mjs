@@ -132,15 +132,16 @@ try {
             }
             if (message.path.startsWith("/api/extension/item?"))
               return ok({
-                item: qa.own
-                  ? {
-                      id: "MLB999000001",
-                      isOwn: true,
-                      listingTypeId: "gold_special",
-                      logisticType: "drop_off",
-                      categoryId: "MLB1234",
-                    }
-                  : null,
+                item:
+                  qa.own || qa.packageShipping
+                    ? {
+                        id: "MLB999000001",
+                        isOwn: qa.own,
+                        listingTypeId: "gold_special",
+                        logisticType: "drop_off",
+                        categoryId: "MLB1234",
+                      }
+                    : null,
                 savedCost: qa.own
                   ? { supplierPrice: 5, discountPercent: 0, source: "LISTING" }
                   : null,
@@ -161,7 +162,11 @@ try {
               const round = (v) => Math.round((v + Number.EPSILON) * 100) / 100;
               const shippingKnown =
                 qa.own && p.listingType === "CLASSIC" && p.shippingCost == null;
-              const shipping = p.shippingCost ?? (shippingKnown ? 0 : null);
+              const shippingEstimated =
+                qa.packageShipping && p.shippingCost == null;
+              const shipping =
+                p.shippingCost ??
+                (shippingEstimated ? 6.85 : shippingKnown ? 0 : null);
               const fees = {
                 commissionPercent: rate,
                 commissionAmount: round((p.salePrice * rate) / 100),
@@ -198,6 +203,12 @@ try {
                 result,
                 fees,
                 shippingKnown,
+                shippingEstimated,
+                shippingSource: shippingEstimated
+                  ? "MERCADO_LIVRE_PACKAGE_ESTIMATE"
+                  : shippingKnown
+                    ? "MERCADO_LIVRE_API"
+                    : "MANUAL_ESTIMATE",
                 feeSource: "MERCADO_LIVRE_API",
                 categorySource: qa.own ? "API" : "PREDICTED",
               });
@@ -348,6 +359,34 @@ try {
         countBefore,
         "owned UI changes must not cause request loops",
       );
+    },
+  );
+  await check(
+    "an API package estimate is included in the automatic receipt without calling it a confirmed shipping charge",
+    async () => {
+      await host.evaluate(() => {
+        __hostQa.packageShipping = true;
+        __hostQa.change(
+          { radarAccessToken: { newValue: "package-quote-session" } },
+          "local",
+        );
+      });
+      const product = host.locator('[data-radar-owned="product-analysis"]');
+      await product
+        .locator(".auto-receipt > small")
+        .filter({ hasText: "frete estimado" })
+        .waitFor();
+      await product
+        .locator(".auto-receipt > strong")
+        .filter({ hasText: "6,66" })
+        .waitFor();
+      assert.equal(
+        await product.locator("#radar-auto-shipping").isVisible(),
+        false,
+      );
+      await host.evaluate(() => {
+        __hostQa.packageShipping = false;
+      });
     },
   );
   await check(
@@ -584,7 +623,10 @@ try {
         if (i < 4)
           assert.equal(after[i].rect.y - searchBefore[i].rect.y, delta);
         if (i >= 4) assert.ok(after[i].rect.top >= after[i - 4].rect.bottom);
-        assert.equal(after[i].rect.bottom, after[Math.floor(i / 4) * 4].rect.bottom);
+        assert.equal(
+          after[i].rect.bottom,
+          after[Math.floor(i / 4) * 4].rect.bottom,
+        );
       }
       assert.equal(
         await searchPage.locator('[data-radar-owned="card"]').count(),
@@ -819,23 +861,41 @@ try {
     },
   );
 
-  await check("search clears prior session insights and ignores its late batch response", async () => {
-    await searchPage.evaluate(() => {
-      __hostQa.holdObservations = true;
-      __hostQa.change({radarAccessToken: {newValue: "next-session"}}, "local");
-    });
-    await searchPage.waitForFunction(() => typeof __hostQa.releaseObservations === "function");
-    await searchPage.evaluate(() => {
-      __hostQa.auth = false;
-      __hostQa.change({radarAccessToken: {newValue: null}}, "local");
-    });
-    const pills = searchPage.locator('[data-radar-owned="card"] .intel-pill');
-    assert.ok((await pills.allTextContents()).every((text) => text === "Sem período"));
-    await searchPage.evaluate(() => __hostQa.releaseObservations());
-    await searchPage.waitForTimeout(650);
-    assert.ok((await pills.allTextContents()).every((text) => text === "Sem período"));
-    assert.equal(await searchPage.locator('[data-radar-owned="card"] .intel-number').filter({hasText: "R$"}).count(), 0);
-  });
+  await check(
+    "search clears prior session insights and ignores its late batch response",
+    async () => {
+      await searchPage.evaluate(() => {
+        __hostQa.holdObservations = true;
+        __hostQa.change(
+          { radarAccessToken: { newValue: "next-session" } },
+          "local",
+        );
+      });
+      await searchPage.waitForFunction(
+        () => typeof __hostQa.releaseObservations === "function",
+      );
+      await searchPage.evaluate(() => {
+        __hostQa.auth = false;
+        __hostQa.change({ radarAccessToken: { newValue: null } }, "local");
+      });
+      const pills = searchPage.locator('[data-radar-owned="card"] .intel-pill');
+      assert.ok(
+        (await pills.allTextContents()).every((text) => text === "Sem período"),
+      );
+      await searchPage.evaluate(() => __hostQa.releaseObservations());
+      await searchPage.waitForTimeout(650);
+      assert.ok(
+        (await pills.allTextContents()).every((text) => text === "Sem período"),
+      );
+      assert.equal(
+        await searchPage
+          .locator('[data-radar-owned="card"] .intel-number')
+          .filter({ hasText: "R$" })
+          .count(),
+        0,
+      );
+    },
+  );
 
   const page = await browser.newPage({ viewport: { width: 390, height: 900 } });
   page.on("pageerror", (error) => errors.push(error.message));
@@ -936,6 +996,19 @@ try {
             return ok({ items: [] });
           if (message.path.startsWith("/api/extension/item?"))
             return ok({
+              analytics: {
+                catalog: {
+                  offersObserved: 5,
+                  totalReported: 52,
+                  fullOffersObserved: 2,
+                  visitsSample: {
+                    perDay: 76,
+                    offersMeasured: 5,
+                    days: 30,
+                    fullVisitSharePercent: 55,
+                  },
+                },
+              },
               item: null,
               availability: "PAGE_ONLY",
               note: "A API restringiu esta oferta; a leitura da página permanece disponível.",
@@ -972,7 +1045,7 @@ try {
               commissionPercent: rate,
               commissionAmount: round((p.salePrice * rate) / 100),
               fixedFee: fixed,
-              shippingCost: p.shippingCost ?? null,
+              shippingCost: p.shippingCost ?? (p.shippingPackage ? 6.85 : null),
               taxPercent: p.taxPercent ?? null,
               taxAmount:
                 p.taxPercent == null
@@ -980,7 +1053,7 @@ try {
                   : round((p.salePrice * p.taxPercent) / 100),
             };
             const needs = [
-              p.shippingCost == null ? "shippingCost" : null,
+              fees.shippingCost == null ? "shippingCost" : null,
               p.taxPercent == null ? "taxPercent" : null,
             ].filter(Boolean);
             const body = {
@@ -988,6 +1061,15 @@ try {
               needs,
               feeSource: p.manualFees ? "MANUAL" : "MERCADO_LIVRE_API",
               shippingKnown: false,
+              shippingEstimated:
+                p.shippingCost == null && Boolean(p.shippingPackage),
+              shippingNote: "Cotação da sua embalagem na conta autorizada.",
+              shippingSource:
+                p.shippingCost != null
+                  ? "MANUAL_ESTIMATE"
+                  : p.shippingPackage
+                    ? "MERCADO_LIVRE_PACKAGE_ESTIMATE"
+                    : "UNAVAILABLE",
               categorySource: "PREDICTED",
               note: "Simulação de custos.",
               result: null,
@@ -1002,7 +1084,7 @@ try {
                   p.salePrice -
                     fees.commissionAmount -
                     fixed -
-                    p.shippingCost -
+                    fees.shippingCost -
                     fees.taxAmount -
                     p.operatingCost -
                     purchase,
@@ -1014,12 +1096,28 @@ try {
                 commissionPercent: rate,
                 commissionAmount: fees.commissionAmount,
                 fixedFee: fixed,
-                shippingCost: p.shippingCost,
+                shippingCost: fees.shippingCost,
                 taxAmount: fees.taxAmount,
                 marginPercent: (profit / p.salePrice) * 100,
                 roiPercent: (profit / purchase) * 100,
                 minimumSuggestedPrice: 21,
               };
+              if (p.advertising) {
+                const cost = round(
+                  (p.salePrice * p.advertising.attributedSalesPercent) /
+                    100 /
+                    p.advertising.roasTarget,
+                );
+                body.adsSimulation = {
+                  source: "USER_SCENARIO",
+                  costPerSale: cost,
+                  profitAfterAds: round(profit - cost),
+                  marginAfterAdsPercent: ((profit - cost) / p.salePrice) * 100,
+                  tacosPercent: (cost / p.salePrice) * 100,
+                  breakEvenRoas: profit > 0 ? p.salePrice / profit : null,
+                };
+              }
+              if (p.save) body.savedAnalysisId = "qa-snapshot-1";
             }
             return ok(body);
           }
@@ -1037,6 +1135,28 @@ try {
     .locator("#productTitle")
     .filter({ hasText: "Fio cordone" })
     .waitFor();
+  await check(
+    "sidepanel shows automatic quotes and measured intelligence before choosing tools",
+    async () => {
+      await page
+        .locator("#autoTypes button")
+        .first()
+        .filter({ hasText: "12%" })
+        .waitFor();
+      await page.locator("#autoPayout").filter({ hasText: "11,75" }).waitFor();
+      assert.match(
+        await page.locator("#autoPayoutLabel").innerText(),
+        /antes do frete/,
+      );
+      assert.match(await page.locator("#autoMetrics").innerText(), /76/);
+      assert.match(await page.locator("#autoMetrics").innerText(), /52/);
+      assert.match(await page.locator("#autoMetrics").innerText(), /55%/);
+      assert.equal(
+        await page.locator("#publicDetails").getAttribute("open"),
+        null,
+      );
+    },
+  );
   await check(
     "restricted details keep calculator and monitoring available",
     async () => {
@@ -1080,14 +1200,16 @@ try {
     "comma-decimal manual profit and changes invalidate old results",
     async () => {
       await page.locator("#shippingCost").fill("0");
-      await page.getByText("Metas e tarifas manuais", { exact: true }).click();
+      await page
+        .getByText("Kit, operação, metas e tarifas manuais", { exact: true })
+        .click();
       await page.locator("#manualFees").check();
       await page.locator("#commissionPercent").fill("16,5");
       await page.locator("#fixedFee").fill("0");
       await page.locator("#calculate").click();
       await page.locator("#profit").filter({ hasText: "4,05" }).waitFor();
       assert.match(await page.locator("#resultSource").innerText(), /manuais/);
-      assert.equal(await page.locator("#saveSimulation").isVisible(), false);
+      assert.equal(await page.locator("#saveSimulation").isVisible(), true);
       if (artifacts)
         await page.screenshot({
           path: artifacts + "/extension-calculator.png",
@@ -1105,10 +1227,20 @@ try {
       });
       await page.locator("#calculate").click();
       await page.locator("#supplierPrice").fill("200");
-      await page.waitForFunction(
-        () => !document.getElementById("calculate").disabled,
+      await page.locator("#profit").filter({ hasText: "184,97" }).waitFor();
+      assert.equal(
+        await page.evaluate(
+          () =>
+            __qa.calls
+              .filter(
+                (call) =>
+                  call.path === "/api/extension/profitability" &&
+                  !call.body.quoteOnly,
+              )
+              .at(-1).body.supplierPrice,
+        ),
+        200,
       );
-      assert.equal(await page.locator("#calcResult").isVisible(), false);
       await page.evaluate(() => {
         __qa.delay = 0;
       });
@@ -1128,6 +1260,80 @@ try {
       __qa.apiError = false;
     });
   });
+  await check(
+    "calculator estimates package shipping and recalculates an explicit Ads scenario",
+    async () => {
+      await page.locator("#manualFees").uncheck();
+      await page.locator("#salePrice").fill("100");
+      await page.locator("#supplierPrice").fill("40");
+      await page.locator('[data-input="taxPercent"][data-value="6"]').click();
+      await page.locator("#shippingCost").fill("");
+      await page.locator("#packageDetails summary").click();
+      for (const [id, value] of [
+        ["packageWeight", "500"],
+        ["packageHeight", "10"],
+        ["packageWidth", "15"],
+        ["packageLength", "20"],
+      ])
+        await page.locator("#" + id).fill(value);
+      await page.locator("#estimatePackage").click();
+      await page
+        .locator("#packageStatus")
+        .filter({ hasText: "6,85" })
+        .waitFor();
+      await page.locator("#calculate").click();
+      await page.locator("#profit").filter({ hasText: "31,15" }).waitFor();
+      assert.match(
+        await page.locator("#resultSource").innerText(),
+        /frete estimado/,
+      );
+      await page.locator("#adsDetails summary").click();
+      await page.locator("#adsEnabled").check();
+      await page.locator('[data-input="adsRoas"][data-value="5"]').click();
+      await page.locator('[data-input="adsShare"][data-value="20"]').click();
+      await page.locator("#profit").filter({ hasText: "27,15" }).waitFor();
+      assert.match(await page.locator("#adsResult").innerText(), /4,00/);
+      assert.match(
+        await page.locator("#resultSource").innerText(),
+        /hipóteses suas/,
+      );
+      if (artifacts)
+        await page.screenshot({
+          path: artifacts + "/calculator-package-ads.png",
+          fullPage: true,
+        });
+    },
+  );
+  await check(
+    "saving reviews the frozen scenario and optional supplier before confirming",
+    async () => {
+      await page.locator("#saveSimulation").click();
+      await page.locator("#saveDialog").waitFor();
+      assert.match(await page.locator("#saveFacts").innerText(), /27,15/);
+      await page.locator("#snapshotSupplier").fill("Fornecedor de teste");
+      if (artifacts)
+        await page.screenshot({ path: artifacts + "/calculator-snapshot.png" });
+      await page.locator("#confirmSnapshot").click();
+      await page
+        .locator("#saveStatus")
+        .filter({ hasText: "Simulação salva" })
+        .waitFor();
+      const payload = await page.evaluate(
+        () => __qa.calls.filter((call) => call.body?.save).at(-1).body,
+      );
+      assert.equal(payload.saveMode, "SNAPSHOT");
+      assert.equal(payload.supplierName, "Fornecedor de teste");
+      assert.equal(payload.expectedProfit, 31.15);
+      assert.equal(payload.shippingPackage.weightGrams, 500);
+      assert.deepEqual(payload.advertising, {
+        roasTarget: 5,
+        attributedSalesPercent: 20,
+      });
+      await page
+        .getByRole("button", { name: "Fechar revisão", exact: true })
+        .click();
+    },
+  );
   await page.locator('[data-tab="market"]').click();
   await check(
     "empty comparison gives a usable search action and no invented price range",

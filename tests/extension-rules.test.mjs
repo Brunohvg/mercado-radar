@@ -84,6 +84,45 @@ test("repasse não esconde frete ausente nem chama saldo antes da compra de lucr
   quote.fees.shippingCost = 10;
   assert.equal(A.receipt(quote, 100).value, 74);
   assert.equal(A.receipt({}, 100), null);
+  const estimated = {
+    shippingEstimated: true,
+    shippingSource: "MERCADO_LIVRE_PACKAGE_ESTIMATE",
+    fees: { commissionAmount: 12, fixedFee: 4, shippingCost: 10 },
+  };
+  assert.equal(A.receipt(estimated, 100).value, 74);
+  assert.match(A.receipt(estimated, 100).label, /estimado/);
+  assert.equal(A.receipt(estimated, 100).shippingKnown, false);
+  estimated.shippingEstimated = false;
+  estimated.shippingSource = "MANUAL_ESTIMATE";
+  assert.match(A.receipt(estimated, 100).label, /informado/);
+});
+test("métricas diferenciam visitas medidas, ofertas parciais e dados ausentes", () => {
+  const result = A.marketMetrics({
+    insight: measured(4.6),
+    analytics: {
+      catalog: {
+        offersObserved: 5,
+        totalReported: 52,
+        fullOffersObserved: 2,
+        visitsSample: {
+          perDay: 76,
+          offersMeasured: 3,
+          days: 30,
+          fullVisitSharePercent: 55,
+        },
+      },
+    },
+  });
+  assert.equal(result[0].value, "76");
+  assert.match(result[0].detail, /não visitantes únicos/);
+  assert.equal(result[1].value, "4,6");
+  assert.equal(result[2].value, "52");
+  assert.match(result[2].detail, /5 ofertas carregadas/);
+  assert.equal(result[3].value, "55%");
+  const empty = A.marketMetrics({});
+  assert.equal(empty[0].value, "Sem acesso");
+  assert.equal(empty[1].value, "Sem período");
+  assert.equal(empty[3].value, "Sem acesso");
 });
 test("resposta de produto anterior não sobrescreve anúncio novo nem aplica custo de terceiro", async () => {
   let finishOld, began;

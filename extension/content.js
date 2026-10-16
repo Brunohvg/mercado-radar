@@ -697,7 +697,7 @@
   menu.append(
     links,
     visibilityButton,
-    el("div", "Mercado Radar · 0.9.1", "version"),
+    el("div", "Mercado Radar · 0.10.0", "version"),
   );
   const launcherNotice = el("div", "", "notice");
   launcherNotice.hidden = true;

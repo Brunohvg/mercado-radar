@@ -3,6 +3,7 @@
   "use strict";
   const $ = (id) => document.getElementById(id);
   const M = globalThis.RadarPanelModel;
+  const A = globalThis.RadarProductAnalysis;
   const state = {
     context: null,
     item: null,
@@ -19,6 +20,8 @@
     lastIntent: null,
     contextRequest: 0,
     server: "https://radar.optarys.com.br",
+    edited: new Set(),
+    automaticTimer: null,
   };
   const brl = (n) =>
     n == null || !Number.isFinite(Number(n))
@@ -46,6 +49,110 @@
       : state.context?.page === "product"
         ? state.context.items?.[0]
         : null;
+  const analysis = A.createController({
+    send: (message) => chrome.runtime.sendMessage(message),
+    preferences: () =>
+      chrome.storage.sync.get([
+        "radarTaxPercent",
+        "radarOperatingCost",
+        "radarTargetMarginPercent",
+        "radarTargetRoiPercent",
+      ]),
+    changed: renderAutomatic,
+  });
+  function renderAutomatic(s) {
+    const obs = current();
+    $("autoAnalysis").hidden = !s.obs || s.obs.id !== obs?.id;
+    if (!s.obs || s.obs.id !== obs?.id) return;
+    const d = A.demand(s.insight),
+      o = A.opportunity(s.insight, s.result),
+      quote = s.quotes[s.listingType],
+      payout = A.receipt(quote, obs.price);
+    $("autoDemand").textContent = d.title;
+    $("autoDemand").title = d.basis;
+    $("autoVerdict").textContent = o.title;
+    $("autoVerdict").className = "analysis-verdict " + o.tone;
+    $("autoMetrics").replaceChildren(
+      ...A.marketMetrics(s).map((fact) => {
+        const box = metric(fact.label, fact.value);
+        box.title = fact.detail;
+        return box;
+      }),
+    );
+    $("autoEvidence").textContent =
+      d.basis +
+      (s.analytics?.catalog?.visitsSample
+        ? " Visitas: soma das ofertas medidas; cobertura pode ser parcial."
+        : "");
+    $("autoPayoutLabel").textContent = s.result
+      ? "Lucro simulado por venda"
+      : payout?.label || "Repasse após tarifas";
+    $("autoPayout").textContent = brl(s.result?.profit ?? payout?.value);
+    $("autoFees").textContent =
+      quote?.fees?.commissionPercent == null
+        ? "Tarifas ainda indisponíveis. Confira a conexão ou use tarifas verificadas na calculadora."
+        : "Comissão " +
+          pct(quote.fees.commissionPercent) +
+          " · tarifa fixa " +
+          brl(quote.fees.fixedFee);
+    $("autoShipping").textContent = payout?.shippingApplied
+      ? (payout.shippingEstimated
+          ? "Frete estimado pela API: "
+          : "Frete cotado na API: ") +
+        brl(quote.fees.shippingCost) +
+        ". O custo final depende do envio."
+      : "Frete do vendedor a confirmar. O repasse acima ainda não desconta frete.";
+    $("autoNote").textContent =
+      s.status === "connection"
+        ? "Entre na sua conta Radar para consultar tarifas e histórico."
+        : (quote?.categorySource === "PREDICTED"
+            ? "Categoria sugerida pelo título. "
+            : "") +
+          (s.result
+            ? "Margem " +
+              pct(s.result.marginPercent) +
+              " · ROI " +
+              pct(s.result.roiPercent)
+            : "Repasse não é lucro: complete compra, imposto e operação.");
+    for (const button of document.querySelectorAll("[data-auto-type]")) {
+      const type = button.dataset.autoType,
+        fee = s.quotes[type]?.fees?.commissionPercent;
+      button.setAttribute("aria-pressed", String(type === s.listingType));
+      button.textContent =
+        (type === "CLASSIC" ? "Clássico" : "Premium") +
+        (fee == null ? "" : " · " + pct(fee));
+    }
+    if (s.item) state.item = s.item;
+    if (s.item?.shippingPackage) {
+      for (const [id, key] of [
+        ["packageWeight", "weightGrams"],
+        ["packageHeight", "heightCm"],
+        ["packageWidth", "widthCm"],
+        ["packageLength", "lengthCm"],
+      ])
+        if (!state.edited.has(id))
+          $(id).value = String(s.item.shippingPackage[key]);
+      if (!state.edited.has("packageFreeShipping"))
+        $("packageFreeShipping").checked = Boolean(s.item.freeShipping);
+      if (!$("packageStatus").textContent)
+        $("packageStatus").textContent =
+          "Medidas de envio recebidas da API do anúncio. Confira para a sua embalagem.";
+    }
+    if (s.candidates.length && !state.candidates.length) {
+      state.comparisonTarget = obs;
+      setCandidates(s.candidates);
+    }
+    for (const [id, value] of [
+      ["supplierPrice", s.fields.cost],
+      ["listingType", s.listingType],
+      [
+        "logisticType",
+        s.item?.logisticType || (obs.fulfillment ? "fulfillment" : "drop_off"),
+      ],
+    ])
+      if (!state.edited.has(id) && value !== "") $(id).value = value;
+    syncChoices();
+  }
   function node(tag, text, className) {
     const el = document.createElement(tag);
     if (text != null) el.textContent = String(text);
@@ -214,7 +321,7 @@
         ? "Selecione anúncios equivalentes em Preços. Você pode simular um produto sem sair da busca."
         : "O Radar não lê outras abas nem navega por anúncios automaticamente.";
     $("watchCard").hidden = !obs;
-    $("quickActions").hidden = !obs;
+    $("autoAnalysis").hidden = !obs;
     $("searchActions").hidden = !search;
     $("calcEmpty").hidden = Boolean(obs);
     $("calculatorForm").hidden = !obs;
@@ -225,8 +332,8 @@
         "Preço, texto de vendidos e avaliações, quando exibidos.",
       ),
       evidenceLine(
-        "Dados privados do vendedor",
-        "Pedidos, visitas e estoque dependem da autorização da própria conta. A disponibilidade depende da sua autorização e da oferta consultada.",
+        "Dados disponibilizados pela API",
+        "Pedidos e estoque privados pertencem à conta autorizada. Visitas e ofertas dependem do recurso, da referência e da permissão liberada pela API.",
         true,
       ),
     );
@@ -305,6 +412,11 @@
     $("menuMonitorLink").href = state.server + "/monitoramento";
   }
   function resetAnalysis() {
+    $("saveDialog").close();
+    state.pendingSnapshot = null;
+    analysis.clear();
+    clearTimeout(state.automaticTimer);
+    state.edited.clear();
     state.item = null;
     state.revision++;
     state.calcRevision++;
@@ -345,12 +457,31 @@
           });
     $("supplierPrice").value = "";
     $("shippingCost").value = "";
+    $("kitQuantity").value = "1";
+    $("discountPercent").value = "0";
+    $("packageFreeShipping").checked = Boolean(obs?.freeShipping);
+    for (const id of ["packageDetails", "adsDetails", "advancedDetails"])
+      $(id).open = false;
+    for (const id of [
+      "packageWeight",
+      "packageHeight",
+      "packageWidth",
+      "packageLength",
+    ])
+      $(id).value = "";
+    $("packageStatus").textContent = "";
+    $("adsEnabled").checked = false;
+    $("adsFields").hidden = true;
+    $("adsRoas").value = "";
+    $("adsShare").value = "100";
     $("listingType").value = "CLASSIC";
     $("logisticType").value = obs?.fulfillment ? "fulfillment" : "drop_off";
+    syncChoices();
     $("manualFees").checked = false;
     $("manualFeeFields").hidden = true;
     for (const input of $("calculatorForm").querySelectorAll("[aria-invalid]"))
       input.removeAttribute("aria-invalid");
+    if (obs) void analysis.load(obs);
   }
   function focusProduct(id) {
     state.focusedId = id;
@@ -450,7 +581,7 @@
     applyIntent(intents.radarPanelIntent);
     const revision = state.revision,
       obs = current();
-    if (context?.items?.length && usableQuietly()) {
+    if (context?.items?.length && !obs && usableQuietly()) {
       const response = await request("/api/extension/observations", "POST", {
         page: context.page,
         query: context.query,
@@ -581,6 +712,34 @@
         commissionPercent: inputNumber("commissionPercent", 0, 50),
         fixedFee: inputNumber("fixedFee", 0, 10000),
       };
+    const packageFields = [
+      "packageWeight",
+      "packageHeight",
+      "packageWidth",
+      "packageLength",
+    ];
+    if (
+      data.shippingCost == null &&
+      packageFields.some((id) => $(id).value !== "")
+    ) {
+      const weight = inputNumber("packageWeight", 1, 100000);
+      if (!Number.isInteger(weight))
+        throw new Error("Informe o peso em gramas inteiras.");
+      data.shippingPackage = {
+        weightGrams: weight,
+        heightCm: inputNumber("packageHeight", 1, 300),
+        widthCm: inputNumber("packageWidth", 1, 300),
+        lengthCm: inputNumber("packageLength", 1, 300),
+        freeShipping: $("packageFreeShipping").checked,
+      };
+    }
+    if (!quoteOnly && $("adsEnabled").checked) {
+      const roas = inputNumber("adsRoas", 0.01, 1000);
+      data.advertising = {
+        roasTarget: roas,
+        attributedSalesPercent: inputNumber("adsShare", 0, 100),
+      };
+    }
     return data;
   }
   function quoteText(body) {
@@ -602,11 +761,20 @@
         : "") +
       (body.fees?.shippingCost == null
         ? " Falta informar o seu frete; zero também precisa ser confirmado."
-        : "")
+        : " Frete " +
+          (body.shippingEstimated
+            ? "estimado pela API: "
+            : body.shippingKnown
+              ? "cotado pela API: "
+              : "informado: ") +
+          brl(body.fees.shippingCost) +
+          ".") +
+      (body.shippingNote ? " " + body.shippingNote : "")
     );
   }
-  async function calculate(quoteOnly = false, save = false) {
+  async function calculate(quoteOnly = false) {
     if (state.calcBusy || !usable()) return;
+    clearTimeout(state.automaticTimer);
     let payload;
     try {
       payload = calcPayload(quoteOnly);
@@ -614,7 +782,6 @@
       notice("calcStatus", error.message, "error");
       return;
     }
-    if (save) payload.save = true;
     const revision = state.revision,
       calcRevision = state.calcRevision;
     state.calcBusy = true;
@@ -625,14 +792,10 @@
       "calcStatus",
       quoteOnly
         ? "Consultando tarifa…"
-        : save
-          ? "Salvando análise…"
-          : "Calculando com os parâmetros informados…",
+        : "Calculando com os parâmetros informados…",
     );
-    if (!save) {
-      state.result = null;
-      $("calcResult").hidden = true;
-    }
+    state.result = null;
+    $("calcResult").hidden = true;
     try {
       const response = await request(
         "/api/extension/profitability",
@@ -647,9 +810,20 @@
       }
       const body = response.body;
       $("quoteStatus").textContent = quoteText(body);
-      if (body.shippingKnown && $("shippingCost").value === "")
-        $("shippingCost").value = String(body.fees.shippingCost);
+      $("packageStatus").textContent = body.shippingEstimated
+        ? "Frete estimado: " +
+          brl(body.fees.shippingCost) +
+          ". " +
+          body.shippingNote
+        : body.shippingNote || "";
       if (!body.result) {
+        if (
+          quoteOnly &&
+          !(body.needs || []).some((n) => n !== "taxPercent") &&
+          M.money($("supplierPrice").value) != null &&
+          M.money($("taxPercent").value) != null
+        )
+          state.automaticTimer = setTimeout(() => void calculate(), 0);
         notice(
           "calcStatus",
           quoteOnly
@@ -670,34 +844,72 @@
         );
         return;
       }
-      if (save) {
-        notice("calcStatus", "Análise salva no Radar.");
-        return;
-      }
       state.result = body;
       const r = body.result;
       $("calcResult").hidden = false;
-      $("profit").textContent = brl(r.profit);
-      $("margin").textContent = pct(r.marginPercent);
-      $("roi").textContent = pct(r.roiPercent);
-      $("profit").parentElement.classList.toggle("loss", r.profit < 0);
-      $("resultSource").textContent =
-        body.feeSource === "MANUAL"
-          ? "Simulação com tarifas manuais"
-          : "Simulação com tarifa da API";
+      const ads = body.adsSimulation;
+      $("profit").textContent = brl(ads?.profitAfterAds ?? r.profit);
+      $("margin").textContent = pct(
+        ads?.marginAfterAdsPercent ?? r.marginPercent,
+      );
+      $("margin").previousElementSibling.textContent = ads
+        ? "Margem após Ads"
+        : "Margem";
+      $("roi").previousElementSibling.textContent = ads
+        ? "ROI antes de Ads"
+        : "ROI";
+      $("roi").textContent =
+        r.purchaseCost + payload.operatingCost > 0
+          ? pct(r.roiPercent)
+          : "Sem capital";
+      $("profit").parentElement.classList.toggle(
+        "loss",
+        (ads?.profitAfterAds ?? r.profit) < 0,
+      );
+      $("adsResult").hidden = !ads;
+      $("adsResult").replaceChildren();
+      if (ads)
+        $("adsResult").append(
+          metric("Lucro antes de Ads", brl(r.profit)),
+          metric("Ads médios por venda", brl(ads.costPerSale)),
+          metric("TACOS simulado", pct(ads.tacosPercent)),
+          metric(
+            "ROAS mínimo por venda de Ads",
+            ads.breakEvenRoas == null
+              ? "Inviável neste preço"
+              : count(ads.breakEvenRoas) + "×",
+          ),
+        );
+      $("resultSource").textContent = ads
+        ? "Cenário após Ads · hipóteses suas"
+        : body.shippingEstimated
+          ? "Simulação com frete estimado"
+          : body.feeSource === "MANUAL"
+            ? "Simulação com tarifas manuais"
+            : "Simulação com tarifa da API";
       $("breakdown").replaceChildren();
       const rows = [
         ["Preço de venda", r.salePrice],
         ["Comissão · " + pct(r.commissionPercent), -r.commissionAmount],
         ["Tarifa fixa", -r.fixedFee],
         [
-          body.shippingKnown ? "Frete cotado" : "Frete informado",
+          body.shippingEstimated
+            ? "Frete estimado pela API"
+            : body.shippingKnown
+              ? "Frete cotado"
+              : "Frete informado",
           -r.shippingCost,
         ],
         ["Imposto · " + pct(r.taxPercent), -r.taxAmount],
         ["Compra · " + payload.kitQuantity + " un.", -r.purchaseCost],
         ["Embalagem e operação", -r.operatingCost],
         ["Lucro simulado", r.profit],
+        ...(ads
+          ? [
+              ["Ads médios por venda", -ads.costPerSale],
+              ["Lucro após Ads", ads.profitAfterAds],
+            ]
+          : []),
       ];
       for (const [label, value] of rows) {
         const row = node("div");
@@ -705,19 +917,18 @@
         $("breakdown").append(row);
       }
       $("priceFloor").textContent =
-        "Piso teórico para as metas: " +
+        (ads ? "Piso teórico antes de Ads: " : "Piso teórico para as metas: ") +
         (r.minimumSuggestedPrice == null
           ? "meta inviável com estas taxas"
           : brl(r.minimumSuggestedPrice)) +
         ". Taxas e frete podem mudar ao alterar o preço; consulte novamente.";
       $("calcCaveat").textContent =
         (body.note || "") +
-        " Não inclui Ads, devoluções, tributos adicionais ou custos que você não informou.";
-      $("saveSimulation").hidden = !(
-        body.shippingKnown &&
-        body.feeSource === "MERCADO_LIVRE_API" &&
-        body.categorySource === "API"
-      );
+        (ads
+          ? " Inclui o cenário médio de Ads informado."
+          : " Não inclui Ads.") +
+        " Não inclui devoluções, tributos adicionais ou custos que você não informou.";
+      $("saveSimulation").hidden = r.minimumSuggestedPrice == null;
       notice(
         "calcStatus",
         "Simulação concluída. Confira a memória de cálculo abaixo.",
@@ -961,14 +1172,150 @@
       $("quoteStatus").textContent =
         "Parâmetros alterados. Consulte novamente para atualizar a tarifa.";
   });
+  $("calculatorForm").addEventListener("input", (event) => {
+    syncChoices();
+    state.edited.add(event.target.id);
+    clearTimeout(state.automaticTimer);
+    state.automaticTimer = setTimeout(() => {
+      if (
+        M.money($("supplierPrice").value) == null ||
+        M.money($("taxPercent").value) == null
+      )
+        return;
+      if ($("adsEnabled").checked && !(M.money($("adsRoas").value) > 0)) return;
+      if (state.calcBusy) {
+        state.automaticTimer = setTimeout(
+          () => $("calculatorForm").dispatchEvent(new Event("input")),
+          200,
+        );
+        return;
+      }
+      void calculate();
+    }, 550);
+  });
+  for (const input of $("calculatorForm").querySelectorAll(
+    "select, input[type=checkbox]",
+  ))
+    input.addEventListener("change", () =>
+      input.dispatchEvent(new Event("input", { bubbles: true })),
+    );
+  for (const button of document.querySelectorAll("[data-input]"))
+    button.addEventListener("click", () => {
+      const input = $(button.dataset.input);
+      input.value = button.dataset.value;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  function syncChoices() {
+    for (const button of document.querySelectorAll(
+      "[data-select], [data-input]",
+    ))
+      button.setAttribute(
+        "aria-pressed",
+        String(
+          $(button.dataset.select || button.dataset.input).value ===
+            button.dataset.value,
+        ),
+      );
+  }
+  for (const button of document.querySelectorAll("[data-select]"))
+    button.addEventListener("click", () => {
+      const input = $(button.dataset.select);
+      input.value = button.dataset.value;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  $("customTax").addEventListener("click", () => $("taxPercent").focus());
+  $("adsEnabled").addEventListener("change", () => {
+    $("adsFields").hidden = !$("adsEnabled").checked;
+  });
+  $("estimatePackage").addEventListener("click", () => {
+    if (M.money($("shippingCost").value) != null) {
+      $("shippingCost").value = "";
+      $("shippingCost").dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    void calculate(true);
+  });
+  $("estimateShipping").addEventListener("click", () => {
+    showTab("calculator");
+    $("packageDetails").open = true;
+    $("packageDetails").scrollIntoView({ block: "start", behavior: "smooth" });
+  });
+  for (const button of document.querySelectorAll("[data-auto-type]"))
+    button.addEventListener("click", () =>
+      analysis.selectType(button.dataset.autoType),
+    );
+  $("usePagePrice").addEventListener("click", () => {
+    const price = current()?.price;
+    if (!(price > 0)) return;
+    $("salePrice").value = Number(price).toFixed(2).replace(".", ",");
+    $("salePrice").dispatchEvent(new Event("input", { bubbles: true }));
+  });
   $("manualFees").addEventListener("change", () => {
     $("manualFeeFields").hidden = !$("manualFees").checked;
   });
   $("quoteButton").addEventListener("click", () => void calculate(true));
-  $("saveSimulation").addEventListener(
-    "click",
-    () => void calculate(false, true),
-  );
+  $("saveSimulation").addEventListener("click", () => {
+    if (!state.result) return;
+    const body = state.result,
+      result = body.result,
+      ads = body.adsSimulation;
+    try {
+      state.pendingSnapshot = {
+        ...calcPayload(),
+        save: true,
+        saveMode: "SNAPSHOT",
+        expectedProfit: result.profit,
+      };
+    } catch {
+      return;
+    }
+    $("saveProduct").textContent = current().title;
+    $("saveFacts").replaceChildren(
+      metric("Preço de venda", brl(result.salePrice)),
+      metric("Custo de compra", brl(result.purchaseCost)),
+      metric(
+        ads ? "Lucro após Ads" : "Lucro simulado",
+        brl(ads?.profitAfterAds ?? result.profit),
+      ),
+      metric(
+        "Margem simulada",
+        pct(ads?.marginAfterAdsPercent ?? result.marginPercent),
+      ),
+    );
+    $("saveSource").textContent =
+      quoteText(body) + (ads ? " Publicidade: hipóteses suas." : "");
+    $("snapshotSupplier").value = "";
+    $("confirmSnapshot").disabled = false;
+    $("confirmSnapshot").hidden = false;
+    $("historyLink").hidden = true;
+    notice("saveStatus", "");
+    $("saveDialog").showModal();
+  });
+  $("confirmSnapshot").addEventListener("click", async () => {
+    const payload = state.pendingSnapshot;
+    if (!payload || !usable()) return;
+    const revision = state.revision;
+    $("confirmSnapshot").disabled = true;
+    notice("saveStatus", "Conferindo a cotação e salvando…");
+    const response = await request("/api/extension/profitability", "POST", {
+      ...payload,
+      supplierName: $("snapshotSupplier").value.trim(),
+    });
+    if (revision !== state.revision) return;
+    $("confirmSnapshot").disabled = false;
+    if (!response?.ok || !response.body?.savedAnalysisId) {
+      notice(
+        "saveStatus",
+        response?.body?.error || "Não foi possível salvar. Tente novamente.",
+        "error",
+      );
+      return;
+    }
+    state.pendingSnapshot = null;
+    $("confirmSnapshot").hidden = true;
+    $("historyLink").href = state.server + "/historico";
+    $("historyLink").hidden = false;
+    notice("saveStatus", "Simulação salva no histórico da sua operação.");
+  });
   $("copyResult").addEventListener("click", async () => {
     if (!state.result) return;
     const text = [
@@ -1052,6 +1399,37 @@
     }
   });
   chrome.storage.onChanged.addListener((changes, area) => {
+    if (
+      (area === "local" && changes.radarAccessToken) ||
+      (area === "sync" &&
+        [
+          "radarPreferencesWorkspace",
+          "radarTaxPercent",
+          "radarOperatingCost",
+          "radarTargetMarginPercent",
+          "radarTargetRoiPercent",
+        ].some((k) => changes[k]))
+    ) {
+      analysis.clear();
+      state.revision++;
+      state.contextRequest++;
+      $("saveDialog").close();
+      state.pendingSnapshot = null;
+      state.auth = null;
+      state.item = null;
+      state.candidates = [];
+      state.selected.clear();
+      $("candidates").replaceChildren();
+      $("marketRange").replaceChildren();
+      for (const id of ["supplierPrice", "shippingCost", "taxPercent"])
+        $(id).value = "";
+      state.result = null;
+      state.calcRevision++;
+      $("calcResult").hidden = true;
+      void authStatus()
+        .then(() => preferences())
+        .then(() => loadContext(true));
+    }
     if (area === "session" && changes.radarPanelIntent)
       void loadContext().then(() =>
         applyIntent(changes.radarPanelIntent.newValue),

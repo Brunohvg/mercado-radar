@@ -247,19 +247,16 @@ h2 {
   max-width: 115px;
   text-align: right;
 }
-.choice-row {
-  margin-top: 16px;
-  font-size: 12px;
-  color: #31554b;
+.segments[aria-label="Atalhos de imposto"] {
+  margin-top: 5px;
+  padding: 3px;
+  gap: 2px;
 }
-.choice-row > span {
-  font-weight: 650;
-}
-.choice-row > small {
-  display: block;
+.segments[aria-label="Atalhos de imposto"] button {
+  flex: 1 1 24px;
+  min-height: 26px;
   font-size: 10px;
-  color: #71877b;
-  margin-top: 6px;
+  padding: 4px 2px;
 }
 .analysis-verdict {
   font-size: 15px;
@@ -320,6 +317,58 @@ h2 {
 }
 #calculatorForm .fields > div:has([data-select]) {
   grid-column: 1/-1;
+}
+#priceField,
+#costField {
+  grid-column: 1/-1;
+}
+#costField input {
+  font-size: 20px;
+  min-height: 48px;
+}
+.calc-price {
+  color: #627c71;
+  font-size: 12px;
+}
+.calc-price strong {
+  font-size: 18px;
+  color: #244b3d;
+  margin-left: 7px;
+}
+#calcAutoFacts {
+  font-size: 10px;
+  margin-top: 14px;
+}
+#calcHint {
+  text-align: center;
+  font-size: 10px;
+}
+.calc-options > summary {
+  padding: 4px 0;
+}
+.calc-options[open] > div {
+  margin-top: 12px;
+}
+#calcResult .result-heading {
+  margin-top: 12px;
+}
+.calc-decision {
+  font-size: 16px;
+  font-weight: 750;
+  color: #245b49;
+  margin-top: 16px;
+}
+.calc-decision.bad {
+  color: #a34632;
+}
+.calc-decision.warn {
+  color: #8a641e;
+}
+#calcDecisionReason {
+  font-size: 11px;
+}
+#calcResult > .grid .metric strong {
+  font-size: 21px;
 }
 dialog {
   width: calc(100% - 28px);
@@ -727,7 +776,9 @@ summary {
 
 #contextCard.compact #pageFacts,
 #contextCard.compact #pageNote,
-#contextCard.compact #readAt {
+#contextCard.compact #readAt,
+#contextCard.compact #publicDetails,
+#contextCard.compact #reference {
   display: none;
 }
 #contextCard.compact {

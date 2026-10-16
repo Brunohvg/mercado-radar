@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Mercado Radar",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Análise na busca e no produto, comparação de anúncios e calculadora de lucro com origem dos dados.",
   "permissions": ["storage", "sidePanel", "identity"],
   "host_permissions": [

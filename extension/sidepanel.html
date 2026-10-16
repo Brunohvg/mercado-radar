@@ -14,7 +14,7 @@
           <img src="icons/icon48.png" alt="" />
           <div>
             <strong>Mercado Radar</strong
-            ><small>Decida com margem · 0.10.0</small>
+            ><small>Decida com margem · 0.10.1</small>
           </div>
         </div>
         <div class="brand-actions">
@@ -165,26 +165,27 @@
         <form id="calculatorForm" class="card" novalidate>
           <div class="section-head">
             <h2>Seu lucro por venda</h2>
-            <button id="usePagePrice" type="button" class="text-action">
-              Usar preço da página
+            <button id="editSalePrice" type="button" class="text-action">
+              Alterar preço
             </button>
           </div>
-          <p class="muted">
-            Simulação da sua operação. Frete grátis para o comprador não
-            confirma custo zero para o vendedor.
+          <p class="calc-price">
+            Preço de venda <strong id="salePriceReadout">—</strong>
           </p>
           <div class="grid fields">
-            <div>
+            <div id="priceField" hidden>
               <label for="salePrice">Preço de venda · R$</label
               ><input
                 id="salePrice"
                 inputmode="decimal"
                 required
                 placeholder="Ex.: 59,90"
-              />
+              /><button id="usePagePrice" type="button" class="text-action">
+                Restaurar preço da página
+              </button>
             </div>
-            <div>
-              <label for="supplierPrice">Custo por unidade · R$</label
+            <div id="costField">
+              <label for="supplierPrice">Custo do produto/kit · R$</label
               ><input
                 id="supplierPrice"
                 inputmode="decimal"
@@ -192,6 +193,82 @@
                 placeholder="Ex.: 10,90"
               />
             </div>
+            <div id="shippingField" hidden>
+              <label for="shippingCost">Seu frete por venda · R$</label
+              ><input
+                id="shippingCost"
+                inputmode="decimal"
+                placeholder="Automático ou informe"
+              />
+              <button id="openShipping" type="button" class="text-action">
+                Estimar frete
+              </button>
+            </div>
+            <div id="taxField" hidden>
+              <label for="taxPercent">Seu imposto · %</label
+              ><input
+                id="taxPercent"
+                inputmode="decimal"
+                placeholder="Confirme, inclusive zero"
+              />
+              <div class="segments" aria-label="Atalhos de imposto">
+                <button type="button" data-input="taxPercent" data-value="0">
+                  0%</button
+                ><button type="button" data-input="taxPercent" data-value="4">
+                  4%</button
+                ><button type="button" data-input="taxPercent" data-value="6">
+                  6%</button
+                ><button type="button" id="customTax">Outro</button>
+              </div>
+            </div>
+          </div>
+          <p id="calcAutoFacts" class="muted" aria-live="polite"></p>
+          <button id="editCostInputs" type="button" class="text-action">
+            Alterar frete e imposto
+          </button>
+          <button id="calculate" type="submit">Calcular lucro</button>
+          <p id="calcHint" class="muted">
+            Atualiza automaticamente ao editar os custos.
+          </p>
+          <p id="calcStatus" class="notice" role="status" hidden></p>
+          <div id="calcResult" hidden>
+            <p id="calcDecision" class="calc-decision"></p>
+            <p id="calcDecisionReason" class="muted"></p>
+            <div class="result-heading">
+              <small>Sobra por venda · simulação</small
+              ><strong id="profit">—</strong
+              ><span id="resultSource" class="badge"></span>
+            </div>
+            <div class="grid">
+              <div class="metric">
+                <small>Margem</small><strong id="margin">—</strong>
+              </div>
+              <div class="metric">
+                <small id="priceGoalLabel">Preço para sua meta</small
+                ><strong id="priceFloorValue">—</strong>
+              </div>
+            </div>
+            <p id="calcComparison" class="muted" hidden></p>
+            <details id="costDetails">
+              <summary>Ver custos e detalhes do cálculo</summary>
+              <p class="muted">
+                <span>Retorno sobre o custo · ROI</span>
+                <strong id="roi">—</strong>
+              </p>
+              <div id="adsResult" class="grid" hidden></div>
+              <dl id="breakdown" class="breakdown"></dl>
+              <p id="priceFloor" class="muted"></p>
+              <p id="calcCaveat" class="muted"></p>
+              <button id="copyResult" type="button" class="secondary">
+                Copiar memória de cálculo
+              </button>
+            </details>
+            <button id="saveSimulation" type="button" class="secondary" hidden>
+              Salvar análise no Radar
+            </button>
+          </div>
+          <details id="calcOptions" class="calc-options">
+            <summary>Frete, publicidade e outros ajustes</summary>
             <div>
               <label>Modalidade simulada</label
               ><input id="listingType" type="hidden" value="CLASSIC" />
@@ -213,6 +290,7 @@
                 </button>
               </div>
             </div>
+
             <div>
               <label>Logística simulada</label
               ><input id="logisticType" type="hidden" value="drop_off" />
@@ -251,224 +329,163 @@
                 </button>
               </div>
             </div>
-            <div>
-              <label for="shippingCost">Seu frete por venda · R$</label
-              ><input
-                id="shippingCost"
-                inputmode="decimal"
-                placeholder="Informe, inclusive zero"
-              />
-            </div>
-            <div>
-              <label for="taxPercent">Seu imposto · %</label
-              ><input
-                id="taxPercent"
-                inputmode="decimal"
-                placeholder="Confirme, inclusive zero"
-              />
-            </div>
-          </div>
-          <div class="choice-row">
-            <span>Imposto da simulação</span>
-            <div class="segments" aria-label="Atalhos de imposto">
-              <button type="button" data-input="taxPercent" data-value="0">
-                0%</button
-              ><button type="button" data-input="taxPercent" data-value="4">
-                4%</button
-              ><button type="button" data-input="taxPercent" data-value="6">
-                6%</button
-              ><button type="button" id="customTax">Outro</button>
-            </div>
-            <small
-              >Confirme a alíquota da sua operação, inclusive quando for
-              zero.</small
-            >
-          </div>
-          <details id="packageDetails">
-            <summary>Estimar frete pela embalagem</summary>
-            <p class="muted">
-              Produto novo · Mercado Envios. Cotação na sua conta para o preço,
-              anúncio e logística simulados. Informe a embalagem pronta para
-              envio.
-            </p>
-            <div class="grid fields">
-              <div>
-                <label for="packageWeight">Peso · g</label
-                ><input
-                  id="packageWeight"
-                  inputmode="numeric"
-                  placeholder="Ex.: 500"
-                />
-              </div>
-              <div>
-                <label for="packageHeight">Altura · cm</label
-                ><input
-                  id="packageHeight"
-                  inputmode="decimal"
-                  placeholder="Ex.: 10"
-                />
-              </div>
-              <div>
-                <label for="packageWidth">Largura · cm</label
-                ><input
-                  id="packageWidth"
-                  inputmode="decimal"
-                  placeholder="Ex.: 15"
-                />
-              </div>
-              <div>
-                <label for="packageLength">Comprimento · cm</label
-                ><input
-                  id="packageLength"
-                  inputmode="decimal"
-                  placeholder="Ex.: 20"
-                />
-              </div>
-            </div>
-            <label class="check"
-              ><input id="packageFreeShipping" type="checkbox" checked />Simular
-              frete grátis ao comprador</label
-            >
-            <button id="estimatePackage" type="button" class="secondary">
-              Consultar frete estimado
-            </button>
-            <p id="packageStatus" class="muted" role="status"></p>
-          </details>
-          <details id="adsDetails">
-            <summary>Publicidade · cenário opcional</summary>
-            <label class="check"
-              ><input id="adsEnabled" type="checkbox" /> Incluir custo de Ads na
-              simulação</label
-            >
-            <div id="adsFields" hidden>
+            <details id="packageDetails">
+              <summary>Estimar frete pela embalagem</summary>
+              <p class="muted">
+                Produto novo · Mercado Envios. Cotação na sua conta para o
+                preço, anúncio e logística simulados. Informe a embalagem pronta
+                para envio.
+              </p>
               <div class="grid fields">
                 <div>
-                  <label for="adsRoas">ROAS esperado · vezes</label
+                  <label for="packageWeight">Peso · g</label
                   ><input
-                    id="adsRoas"
-                    inputmode="decimal"
-                    placeholder="Ex.: 5"
+                    id="packageWeight"
+                    inputmode="numeric"
+                    placeholder="Ex.: 500"
                   />
                 </div>
                 <div>
-                  <label for="adsShare">Vendas atribuídas a Ads · %</label
-                  ><input id="adsShare" inputmode="decimal" value="100" />
+                  <label for="packageHeight">Altura · cm</label
+                  ><input
+                    id="packageHeight"
+                    inputmode="decimal"
+                    placeholder="Ex.: 10"
+                  />
+                </div>
+                <div>
+                  <label for="packageWidth">Largura · cm</label
+                  ><input
+                    id="packageWidth"
+                    inputmode="decimal"
+                    placeholder="Ex.: 15"
+                  />
+                </div>
+                <div>
+                  <label for="packageLength">Comprimento · cm</label
+                  ><input
+                    id="packageLength"
+                    inputmode="decimal"
+                    placeholder="Ex.: 20"
+                  />
                 </div>
               </div>
-              <div class="segments" aria-label="Atalhos de ROAS">
-                <button type="button" data-input="adsRoas" data-value="3">
-                  3×</button
-                ><button type="button" data-input="adsRoas" data-value="5">
-                  5×</button
-                ><button type="button" data-input="adsRoas" data-value="10">
-                  10×
-                </button>
+              <label class="check"
+                ><input
+                  id="packageFreeShipping"
+                  type="checkbox"
+                  checked
+                />Simular frete grátis ao comprador</label
+              >
+              <button id="estimatePackage" type="button" class="secondary">
+                Consultar frete estimado
+              </button>
+              <p id="packageStatus" class="muted" role="status"></p>
+            </details>
+            <details id="adsDetails">
+              <summary>Publicidade · cenário opcional</summary>
+              <label class="check"
+                ><input id="adsEnabled" type="checkbox" /> Incluir custo de Ads
+                na simulação</label
+              >
+              <div id="adsFields" hidden>
+                <div class="grid fields">
+                  <div>
+                    <label for="adsRoas">ROAS esperado · vezes</label
+                    ><input
+                      id="adsRoas"
+                      inputmode="decimal"
+                      placeholder="Ex.: 5"
+                    />
+                  </div>
+                  <div>
+                    <label for="adsShare">Vendas atribuídas a Ads · %</label
+                    ><input id="adsShare" inputmode="decimal" value="100" />
+                  </div>
+                </div>
+                <div class="segments" aria-label="Atalhos de ROAS">
+                  <button type="button" data-input="adsRoas" data-value="3">
+                    3×</button
+                  ><button type="button" data-input="adsRoas" data-value="5">
+                    5×</button
+                  ><button type="button" data-input="adsRoas" data-value="10">
+                    10×
+                  </button>
+                </div>
+                <div class="segments" aria-label="Vendas atribuídas a Ads">
+                  <button type="button" data-input="adsShare" data-value="10">
+                    10%</button
+                  ><button type="button" data-input="adsShare" data-value="20">
+                    20%</button
+                  ><button type="button" data-input="adsShare" data-value="30">
+                    30%</button
+                  ><button type="button" data-input="adsShare" data-value="100">
+                    100%
+                  </button>
+                </div>
+                <p class="muted">
+                  Hipóteses suas; não são dados do Mercado Livre. Custo médio de
+                  Ads = preço × participação das vendas ÷ ROAS.
+                </p>
               </div>
-              <div class="segments" aria-label="Vendas atribuídas a Ads">
-                <button type="button" data-input="adsShare" data-value="10">
-                  10%</button
-                ><button type="button" data-input="adsShare" data-value="20">
-                  20%</button
-                ><button type="button" data-input="adsShare" data-value="30">
-                  30%</button
-                ><button type="button" data-input="adsShare" data-value="100">
-                  100%
-                </button>
+            </details>
+            <details id="advancedDetails">
+              <summary>Kit, operação, metas e tarifas manuais</summary>
+              <div class="grid fields">
+                <div>
+                  <label for="operatingCost">Embalagem e operação · R$</label
+                  ><input id="operatingCost" inputmode="decimal" value="0" />
+                </div>
+                <div>
+                  <label for="kitQuantity">Unidades deste custo no kit</label
+                  ><input id="kitQuantity" inputmode="numeric" value="1" />
+                </div>
+                <div>
+                  <label for="discountPercent">Desconto no custo · %</label
+                  ><input id="discountPercent" inputmode="decimal" value="0" />
+                </div>
+                <div>
+                  <label for="targetMargin">Margem alvo · %</label
+                  ><input id="targetMargin" inputmode="decimal" value="20" />
+                </div>
+                <div>
+                  <label for="targetRoi">ROI alvo · %</label
+                  ><input id="targetRoi" inputmode="decimal" value="30" />
+                </div>
+              </div>
+              <label class="check"
+                ><input id="manualFees" type="checkbox" /> Usar comissão e
+                tarifa que conferi no simulador oficial</label
+              >
+              <div id="manualFeeFields" class="grid fields" hidden>
+                <div>
+                  <label for="commissionPercent">Comissão · %</label
+                  ><input
+                    id="commissionPercent"
+                    inputmode="decimal"
+                    placeholder="Ex.: 16,5"
+                  />
+                </div>
+                <div>
+                  <label for="fixedFee">Tarifa fixa · R$</label
+                  ><input
+                    id="fixedFee"
+                    inputmode="decimal"
+                    placeholder="Informe, inclusive zero"
+                  />
+                </div>
               </div>
               <p class="muted">
-                Hipóteses suas; não são dados do Mercado Livre. Custo médio de
-                Ads = preço × participação das vendas ÷ ROAS.
+                Quando a API não liberar tarifas, esta opção permite simular com
+                valores informados por você. O resultado continuará identificado
+                como manual.
               </p>
-            </div>
-          </details>
-          <details id="advancedDetails">
-            <summary>Kit, operação, metas e tarifas manuais</summary>
-            <div class="grid fields">
-              <div>
-                <label for="operatingCost">Embalagem e operação · R$</label
-                ><input id="operatingCost" inputmode="decimal" value="0" />
-              </div>
-              <div>
-                <label for="kitQuantity">Unidades deste custo no kit</label
-                ><input id="kitQuantity" inputmode="numeric" value="1" />
-              </div>
-              <div>
-                <label for="discountPercent">Desconto no custo · %</label
-                ><input id="discountPercent" inputmode="decimal" value="0" />
-              </div>
-              <div>
-                <label for="targetMargin">Margem alvo · %</label
-                ><input id="targetMargin" inputmode="decimal" value="20" />
-              </div>
-              <div>
-                <label for="targetRoi">ROI alvo · %</label
-                ><input id="targetRoi" inputmode="decimal" value="30" />
-              </div>
-            </div>
-            <label class="check"
-              ><input id="manualFees" type="checkbox" /> Usar comissão e tarifa
-              que conferi no simulador oficial</label
-            >
-            <div id="manualFeeFields" class="grid fields" hidden>
-              <div>
-                <label for="commissionPercent">Comissão · %</label
-                ><input
-                  id="commissionPercent"
-                  inputmode="decimal"
-                  placeholder="Ex.: 16,5"
-                />
-              </div>
-              <div>
-                <label for="fixedFee">Tarifa fixa · R$</label
-                ><input
-                  id="fixedFee"
-                  inputmode="decimal"
-                  placeholder="Informe, inclusive zero"
-                />
-              </div>
-            </div>
-            <p class="muted">
-              Quando a API não liberar tarifas, esta opção permite simular com
-              valores informados por você. O resultado continuará identificado
-              como manual.
-            </p>
-          </details>
-          <button id="quoteButton" type="button" class="secondary">
-            Consultar tarifa para esta simulação
-          </button>
-          <p id="quoteStatus" class="muted" role="status"></p>
-          <button id="calculate" type="submit">Atualizar simulação</button>
-          <p class="muted">
-            Os resultados atualizam ao editar os campos completos.
-          </p>
-          <p id="calcStatus" class="notice" role="status" hidden></p>
-          <div id="calcResult" hidden>
-            <div class="result-heading">
-              <small>Lucro simulado por venda</small
-              ><strong id="profit">—</strong
-              ><span id="resultSource" class="badge"></span>
-            </div>
-            <div class="grid">
-              <div class="metric">
-                <small>Margem</small><strong id="margin">—</strong>
-              </div>
-              <div class="metric">
-                <small>ROI</small><strong id="roi">—</strong>
-              </div>
-            </div>
-            <div id="adsResult" class="grid" hidden></div>
-            <details id="costDetails">
-              <summary>Detalhamento de custos</summary>
-              <dl id="breakdown" class="breakdown"></dl>
             </details>
-            <p id="priceFloor" class="muted"></p>
-            <p id="calcCaveat" class="muted"></p>
-            <button id="copyResult" type="button" class="secondary">
-              Copiar memória de cálculo</button
-            ><button id="saveSimulation" type="button" class="secondary" hidden>
-              Salvar análise no Radar
+            <button id="quoteButton" type="button" class="secondary">
+              Consultar tarifa para esta simulação
             </button>
-          </div>
+            <p id="quoteStatus" class="muted" role="status"></p>
+          </details>
         </form>
       </section>
       <section id="market" class="tab-page" hidden>
@@ -510,8 +527,8 @@
           <div id="candidates"></div>
         </div>
       </section>
-      <section id="connectionCard" class="card auth-card">
-        <h2>Sua conexão</h2>
+      <details id="connectionCard" class="card auth-card">
+        <summary>Conta e conexão</summary>
         <p id="authSubtitle" class="muted">
           Cada cliente usa a própria conta do Radar e autoriza o seu Mercado
           Livre.
@@ -536,7 +553,7 @@
             compartilhada.
           </p>
         </details>
-      </section>
+      </details>
     </main>
     <dialog id="saveDialog" aria-labelledby="saveTitle">
       <form method="dialog">

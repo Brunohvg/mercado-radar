@@ -321,10 +321,7 @@ try {
         .locator(".auto-receipt > strong")
         .filter({ hasText: "13,51" })
         .waitFor();
-      assert.match(
-        await product.locator(".auto-badge").innerText(),
-        /a confirmar/,
-      );
+      assert.match(await product.locator(".auto-badge").innerText(), /vendas/);
       assert.match(
         await product.locator(".auto-grid").first().innerText(),
         /-33,67%/,
@@ -428,13 +425,13 @@ try {
         .waitFor();
       assert.equal(
         await product.locator(".auto-verdict strong").innerText(),
-        "Ruim para este custo",
+        "Não compensa neste custo",
       );
       assert.equal(
         await host
           .locator('[data-radar-owned="product"] .auto-summary h2')
           .innerText(),
-        "Ruim para este custo",
+        "Não compensa neste custo",
       );
       for (const width of [390, 680, 1366]) {
         await host.setViewportSize({ width, height: 900 });
@@ -669,7 +666,7 @@ try {
         [
           "Alta",
           "Baixa",
-          "Sem período",
+          "100+ vendas",
           "Excelente",
           "Média",
           "Média",
@@ -678,10 +675,21 @@ try {
         ],
       );
       const unknown = searchPage.locator('[data-radar-owned="card"]').nth(2);
-      assert.equal(await unknown.locator(".intel-number").innerText(), "+100");
+      assert.equal(
+        await unknown.locator(".intel-number").innerText(),
+        "≥ R$\u00a02.190,00",
+      );
       assert.equal(
         await unknown.locator(".intel-cell small").last().innerText(),
-        "vendidos no total",
+        "fat. de referência",
+      );
+      assert.match(
+        await unknown.locator(".intel-basis").innerText(),
+        /100\+ vendidos × preço atual/,
+      );
+      assert.equal(
+        await unknown.locator(".intel-opportunity").innerText(),
+        "Vale simular",
       );
       assert.equal(
         await searchPage
@@ -879,21 +887,67 @@ try {
         __hostQa.change({ radarAccessToken: { newValue: null } }, "local");
       });
       const pills = searchPage.locator('[data-radar-owned="card"] .intel-pill');
+      const publicSignals = await pills.allTextContents();
       assert.ok(
-        (await pills.allTextContents()).every((text) => text === "Sem período"),
+        publicSignals.every((text) =>
+          ["Não informado", "100+ vendas"].includes(text),
+        ),
       );
       await searchPage.evaluate(() => __hostQa.releaseObservations());
       await searchPage.waitForTimeout(650);
-      assert.ok(
-        (await pills.allTextContents()).every((text) => text === "Sem período"),
+      assert.deepEqual(await pills.allTextContents(), publicSignals);
+      assert.equal(
+        await searchPage
+          .locator('[data-radar-owned="card"] .intel-cell small')
+          .filter({ hasText: "receita est./dia" })
+          .count(),
+        0,
+      );
+    },
+  );
+  await check(
+    "public card calculations work without a session and follow price changes without counting reviews as sales",
+    async () => {
+      const card = searchPage
+        .locator(".poly-card")
+        .filter({ has: searchPage.locator('a[href$="MLBU5074600642"]') });
+      await card
+        .locator(".intel-number")
+        .filter({ hasText: "2.190,00" })
+        .waitFor();
+      const calls = await searchPage.evaluate(
+        () => __messages.filter((m) => m.type === "RADAR_FETCH").length,
+      );
+      await card
+        .locator(".andes-money-amount__fraction")
+        .evaluate((el) => (el.textContent = "30"));
+      await card
+        .locator(".andes-money-amount__cents")
+        .evaluate((el) => (el.textContent = "00"));
+      await card
+        .locator(".intel-number")
+        .filter({ hasText: "3.000,00" })
+        .waitFor();
+      assert.equal(
+        await card.locator(".intel-pill").innerText(),
+        "100+ vendas",
       );
       assert.equal(
         await searchPage
           .locator('[data-radar-owned="card"] .intel-number')
-          .filter({ hasText: "R$" })
+          .filter({ hasText: "Vendas ausentes" })
           .count(),
-        0,
+        6,
       );
+      assert.equal(
+        await searchPage.evaluate(
+          () => __messages.filter((m) => m.type === "RADAR_FETCH").length,
+        ),
+        calls,
+      );
+      await searchPage.setViewportSize({ width: 1366, height: 900 });
+      if (artifacts)
+        await searchPage.screenshot({ path: artifacts + "/public-search.png" });
     },
   );
 
@@ -932,6 +986,13 @@ try {
         this.context = context;
         events.activated?.();
       },
+      changePreferences(prefs) {
+        this.prefs = prefs;
+        events.changed?.(
+          { radarTaxPercent: { newValue: prefs.radarTaxPercent } },
+          "sync",
+        );
+      },
       intent(value) {
         const data = {
           id: crypto.randomUUID(),
@@ -962,7 +1023,7 @@ try {
       },
       storage: {
         sync: {
-          get: async () => ({}),
+          get: async () => qa.prefs || {},
           set: async (data) => Object.assign(store, data),
         },
         session: {
@@ -1009,7 +1070,24 @@ try {
                   },
                 },
               },
-              item: null,
+              item: qa.autoItem
+                ? {
+                    id: "MLB999000001",
+                    isOwn: true,
+                    listingTypeId: "gold_special",
+                    logisticType: "drop_off",
+                    categoryId: "MLB1234",
+                    shippingPackage: {
+                      weightGrams: 500,
+                      heightCm: 10,
+                      widthCm: 15,
+                      lengthCm: 20,
+                    },
+                  }
+                : null,
+              savedCost: qa.autoItem
+                ? { supplierPrice: 40, discountPercent: 0, source: "LISTING" }
+                : null,
               availability: "PAGE_ONLY",
               note: "A API restringiu esta oferta; a leitura da página permanece disponível.",
             });
@@ -1045,7 +1123,9 @@ try {
               commissionPercent: rate,
               commissionAmount: round((p.salePrice * rate) / 100),
               fixedFee: fixed,
-              shippingCost: p.shippingCost ?? (p.shippingPackage ? 6.85 : null),
+              shippingCost:
+                p.shippingCost ??
+                (p.shippingPackage || qa.autoItem ? 6.85 : null),
               taxPercent: p.taxPercent ?? null,
               taxAmount:
                 p.taxPercent == null
@@ -1060,7 +1140,13 @@ try {
               fees,
               needs,
               feeSource: p.manualFees ? "MANUAL" : "MERCADO_LIVRE_API",
-              shippingKnown: false,
+              shippingKnown:
+                p.shippingCost == null &&
+                !p.shippingPackage &&
+                Boolean(qa.autoItem),
+              shippingDiscount: qa.autoItem
+                ? { rate: 0.5, baseAmount: 13.7 }
+                : null,
               shippingEstimated:
                 p.shippingCost == null && Boolean(p.shippingPackage),
               shippingNote: "Cotação da sua embalagem na conta autorizada.",
@@ -1100,7 +1186,8 @@ try {
                 taxAmount: fees.taxAmount,
                 marginPercent: (profit / p.salePrice) * 100,
                 roiPercent: (profit / purchase) * 100,
-                minimumSuggestedPrice: 21,
+                minimumSuggestedPrice:
+                  p.supplierPrice === 40 && p.salePrice === 100 ? 82.02 : 21,
               };
               if (p.advertising) {
                 const cost = round(
@@ -1179,6 +1266,41 @@ try {
     });
   await page.locator('[data-tab="calculator"]').click();
   await check(
+    "simple calculator exposes only essential inputs and keeps advanced controls below the result",
+    async () => {
+      assert.equal(
+        await page.locator("#calculatorForm input:visible").count(),
+        3,
+      );
+      assert.equal(await page.locator("#salePrice").isVisible(), false);
+      for (const id of [
+        "calcOptions",
+        "costDetails",
+        "packageDetails",
+        "adsDetails",
+        "advancedDetails",
+      ])
+        assert.equal(await page.locator("#" + id).getAttribute("open"), null);
+      assert.equal(
+        await page.locator('[aria-label="Logística simulada"]').isVisible(),
+        false,
+      );
+      assert.equal(
+        await page
+          .locator("#calculatorForm")
+          .evaluate((form) =>
+            Boolean(
+              form
+                .querySelector("#calcResult")
+                .compareDocumentPosition(form.querySelector("#calcOptions")) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+            ),
+          ),
+        true,
+      );
+    },
+  );
+  await check(
     "unknown tax, missing shipping and explicit zero have different states",
     async () => {
       await page.locator("#supplierPrice").fill("10,90");
@@ -1200,6 +1322,7 @@ try {
     "comma-decimal manual profit and changes invalidate old results",
     async () => {
       await page.locator("#shippingCost").fill("0");
+      await page.locator("#calcOptions > summary").click();
       await page
         .getByText("Kit, operação, metas e tarifas manuais", { exact: true })
         .click();
@@ -1210,11 +1333,15 @@ try {
       await page.locator("#profit").filter({ hasText: "4,05" }).waitFor();
       assert.match(await page.locator("#resultSource").innerText(), /manuais/);
       assert.equal(await page.locator("#saveSimulation").isVisible(), true);
+      await page.locator("#calcOptions > summary").click();
+      assert.equal(await page.locator("#priceFloorValue").isVisible(), true);
+      assert.equal(await page.locator("#roi").isVisible(), false);
       if (artifacts)
         await page.screenshot({
           path: artifacts + "/extension-calculator.png",
           fullPage: true,
         });
+      await page.locator("#editSalePrice").click();
       await page.locator("#salePrice").fill("18,00");
       assert.equal(await page.locator("#calcResult").isVisible(), false);
     },
@@ -1228,6 +1355,10 @@ try {
       await page.locator("#calculate").click();
       await page.locator("#supplierPrice").fill("200");
       await page.locator("#profit").filter({ hasText: "184,97" }).waitFor();
+      assert.equal(
+        await page.locator("#calcDecision").innerText(),
+        "Não compensa neste custo",
+      );
       assert.equal(
         await page.evaluate(
           () =>
@@ -1263,9 +1394,12 @@ try {
   await check(
     "calculator estimates package shipping and recalculates an explicit Ads scenario",
     async () => {
+      await page.locator("#calcOptions > summary").click();
       await page.locator("#manualFees").uncheck();
       await page.locator("#salePrice").fill("100");
       await page.locator("#supplierPrice").fill("40");
+      if (!(await page.locator("#shippingCost").isVisible()))
+        await page.locator("#editCostInputs").click();
       await page.locator('[data-input="taxPercent"][data-value="6"]').click();
       await page.locator("#shippingCost").fill("");
       await page.locator("#packageDetails summary").click();
@@ -1285,14 +1419,16 @@ try {
       await page.locator("#profit").filter({ hasText: "31,15" }).waitFor();
       assert.match(
         await page.locator("#resultSource").innerText(),
-        /frete estimado/,
+        /frete estimado/i,
       );
       await page.locator("#adsDetails summary").click();
       await page.locator("#adsEnabled").check();
       await page.locator('[data-input="adsRoas"][data-value="5"]').click();
       await page.locator('[data-input="adsShare"][data-value="20"]').click();
       await page.locator("#profit").filter({ hasText: "27,15" }).waitFor();
+      await page.locator("#costDetails > summary").click();
       assert.match(await page.locator("#adsResult").innerText(), /4,00/);
+      await page.locator("#costDetails > summary").click();
       assert.match(
         await page.locator("#resultSource").innerText(),
         /hipóteses suas/,
@@ -1367,8 +1503,16 @@ try {
       await page.locator("#candidates .candidate").last().waitFor();
       await page.locator("#selectAll").click();
       assert.match(await page.locator("#marketRange").innerText(), /30,00/);
+      assert.match(
+        await page.locator("#calcComparison").textContent(),
+        /233,33% acima.*3 anúncios/,
+      );
       await page.locator("#candidates input").first().uncheck();
       assert.equal(await page.locator("#marketRange .metric").count(), 0);
+      assert.equal(
+        await page.locator("#calcComparison").getAttribute("hidden"),
+        "",
+      );
     },
   );
   if (artifacts)
@@ -1511,6 +1655,63 @@ try {
           );
         }
       }
+    },
+  );
+  await check(
+    "known own costs, tax, shipping and fees calculate automatically with one visible input",
+    async () => {
+      await page.setViewportSize({ width: 390, height: 900 });
+      await page.evaluate(() => {
+        __qa.autoItem = true;
+        __qa.context = {
+          page: "product",
+          items: [{ ...__qa.obs, price: 100 }],
+          tabId: 1,
+          updatedAt: new Date().toISOString(),
+        };
+        __qa.changePreferences({ radarTaxPercent: 6 });
+      });
+      await page.waitForFunction(
+        () => document.getElementById("salePrice").value === "100,00",
+      );
+      await page.locator('[data-tab="calculator"]').click();
+      await page.locator("#profit").filter({ hasText: "31,15" }).waitFor();
+      assert.equal(await page.locator("#supplierPrice").inputValue(), "40");
+      assert.match(await page.locator("#priceFloorValue").innerText(), /82,02/);
+      assert.equal(
+        await page.locator("#calculatorForm input:visible").count(),
+        1,
+      );
+      assert.match(
+        await page.locator("#calcAutoFacts").innerText(),
+        /6,85.*50% de desconto aplicado.*6%/,
+      );
+      const payload = await page.evaluate(
+        () =>
+          __qa.calls
+            .filter(
+              (c) =>
+                c.path === "/api/extension/profitability" && !c.body.quoteOnly,
+            )
+            .at(-1).body,
+      );
+      assert.equal(
+        payload.shippingPackage,
+        undefined,
+        "API-prefilled dimensions must not override the own-listing quote",
+      );
+      assert.equal(payload.shippingCost, undefined);
+      assert.equal(payload.manualFees, undefined);
+      assert.equal(payload.taxPercent, 6);
+      assert.equal(
+        await page.locator("#connectionCard").getAttribute("open"),
+        null,
+      );
+      if (artifacts)
+        await page.screenshot({
+          path: artifacts + "/calculator-automatic.png",
+          fullPage: true,
+        });
     },
   );
   assert.deepEqual(errors, []);

@@ -22,6 +22,8 @@
     server: "https://radar.optarys.com.br",
     edited: new Set(),
     automaticTimer: null,
+    calculatorQuote: null,
+    editCostInputs: false,
   };
   const brl = (n) =>
     n == null || !Number.isFinite(Number(n))
@@ -64,8 +66,21 @@
     const obs = current();
     $("autoAnalysis").hidden = !s.obs || s.obs.id !== obs?.id;
     if (!s.obs || s.obs.id !== obs?.id) return;
+    const automaticIds = [
+      "supplierPrice",
+      "listingType",
+      "logisticType",
+      "packageWeight",
+      "packageHeight",
+      "packageWidth",
+      "packageLength",
+      "packageFreeShipping",
+    ];
+    const before = automaticIds
+      .map((id) => ($(id).type === "checkbox" ? $(id).checked : $(id).value))
+      .join("|");
     const d = A.demand(s.insight),
-      o = A.opportunity(s.insight, s.result),
+      o = A.decision(obs, s.insight, s.result),
       quote = s.quotes[s.listingType],
       payout = A.receipt(quote, obs.price);
     $("autoDemand").textContent = d.title;
@@ -152,6 +167,128 @@
     ])
       if (!state.edited.has(id) && value !== "") $(id).value = value;
     syncChoices();
+    if (
+      before !==
+      automaticIds
+        .map((id) => ($(id).type === "checkbox" ? $(id).checked : $(id).value))
+        .join("|")
+    ) {
+      state.calcRevision++;
+      state.result = null;
+      $("calcResult").hidden = true;
+    }
+    if (
+      quote &&
+      !$("manualFees").checked &&
+      M.money($("salePrice").value) === obs.price &&
+      $("listingType").value === s.listingType &&
+      ![
+        "salePrice",
+        "listingType",
+        "logisticType",
+        "packageWeight",
+        "packageHeight",
+        "packageWidth",
+        "packageLength",
+      ].some((id) => state.edited.has(id))
+    )
+      state.calculatorQuote = quote;
+    renderCalculatorFields();
+    if (
+      !$("calculator").hidden &&
+      !state.result &&
+      !state.calcBusy &&
+      M.money($("supplierPrice").value) != null &&
+      M.money($("taxPercent").value) != null
+    )
+      scheduleCalculation();
+  }
+  function renderCalculatorFields() {
+    const q = state.calculatorQuote,
+      price = M.money($("salePrice").value),
+      manualShipping = M.money($("shippingCost").value),
+      tax = M.money($("taxPercent").value),
+      quotedShipping =
+        (q?.shippingKnown || q?.shippingEstimated) &&
+        typeof q?.fees?.shippingCost === "number" &&
+        Number.isFinite(q.fees.shippingCost)
+          ? q.fees.shippingCost
+          : null;
+    $("salePriceReadout").textContent = brl(price);
+    for (const [id, known] of [
+      ["shippingField", manualShipping != null || quotedShipping != null],
+      ["taxField", tax != null && tax <= 50],
+    ]) {
+      const group = $(id);
+      if (!group.contains(document.activeElement))
+        group.hidden = !state.editCostInputs && known;
+    }
+    $("calcAutoFacts").textContent = [
+      ($("listingType").value === "PREMIUM" ? "Premium" : "Clássico") +
+        (q?.fees?.commissionPercent == null
+          ? " · tarifa a confirmar"
+          : " · " +
+            pct(q.fees.commissionPercent) +
+            " + " +
+            brl(q.fees.fixedFee)),
+      manualShipping != null
+        ? "Frete informado " + brl(manualShipping)
+        : quotedShipping != null
+          ? (q.shippingEstimated ? "Frete estimado " : "Frete cotado ") +
+            brl(quotedShipping) +
+            (q.shippingDiscount?.rate > 0
+              ? " (" +
+                pct(q.shippingDiscount.rate * 100) +
+                " de desconto aplicado)"
+              : "")
+          : "Frete a confirmar",
+      tax == null ? "Imposto a confirmar" : "Imposto " + pct(tax),
+    ].join(" · ");
+    $("editCostInputs").textContent = state.editCostInputs
+      ? "Recolher custos confirmados"
+      : "Alterar frete e imposto";
+    renderCalculatorComparison();
+  }
+  function renderCalculatorComparison() {
+    const prices = state.candidates
+      .filter(
+        (item) => state.selected.has(item.id) && item.id !== current()?.id,
+      )
+      .map((item) => Number(item.price));
+    const sample = M.sample(prices, M.money($("salePrice").value));
+    $("calcComparison").hidden = sample?.gap == null;
+    $("calcComparison").textContent =
+      sample?.gap == null
+        ? ""
+        : "Seu preço está " +
+          pct(Math.abs(sample.gap)) +
+          (sample.gap > 0
+            ? " acima"
+            : sample.gap < 0
+              ? " abaixo"
+              : " na faixa") +
+          " da mediana de " +
+          sample.count +
+          " anúncios selecionados. Compare o mesmo kit e condição.";
+  }
+  function scheduleCalculation() {
+    clearTimeout(state.automaticTimer);
+    state.automaticTimer = setTimeout(() => {
+      if (state.calcBusy) {
+        scheduleCalculation();
+        return;
+      }
+      if (
+        M.money($("supplierPrice").value) == null ||
+        M.money($("taxPercent").value) == null
+      ) {
+        if (!state.calculatorQuote && M.money($("salePrice").value) > 0)
+          void calculate(true);
+        return;
+      }
+      if ($("adsEnabled").checked && !(M.money($("adsRoas").value) > 0)) return;
+      void calculate();
+    }, 550);
   }
   function node(tag, text, className) {
     const el = document.createElement(tag);
@@ -231,6 +368,10 @@
         button.setAttribute("aria-current", "page");
       else button.removeAttribute("aria-current");
     }
+    if (name === "calculator") {
+      renderCalculatorFields();
+      if (!state.result) scheduleCalculation();
+    }
   }
   for (const button of document.querySelectorAll(".tabs button"))
     button.addEventListener("click", () => showTab(button.dataset.tab));
@@ -238,6 +379,7 @@
     button.addEventListener("click", () => {
       $("toolMenu").open = false;
       if (button.dataset.tool === "connection") {
+        $("connectionCard").open = true;
         $("connectionCard").scrollIntoView({
           behavior: "smooth",
           block: "start",
@@ -350,6 +492,7 @@
         ? result.account?.nickname || "Conectado"
         : "Radar desconectado";
       $("authDot").classList.toggle("online", Boolean(result?.authenticated));
+      $("connectionCard").open = !result?.authenticated;
       $("loginButton").textContent = result?.authenticated
         ? "Reconectar conta"
         : "Entrar no Mercado Radar";
@@ -421,6 +564,9 @@
     state.revision++;
     state.calcRevision++;
     state.result = null;
+    state.calculatorQuote = null;
+    state.editCostInputs = false;
+    $("priceField").hidden = true;
     state.calcBusy = false;
     for (const id of [
       "calculate",
@@ -460,7 +606,13 @@
     $("kitQuantity").value = "1";
     $("discountPercent").value = "0";
     $("packageFreeShipping").checked = Boolean(obs?.freeShipping);
-    for (const id of ["packageDetails", "adsDetails", "advancedDetails"])
+    for (const id of [
+      "calcOptions",
+      "costDetails",
+      "packageDetails",
+      "adsDetails",
+      "advancedDetails",
+    ])
       $(id).open = false;
     for (const id of [
       "packageWeight",
@@ -507,6 +659,7 @@
     else if (state.focusedId && state.context.page === "search")
       focusProduct(null);
     if (intent.tab === "connection") {
+      $("connectionCard").open = true;
       $("connectionCard").scrollIntoView({ block: "start" });
       return;
     }
@@ -720,7 +873,10 @@
     ];
     if (
       data.shippingCost == null &&
-      packageFields.some((id) => $(id).value !== "")
+      packageFields.some((id) => $(id).value !== "") &&
+      [...packageFields, "packageFreeShipping"].some((id) =>
+        state.edited.has(id),
+      )
     ) {
       const weight = inputNumber("packageWeight", 1, 100000);
       if (!Number.isInteger(weight))
@@ -809,6 +965,8 @@
         return;
       }
       const body = response.body;
+      state.calculatorQuote = body;
+      renderCalculatorFields();
       $("quoteStatus").textContent = quoteText(body);
       $("packageStatus").textContent = body.shippingEstimated
         ? "Frete estimado: " +
@@ -848,6 +1006,10 @@
       const r = body.result;
       $("calcResult").hidden = false;
       const ads = body.adsSimulation;
+      const conclusion = A.decision(current(), analysis.state.insight, r, ads);
+      $("calcDecision").textContent = conclusion.title;
+      $("calcDecision").className = "calc-decision " + conclusion.tone;
+      $("calcDecisionReason").textContent = conclusion.reason;
       $("profit").textContent = brl(ads?.profitAfterAds ?? r.profit);
       $("margin").textContent = pct(
         ads?.marginAfterAdsPercent ?? r.marginPercent,
@@ -856,8 +1018,8 @@
         ? "Margem após Ads"
         : "Margem";
       $("roi").previousElementSibling.textContent = ads
-        ? "ROI antes de Ads"
-        : "ROI";
+        ? "Retorno sobre o custo · antes de Ads"
+        : "Retorno sobre o custo · ROI";
       $("roi").textContent =
         r.purchaseCost + payload.operatingCost > 0
           ? pct(r.roiPercent)
@@ -883,10 +1045,17 @@
       $("resultSource").textContent = ads
         ? "Cenário após Ads · hipóteses suas"
         : body.shippingEstimated
-          ? "Simulação com frete estimado"
+          ? "Frete estimado"
           : body.feeSource === "MANUAL"
-            ? "Simulação com tarifas manuais"
-            : "Simulação com tarifa da API";
+            ? "Tarifas manuais"
+            : "Tarifas Mercado Livre";
+      $("priceGoalLabel").textContent = ads
+        ? "Meta antes de Ads"
+        : "Preço para sua meta";
+      $("priceFloorValue").textContent =
+        r.minimumSuggestedPrice == null
+          ? "Meta inviável"
+          : brl(r.minimumSuggestedPrice);
       $("breakdown").replaceChildren();
       const rows = [
         ["Preço de venda", r.salePrice],
@@ -929,10 +1098,7 @@
           : " Não inclui Ads.") +
         " Não inclui devoluções, tributos adicionais ou custos que você não informou.";
       $("saveSimulation").hidden = r.minimumSuggestedPrice == null;
-      notice(
-        "calcStatus",
-        "Simulação concluída. Confira a memória de cálculo abaixo.",
-      );
+      notice("calcStatus", "");
     } finally {
       if (revision === state.revision) {
         state.calcBusy = false;
@@ -1034,6 +1200,7 @@
     renderSample();
   });
   function renderSample() {
+    renderCalculatorComparison();
     $("clearSelection").hidden = !state.selected.size;
     $("candidateCount").textContent =
       visibleCandidates().length +
@@ -1175,23 +1342,23 @@
   $("calculatorForm").addEventListener("input", (event) => {
     syncChoices();
     state.edited.add(event.target.id);
-    clearTimeout(state.automaticTimer);
-    state.automaticTimer = setTimeout(() => {
-      if (
-        M.money($("supplierPrice").value) == null ||
-        M.money($("taxPercent").value) == null
-      )
-        return;
-      if ($("adsEnabled").checked && !(M.money($("adsRoas").value) > 0)) return;
-      if (state.calcBusy) {
-        state.automaticTimer = setTimeout(
-          () => $("calculatorForm").dispatchEvent(new Event("input")),
-          200,
-        );
-        return;
-      }
-      void calculate();
-    }, 550);
+    if (
+      [
+        "salePrice",
+        "listingType",
+        "logisticType",
+        "packageWeight",
+        "packageHeight",
+        "packageWidth",
+        "packageLength",
+        "manualFees",
+        "commissionPercent",
+        "fixedFee",
+      ].includes(event.target.id)
+    )
+      state.calculatorQuote = null;
+    renderCalculatorFields();
+    scheduleCalculation();
   });
   for (const input of $("calculatorForm").querySelectorAll(
     "select, input[type=checkbox]",
@@ -1228,17 +1395,21 @@
     $("adsFields").hidden = !$("adsEnabled").checked;
   });
   $("estimatePackage").addEventListener("click", () => {
+    state.edited.add("packageWeight");
     if (M.money($("shippingCost").value) != null) {
       $("shippingCost").value = "";
       $("shippingCost").dispatchEvent(new Event("input", { bubbles: true }));
     }
     void calculate(true);
   });
-  $("estimateShipping").addEventListener("click", () => {
+  function openShipping() {
     showTab("calculator");
+    $("calcOptions").open = true;
     $("packageDetails").open = true;
     $("packageDetails").scrollIntoView({ block: "start", behavior: "smooth" });
-  });
+  }
+  $("estimateShipping").addEventListener("click", openShipping);
+  $("openShipping").addEventListener("click", openShipping);
   for (const button of document.querySelectorAll("[data-auto-type]"))
     button.addEventListener("click", () =>
       analysis.selectType(button.dataset.autoType),
@@ -1248,6 +1419,15 @@
     if (!(price > 0)) return;
     $("salePrice").value = Number(price).toFixed(2).replace(".", ",");
     $("salePrice").dispatchEvent(new Event("input", { bubbles: true }));
+    $("priceField").hidden = true;
+  });
+  $("editSalePrice").addEventListener("click", () => {
+    $("priceField").hidden = !$("priceField").hidden;
+    if (!$("priceField").hidden) $("salePrice").focus();
+  });
+  $("editCostInputs").addEventListener("click", () => {
+    state.editCostInputs = !state.editCostInputs;
+    renderCalculatorFields();
   });
   $("manualFees").addEventListener("change", () => {
     $("manualFeeFields").hidden = !$("manualFees").checked;
@@ -1369,6 +1549,8 @@
   $("logoutButton").addEventListener("click", async () => {
     await chrome.runtime.sendMessage({ type: "RADAR_AUTH_LOGOUT" });
     state.result = null;
+    state.calculatorQuote = null;
+    renderCalculatorFields();
     $("calcResult").hidden = true;
     await authStatus();
     await preferences();
@@ -1424,6 +1606,9 @@
       for (const id of ["supplierPrice", "shippingCost", "taxPercent"])
         $(id).value = "";
       state.result = null;
+      state.calculatorQuote = null;
+      state.editCostInputs = false;
+      renderCalculatorFields();
       state.calcRevision++;
       $("calcResult").hidden = true;
       void authStatus()

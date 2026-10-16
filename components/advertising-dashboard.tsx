@@ -98,7 +98,7 @@ type Payload = {
     lost_impression_share_by_ad_rank: number;
     acos_benchmark: number;
     realizedProfitBeforeAds: number;
-    realizedProfitAfterAds: number;
+    realizedProfitAfterAds: number | null;
     realizedMarginAfterAds: number | null;
     profitCoveragePercent: number;
     profitReadyOrders: number;
@@ -214,7 +214,7 @@ export function AdvertisingDashboard() {
       };
     }
 
-    if (summary.realizedProfitAfterAds < 0) {
+    if (summary.realizedProfitAfterAds != null && summary.realizedProfitAfterAds < 0) {
       return {
         tone: "bad",
         title: "Publicidade está consumindo o lucro conhecido",
@@ -353,7 +353,7 @@ export function AdvertisingDashboard() {
 
             <article className="clean-kpi-card accent">
               <span>Lucro conhecido após Ads</span>
-              <strong>{money.format(summary.realizedProfitAfterAds)}</strong>
+              <strong>{summary.realizedProfitAfterAds == null ? "A apurar" : money.format(summary.realizedProfitAfterAds)}</strong>
               <small>
                 cobertura de {pct(summary.profitCoveragePercent)} dos pedidos
               </small>

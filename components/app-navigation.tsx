@@ -54,6 +54,7 @@ const groups: Array<{ label: string; items: MenuItem[] }> = [
   {
     label: "Configuração",
     items: [
+      { href: "/configuracoes", label: "Metas e configurações", icon: "analysis" },
       { href: "/integracoes", label: "Integrações", icon: "integrations" },
       { href: "/extensao", label: "Extensão", icon: "extension" },
       { href: "/onboarding", label: "Primeiros passos", icon: "steps" },
@@ -250,6 +251,16 @@ export function AppNavigation() {
     };
   }, []);
 
+  useEffect(() => { setOpen(false); }, [pathname]);
+  useEffect(() => {
+    if (!open) return;
+    const old = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", close);
+    return () => { document.body.style.overflow = old; window.removeEventListener("keydown", close); };
+  }, [open]);
+
   async function signOut() {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
     window.location.assign("/login");
@@ -275,6 +286,7 @@ export function AppNavigation() {
         className="mobile-nav-button"
         aria-label={open ? "Fechar menu" : "Abrir menu"}
         aria-expanded={open}
+        aria-controls="radar-sidebar"
         onClick={() => setOpen((current) => !current)}
       >
         <span />
@@ -292,6 +304,7 @@ export function AppNavigation() {
       )}
 
       <aside
+        id="radar-sidebar"
         className={[
           "sidebar",
           open ? "mobile-open" : "",
@@ -331,6 +344,7 @@ export function AppNavigation() {
                     key={item.href}
                     onClick={() => setOpen(false)}
                     title={collapsed ? item.label : undefined}
+                    aria-current={isActive(item.href) ? "page" : undefined}
                   >
                     <span className="nav-item-icon">
                       <MenuIcon name={item.icon} />

@@ -98,6 +98,7 @@ export function ProductsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+  useEffect(() => { const item = new URLSearchParams(window.location.search).get("item"); if (item) setQuery(item); }, []);
   const [filter, setFilter] = useState<"ALL" | "ATTENTION" | "NO_COST">("ALL");
   const [costEditorId, setCostEditorId] = useState<string | null>(null);
   const [costDraft, setCostDraft] = useState({

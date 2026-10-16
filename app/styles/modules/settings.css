@@ -1,0 +1,121 @@
+.workspace-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+.settings-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(260px, 1fr);
+  gap: var(--s-5);
+  align-items: start;
+}
+.settings-form,
+.settings-aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+.settings-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-5);
+}
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-width: 0;
+  font-size: var(--fs-13);
+  color: var(--ink-700);
+}
+.settings-field > span {
+  font-weight: 600;
+}
+.settings-field input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  border-radius: var(--r-sm);
+  padding: var(--s-2) var(--s-3);
+}
+.settings-field small,
+.settings-muted {
+  color: var(--ink-500);
+  line-height: 1.5;
+}
+.settings-form > button {
+  align-self: flex-start;
+}
+.settings-aside > .clean-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+.settings-aside h2 {
+  font-size: var(--fs-18);
+}
+.settings-aside h3 {
+  font-size: var(--fs-16);
+}
+.settings-aside p {
+  font-size: var(--fs-13);
+  overflow-wrap: anywhere;
+}
+.settings-facts {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.settings-facts div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-3);
+  font-size: var(--fs-12);
+}
+.settings-facts dt {
+  color: var(--ink-500);
+}
+.settings-facts dd {
+  font-weight: 600;
+  text-align: right;
+}
+.settings-success {
+  padding: var(--s-4);
+  border: 1px solid var(--brand-600);
+  border-radius: var(--r-sm);
+  background: var(--brand-tint);
+  color: var(--brand-700);
+}
+.settings-client-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-4);
+  margin-bottom: var(--s-6);
+}
+.settings-client-form > button {
+  justify-self: start;
+}
+@media (max-width: 1000px) {
+  .settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .settings-fields,
+  .settings-client-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .settings-field input {
+    font-size: var(--fs-16);
+  }
+}
+
+.settings-aside .settings-field {
+  width: 100%;
+}

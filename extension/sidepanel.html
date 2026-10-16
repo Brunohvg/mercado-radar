@@ -14,7 +14,7 @@
         <img src="icons/icon32.png" alt="" />
         <div>
           <strong>Mercado Radar</strong>
-          <small>Seller Intelligence</small>
+          <small>Decida com margem</small>
         </div>
       </div>
       <span class="pill">beta</span>
@@ -60,34 +60,35 @@
       <div class="title">Rentabilidade para você</div>
       <div class="grid">
         <div>
-          <label>Custo do produto</label>
+          <label for="supplierPrice">Custo do produto</label>
           <input id="supplierPrice" type="number" min="0" step="0.01" placeholder="0,00" />
         </div>
         <div>
-          <label>Quantidade no kit</label>
+          <label for="kitQuantity">Quantidade no kit</label>
           <input id="kitQuantity" type="number" min="1" max="1000" step="1" value="1" />
         </div>
         <div>
-          <label>Desconto fornecedor %</label>
+          <label for="discountPercent">Desconto fornecedor %</label>
           <input id="discountPercent" type="number" min="0" max="95" step="0.1" value="0" />
         </div>
         <div>
-          <label>Imposto %</label>
+          <label for="taxPercent">Imposto %</label>
           <input id="taxPercent" type="number" min="0" max="50" step="0.1" value="0" />
         </div>
         <div>
-          <label>Custo operacional</label>
+          <label for="operatingCost">Custo operacional</label>
           <input id="operatingCost" type="number" min="0" step="0.01" value="0" />
         </div>
         <div>
-          <label>Margem alvo %</label>
+          <label for="targetMargin">Margem alvo %</label>
           <input id="targetMargin" type="number" min="0" max="80" step="1" value="20" />
         </div>
         <div>
-          <label>ROI alvo %</label>
+          <label for="targetRoi">ROI alvo %</label>
           <input id="targetRoi" type="number" min="0" max="500" step="1" value="30" />
         </div>
       </div>
+      <details class="shipping-fallback"><summary>Frete indisponível? Informar uma estimativa</summary><label for="shippingEstimate">Seu custo de frete por venda (R$)</label><input id="shippingEstimate" type="number" min="0" max="10000" step="0.01" placeholder="Não informado" /><p class="muted">Usado somente quando a cotação da sua conta não está disponível. O resultado será identificado como estimativa.</p></details>
       <button id="calculate">Calcular com taxas reais</button>
       <button id="saveSimulation" class="secondary" hidden>Salvar simulação no Radar</button>
       <p id="calcStatus" class="muted"></p>

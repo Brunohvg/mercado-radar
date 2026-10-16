@@ -106,3 +106,8 @@ button.secondary:hover { background: var(--line); }
 .auth-actions button { margin-top: 0; }
 .auth-actions .secondary { width: auto; }
 #logoutButton[hidden] { display: none; }
+
+/* Uma estimativa de frete precisa ser uma escolha visível, separada da cotação. */
+.shipping-fallback { margin-top:12px; padding:10px; border:1px solid var(--line); border-radius:var(--r-md); background:var(--surface-2); }
+.shipping-fallback summary { cursor:pointer; color:var(--text-2); min-height:26px; font-size:12px; font-weight:650; }
+.shipping-fallback .muted { margin-top:8px; }

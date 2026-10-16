@@ -584,7 +584,7 @@
     }
 
     if (econ) {
-      const good = Number(econ.marginPercent) >= 15;
+      const good = econ.verdict === "GOOD";
       nodes.push(h("span", { class: "chip chip--" + (good ? "ok" : "risk"), text: "Sua margem " + pct(econ.marginPercent) }));
     }
     return nodes;
@@ -1428,7 +1428,7 @@
     const head = h(
       "div",
       { class: "payout__title" },
-      h("span", { text: "Você recebe" }),
+      h("span", { text: entry?.shippingKnown ? "Repasse estimado" : "Repasse antes do frete" }),
       infoButton(
         "Valor que o Mercado Livre repassa: preço menos comissão e frete. Não inclui o custo do produto nem o seu imposto. Clique em Clássico ou Premium para ver a conta de cada tipo.",
         "Como calculamos o que você recebe",
@@ -1509,8 +1509,9 @@
       discountPercent: 0,
       kitQuantity: 1,
       taxPercent: settings.taxPercent,
-      // frete médio informado entra como custo operacional quando a API não conhece o frete
-      operatingCost: settings.operatingCost + (ship.known ? 0 : ship.value),
+      // Frete informado é uma estimativa explícita, separado da operação.
+      shippingCost: ship.known || ship.value > 0 ? ship.value : undefined,
+      operatingCost: settings.operatingCost,
       targetMarginPercent: settings.targetMarginPercent,
       targetRoiPercent: settings.targetRoiPercent,
       title: obs.title || undefined,
@@ -1526,7 +1527,7 @@
     } else if (!response?.ok || !response.body?.result) {
       pdp.calcError = response?.body?.error || "Não foi possível calcular as tarifas deste anúncio.";
     } else {
-      pdp.calcResult = { ...response.body, ship, settings };
+      pdp.calcResult = { ...response.body, ship: { value: response.body.fees.shippingCost, known: response.body.shippingKnown }, settings };
     }
     renderPdp(pdp);
   }
@@ -1622,11 +1623,12 @@
           : line("Frete", "não incluído", "dim"),
       );
       if (Number(fees.taxAmount) > 0) lines.push(line("Imposto (" + pct(fees.taxPercent) + ")", "− " + brl(fees.taxAmount), "neg"));
+      lines.push(line("Embalagem e operação", "− " + brl(result.operatingCost), "neg"));
       lines.push(line("Custo do produto", "− " + brl(result.purchaseCost), "neg"));
-      lines.push(line("Lucro por venda", brl(result.profit), "total" + (result.profit <= 0 ? " risk" : "")));
+      lines.push(line("Lucro estimado por venda", brl(result.profit), "total" + (result.profit <= 0 ? " risk" : "")));
       body.append(
         h("div", { class: "payout-lines" }, ...lines),
-        h("div", { class: "muted", text: "Margem " + pct(result.marginPercent) + " · ROI " + pct(result.roiPercent) + " · preço mínimo saudável " + brl(result.minimumSuggestedPrice) }),
+        h("div", { class: "muted", text: "Margem " + pct(result.marginPercent) + " · ROI " + pct(result.roiPercent) + " · piso teórico " + (result.minimumSuggestedPrice == null ? "meta inviável" : brl(result.minimumSuggestedPrice)) }),
       );
     } else if (!pdp.calcBusy) {
       body.append(h("div", { class: "muted", text: "Informe o custo para ver lucro, margem e ROI." }));

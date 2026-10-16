@@ -27,7 +27,8 @@ let currentMarket = null;
 let currentBuyBoxPrice = null;
 
 function brl(value) {
-  return Number(value || 0).toLocaleString("pt-BR", {
+  if (value == null || !Number.isFinite(Number(value))) return "—";
+  return Number(value).toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   });
@@ -68,7 +69,7 @@ async function updateAuthState() {
     authTitle.textContent = auth.account?.nickname || "Mercado Livre conectado";
     authSubtitle.textContent =
       "Plano " +
-      (auth.access?.plan || "PRO") +
+      (auth.access?.plan || "PILOT") +
       " · extensão conectada a esta conta";
     authDot.classList.add("online");
     loginButton.textContent = "Reconectar conta";
@@ -80,7 +81,7 @@ async function updateAuthState() {
 
   authTitle.textContent = "Não conectado";
   authSubtitle.textContent =
-    "Entre com sua conta do Mercado Livre para liberar o Radar.";
+    "Entre com seu acesso Radar e conecte sua conta do Mercado Livre.";
   authDot.classList.remove("online");
   loginButton.textContent = "Entrar no Mercado Radar";
   logoutButton.hidden = true;
@@ -95,8 +96,10 @@ async function loadSettings() {
     "radarOperatingCost",
     "radarTargetMarginPercent",
     "radarTargetRoiPercent",
+    "radarShippingEstimate",
   ]);
 
+  document.getElementById("shippingEstimate").value = settings.radarShippingEstimate == null ? "" : String(settings.radarShippingEstimate);
   document.getElementById("taxPercent").value = String(
     settings.radarTaxPercent ?? 0,
   );
@@ -428,6 +431,7 @@ document.getElementById("calculate").addEventListener("click", async () => {
     radarOperatingCost: operatingCost,
     radarTargetMarginPercent: targetMarginPercent,
     radarTargetRoiPercent: targetRoiPercent,
+    ...(document.getElementById("shippingEstimate").value !== "" ? { radarShippingEstimate: Number(document.getElementById("shippingEstimate").value) } : {}),
   });
 
   calcStatus.textContent = "Calculando comissão, frete e rentabilidade...";
@@ -445,6 +449,7 @@ document.getElementById("calculate").addEventListener("click", async () => {
       document.getElementById("discountPercent").value || 0,
     ),
     taxPercent,
+    shippingCost: document.getElementById("shippingEstimate").value === "" ? undefined : Number(document.getElementById("shippingEstimate").value),
     operatingCost,
     targetMarginPercent,
     targetRoiPercent,
@@ -465,22 +470,23 @@ document.getElementById("calculate").addEventListener("click", async () => {
   const result = response.body.result;
   const fees = response.body.fees;
 
+  calcStatus.textContent = response.body.shippingKnown ? "Cotação da sua conta. Recalcule se mudar o preço." : "Frete estimado: confirme a logística antes de decidir.";
   document.getElementById("profit").textContent = brl(result.profit);
   document.getElementById("margin").textContent = pct(result.marginPercent);
   document.getElementById("roi").textContent = pct(result.roiPercent);
-  document.getElementById("minPrice").textContent = brl(result.minimumSuggestedPrice);
+  document.getElementById("minPrice").textContent = result.minimumSuggestedPrice == null ? "Meta inviável" : brl(result.minimumSuggestedPrice);
   document.getElementById("fees").textContent =
     "Comissão " + pct(fees.commissionPercent) +
     " · tarifa fixa " + brl(fees.fixedFee) +
     " · frete " + brl(fees.shippingCost) +
     " · imposto " + brl(fees.taxAmount);
 
-  calcStatus.textContent =
+  calcStatus.textContent = (response.body.shippingKnown ? "Cotação da conta. " : "Frete estimado. ") + (
     result.verdict === "GOOD"
       ? "Conta saudável para as metas informadas."
       : result.verdict === "TIGHT"
         ? "A conta fecha, mas está apertada."
-        : "A conta não fecha nas metas atuais.";
+        : "A conta não fecha nas metas atuais.") + " Recalcule as tarifas se alterar o preço.";
 
   calcStatus.className =
     "muted " + (result.verdict === "GOOD" ? "good" : result.verdict === "BAD" ? "bad" : "");
@@ -520,6 +526,7 @@ document.getElementById("calculate").addEventListener("click", async () => {
         salePrice: referencePrice,
         supplierPrice,
         discountPercent: Number(document.getElementById("discountPercent").value || 0),
+        shippingCost: document.getElementById("shippingEstimate").value === "" ? undefined : Number(document.getElementById("shippingEstimate").value),
         taxPercent: Number(document.getElementById("taxPercent").value || 0),
         operatingCost: Number(document.getElementById("operatingCost").value || 0),
         targetMarginPercent: Number(document.getElementById("targetMargin").value || 20),
@@ -620,8 +627,8 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 async function init() {
-  await loadSettings();
   await updateAuthState();
+  await loadSettings();
   await refreshContext();
 }
 

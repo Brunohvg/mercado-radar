@@ -1,392 +1,453 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-type SalesPayload = {
-  nickname: string | null;
-  summary: {
+type Decision = {
+  mlItemId: string;
+  title: string;
+  thumbnail: string | null;
+  stock: number;
+  units: number;
+  action: string;
+  label: string;
+  reason: string;
+  marginPercent: number | null;
+  inventoryCapital: number | null;
+  stockDays: number | null;
+  suggestedReorder: number | null;
+  capitalNeeded: number | null;
+  breakEvenRoas: number | null;
+  adBudgetRoomPercent: number | null;
+  profitCoveragePercent: number | null;
+};
+type Payload = {
+  connected: boolean;
+  configured: boolean;
+  workspaceName: string;
+  nickname?: string | null;
+  historyComplete: boolean;
+  reportComplete: boolean;
+  lastSyncedAt: string | null;
+  days: number;
+  summary: null | {
     orders: number;
-    units: number;
     grossRevenue: number;
     realizedProfit: number;
     realizedMarginPercent: number | null;
     profitReadyCount: number;
     awaitingCostCount: number;
-    averageTicket: number;
+    profitCoveragePercent: number | null;
+    units: number;
   };
+  decisions: Decision[];
 };
-
-type ProductPayload = {
-  summary: {
-    total: number;
-    active: number;
-    paused: number;
-    stockUnits: number;
-    soldUnits: number;
-  };
-  products: Array<{
-    mlItemId: string;
-    title: string;
-    sku: string | null;
-    currentPrice: number | null;
-    availableQuantity: number;
-    netUnitCost: number | null;
-    thumbnail: string | null;
-    supplier: string | null;
-    health: {
-      unitsSold: number;
-      coverageDays: number | null;
-      decisionMarginPercent: number | null;
-      inventoryCapital: number | null;
-      action:
-        | "ADD_COST"
-        | "STOP_BUYING"
-        | "RESTOCK"
-        | "WATCH"
-        | "MAINTAIN"
-        | "VALIDATE_PROFIT"
-        | "OBSERVE";
-    };
-  }>;
-};
-
 const money = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
 });
-
-function actionLabel(action: ProductPayload["products"][number]["health"]["action"]) {
-  if (action === "RESTOCK") return "Repor";
-  if (action === "WATCH") return "Atenção";
-  if (action === "MAINTAIN") return "Saudável";
-  if (action === "STOP_BUYING") return "Parar compra";
-  if (action === "ADD_COST") return "Cadastrar custo";
-  if (action === "VALIDATE_PROFIT") return "Validar lucro";
-  return "Observar";
-}
-
-function actionTone(action: ProductPayload["products"][number]["health"]["action"]) {
-  if (action === "MAINTAIN" || action === "RESTOCK") return "good";
-  if (action === "STOP_BUYING") return "bad";
-  return "attention";
-}
+const percent = (n: number | null) =>
+  n == null
+    ? "—"
+    : `${n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+const tone = (action: string) =>
+  action === "STOP_BUYING"
+    ? "bad"
+    : ["MAINTAIN", "RESTOCK"].includes(action)
+      ? "good"
+      : "attention";
 
 export function ExecutiveDashboard() {
-  const [days, setDays] = useState(7);
-  const [sales, setSales] = useState<SalesPayload | null>(null);
-  const [products, setProducts] = useState<ProductPayload | null>(null);
+  const [days, setDays] = useState(30);
+  const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-
-  const load = useCallback(async (refresh = false) => {
-    refresh ? setRefreshing(true) : setLoading(true);
+  const [filter, setFilter] = useState("ALL");
+  const run = useRef(0);
+  const load = useCallback(async () => {
+    const current = ++run.current;
+    setLoading(true);
     setError("");
-
     try {
-      const [salesResponse, productsResponse] = await Promise.all([
-        fetch(
-          `/api/ml/sales?days=${days}${refresh ? "&refresh=1" : ""}`,
-          { cache: "no-store" },
-        ),
-        fetch(
-          `/api/ml/products${refresh ? "?refresh=1" : ""}`,
-          { cache: "no-store" },
-        ),
-      ]);
-
-      const [salesPayload, productsPayload] = await Promise.all([
-        salesResponse.json(),
-        productsResponse.json(),
-      ]);
-
-      if (!salesResponse.ok) {
-        throw new Error(salesPayload.error ?? "Falha ao carregar vendas.");
-      }
-      if (!productsResponse.ok) {
-        throw new Error(productsPayload.error ?? "Falha ao carregar produtos.");
-      }
-
-      setSales(salesPayload);
-      setProducts(productsPayload);
+      const response = await fetch(`/api/decisions?days=${days}`, {
+        cache: "no-store",
+      });
+      const payload = await response.json();
+      if (!response.ok)
+        throw new Error(
+          payload.error ?? "Não foi possível carregar sua operação.",
+        );
+      if (current === run.current) setData(payload);
     } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : "Falha ao carregar dashboard.",
-      );
+      if (current === run.current)
+        setError(
+          caught instanceof Error ? caught.message : "Falha de conexão.",
+        );
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (current === run.current) setLoading(false);
     }
   }, [days]);
-
   useEffect(() => {
-    void load(false);
-  }, [load]);
-
-  const health = useMemo(() => {
-    const rows = products?.products ?? [];
-    if (!rows.length) {
-      return {
-        score: 0,
-        costScore: 0,
-        stockScore: 0,
-        marginScore: 0,
-        giroScore: 0,
-        attention: 0,
-        inventoryCapital: 0,
-      };
-    }
-
-    const costKnown = rows.filter((row) => row.netUnitCost != null).length;
-    const withStock = rows.filter((row) => row.availableQuantity > 0).length;
-    const withHealthyMargin = rows.filter(
-      (row) =>
-        row.health.decisionMarginPercent != null &&
-        row.health.decisionMarginPercent >= 15,
-    ).length;
-    const withMovement = rows.filter((row) => row.health.unitsSold > 0).length;
-    const attention = rows.filter(
-      (row) =>
-        row.health.action === "STOP_BUYING" ||
-        row.health.action === "ADD_COST" ||
-        row.health.action === "WATCH" ||
-        row.health.action === "VALIDATE_PROFIT",
-    ).length;
-
-    const costScore = Math.round((costKnown / rows.length) * 100);
-    const stockScore = Math.round((withStock / rows.length) * 100);
-    const marginScore = Math.round((withHealthyMargin / rows.length) * 100);
-    const giroScore = Math.round((withMovement / rows.length) * 100);
-    const score = Math.round(
-      costScore * 0.3 + stockScore * 0.2 + marginScore * 0.3 + giroScore * 0.2,
-    );
-    const inventoryCapital = rows.reduce(
-      (sum, row) => sum + Number(row.health.inventoryCapital ?? 0),
-      0,
-    );
-
-    return {
-      score,
-      costScore,
-      stockScore,
-      marginScore,
-      giroScore,
-      attention,
-      inventoryCapital,
+    void load();
+    return () => {
+      run.current++;
     };
-  }, [products]);
-
-  const visibleProducts = products?.products.slice(0, 8) ?? [];
-
+  }, [load]);
+  async function refresh() {
+    setRefreshing(true);
+    setError("");
+    try {
+      const results = await Promise.all(
+        ["/api/ml/sales?days=90&refresh=1", "/api/ml/products?refresh=1"].map(
+          async (url) => {
+            const response = await fetch(url, { cache: "no-store" });
+            const body = await response.json();
+            if (!response.ok)
+              throw new Error(body.error ?? "Falha ao atualizar dados.");
+            return body;
+          },
+        ),
+      );
+      await load();
+      if (results.some((r) => r.sync?.truncated))
+        setError(
+          "Importação parcial. Há mais dados no Mercado Livre; os indicadores mostram apenas o histórico importado.",
+        );
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Falha ao atualizar.",
+      );
+    } finally {
+      setRefreshing(false);
+    }
+  }
+  const visible = data?.days === days ? data : null;
+  const decisions = visible?.decisions ?? [];
+  const attention = decisions.filter(
+    (d) => !["MAINTAIN", "OBSERVE"].includes(d.action),
+  );
+  const inventoryCapital = decisions.reduce(
+    (sum, d) => sum + (d.inventoryCapital ?? 0),
+    0,
+  );
+  const rows =
+    filter === "ALL"
+      ? decisions
+      : filter === "ATTENTION"
+        ? attention
+        : decisions.filter((d) => d.action === filter);
+  const summary = visible?.summary;
+  const coverage = summary?.profitCoveragePercent;
   return (
-    <section className="overview-dashboard">
+    <section className="overview-dashboard" aria-busy={loading || refreshing}>
       <header className="page-header clean-page-header">
         <div>
-          <p className="page-kicker">Visão geral</p>
-          <h1>Dashboard</h1>
-          <p>
-            Faturamento, lucro, estoque e saúde da operação em uma única visão.
+          <p className="page-kicker">
+            {visible?.workspaceName || "Minha operação"}
           </p>
+          <h1>Seu radar de decisões</h1>
+          <p>Saiba onde agir para proteger lucro e fazer o estoque girar.</p>
         </div>
-
         <div className="page-header-actions">
           <select
             className="clean-select"
+            aria-label="Período dos indicadores"
             value={days}
-            onChange={(event) => setDays(Number(event.target.value))}
-            aria-label="Período"
+            onChange={(e) => setDays(Number(e.target.value))}
+            disabled={refreshing}
           >
             <option value={7}>Últimos 7 dias</option>
             <option value={30}>Últimos 30 dias</option>
             <option value={90}>Últimos 90 dias</option>
           </select>
           <button
-            type="button"
             className="clean-secondary"
-            disabled={refreshing}
-            onClick={() => void load(true)}
+            onClick={() => void refresh()}
+            disabled={refreshing || loading || !visible?.connected}
           >
-            {refreshing ? "Atualizando..." : "Atualizar dados"}
+            {refreshing ? "Sincronizando…" : "Atualizar dados"}
           </button>
         </div>
       </header>
-
-      {error && <div className="error">{error}</div>}
-      {loading && <div className="clean-loading">Carregando visão geral...</div>}
-
-      {sales && products && (
+      {error && (
+        <div className="error" role="alert">
+          {error} <button onClick={() => void load()}>Tentar novamente</button>
+        </div>
+      )}
+      {loading && !visible && (
+        <div className="radar-skeleton" role="status">
+          <span /> <span /> <span />
+          <p>Preparando as decisões da sua operação…</p>
+        </div>
+      )}
+      {visible && !visible.connected && (
+        <section className="radar-welcome clean-panel">
+          <span className="radar-symbol" aria-hidden="true">
+            ◎
+          </span>
+          <p className="page-kicker">Comece pelo que importa</p>
+          <h2>Transforme suas vendas em decisões.</h2>
+          <p>
+            Conecte sua conta, confira os custos e descubra quanto sobra em cada
+            produto.
+          </p>
+          <div className="radar-start-steps">
+            <span>01 · Conectar Mercado Livre</span>
+            <span>02 · Definir custos e impostos</span>
+            <span>03 · Encontrar sua próxima ação</span>
+          </div>
+          <Link className="clean-primary" href="/integracoes">
+            Conectar minha conta
+          </Link>
+          <Link href="/configuracoes">Configurar minha operação →</Link>
+        </section>
+      )}
+      {visible?.connected && (
         <>
-          <section className="clean-kpi-grid" aria-label="Indicadores principais">
+          {!visible.configured && (
+            <div className="radar-notice">
+              <div>
+                <strong>Complete o perfil financeiro</strong>
+                <p>
+                  Confirme seu imposto e o custo de embalagem/operação para
+                  liberar o lucro e as recomendações.
+                </p>
+              </div>
+              <Link className="clean-secondary" href="/configuracoes">
+                Definir custos
+              </Link>
+            </div>
+          )}
+          {!visible.reportComplete && (
+            <div className="radar-notice">
+              <div>
+                <strong>Histórico parcial ou desatualizado</strong>
+                <p>
+                  Atualize os dados para conferir o período completo. Reposição
+                  depende de 30 dias de histórico recente.
+                </p>
+              </div>
+            </div>
+          )}
+          <section
+            className="clean-kpi-grid"
+            aria-label="Indicadores do período"
+          >
             <article className="clean-kpi-card">
-              <span>Pedidos realizados</span>
-              <strong>{sales.summary.orders}</strong>
-              <small>{sales.summary.units} unidades vendidas</small>
+              <span>Receita paga</span>
+              <strong>{money.format(summary?.grossRevenue ?? 0)}</strong>
+              <small>
+                {summary?.orders ?? 0} pedidos · {summary?.units ?? 0} unidades
+              </small>
             </article>
-            <article className="clean-kpi-card">
-              <span>Faturamento</span>
-              <strong>{money.format(sales.summary.grossRevenue)}</strong>
-              <small>período selecionado</small>
-            </article>
-            <article className="clean-kpi-card">
-              <span>Ticket médio</span>
-              <strong>{money.format(sales.summary.averageTicket)}</strong>
-              <small>por pedido válido</small>
-            </article>
-            <article className="clean-kpi-card accent">
-              <span>Lucro realizado</span>
+            <article
+              className={
+                "clean-kpi-card " +
+                (summary && summary.realizedProfit < 0
+                  ? "radar-loss"
+                  : "accent")
+              }
+            >
+              <span>Lucro conhecido · antes de Ads</span>
               <strong>
-                {sales.summary.profitReadyCount > 0
-                  ? money.format(sales.summary.realizedProfit)
-                  : "Aguardando"}
+                {summary?.profitReadyCount
+                  ? money.format(summary.realizedProfit)
+                  : "A apurar"}
               </strong>
               <small>
-                {sales.summary.realizedMarginPercent == null
-                  ? `${sales.summary.awaitingCostCount} pedido(s) incompleto(s)`
-                  : `${sales.summary.realizedMarginPercent.toFixed(1)}% de margem`}
+                {summary?.profitReadyCount ?? 0} pedidos com custos completos
+              </small>
+            </article>
+            <article className="clean-kpi-card">
+              <span>Margem conhecida</span>
+              <strong>{percent(summary?.realizedMarginPercent ?? null)}</strong>
+              <small>Somente vendas com custos conferidos</small>
+            </article>
+            <article className="clean-kpi-card">
+              <span>Capital conhecido em estoque</span>
+              <strong>{money.format(inventoryCapital)}</strong>
+              <small>
+                {decisions.filter((d) => d.inventoryCapital != null).length} de{" "}
+                {decisions.length} produtos com custo
               </small>
             </article>
           </section>
-
-          <section className="overview-grid">
-            <article className="clean-panel business-health">
-              <div className="clean-panel-head">
-                <div>
-                  <span>Saúde do negócio</span>
-                  <strong>Pulso geral da operação</strong>
+          <section
+            className="radar-evidence clean-panel"
+            aria-label="Confiabilidade dos resultados"
+          >
+            <div>
+              <strong>Quanto do lucro já conseguimos apurar?</strong>
+              <p>
+                {coverage == null
+                  ? "Ainda não há vendas pagas no período."
+                  : `${coverage.toFixed(0)}% da receita tem custos completos. ${summary?.awaitingCostCount ?? 0} pedido(s) aguardam conferência.`}
+              </p>
+            </div>
+            <div className="radar-coverage">
+              <progress
+                value={coverage ?? 0}
+                max="100"
+                aria-label="Receita com custos completos"
+              />
+              <b>{percent(coverage ?? null)}</b>
+            </div>
+            <Link href="/vendas">Conferir vendas →</Link>
+          </section>
+          <div className="radar-section-head">
+            <div>
+              <p className="page-kicker">Prioridades · últimos 30 dias</p>
+              <h2>O que merece sua atenção</h2>
+            </div>
+            <span className="table-status attention">
+              {attention.length}{" "}
+              {attention.length === 1
+                ? "ação para revisar"
+                : "ações para revisar"}
+            </span>
+          </div>
+          <div
+            className="radar-filter-bar"
+            role="group"
+            aria-label="Filtrar decisões"
+          >
+            {[
+              ["ALL", "Todos"],
+              ["ATTENTION", "Precisam de atenção"],
+              ["RESTOCK", "Reposição"],
+              ["ADD_COST", "Sem custo"],
+              ["STOP_BUYING", "Margem em risco"],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                aria-pressed={filter === key}
+                className={filter === key ? "active" : ""}
+                onClick={() => setFilter(key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {!rows.length && (
+            <div className="radar-empty clean-panel">
+              <h3>
+                {decisions.length
+                  ? "Nenhum produto neste filtro"
+                  : "Seu radar está pronto para receber produtos"}
+              </h3>
+              <p>
+                {decisions.length
+                  ? "Escolha outro filtro para continuar a análise."
+                  : "Atualize os dados para importar seus anúncios e, em Produtos, cadastre os custos de compra."}
+              </p>
+              <Link href="/produtos">Abrir produtos →</Link>
+            </div>
+          )}
+          <div className="radar-decision-grid">
+            {rows.slice(0, 12).map((item) => (
+              <article
+                className={
+                  "radar-decision-card clean-panel " + tone(item.action)
+                }
+                key={item.mlItemId}
+              >
+                <div className="radar-decision-top">
+                  <span className={"table-status " + tone(item.action)}>
+                    {item.label}
+                  </span>
+                  <small>{item.mlItemId}</small>
                 </div>
-                <span className={"health-badge " + (health.score >= 75 ? "good" : "attention")}>
-                  {health.score >= 75 ? "Saudável" : "Atenção"}
-                </span>
-              </div>
-
-              <div className="health-main">
-                <div className="health-score">
-                  <strong>{health.score}</strong>
-                  <span>/100</span>
-                </div>
-                <div className="health-bar">
-                  <span style={{ width: `${health.score}%` }} />
-                </div>
-              </div>
-
-              <div className="health-dimensions">
-                {[
-                  ["Custos cadastrados", health.costScore],
-                  ["Produtos com estoque", health.stockScore],
-                  ["Margem saudável", health.marginScore],
-                  ["Giro no período", health.giroScore],
-                ].map(([label, value]) => (
-                  <div
-                    key={String(label)}
-                    className={Number(value) < 60 ? "is-low" : undefined}
-                  >
-                    <span>{label}</span>
-                    <div>
-                      <i style={{ width: `${Number(value)}%` }} />
+                <div className="radar-decision-product">
+                  {item.thumbnail ? (
+                    <img src={item.thumbnail} alt="" loading="lazy" />
+                  ) : (
+                    <div
+                      className="radar-product-placeholder"
+                      aria-hidden="true"
+                    >
+                      ◎
                     </div>
-                    <strong>{value}%</strong>
+                  )}
+                  <h3>{item.title}</h3>
+                </div>
+                <p>{item.reason}</p>
+                <dl className="radar-decision-metrics">
+                  <div>
+                    <dt>Margem conhecida</dt>
+                    <dd>{percent(item.marginPercent)}</dd>
                   </div>
-                ))}
-              </div>
-            </article>
-
-            <article className="clean-panel stock-summary">
-              <div className="clean-panel-head">
-                <div>
-                  <span>Capital & estoque</span>
-                  <strong>Visão rápida dos produtos</strong>
-                </div>
-                <Link href="/produtos">Ver produtos</Link>
-              </div>
-
-              <div className="clean-mini-grid">
-                <div>
-                  <span>Produtos</span>
-                  <strong>{products.summary.total}</strong>
-                  <small>{products.summary.active} ativos</small>
-                </div>
-                <div>
-                  <span>Unidades em estoque</span>
-                  <strong>{products.summary.stockUnits}</strong>
-                  <small>nos anúncios ativos</small>
-                </div>
-                <div>
-                  <span>Capital conhecido</span>
-                  <strong>{money.format(health.inventoryCapital)}</strong>
-                  <small>com custos cadastrados</small>
-                </div>
-                <div>
-                  <span>Precisam atenção</span>
-                  <strong>{health.attention}</strong>
-                  <small>custo, margem ou reposição</small>
-                </div>
-              </div>
-            </article>
-          </section>
-
-          <section className="clean-panel dashboard-products">
-            <div className="clean-panel-head">
-              <div>
-                <span>Produtos</span>
-                <strong>O que merece sua atenção agora</strong>
-              </div>
-              <Link href="/produtos">Abrir gestão de produtos</Link>
-            </div>
-
-            <div className="clean-table-wrap">
-              <table className="clean-table">
-                <thead>
-                  <tr>
-                    <th>Produto</th>
-                    <th>SKU</th>
-                    <th>Preço</th>
-                    <th>Estoque</th>
-                    <th>Vendas 30d</th>
-                    <th>Margem</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleProducts.map((product) => (
-                    <tr key={product.mlItemId}>
-                      <td>
-                        <div className="clean-product-cell">
-                          {product.thumbnail ? (
-                            <img src={product.thumbnail} alt="" />
-                          ) : (
-                            <span className="clean-product-thumb">MR</span>
-                          )}
-                          <div>
-                            <strong>{product.title}</strong>
-                            <small>{product.mlItemId}</small>
-                          </div>
-                        </div>
-                      </td>
-                      <td>{product.sku ?? "Sem SKU"}</td>
-                      <td>
-                        {product.currentPrice == null
-                          ? "—"
-                          : money.format(product.currentPrice)}
-                      </td>
-                      <td>{product.availableQuantity}</td>
-                      <td>{product.health.unitsSold}</td>
-                      <td>
-                        {product.health.decisionMarginPercent == null
-                          ? "—"
-                          : `${product.health.decisionMarginPercent.toFixed(1)}%`}
-                      </td>
-                      <td>
-                        <span className={"table-status " + actionTone(product.health.action)}>
-                          {actionLabel(product.health.action)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                  <div>
+                    <dt>Cobertura de estoque</dt>
+                    <dd>
+                      {item.stockDays == null
+                        ? "A apurar"
+                        : item.stockDays < 1 && item.stock > 0
+                          ? "< 1 dia"
+                          : `${Math.floor(item.stockDays)} dias`}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Vendas pagas · 30d</dt>
+                    <dd>{item.units} un.</dd>
+                  </div>
+                </dl>
+                {item.suggestedReorder != null && (
+                  <div className="radar-reorder">
+                    Lote sugerido: <strong>{item.suggestedReorder} un.</strong>{" "}
+                    · capital {money.format(item.capitalNeeded ?? 0)}
+                    <small>
+                      Estimativa pela saída observada. Confira o prazo com o
+                      fornecedor.
+                    </small>
+                  </div>
+                )}
+                {item.breakEvenRoas != null && (
+                  <div className="radar-ad-room">
+                    <span>
+                      ROAS de equilíbrio estimado{" "}
+                      <b>
+                        {item.breakEvenRoas.toLocaleString("pt-BR", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                        ×
+                      </b>
+                    </span>
+                    <small>
+                      Margem histórica antes de Ads. Mix e custos precisam se
+                      manter.
+                    </small>
+                  </div>
+                )}
+                <Link
+                  className="radar-card-action"
+                  href={`/produtos?item=${item.mlItemId}`}
+                >
+                  {item.action === "ADD_COST"
+                    ? "Cadastrar custo"
+                    : "Revisar produto"}{" "}
+                  <span aria-hidden="true">↗</span>
+                </Link>
+              </article>
+            ))}
+          </div>
+          {rows.length > 12 && (
+            <Link className="clean-secondary" href="/produtos">
+              Revisar todos os {rows.length} produtos
+            </Link>
+          )}
+          <footer className="radar-data-note">
+            <span>
+              {visible.lastSyncedAt
+                ? `Vendas atualizadas em ${new Date(visible.lastSyncedAt).toLocaleString("pt-BR")}`
+                : "Vendas ainda não sincronizadas"}
+            </span>
+            <span>
+              Decisões orientam sua revisão. Preços e compras dependem da sua
+              aprovação.
+            </span>
+          </footer>
         </>
       )}
     </section>

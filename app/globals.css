@@ -24,3 +24,5 @@
 @import "./styles/modules/integrations.css";
 @import "./styles/modules/extension.css";
 @import "./styles/modules/market.css";
+
+@import "./styles/modules/settings.css";

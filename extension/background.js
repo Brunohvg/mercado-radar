@@ -228,7 +228,15 @@ async function authStatus() {
     };
   }
 
-  return response.body;
+  const profile = response.body;
+  const stored = await chrome.storage.sync.get(["radarPreferencesWorkspace", "radarPreferencesUpdatedAt"]);
+  if (profile.preferences && (stored.radarPreferencesWorkspace !== profile.workspaceId || stored.radarPreferencesUpdatedAt !== profile.preferences.updatedAt)) {
+    await chrome.storage.sync.set({ radarPreferencesWorkspace: profile.workspaceId, radarPreferencesUpdatedAt: profile.preferences.updatedAt,
+      radarTaxPercent: profile.preferences.taxPercent ?? 0, radarOperatingCost: profile.preferences.operatingCost,
+      radarTargetMarginPercent: profile.preferences.targetMarginPercent, radarTargetRoiPercent: profile.preferences.targetRoiPercent });
+    if (stored.radarPreferencesWorkspace !== profile.workspaceId) await chrome.storage.sync.remove(["radarShippingEstimate"]);
+  }
+  return profile;
 }
 
 async function logout() {
@@ -241,6 +249,7 @@ async function logout() {
   }
 
   await clearTokens();
+  await chrome.storage.session.remove(["radarCurrentContext"]);
   return { authenticated: false };
 }
 

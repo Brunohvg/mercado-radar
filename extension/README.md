@@ -1,4 +1,4 @@
-# Mercado Radar — extensão 0.9.0
+# Mercado Radar — extensão 0.9.1
 
 Chrome 116+. Manifest V3. Backend da branch `feature/radar-commercial-readiness-v1`, protocolo 2.
 
@@ -8,19 +8,19 @@ Chrome 116+. Manifest V3. Backend da branch `feature/radar-commercial-readiness-
 2. Baixar os arquivos desta mesma branch. O instalador em `/extensao` só entrega a versão do backend que estiver implantada.
 3. Em `chrome://extensions`, carregar a pasta `extension` sem compactação. Para atualizar, substituir os arquivos da pasta que o Chrome usa e clicar em **Recarregar**.
 4. **Recarregar também todas as abas abertas do Mercado Livre** para retirar scripts e interfaces da versão anterior.
-5. Confirmar **0.9.0** na tela de extensões e no cabeçalho do painel lateral.
+5. Confirmar **0.9.1** na tela de extensões e no cabeçalho do painel lateral.
 6. Entrar na sua conta Radar. Cada cliente autoriza seu próprio vendedor ML. Não usa chave global de API.
 
 A aplicação web e a extensão são atualizadas separadamente: apenas fazer deploy no Coolify não substitui os arquivos carregados no Chrome. O painel avisa se o backend ainda usa o protocolo anterior.
 
 ## Como funciona
 
-- A busca recebe uma barra acima dos resultados e atalhos isolados sobre as fotos. Cards, filtros, ordem, textos e estilos nativos não são modificados. Os atalhos não aumentam a altura dos cards.
+- A busca recebe uma barra acima dos resultados e um bloco compacto com dois indicadores após o título de cada card reconhecido, antes do preço. A foto fica livre de botões. Apenas a altura dos contêineres é ajustada para reservar espaço; largura, colunas, conteúdo, filtros e ordem nativos são preservados. Ocultar a análise remove esses ajustes.
 - No produto, a conclusão aparece automaticamente junto ao preço. A análise completa fica aberta logo após o bloco principal, quando há âncora segura. A grade própria se adapta à largura; não cria colunas do ML nem cobre seus controles. Layouts sem âncora ampla mostram o conteúdo dentro do bloco isolado.
 - O botão **R** abre um menu com análise, lucro, pesquisa, monitoramentos e conta. **Ocultar análise na página** remove os elementos contextuais; o menu permite restaurar. O ícone da extensão continua abrindo o painel nativo.
 - A camada `selectors.js` lê o DOM; `content.js` envia contexto por aba; `sidepanel.js` apresenta as ferramentas; `background.js` guarda a sessão Radar e fala com o backend.
 - Nenhum token ML vai ao navegador. A extensão recebe somente tokens revogáveis do Radar, por cliente/dispositivo.
-- Com análise na página habilitada e sessão autenticada, o produto consulta automaticamente detalhes, histórico, candidatos e tarifas de Clássico/Premium. Não exige abrir o painel. A busca só salva leituras quando o painel está aberto. Ocultar a análise interrompe novas consultas automáticas do produto; monitorar continua uma ação explícita.
+- Com análise na página habilitada e sessão autenticada, o produto consulta automaticamente detalhes, histórico, candidatos e tarifas de Clássico/Premium. A busca registra até 60 referências visíveis em uma única consulta em lote por contexto reconhecido e recebe o histórico do próprio cliente. Não exige abrir o painel nem faz consultas de tarifas por card. Selecionar anúncios não repete a consulta. Ocultar a análise interrompe novas consultas automáticas; monitorar continua uma ação explícita.
 - Sem API para um concorrente, a leitura continua útil. Não se promete acesso privado a vendas, visitas, estoque ou receita dele.
 
 ## Ferramentas
@@ -29,13 +29,15 @@ A aplicação web e a extensão são atualizadas separadamente: apenas fazer dep
 
 **Demanda e oportunidade:** baixa <0,7 un./dia; média de 0,7 a <3; alta de 3 a <10; excelente a partir de 10. Requer pedidos próprios em janela datada ou evolução de contador exato. Média desde a criação oficial é identificada como histórica. Sem base, mostra “Demanda a confirmar”. “Boa oportunidade” exige demanda recente alta e resultado financeiro GOOD; margem ruim/prejuízo recebe “Ruim para este custo”; demanda baixa informa pouco giro. Essas avaliações explicam a base, não garantem vendas. Não se reproduzem inferências antigas de visitas/receita ou demanda por avaliações.
 
+**Indicadores na busca:** selo de demanda à esquerda e receita estimada por dia à direita, somente quando a API existente devolve ritmo em janela medida e estimativa para o mesmo preço. A legenda “receita est./dia” e a explicação ao passar o mouse distinguem ritmo × preço atual de faturamento recebido. Sem valor financeiro válido, mostra ritmo medido; média de vida recebe legenda histórica. Sem período, mostra “Sem período” e o acumulado visível, preservando `+`, ou “Sem dados”. Não classifica lucro sem custos. Catálogo e idade aparecem apenas quando confirmados na referência/API. Layout sem âncora segura mantém acesso pelo menu/painel.
+
 **Preço preliminar automático:** mínimo de três candidatos de IDs distintos, excluindo a referência. A seleção automática recebe rótulo de amostra preliminar sem revisão; o fluxo Comparar continua permitindo conferir equivalência antes de uma comparação revisada. Repasse antes de compra/imposto/operação não é chamado de lucro.
 
 **Leitura:** preço exibido, texto acumulado de vendidos e avaliações, quando presentes. A tela separa MLB de anúncio, MLBU de User Product e produto de catálogo. Scripts de recomendações não fornecem o ID do anúncio aberto. Parcelamento sem juros não confirma Premium.
 
 **Simular lucro:** preço, custo unitário, quantidade do kit, desconto, imposto, operação, modalidade e logística. Frete desconhecido fica ausente. Informar zero é uma confirmação explícita. As tarifas vêm da API para os parâmetros da simulação; se não estiverem disponíveis, o usuário pode informar comissão e tarifa fixa verificadas no simulador oficial. Esse resultado é identificado como manual. Alterar entradas invalida a memória anterior. O piso é teórico e requer nova cotação ao mudar o preço.
 
-**Pesquisar e comparar:** os atalhos **Analisar** abrem a calculadora com o anúncio escolhido sem sair da busca. O botão **+** marca anúncios; a barra calcula a mediana somente após três selecionados e envia essa seleção ao painel. A lista do Radar oferece filtro por título e ordenação por preço, sem reordenar a página ML. Candidatos da navegação do mesmo cliente e do catálogo liberado. Confira quantidade/medida/marca/condição e selecione uma amostra. São necessários ao menos três selecionados para a faixa central. Sem amostra, há ação para abrir uma busca e comparar os cards visíveis. Não há mediana inventada nem busca automática em páginas fechadas.
+**Pesquisar e comparar:** a caixa **Comparar** abaixo dos indicadores marca anúncios; a barra calcula a mediana somente após três selecionados e envia essa seleção ao painel. Marcar a caixa não abre o anúncio nem o painel. Os links nativos continuam abrindo o produto, onde a análise é automática. A lista do Radar oferece filtro por título e ordenação por preço, sem reordenar a página ML. Candidatos da navegação do mesmo cliente e do catálogo liberado. Confira quantidade/medida/marca/condição e selecione uma amostra. São necessários ao menos três selecionados para a faixa central. Sem amostra, há ação para abrir uma busca e comparar os cards visíveis. Não há mediana inventada nem busca automática em páginas fechadas.
 
 **Monitorar:** o resumo na página salva diretamente uma leitura pública, com estados de envio, sucesso, login necessário e tentativa após erro, mesmo que a API não libere detalhes. Atualiza ao revisitar o produto com a análise ativa ou o painel aberto. O dashboard mostra “leitura da página; atualiza por visita” e preserva `+N` e contadores desconhecidos. Cron continua para acompanhamentos em modo API; páginas de terceiros não ganham essa promessa.
 
@@ -57,7 +59,7 @@ A aplicação web e a extensão são atualizadas separadamente: apenas fazer dep
 1. Anúncio MLB próprio: detalhes autorizados, modalidades simuladas e cotação com parâmetros reais.
 2. Anúncio MLBU de outro vendedor: leitura correta, sem dados de recomendação, monitoramento por visita e simulação manual possível.
 3. Catálogo sem oferta selecionada: não tratar o ID do produto como anúncio.
-4. Busca: marcar três kits equivalentes nas fotos, conferir a mediana na barra e abrir a seleção no painel. Abrir a calculadora de um card e conferir referência/preço. Testar filtros e ordenação da lista do Radar.
+4. Busca: conferir o bloco abaixo do título, fotos livres, preço e entrega dentro do card. Marcar **Comparar** em três kits equivalentes, conferir a mediana na barra e abrir a seleção no painel. Abrir o produto pelo link nativo e conferir a análise automática. Testar filtros e ordenação da lista do Radar.
 5. Produto com custo próprio: abrir sem clicar e conferir lucro/demanda/tarifas. Produto de terceiro sem histórico: nenhuma demanda ou lucro inventado. Alterar custo e conferir reclassificação.
 6. Trocar de aba e de conta Radar: não reutilizar dados privados ou resultados antigos.
 7. Confirmar que galeria, botões de compra, coluna de oferta e largura do ML permanecem funcionais. Rolar a busca, testar grade/lista, zoom, abas e ocultar/restaurar a interface contextual.

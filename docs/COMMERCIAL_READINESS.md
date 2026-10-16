@@ -149,3 +149,17 @@ O endpoint de detalhes recebe o campo aditivo `savedCost`: apenas para anúncio 
 Escopo: extensão, campo de custo autorizado na API de detalhes, instalador, apresentação, documentação e testes. Não muda schema/migrations, OAuth, permissões, CSP, dependências ou fórmula financeira. Protocolo 2 preservado. Homologação em Chrome instalado e variantes reais do Mercado Livre permanece necessária.
 
 Validação: 44 testes de regras/autenticação/controller, 17 cenários de navegador, typecheck, build e empacotamento; teste HTTP adicional cobre custo próprio por anúncio/SKU e não exposição a outro cliente. CI utiliza PostgreSQL 17.
+
+## Indicadores compactos na busca 0.9.1 — 16/10/2026
+
+A referência de cards enviada pelo usuário orientou o novo bloco de dois indicadores abaixo do título, antes do vendedor/preço: selo colorido de demanda e valor com legenda. Os botões **Analisar** e **+** sobre a foto foram substituídos pelos indicadores automáticos e pela caixa **Comparar**. Links nativos abrem o produto e sua análise automática; selecionar para comparar não navega nem abre o painel.
+
+O bloco usa os mesmos limiares de demanda e a resposta existente de histórico. Receita estimada por dia só aparece com janela medida, ritmo válido e preço correspondente ao da página; a legenda e o tooltip explicam ritmo × preço atual e distinguem estimativa bruta de faturamento recebido. Média desde a criação é identificada como histórica e não recebe esse indicador financeiro. Sem período, o card mostra o acumulado visível com `+`, ou “Sem dados”. Não transforma ausência de histórico em baixa demanda nem classifica rentabilidade sem custos. Catálogo/idade exigem referência confirmada ou fonte API.
+
+Com sessão ativa e análise habilitada, uma consulta em lote registra até 60 referências visíveis e devolve o histórico do workspace. Seleção e atualizações da própria UI não repetem a consulta. Respostas atrasadas de outra referência/sessão são descartadas. Não há consulta de tarifas individual por card. Ocultar a análise remove os blocos e os ajustes de altura, e interrompe novos lotes automáticos.
+
+O ajuste de altura reserva espaço dentro de cards/grade reconhecidos, preservando fotos, larguras, colunas, textos, links e ordenação. Nenhum indicador cobre a imagem ou o preço. Âncoras dentro de links, fluxo horizontal, posicionamento absoluto e alturas com prioridade inline incompatível não recebem o bloco; o menu/painel permanece disponível. Cards clonados e removidos são reconciliados sem duplicar a interface ou deixar ajustes de layout.
+
+Escopo desta etapa: `extension/content.js`, `extension/selectors.js`, versões dos manifests/cabeçalho, apresentação do instalador, documentação e regressões de navegador. Não altera API/formato de resposta, cálculo financeiro, schema/migrations, OAuth, permissões, CSP ou dependências. Nenhum merge ou deploy foi acionado.
+
+Validação local: 44 testes de regras, 19 cenários de navegador sem erros, typecheck, build e pacote de produção. A busca foi inspecionada visualmente em fixture sintética; os cenários verificam fotos, conteúdo e colunas preservados, espaço reservado, ausência de sobreposição, seleção, lote único, remoção/restauração e descarte de resposta de outra sessão. Variantes reais de grade/lista, zoom e Chrome instalado no Mercado Livre continuam exigindo homologação manual.

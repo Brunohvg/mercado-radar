@@ -55,6 +55,7 @@ export async function GET(request: Request) {
   const seen = await prisma.marketItem.findMany({
     where: {
       workspaceId: session.account.workspaceId,
+      isOwn: false,
       lastSeenAt: { gte: since },
       id: { not: itemId?.toUpperCase() },
       ...(terms.length
@@ -116,7 +117,15 @@ export async function GET(request: Request) {
     for (const detail of details) {
       const id = detail?.buy_box_winner?.item_id,
         price = Number(detail?.buy_box_winner?.price);
-      if (!id || id === itemId || !(price > 0)) continue;
+      if (
+        !id ||
+        !/^MLB\d+$/.test(id) ||
+        id === itemId ||
+        !(price > 0) ||
+        String(detail?.buy_box_winner?.seller_id ?? "") ===
+          session.account.mercadoLivreUserId
+      )
+        continue;
       const match = comparableTitle(title, detail?.name || "");
       if (!match.accepted) continue;
       candidates.push({

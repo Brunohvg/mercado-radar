@@ -312,19 +312,21 @@ test("transient auth failure does not delete a refresh token", async () => {
   assert.equal(h.local.radarRefreshToken, "refresh-still-valid");
   assert.equal(h.removed.length, 0);
 });
-test("changing server cannot forward a Radar token to another origin", async () => {
-  const h = await backgroundHarness();
-  h.sync.radarApiBase = "http://localhost:3000";
-  Object.assign(h.local, {
-    radarAuthOrigin: "https://radar.optarys.com.br",
-    radarRefreshToken: "prod-token",
-    radarAccessToken: "prod-access",
-    radarAccessTokenExpiresAt: Date.now() + 999999,
-  });
-  assert.equal(
-    (await h.call({ type: "RADAR_AUTH_STATUS" })).authenticated,
-    false,
-  );
-  assert.equal(h.fetches.length, 0);
-  assert.equal(h.local.radarAccessToken, undefined);
+test("changing server cannot forward current or legacy Radar tokens to another origin", async () => {
+  for (const origin of ["https://radar.optarys.com.br", undefined]) {
+    const h = await backgroundHarness();
+    h.sync.radarApiBase = "http://localhost:3000";
+    Object.assign(h.local, {
+      radarAuthOrigin: origin,
+      radarRefreshToken: "prod-token",
+      radarAccessToken: "prod-access",
+      radarAccessTokenExpiresAt: Date.now() + 999999,
+    });
+    assert.equal(
+      (await h.call({ type: "RADAR_AUTH_STATUS" })).authenticated,
+      false,
+    );
+    assert.equal(h.fetches.length, 0);
+    assert.equal(h.local.radarAccessToken, undefined);
+  }
 });

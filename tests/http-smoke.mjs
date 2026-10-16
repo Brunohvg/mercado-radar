@@ -669,7 +669,11 @@ try {
       assert.equal(r.json.apiStatus, 403);
       assert.equal(r.json.market.count, 3);
       assert.equal(r.json.market.median, 30);
-      assert.ok(r.json.competitors.every((i) => i.source === "OBSERVED_PAGE"));
+      assert.ok(
+        r.json.competitors.every(
+          (i) => i.source === "OBSERVED_PAGE" && i.id !== "MLB999000001",
+        ),
+      );
       assert.equal(r.json.needsReview, true);
     },
   );

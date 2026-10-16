@@ -547,3 +547,7 @@ Status: **implementado / aguardando validação em dispositivos**
 - [x] UPC-E;
 - [x] Code 128;
 - [x] fallback para digitação quando o navegador não oferece detector.
+
+## Preparação comercial — 15/10/2026
+
+Implementado / aguardando validação em homologação: workspaces, acessos de clientes, perfil financeiro, central de decisões, cobertura financeira, reposição por prazo/segurança, exportação e correções de apuração. Escopo, fontes, testes e gates: [COMMERCIAL_READINESS.md](COMMERCIAL_READINESS.md).

@@ -17,6 +17,10 @@ O Mercado Radar é um sistema completo, não um conjunto de automações externa
 
 As integrações, cálculos, sincronizações, regras de preço, histórico, alertas e decisões ficam versionadas dentro do próprio projeto. Processos assíncronos serão executados por workers nativos usando PostgreSQL como fonte de verdade.
 
+## Piloto para clientes
+
+A preparação comercial está em `feature/radar-commercial-readiness-v1`: login individual, dados por operação, metas financeiras, central de decisões e gestão de acessos. Consulte [preparação comercial](docs/COMMERCIAL_READINESS.md) para implantação, validações e limites. Billing e lançamento público ainda dependem dos gates documentados.
+
 ## MVP atual
 
 - cálculo do custo real após desconto do fornecedor;
@@ -63,6 +67,8 @@ npm run db:deploy
 npm run dev
 ```
 
+Antes do primeiro login local, configure `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH` (gerado por `scripts/hash-password.mjs`) e `APP_ENCRYPTION_KEY`. O painel usa autenticação também em desenvolvimento.
+
 ## Coolify
 
 O repositório segue o mesmo padrão dos demais apps:
@@ -91,12 +97,12 @@ Variáveis externas:
 ## Regras iniciais
 
 - margem boa: >= 20%;
-- margem mínima: 15%;
-- ROI alvo: >= 30%;
-- ROI abaixo de 20%: produto reprovado;
+- margem de 10% até atingir as metas: apertada;
+- margem abaixo de 10% ou prejuízo: revisar;
+- ROI alvo: >= 30%, configurável por operação;
 - fornecedor e desconto são configuráveis; nenhum fornecedor é fixo no produto.
 
-Esses limites serão configuráveis.
+Metas, imposto, desconto, operação e prazos são configuráveis em **Metas e configurações**.
 
 ## Roadmap
 
@@ -142,3 +148,13 @@ Antes de implementar qualquer feature, consulte:
 - `docs/MVP_CHECKLIST.md` — validação específica do MVP.
 
 Regra: uma feature escrita no código não é automaticamente concluída. O status só avança após CI verde, deploy saudável e validação real quando aplicável.
+
+## Testes
+
+```bash
+npm test
+npm run typecheck
+npm run build
+```
+
+Testes de integração exigem banco isolado e `RADAR_TEST_DATABASE=1`; veja `.github/workflows/ci.yml`.

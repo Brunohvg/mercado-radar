@@ -4,16 +4,34 @@ on:
   push:
     branches:
       - main
-      - feature/ml-product-intelligence-mvp-v1
-      - feature/chrome-extension-radar-v1
+      - 'feature/**'
   pull_request:
     branches:
       - main
+      - 'feature/**'
 
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: radar_test
+          POSTGRES_PASSWORD: radar_test
+          POSTGRES_DB: radar_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U radar_test -d radar_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://radar_test:radar_test@127.0.0.1:5432/radar_test?schema=public
+      NEXT_TELEMETRY_DISABLED: '1'
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,7 +42,7 @@ jobs:
           node-version: 22
 
       - name: Install
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Prisma generate
         run: npm run db:generate
@@ -32,11 +50,26 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Financial and decision regression tests
+        run: npm test
+
       - name: Extension syntax
         run: node --check extension/background.js && node --check extension/content.js && node --check extension/sidepanel.js
 
       - name: Build
         run: npm run build
         env:
-          DATABASE_URL: postgresql://build:build@127.0.0.1:5432/build?schema=public
           APP_ENCRYPTION_KEY: build-only-key-not-for-production
+
+      - name: Migrations on clean PostgreSQL
+        run: npm run db:deploy
+
+      - name: Migration upgrade with existing data
+        run: node tests/migration-upgrade.mjs
+        env:
+          RADAR_TEST_DATABASE: '1'
+
+      - name: HTTP isolation and authentication smoke tests
+        run: npm run test:integration
+        env:
+          RADAR_TEST_DATABASE: '1'

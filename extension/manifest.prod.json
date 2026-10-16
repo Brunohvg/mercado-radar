@@ -1,13 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Mercado Radar",
-  "version": "0.6.0",
-  "description": "Inteligência de produto e rentabilidade dentro do Mercado Livre.",
-  "permissions": [
-    "storage",
-    "sidePanel",
-    "identity"
-  ],
+  "version": "0.7.0",
+  "description": "Leitura transparente de anúncios, comparação de amostras e simulação de lucro no painel lateral.",
+  "permissions": ["storage", "sidePanel", "identity"],
   "host_permissions": [
     "https://*.mercadolivre.com.br/*",
     "https://radar.optarys.com.br/*"
@@ -17,31 +13,15 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://*.mercadolivre.com.br/*"
-      ],
+      "matches": ["https://*.mercadolivre.com.br/*"],
       "exclude_matches": [
         "https://developers.mercadolivre.com.br/*",
         "https://*.mercadolivre.com.br/captcha/*",
         "https://*.mercadolivre.com.br/jms/*",
         "https://*.mercadolivre.com.br/gz/*"
       ],
-      "js": [
-        "selectors.js",
-        "content.js"
-      ],
+      "js": ["selectors.js", "content.js"],
       "run_at": "document_idle"
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "ui/tokens.css",
-        "ui/content.css"
-      ],
-      "matches": [
-        "https://*.mercadolivre.com.br/*"
-      ]
     }
   ],
   "side_panel": {
@@ -59,5 +39,6 @@
     "32": "icons/icon32.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "minimum_chrome_version": "116"
 }

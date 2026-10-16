@@ -1,126 +1,280 @@
 <!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mercado Radar</title>
-  <link rel="stylesheet" href="ui/tokens.css" />
-  <link rel="stylesheet" href="ui/sidepanel.css" />
-</head>
-<body>
-  <main>
-    <div class="brand">
-      <div class="brand-copy">
-        <img src="icons/icon32.png" alt="" />
-        <div>
-          <strong>Mercado Radar</strong>
-          <small>Decida com margem</small>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Mercado Radar</title>
+    <link rel="stylesheet" href="ui/tokens.css" />
+    <link rel="stylesheet" href="ui/sidepanel.css" />
+  </head>
+  <body>
+    <main>
+      <header class="brand">
+        <div class="brand-copy">
+          <img src="icons/icon48.png" alt="" />
+          <div>
+            <strong>Mercado Radar</strong
+            ><small>Decida com margem · 0.7.0</small>
+          </div>
         </div>
+        <button
+          id="refresh"
+          class="icon-button secondary"
+          title="Atualizar leitura"
+          aria-label="Atualizar leitura"
+        >
+          ↻
+        </button>
+      </header>
+      <div class="connection">
+        <span id="authDot" class="auth-dot"></span
+        ><span id="authTitle">Verificando conexão…</span
+        ><a
+          id="dashboardLink"
+          target="_blank"
+          rel="noopener"
+          href="https://radar.optarys.com.br"
+          >Abrir Radar ↗</a
+        >
       </div>
-      <span class="pill">beta</span>
-    </div>
-
-    <div id="contextCard" class="card">
-      <div class="title">Anúncio atual</div>
-      <p class="muted">Abra um anúncio do Mercado Livre para carregar a análise.</p>
-    </div>
-
-    <div id="watchCard" class="card" hidden>
-      <div class="title">Acompanhar oportunidade</div>
-      <p class="muted">Salve este anúncio no Radar para acompanhar preço, score, demanda e evolução.</p>
-      <button id="watchButton">Monitorar este anúncio</button>
-      <p id="watchStatus" class="muted"></p>
-    </div>
-
-    <div id="analyticsCard" class="card" hidden>
-      <div class="title">Radar Analytics</div>
-      <div class="grid">
-        <div class="metric"><small>Score</small><strong id="score">—</strong></div>
-        <div class="metric"><small>Demanda</small><strong id="demand">—</strong></div>
-        <div class="metric"><small>Vendas/mês</small><strong id="salesMonth">—</strong></div>
-        <div class="metric"><small>Faturamento/mês</small><strong id="revenueMonth">—</strong></div>
-        <div class="metric"><small>Vendidos</small><strong id="sold">—</strong></div>
-        <div class="metric"><small>Idade</small><strong id="age">—</strong></div>
-      </div>
-    </div>
-
-    <div id="myOperationCard" class="card" hidden>
-      <div class="title">Minha operação</div>
-      <div id="myOperationBlock"></div>
-    </div>
-
-    <div id="marketCard" class="card" hidden>
-      <div class="title">Mercado & catálogo</div>
-      <div id="marketRangeBlock"></div>
-      <div id="buyBoxBlock"></div>
-      <div id="trendsBlock"></div>
-    </div>
-
-    <div id="calculatorCard" class="card" hidden>
-      <div class="title">Rentabilidade para você</div>
-      <div class="grid">
-        <div>
-          <label for="supplierPrice">Custo do produto</label>
-          <input id="supplierPrice" type="number" min="0" step="0.01" placeholder="0,00" />
+      <p id="globalStatus" class="notice" role="status" hidden></p>
+      <section id="contextCard" class="card">
+        <p class="eyebrow">Página aberta</p>
+        <h1 id="productTitle">Abra um anúncio ou uma busca do Mercado Livre</h1>
+        <p id="reference" class="muted"></p>
+        <p id="readAt" class="muted"></p>
+        <div id="pageFacts" class="grid"></div>
+        <p id="pageNote" class="muted"></p>
+      </section>
+      <nav class="tabs" aria-label="Ferramentas do Radar">
+        <button data-tab="summary" aria-current="page">Leitura</button
+        ><button data-tab="calculator">Simular lucro</button
+        ><button data-tab="market">Comparar</button>
+      </nav>
+      <section id="summary" class="tab-page">
+        <div class="card">
+          <div class="section-head">
+            <h2>Origem dos dados</h2>
+            <span class="badge">Transparência</span>
+          </div>
+          <div id="evidence"></div>
+          <button id="retryApi" class="secondary">
+            Consultar detalhes pela API
+          </button>
+          <div id="apiFacts" class="facts"></div>
+          <p id="apiStatus" class="muted" role="status"></p>
         </div>
-        <div>
-          <label for="kitQuantity">Quantidade no kit</label>
-          <input id="kitQuantity" type="number" min="1" max="1000" step="1" value="1" />
+        <div id="watchCard" class="card">
+          <h2>Acompanhar preço</h2>
+          <p class="muted">
+            Salve esta leitura. O histórico avança quando você abre o anúncio
+            com o painel do Radar. Não promete consulta automática de dados
+            restritos.
+          </p>
+          <button id="watchButton">Monitorar por novas leituras</button>
+          <p id="watchStatus" class="muted" role="status"></p>
+          <a
+            id="monitorLink"
+            class="text-link"
+            target="_blank"
+            rel="noopener"
+            href="https://radar.optarys.com.br/monitoramento"
+            >Ver meu monitoramento ↗</a
+          >
         </div>
-        <div>
-          <label for="discountPercent">Desconto fornecedor %</label>
-          <input id="discountPercent" type="number" min="0" max="95" step="0.1" value="0" />
+      </section>
+      <section id="calculator" class="tab-page" hidden>
+        <form id="calculatorForm" class="card" novalidate>
+          <h2>Quanto sobra para você?</h2>
+          <p class="muted">
+            Simulação da sua operação. Frete grátis para o comprador não
+            confirma custo zero para o vendedor.
+          </p>
+          <div class="grid fields">
+            <div>
+              <label for="salePrice">Preço de venda · R$</label
+              ><input
+                id="salePrice"
+                inputmode="decimal"
+                required
+                placeholder="Ex.: 59,90"
+              />
+            </div>
+            <div>
+              <label for="supplierPrice">Custo por unidade · R$</label
+              ><input
+                id="supplierPrice"
+                inputmode="decimal"
+                required
+                placeholder="Ex.: 10,90"
+              />
+            </div>
+            <div>
+              <label for="listingType">Modalidade simulada</label
+              ><select id="listingType">
+                <option value="CLASSIC">Clássico</option>
+                <option value="PREMIUM">Premium</option>
+              </select>
+            </div>
+            <div>
+              <label for="logisticType">Logística simulada</label
+              ><select id="logisticType">
+                <option value="drop_off">Agência</option>
+                <option value="cross_docking">Coleta</option>
+                <option value="fulfillment">Full</option>
+                <option value="self_service">Flex</option>
+              </select>
+            </div>
+            <div>
+              <label for="shippingCost">Seu frete por venda · R$</label
+              ><input
+                id="shippingCost"
+                inputmode="decimal"
+                placeholder="Informe, inclusive zero"
+              />
+            </div>
+            <div>
+              <label for="taxPercent">Seu imposto · %</label
+              ><input
+                id="taxPercent"
+                inputmode="decimal"
+                placeholder="Confirme, inclusive zero"
+              />
+            </div>
+            <div>
+              <label for="operatingCost">Embalagem e operação · R$</label
+              ><input id="operatingCost" inputmode="decimal" value="0" />
+            </div>
+            <div>
+              <label for="kitQuantity">Unidades deste custo no kit</label
+              ><input id="kitQuantity" inputmode="numeric" value="1" />
+            </div>
+          </div>
+          <details>
+            <summary>Metas e tarifas manuais</summary>
+            <div class="grid fields">
+              <div>
+                <label for="discountPercent">Desconto no custo · %</label
+                ><input id="discountPercent" inputmode="decimal" value="0" />
+              </div>
+              <div>
+                <label for="targetMargin">Margem alvo · %</label
+                ><input id="targetMargin" inputmode="decimal" value="20" />
+              </div>
+              <div>
+                <label for="targetRoi">ROI alvo · %</label
+                ><input id="targetRoi" inputmode="decimal" value="30" />
+              </div>
+            </div>
+            <label class="check"
+              ><input id="manualFees" type="checkbox" /> Usar comissão e tarifa
+              que conferi no simulador oficial</label
+            >
+            <div id="manualFeeFields" class="grid fields" hidden>
+              <div>
+                <label for="commissionPercent">Comissão · %</label
+                ><input
+                  id="commissionPercent"
+                  inputmode="decimal"
+                  placeholder="Ex.: 16,5"
+                />
+              </div>
+              <div>
+                <label for="fixedFee">Tarifa fixa · R$</label
+                ><input
+                  id="fixedFee"
+                  inputmode="decimal"
+                  placeholder="Informe, inclusive zero"
+                />
+              </div>
+            </div>
+            <p class="muted">
+              Quando a API não liberar tarifas, esta opção permite simular com
+              valores informados por você. O resultado continuará identificado
+              como manual.
+            </p>
+          </details>
+          <button id="quoteButton" type="button" class="secondary">
+            Consultar tarifa para esta simulação
+          </button>
+          <p id="quoteStatus" class="muted" role="status"></p>
+          <button id="calculate" type="submit">Calcular lucro</button>
+          <p id="calcStatus" class="notice" role="status" hidden></p>
+          <div id="calcResult" hidden>
+            <div class="result-heading">
+              <small>Lucro simulado por venda</small
+              ><strong id="profit">—</strong
+              ><span id="resultSource" class="badge"></span>
+            </div>
+            <div class="grid">
+              <div class="metric">
+                <small>Margem</small><strong id="margin">—</strong>
+              </div>
+              <div class="metric">
+                <small>ROI</small><strong id="roi">—</strong>
+              </div>
+            </div>
+            <dl id="breakdown" class="breakdown"></dl>
+            <p id="priceFloor" class="muted"></p>
+            <p id="calcCaveat" class="muted"></p>
+            <button id="copyResult" type="button" class="secondary">
+              Copiar memória de cálculo</button
+            ><button id="saveSimulation" type="button" class="secondary" hidden>
+              Salvar análise no Radar
+            </button>
+          </div>
+        </form>
+      </section>
+      <section id="market" class="tab-page" hidden>
+        <div class="card">
+          <h2>Compare uma amostra equivalente</h2>
+          <p class="muted">
+            Confira quantidade, tamanho, marca e condição. O Radar calcula a
+            faixa dos anúncios selecionados, sem chamar a amostra de mercado
+            inteiro.
+          </p>
+          <button id="marketButton">Buscar candidatos comparáveis</button
+          ><button id="searchButton" class="secondary">
+            Abrir busca no Mercado Livre ↗
+          </button>
+          <p id="marketStatus" class="notice" role="status" hidden></p>
+          <div id="marketRange" class="grid" aria-live="polite"></div>
+          <p id="sampleNote" class="muted"></p>
+          <button id="selectAll" class="secondary" hidden>
+            Selecionar os anúncios visíveis que conferi
+          </button>
+          <div id="candidates"></div>
         </div>
-        <div>
-          <label for="taxPercent">Imposto %</label>
-          <input id="taxPercent" type="number" min="0" max="50" step="0.1" value="0" />
+      </section>
+      <section class="card auth-card">
+        <h2>Sua conexão</h2>
+        <p id="authSubtitle" class="muted">
+          Cada cliente usa a própria conta do Radar e autoriza o seu Mercado
+          Livre.
+        </p>
+        <div class="auth-actions">
+          <button id="loginButton">Entrar no Mercado Radar</button
+          ><button id="logoutButton" class="secondary" hidden>Sair</button>
         </div>
-        <div>
-          <label for="operatingCost">Custo operacional</label>
-          <input id="operatingCost" type="number" min="0" step="0.01" value="0" />
-        </div>
-        <div>
-          <label for="targetMargin">Margem alvo %</label>
-          <input id="targetMargin" type="number" min="0" max="80" step="1" value="20" />
-        </div>
-        <div>
-          <label for="targetRoi">ROI alvo %</label>
-          <input id="targetRoi" type="number" min="0" max="500" step="1" value="30" />
-        </div>
-      </div>
-      <details class="shipping-fallback"><summary>Frete indisponível? Informar uma estimativa</summary><label for="shippingEstimate">Seu custo de frete por venda (R$)</label><input id="shippingEstimate" type="number" min="0" max="10000" step="0.01" placeholder="Não informado" /><p class="muted">Usado somente quando a cotação da sua conta não está disponível. O resultado será identificado como estimativa.</p></details>
-      <button id="calculate">Calcular com taxas reais</button>
-      <button id="saveSimulation" class="secondary" hidden>Salvar simulação no Radar</button>
-      <p id="calcStatus" class="muted"></p>
-      <div id="calcResult" hidden>
-        <div class="divider"></div>
-        <div class="grid">
-          <div class="metric"><small>Lucro/un.</small><strong id="profit">—</strong></div>
-          <div class="metric"><small>Margem</small><strong id="margin">—</strong></div>
-          <div class="metric"><small>ROI</small><strong id="roi">—</strong></div>
-          <div class="metric"><small>Preço mínimo</small><strong id="minPrice">—</strong></div>
-        </div>
-        <p id="fees" class="muted"></p>
-        <div id="competitiveSimulation" class="compare-box" hidden></div>
-      </div>
-    </div>
-
-    <div id="authCard" class="card auth-card">
-      <div class="title">Conta Mercado Radar</div>
-      <div class="auth-row">
-        <div class="auth-copy">
-          <strong id="authTitle">Não conectado</strong>
-          <small id="authSubtitle">Entre com sua conta do Mercado Livre para liberar o Radar.</small>
-        </div>
-        <span id="authDot" class="auth-dot"></span>
-      </div>
-      <div class="auth-actions">
-        <button id="loginButton">Entrar no Mercado Radar</button>
-        <button id="logoutButton" class="secondary" hidden>Sair</button>
-      </div>
-      <p id="authStatus" class="muted"></p>
-    </div>
-  </main>
-  <script src="sidepanel.js"></script>
-</body>
+        <p id="authStatus" class="muted" role="status"></p>
+        <details>
+          <summary>Servidor da extensão</summary>
+          <label for="apiBase">Endereço do Radar</label
+          ><input
+            id="apiBase"
+            type="url"
+            value="https://radar.optarys.com.br"
+          /><button id="saveServer" type="button" class="secondary">
+            Salvar servidor
+          </button>
+          <p class="muted">
+            Produção ou localhost de desenvolvimento. Não usa chave global
+            compartilhada.
+          </p>
+        </details>
+      </section>
+    </main>
+    <script src="panel-model.js"></script>
+    <script src="sidepanel.js"></script>
+  </body>
 </html>

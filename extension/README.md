@@ -1,244 +1,57 @@
-# Mercado Radar — Extensão Chrome (MVP)
+# Mercado Radar — extensão 0.7.0
 
-> **v0.4.0** — UI em Shadow DOM, observer sem loop, widget no anúncio, faixa sob cada card.
-> Arquivos: `selectors.js` (único lugar que lê o DOM do ML), `content.js`, `ui/*.css`.
-> Para a Chrome Web Store: `node scripts/build-extension.mjs` gera `dist/extension-prod`
-> (usa `manifest.prod.json`, sem localhost).
+Chrome 116+. Manifest V3. Backend da branch `feature/radar-commercial-readiness-v1`, protocolo 2.
 
-A extensão roda como **unpacked extension** durante o desenvolvimento. Não precisa estar publicada na Chrome Web Store.
+## Instalar ou atualizar
 
-## 1. Baixar a branch
+1. No Coolify, implantar a branch de homologação com backup e migrations aplicadas.
+2. Baixar os arquivos desta mesma branch. O instalador em `/extensao` só entrega a versão do backend que estiver implantada.
+3. Em `chrome://extensions`, carregar a pasta `extension` sem compactação. Para atualizar, substituir os arquivos da pasta que o Chrome usa e clicar em **Recarregar**.
+4. **Recarregar também todas as abas abertas do Mercado Livre**. Isso remove os cartões injetados pela versão 0.6 e os scripts antigos.
+5. Confirmar **0.7.0** na tela de extensões e no cabeçalho do painel lateral.
+6. Entrar na sua conta Radar. Cada cliente autoriza seu próprio vendedor ML. Não usa chave global de API.
 
-No terminal:
+A aplicação web e a extensão são atualizadas separadamente: apenas fazer deploy no Coolify não substitui os arquivos carregados no Chrome. O painel avisa se o backend ainda usa o protocolo anterior.
 
-```bash
-git fetch origin --prune
-git switch feature/chrome-extension-radar-v1
-git pull --ff-only origin feature/chrome-extension-radar-v1
-```
+## Como funciona
 
-A pasta que o Chrome deve carregar é:
+- O conteúdo da página permanece intacto: sem inserir colunas, esticar cards, esconder resultados ou reordenar o Mercado Livre.
+- Um pequeno botão fixo abre o painel lateral nativo do Chrome. O ícone da extensão também abre o painel.
+- A camada `selectors.js` lê o DOM; `content.js` envia contexto por aba; `sidepanel.js` apresenta as ferramentas; `background.js` guarda a sessão Radar e fala com o backend.
+- Nenhum token ML vai ao navegador. A extensão recebe somente tokens revogáveis do Radar, por cliente/dispositivo.
+- Sem painel aberto, o adaptador só mantém contexto local da página. As leituras públicas são enviadas ao Radar quando o painel está aberto e autenticado.
+- Sem API para um concorrente, a leitura continua útil. Não se promete acesso privado a vendas, visitas, estoque ou receita dele.
 
-```text
-mercado-radar/extension
-```
+## Ferramentas
 
-Não carregue a raiz inteira do repositório.
+**Leitura:** preço exibido, texto acumulado de vendidos e avaliações, quando presentes. A tela separa MLB de anúncio, MLBU de User Product e produto de catálogo. Scripts de recomendações não fornecem o ID do anúncio aberto. Parcelamento sem juros não confirma Premium.
 
-## 2. Instalar no Chrome
+**Simular lucro:** preço, custo unitário, quantidade do kit, desconto, imposto, operação, modalidade e logística. Frete desconhecido fica ausente. Informar zero é uma confirmação explícita. As tarifas vêm da API para os parâmetros da simulação; se não estiverem disponíveis, o usuário pode informar comissão e tarifa fixa verificadas no simulador oficial. Esse resultado é identificado como manual. Alterar entradas invalida a memória anterior. O piso é teórico e requer nova cotação ao mudar o preço.
 
-1. Abra `chrome://extensions/`.
-2. Ative **Modo do desenvolvedor** no canto superior direito.
-3. Clique em **Carregar sem compactação**.
-4. Selecione a pasta `extension` do projeto.
-5. Fixe **Mercado Radar** na barra do Chrome se quiser acesso rápido.
-6. Ao clicar no ícone da extensão, o Side Panel deve abrir.
+**Comparar:** candidatos da navegação do mesmo cliente e do catálogo liberado. Confira quantidade/medida/marca/condição e selecione uma amostra. São necessários ao menos três selecionados para a faixa central. Sem amostra, há ação para abrir uma busca e comparar os cards visíveis. Não há mediana inventada nem busca automática em páginas fechadas.
 
-Depois de alterar arquivos da extensão, volte a `chrome://extensions/` e clique em **Recarregar** no card do Mercado Radar.
+**Monitorar:** salva uma leitura pública mesmo que a API não libere detalhes. Atualiza ao revisitar com o painel aberto. O dashboard mostra “leitura da página; atualiza por visita” e preserva `+N` e contadores desconhecidos. Cron continua para acompanhamentos em modo API; páginas de terceiros não ganham essa promessa.
 
-## 3. Testar com backend local
+## Desenvolvimento e testes
 
-A versão de desenvolvimento aceita:
+- Servidor padrão: `https://radar.optarys.com.br`.
+- Manifest de desenvolvimento permite também `http://localhost` e `http://127.0.0.1`; porta pode ser configurada em **Servidor da extensão**. Trocar de ambiente exige novo login e não reutiliza tokens de outro servidor.
+- `npm run typecheck`, `npm test`, `npm run build`.
+- `npm run test:integration`: requer PostgreSQL isolado e `RADAR_TEST_DATABASE=1`.
+- `npm run test:extension`: requer Chromium do Playwright (`npx playwright install chromium`). Em ambiente com navegador próprio, usar `RADAR_CHROMIUM_PATH`.
+- `node scripts/build-extension.mjs`: gera `dist/extension-prod`, com manifest sem localhost. Não publica na Chrome Web Store.
 
-- `http://localhost/*`
-- `http://127.0.0.1/*`
+## Migração desta versão
 
-Na raiz do projeto:
+`202610161300_extension_observation_sources` identifica a origem dos acompanhamentos e se vendidos são conhecidos ou apenas um limite inferior. Dados anteriores permanecem marcados como API. Aplicar com `npm run db:deploy` no processo de deploy.
 
-```bash
-npm install
-npm run db:generate
-npm run db:deploy
-npm run dev
-```
+## Validar com Mercado Livre real
 
-Por padrão o Next.js abre em:
+1. Anúncio MLB próprio: detalhes autorizados, modalidades simuladas e cotação com parâmetros reais.
+2. Anúncio MLBU de outro vendedor: leitura correta, sem dados de recomendação, monitoramento por visita e simulação manual possível.
+3. Catálogo sem oferta selecionada: não tratar o ID do produto como anúncio.
+4. Busca: selecionar pelo menos três kits equivalentes e conferir a mediana com os preços da tela.
+5. Trocar de aba e de conta Radar: não reutilizar dados privados ou resultados antigos.
+6. Confirmar que galeria, botões de compra, coluna de oferta e largura do ML permanecem funcionais.
 
-```text
-http://localhost:3000
-```
-
-Abra o Side Panel da extensão, expanda **Configuração da extensão** e use:
-
-```text
-URL da API: http://localhost:3000
-Chave: deixe vazia em desenvolvimento
-```
-
-Importante: o arquivo `.env` local precisa ter as mesmas configurações necessárias para o Radar funcionar, incluindo PostgreSQL e integração Mercado Livre.
-
-## 4. Testar contra radar.optarys.com.br
-
-Se esta branch estiver implantada no servidor de teste/produção, configure no backend:
-
-```text
-RADAR_EXTENSION_API_KEY=<uma-chave-privada-longa>
-```
-
-No Side Panel:
-
-```text
-URL da API: https://radar.optarys.com.br
-Chave da extensão: a mesma chave configurada no servidor
-```
-
-Não compartilhe essa chave. Ela é temporária para o MVP. Antes da distribuição pública será substituída por login, token por usuário/dispositivo e entitlements por plano.
-
-## 5. Aplicar a migration do monitoramento
-
-Esta branch adiciona:
-
-- `RadarWatchItem`
-- `RadarWatchSnapshot`
-- `RadarAlert`
-- metadados de catálogo/User Product nos anúncios
-
-Em ambiente implantado:
-
-```bash
-npm run db:deploy
-```
-
-As migrations desta etapa incluem:
-
-```text
-202610061730_radar_watchlist
-202610061750_listing_metadata
-202610061820_radar_alerts
-202610061900_listing_position_history
-```
-
-## 6. Fluxo de teste
-
-### Busca
-
-1. Abra uma pesquisa no Mercado Livre.
-2. Exemplo: `cola quente`.
-3. Aguarde a extensão enriquecer os cards.
-4. Confira:
-   - Radar Score;
-   - demanda;
-   - vendas/mês;
-   - faturamento/mês;
-   - idade;
-   - filtros laterais Radar;
-   - botão **Calcular minha margem**;
-   - margem e lucro usando o custo do produto correspondente na sua operação;
-   - filtro/ordenação por margem e ROI;
-   - Momentum quando já houver histórico monitorado.
-
-### Anúncio
-
-1. Abra um anúncio.
-2. Clique no ícone Mercado Radar.
-3. O Side Panel deve exibir:
-   - preço;
-   - tipo;
-   - score;
-   - demanda;
-   - vendas;
-   - faturamento estimado;
-   - Buy Box quando disponível;
-   - tendências;
-   - calculadora de rentabilidade;
-   - produto próprio compatível e custo conhecido, quando existir;
-   - P25, mediana e P75;
-   - concorrentes enriquecidos com score, demanda e velocidade;
-   - estratégia de preço competitivo saudável;
-   - alerta quando perseguir o concorrente quebraria sua margem.
-
-### Monitoramento
-
-1. No Side Panel clique em **Monitorar este anúncio**.
-2. Abra no Radar:
-   `/monitoramento`
-3. O item deve aparecer na watchlist.
-4. Clique **Atualizar agora** para criar um novo snapshot.
-5. O Radar compara preço, score, vendidos e visitas com os snapshots anteriores.
-
-## 7. Problemas comuns
-
-### A extensão aparece, mas não traz dados
-
-Verifique primeiro:
-- API configurada no Side Panel;
-- backend rodando;
-- Mercado Livre conectado no Radar;
-- migration aplicada;
-- chave correta se estiver usando produção.
-
-### Alterei o código e nada mudou
-
-Em `chrome://extensions/`, clique em **Recarregar** no Mercado Radar e atualize a aba do Mercado Livre.
-
-### Erro 401
-
-Em produção, a chave da extensão está ausente ou diferente da configurada em `RADAR_EXTENSION_API_KEY`.
-
-### Erro de banco envolvendo RadarWatchItem
-
-A migration do monitoramento ainda não foi aplicada. Rode `npm run db:deploy`.
-
-## Segurança do MVP
-
-- OAuth e tokens do Mercado Livre não entram na extensão.
-- A extensão conversa somente com a API do Radar.
-- Regras financeiras permanecem no backend.
-- A chave global é provisória e não será usada na versão comercial.
-
-
-## 8. Monitoramento automático
-
-O Radar possui um endpoint protegido para criar snapshots sem abrir o dashboard:
-
-```text
-POST /api/cron/radar-monitoring
-```
-
-No servidor configure:
-
-```text
-RADAR_CRON_SECRET=<uma-chave-privada-diferente-da-chave-da-extensao>
-```
-
-Exemplo de chamada pelo agendador do servidor:
-
-```bash
-curl -fsS -X POST \
-  -H "Authorization: Bearer $RADAR_CRON_SECRET" \
-  https://radar.optarys.com.br/api/cron/radar-monitoring
-```
-
-Uma execução por hora é suficiente para o MVP.
-
-O monitoramento cria snapshots e alertas quando houver mudança relevante de:
-- preço;
-- Radar Score;
-- nível de demanda.
-
-O **Radar Momentum** só sai do estado `Aprendendo` quando existe janela histórica suficiente. Isso evita transformar duas leituras feitas em poucos minutos em uma falsa tendência.
-
-## 9. Margem personalizada na busca
-
-Na busca do Mercado Livre clique em **Calcular minha margem**.
-
-O Radar:
-1. procura entre seus anúncios o produto mais compatível com a pesquisa;
-2. exige confiança mínima no match;
-3. usa o custo real cadastrado;
-4. simula os preços encontrados usando a estrutura do seu próprio anúncio;
-5. adiciona margem/lucro aos cards;
-6. libera filtros **Minha margem** e **Meu ROI**.
-
-Se a confiança for insuficiente, o Radar não aplica custo de outro produto silenciosamente.
-
-
-## 10. Simulações salvas
-
-O Side Panel permite:
-- informar quantidade no kit;
-- recalcular taxas para o kit;
-- salvar a simulação no histórico `ProductAnalysis`;
-- manter impostos, custo operacional, meta de margem e meta de ROI sincronizados entre Side Panel e busca enriquecida.
-
-A simulação salva usa `source=EXTENSION` e registra no metadata o MLB, imposto e referência competitiva usados na análise.
+A validação automática usa fixtures de DOM, contratos de API e PostgreSQL. Ela não substitui homologação OAuth e conferência de vendas/fretes reais. Veja [mapa de APIs e permissões](../docs/MERCADO_LIVRE_API_MAP.md).

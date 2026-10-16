@@ -367,58 +367,38 @@ const refreshLocks = new Map<
 >();
 
 async function refreshAccountSession(stale: MlAccountRecord) {
-  // Outra requisição/processo pode ter renovado entre a leitura e a trava.
-  const current =
-    (await prisma.mercadoLivreAccount.findUnique({ where: { id: stale.id } })) ??
-    stale;
-
-  if (hasFreshToken(current)) {
-    return {
-      account: current,
-      accessToken: decryptSecret(current.accessTokenEncrypted),
-    };
-  }
-
-  let refreshed: Awaited<ReturnType<typeof refreshAccessToken>>;
-
-  try {
-    refreshed = await refreshAccessToken(
-      decryptSecret(current.refreshTokenEncrypted),
-    );
-  } catch (error) {
-    // Se outro processo (ex.: cron) rotacionou o token enquanto tentávamos,
-    // o banco já tem um token válido: usamos ele em vez de derrubar a sessão.
-    const latest = await prisma.mercadoLivreAccount.findUnique({
-      where: { id: current.id },
-    });
-
-    if (
-      latest &&
-      latest.refreshTokenEncrypted !== current.refreshTokenEncrypted &&
-      hasFreshToken(latest)
-    ) {
-      return {
-        account: latest,
-        accessToken: decryptSecret(latest.accessTokenEncrypted),
-      };
-    }
-
-    throw error;
-  }
-
-  const updated = await prisma.mercadoLivreAccount.update({
-    where: { id: current.id },
-    data: {
-      accessTokenEncrypted: encryptSecret(refreshed.access_token),
-      refreshTokenEncrypted: refreshed.refresh_token
-        ? encryptSecret(refreshed.refresh_token)
-        : current.refreshTokenEncrypted,
-      tokenExpiresAt: new Date(Date.now() + refreshed.expires_in * 1000),
-      scopes: refreshed.scope ?? current.scopes,
+  // Row lock serializes refresh across routes, workers and replicas. A process
+  // promise alone cannot protect ML's single-use refresh token.
+  return prisma.$transaction(
+    async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "MercadoLivreAccount" WHERE "id" = ${stale.id} FOR UPDATE`;
+      const current = await tx.mercadoLivreAccount.findUnique({
+        where: { id: stale.id },
+      });
+      if (!current) throw new Error("Conta Mercado Livre não encontrada.");
+      if (hasFreshToken(current))
+        return {
+          account: current,
+          accessToken: decryptSecret(current.accessTokenEncrypted),
+        };
+      const refreshed = await refreshAccessToken(
+        decryptSecret(current.refreshTokenEncrypted),
+      );
+      const updated = await tx.mercadoLivreAccount.update({
+        where: { id: current.id },
+        data: {
+          accessTokenEncrypted: encryptSecret(refreshed.access_token),
+          refreshTokenEncrypted: refreshed.refresh_token
+            ? encryptSecret(refreshed.refresh_token)
+            : current.refreshTokenEncrypted,
+          tokenExpiresAt: new Date(Date.now() + refreshed.expires_in * 1000),
+          scopes: refreshed.scope ?? current.scopes,
+        },
+      });
+      return { account: updated, accessToken: refreshed.access_token };
     },
-  });
-
-  return { account: updated, accessToken: refreshed.access_token };
+    { maxWait: 20_000, timeout: 20_000 },
+  );
 }
 
 async function buildMlSession(account: MlAccountRecord) {
@@ -494,11 +474,28 @@ export async function getListingPriceQuote(input: {
   }
 
   const saleFeeAmount = Number(quote.sale_fee_amount);
-  if (quote.sale_fee_amount == null || !Number.isFinite(saleFeeAmount) || saleFeeAmount < 0) throw new Error("Tarifa indisponível para este anúncio.");
+  if (
+    quote.sale_fee_amount == null ||
+    !Number.isFinite(saleFeeAmount) ||
+    saleFeeAmount < 0
+  )
+    throw new Error("Tarifa indisponível para este anúncio.");
   const fixedFee = Number(quote.sale_fee_details?.fixed_fee ?? 0);
-  const variableFee = Math.max(0, saleFeeAmount - fixedFee);
+  if (!Number.isFinite(fixedFee) || fixedFee < 0 || fixedFee > saleFeeAmount)
+    throw new Error(
+      "Detalhe de tarifa inválido; confirme no simulador oficial.",
+    );
+  const variableFee = saleFeeAmount - fixedFee;
+  const declaredPercent = Number(quote.sale_fee_details?.percentage_fee);
   const commissionPercent =
-    input.price > 0 ? (variableFee / input.price) * 100 : 0;
+    Number.isFinite(declaredPercent) &&
+    declaredPercent >= 0 &&
+    declaredPercent <= 100 &&
+    Math.abs((input.price * declaredPercent) / 100 - variableFee) <= 0.011
+      ? declaredPercent
+      : input.price > 0
+        ? (variableFee / input.price) * 100
+        : 0;
 
   return {
     raw,

@@ -87,13 +87,18 @@ export async function GET(request: Request) {
 
   if (!ITEM.test(item)) {
     return NextResponse.json(
-      { error: "Informe ?item=MLB123456789 (id do anúncio de outro vendedor)." },
+      {
+        error: "Informe ?item=MLB123456789 (id do anúncio de outro vendedor).",
+      },
       { status: 400 },
     );
   }
 
   if (product && !PRODUCT.test(product)) {
-    return NextResponse.json({ error: "Parâmetro product inválido." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Parâmetro product inválido." },
+      { status: 400 },
+    );
   }
 
   const session = await getMlSession().catch((error: unknown) => {
@@ -109,8 +114,14 @@ export async function GET(request: Request) {
     { name: "multiget_bulk", path: `/items/bulk?ids=${item}` },
     { name: "multiget_legado", path: `/items?ids=${item}` },
     { name: "visitas_total", path: `/visits/items?ids=${item}` },
-    { name: "visitas_30d", path: `/items/${item}/visits/time_window?last=30&unit=day` },
-    { name: "price_to_win", path: `/items/${item}/price_to_win?siteId=MLB&version=v2` },
+    {
+      name: "visitas_30d",
+      path: `/items/${item}/visits/time_window?last=30&unit=day`,
+    },
+    {
+      name: "price_to_win",
+      path: `/items/${item}/price_to_win?siteId=MLB&version=v2`,
+    },
     { name: "busca_publica", path: `/sites/MLB/search?q=ilhos&limit=1` },
     { name: "mais_vendidos_item", path: `/highlights/MLB/item/${item}` },
     { name: "tendencias", path: `/trends/MLB` },
@@ -133,7 +144,7 @@ export async function GET(request: Request) {
     account: session.account.nickname,
     item,
     product: product || null,
-    note: "200 = o app consegue ler; 401/403 = o Mercado Livre bloqueia para este app.",
+    note: "200 = consulta aceita para este recurso; 401 = revisar autorização; 403 = acesso restrito por grant, titularidade, elegibilidade ou política do recurso. Não prova que reconectar vai liberar.",
     results,
   });
 }

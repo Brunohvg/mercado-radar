@@ -320,6 +320,9 @@ model MercadoLivreOrderItem {
 
 
 model RadarWatchItem {
+  trackingMode String @default("API")
+  soldIsLowerBound Boolean @default(false)
+  soldKnown Boolean @default(true)
   id             String   @id @default(cuid())
   sellerUserId   String
   mlItemId       String
@@ -344,6 +347,9 @@ model RadarWatchItem {
 }
 
 model RadarWatchSnapshot {
+  trackingMode String @default("API")
+  soldIsLowerBound Boolean @default(false)
+  soldKnown Boolean @default(true)
   id           String         @id @default(cuid())
   watchItemId  String
   price        Decimal?       @db.Decimal(12, 2)

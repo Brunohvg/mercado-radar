@@ -1,194 +1,199 @@
 import { NextResponse } from "next/server";
 import { getMlSession } from "@/lib/mercado-livre";
-
+import { capabilityState, capabilityGuidance } from "@/lib/ml-capabilities";
 export const dynamic = "force-dynamic";
-
-async function check(
-  url: string,
-  accessToken: string,
-  extraHeaders: Record<string, string> = {},
+const API = "https://api.mercadolibre.com";
+async function probe(
+  path: string | null,
+  token: string,
+  headers: Record<string, string> = {},
 ) {
+  if (!path) return { status: 0, code: null, tested: false, data: null as any };
   try {
-    const response = await fetch(url, {
+    const response = await fetch(API + path, {
+      headers: { Authorization: `Bearer ${token}`, ...headers },
       cache: "no-store",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        ...extraHeaders,
-      },
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(8000),
     });
-
-    const body = await response.json().catch(() => ({}));
-
+    const data = await response.json().catch(() => null);
     return {
-      ok: response.ok,
       status: response.status,
-      code:
-        typeof body?.code === "string"
-          ? body.code
-          : typeof body?.error === "string"
-            ? body.error
-            : null,
-      message:
-        typeof body?.message === "string"
-          ? body.message
-          : null,
+      code: typeof data?.error === "string" ? data.error : null,
+      tested: true,
+      data: response.ok ? data : null,
     };
-  } catch (error) {
+  } catch {
     return {
-      ok: false,
       status: 0,
       code: "NETWORK_OR_TIMEOUT",
-      message:
-        error instanceof Error ? error.message : "Falha de rede.",
+      tested: true,
+      data: null as any,
     };
   }
 }
-
-function permissionHint(result: Awaited<ReturnType<typeof check>>) {
-  if (result.ok) return "OK";
-
-  if (
-    result.status === 403 ||
-    result.code === "PA_UNAUTHORIZED_RESULT_FROM_POLICIES"
-  ) {
-    return "PERMISSION_REQUIRED";
-  }
-
-  if (result.status === 401) return "RECONNECT_REQUIRED";
-  if (result.status === 429) return "RATE_LIMITED";
-  return "API_ERROR";
-}
-
 export async function GET() {
   try {
-    const session = await getMlSession();
-    const token = session.accessToken;
-    const userId = session.account.mercadoLivreUserId;
-    const appId = process.env.MERCADO_LIVRE_CLIENT_ID?.trim() ?? null;
-
-    const checks = await Promise.all([
-      check("https://api.mercadolibre.com/users/me", token),
-      check(
-        `https://api.mercadolibre.com/users/${userId}/items/search?limit=1`,
-        token,
+    const session = await getMlSession(),
+      token = session.accessToken,
+      seller = session.account.mercadoLivreUserId;
+    const checks: Array<{
+      key: string;
+      title: string;
+      optional: boolean;
+      path: string | null;
+      grant: string;
+      result: Awaited<ReturnType<typeof probe>>;
+    }> = [];
+    async function add(
+      key: string,
+      title: string,
+      optional: boolean,
+      path: string | null,
+      grant: string,
+      headers?: Record<string, string>,
+    ) {
+      const result = await probe(path, token, headers);
+      checks.push({ key, title, optional, path, grant, result });
+      return result.data;
+    }
+    const [account, listings, orders] = await Promise.all([
+      add(
+        "account",
+        "Conta e autorização",
+        false,
+        "/users/me",
+        "Leitura de usuários",
       ),
-      check(
-        `https://api.mercadolibre.com/users/${userId}/items_visits/time_window?last=1&unit=day`,
-        token,
+      add(
+        "listings",
+        "Anúncios da sua conta",
+        false,
+        `/users/${seller}/items/search?limit=1`,
+        "Publicação e sincronização · leitura",
       ),
-      check(
-        `https://api.mercadolibre.com/orders/search?seller=${userId}&limit=1`,
-        token,
+      add(
+        "orders",
+        "Pedidos da sua conta",
+        false,
+        `/orders/search?seller=${seller}&limit=1`,
+        "Vendas · leitura",
       ),
-      check(
-        "https://api.mercadolibre.com/advertising/advertisers?product_id=PADS",
-        token,
+    ]);
+    const itemId = /^MLB\d+$/.test(String(listings?.results?.[0] ?? ""))
+      ? String(listings.results[0])
+      : null;
+    const items = itemId
+      ? await probe(`/items/bulk?ids=${itemId}`, token)
+      : null;
+    const detail = Array.isArray(items?.data)
+      ? items.data[0]?.status_code === 200 || items.data[0]?.code === 200
+        ? items.data[0]?.body
+        : null
+      : null;
+    const order = orders?.results?.[0];
+    const shipment = /^[0-9]+$/.test(String(order?.shipping?.id ?? ""))
+      ? String(order.shipping.id)
+      : null;
+    const feePath =
+      detail?.category_id && Number(detail.price) > 0
+        ? "/sites/MLB/listing_prices?" +
+          new URLSearchParams({
+            price: String(detail.price),
+            category_id: detail.category_id,
+            listing_type_id: detail.listing_type_id || "gold_special",
+            currency_id: "BRL",
+            logistic_type: detail.shipping?.logistic_type || "drop_off",
+            shipping_mode: detail.shipping?.mode || "me2",
+          })
+        : null;
+    await Promise.all([
+      add(
+        "businessMetrics",
+        "Visitas da sua conta",
+        true,
+        `/users/${seller}/items_visits/time_window?last=1&unit=day`,
+        "Métricas de negócio · leitura",
+      ),
+      add(
+        "productAds",
+        "Product Ads",
+        true,
+        "/advertising/advertisers?product_id=PADS",
+        "Publicidade + anunciante elegível",
         { "Api-Version": "1" },
       ),
-      check(
-        "https://api.mercadolibre.com/products/search?site_id=MLB&status=active&q=Samsung",
-        token,
+      add(
+        "catalogSearch",
+        "Busca de catálogo",
+        true,
+        "/products/search?site_id=MLB&status=active&q=ilhos&limit=1",
+        "Catálogo · sujeito à política de acesso",
       ),
-      check(
-        "https://api.mercadolibre.com/sites/MLB/domain_discovery/search?q=Samsung&limit=1",
-        token,
+      add(
+        "categoryDiscovery",
+        "Identificação de categoria",
+        true,
+        "/sites/MLB/domain_discovery/search?q=ilhos&limit=1",
+        "Categorias · leitura",
       ),
-      check(
-        "https://api.mercadolibre.com/trends/MLB",
-        token,
+      add(
+        "trends",
+        "Tendências",
+        true,
+        "/trends/MLB",
+        "Mercado · sujeito à disponibilidade",
       ),
-      appId
-        ? check(
-            `https://api.mercadolibre.com/applications/${appId}`,
-            token,
-          )
-        : Promise.resolve({
-            ok: false,
-            status: 0,
-            code: "APP_ID_NOT_CONFIGURED",
-            message: "MERCADO_LIVRE_CLIENT_ID não configurado.",
-          }),
+      add(
+        "fees",
+        "Cotação de tarifas",
+        true,
+        feePath,
+        "Custos por vender · parâmetros de anúncio próprio",
+      ),
+      add(
+        "shippingCosts",
+        "Custo de envio realizado",
+        true,
+        shipment ? `/shipments/${shipment}/costs` : null,
+        "Envios · vínculo com o pedido",
+      ),
     ]);
-
-    const [
-      account,
-      listings,
-      businessMetrics,
-      orders,
-      productAds,
-      catalogSearch,
-      categoryDiscovery,
-      trends,
-      application,
-    ] = checks;
-
+    const results = checks.map(
+      ({ key, title, optional, path, grant, result }) => {
+        const state = capabilityState(result.status, result.tested);
+        return {
+          key,
+          title,
+          optional,
+          path,
+          grant,
+          status: result.status,
+          state,
+          ok: state === "AVAILABLE",
+          code: result.code,
+          guidance: capabilityGuidance(state, optional),
+        };
+      },
+    );
+    const scopes = (session.account.scopes || "").split(/\s+/).filter(Boolean);
     return NextResponse.json({
-      account,
-      application,
-      capabilities: {
-        listings: {
-          ...listings,
-          hint: permissionHint(listings),
-          permission: "Publicação e sincronização",
-        },
-        businessMetrics: {
-          ...businessMetrics,
-          hint: permissionHint(businessMetrics),
-          permission: "Métricas de negócio",
-        },
-        orders: {
-          ...orders,
-          hint: permissionHint(orders),
-          permission: "Usuários / vendas e envios",
-        },
-        productAds: {
-          ...productAds,
-          hint: permissionHint(productAds),
-          permission: "Publicidade de produtos",
-        },
-        catalogSearch: {
-          ...catalogSearch,
-          hint: permissionHint(catalogSearch),
-        },
-        categoryDiscovery: {
-          ...categoryDiscovery,
-          hint: permissionHint(categoryDiscovery),
-        },
-        trends: {
-          ...trends,
-          hint: permissionHint(trends),
-        },
+      checkedAt: new Date().toISOString(),
+      account: {
+        userId: seller,
+        nickname: account?.nickname || session.account.nickname,
       },
       oauth: {
-        userId,
-        appId,
-        storedScope: session.account.scopes ?? null,
+        storedScope: scopes,
+        offlineAccess: scopes.includes("offline_access"),
+        note: "Scopes gerais não comprovam todos os grants granulares. Confira as permissões da aplicação no DevCenter; cada cliente precisa autorizar o acesso.",
       },
+      checks: results,
       summary: {
-        healthy:
-          account.ok &&
-          listings.ok &&
-          businessMetrics.ok &&
-          orders.ok &&
-          productAds.ok,
-        marketplaceKeywordSearchRequired: false,
-        marketplaceKeywordSearchBlocked: false,
-        permissionsMissing: [
-          !listings.ok && listings.status === 403
-            ? "Publicação e sincronização"
-            : null,
-          !businessMetrics.ok && businessMetrics.status === 403
-            ? "Métricas de negócio"
-            : null,
-          !orders.ok && orders.status === 403
-            ? "Usuários / vendas e envios"
-            : null,
-          !productAds.ok && productAds.status === 403
-            ? "Publicidade de produtos"
-            : null,
-        ].filter((value): value is string => Boolean(value)),
+        healthy: results.filter((c) => !c.optional).every((c) => c.ok),
+        optionalUnavailable: results.filter((c) => c.optional && !c.ok).length,
       },
+      limits:
+        "O token desta conta não libera pedidos, visitas, estoque ou dados pessoais privados de outros vendedores. Este diagnóstico não modifica anúncios nem permissões.",
     });
   } catch (error) {
     return NextResponse.json(
@@ -196,7 +201,7 @@ export async function GET() {
         error:
           error instanceof Error
             ? error.message
-            : "Falha ao diagnosticar integração.",
+            : "Não foi possível verificar esta conexão.",
       },
       { status: 502 },
     );

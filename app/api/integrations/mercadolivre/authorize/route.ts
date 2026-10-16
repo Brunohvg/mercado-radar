@@ -41,6 +41,7 @@ export async function GET(request: Request) {
     "https://auth.mercadolivre.com.br/authorization",
   );
   authorizationUrl.searchParams.set("response_type", "code");
+  authorizationUrl.searchParams.set("scope", "read offline_access");
   authorizationUrl.searchParams.set("client_id", clientId);
   authorizationUrl.searchParams.set("redirect_uri", redirectUri);
   authorizationUrl.searchParams.set("state", state);

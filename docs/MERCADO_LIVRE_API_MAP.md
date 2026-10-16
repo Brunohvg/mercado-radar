@@ -72,7 +72,7 @@ O diagnóstico não exige Product Ads, catálogo ou tendências para chamar de s
 - Vendidos × preço atual não comprova faturamento histórico nem um piso de receita: o preço anterior pode ser diferente.
 - Número MLB/MLBU não comprova data de criação. A data só é exibida quando sua origem é conhecida.
 - Faixa de preço usa amostra explícita, datada e revisada. Menos de três selecionados não gera percentis. O Radar informa se veio da página ou do catálogo.
-- Monitoramento por página atualiza ao abrir o anúncio com o painel. Não prometer cron de terceiros quando a API não autoriza.
+- Monitoramento por página atualiza ao abrir o anúncio com a análise automática ativa ou o painel aberto. Não prometer cron de terceiros quando a API não autoriza.
 
 ## Prioridade de novas integrações
 

@@ -135,3 +135,17 @@ Marcar **+** seleciona os anúncios revisados. Com três preços válidos, a bar
 Escopo: extensão, apresentação da página de instalação, documentação e regressões dos novos fluxos. Nenhuma mudança de fórmula financeira, API HTTP, schema, OAuth, CSP, permissões ou dependências nesta etapa. Continua sendo protocolo 2; backend e extensão devem vir da mesma branch de homologação. A revisão não inclui publicação Chrome Web Store, merge na principal ou deploy de produção.
 
 Validação: 40 testes de regras/autenticação, 15 verificações de navegador com DOM sintético (busca e produto, card correto, seleção compartilhada, monitoramento, menu, ocultar/restaurar, dimensões nativas, responsividade e erros), typecheck, build e empacotamento. Os testes HTTP continuam no CI com PostgreSQL. A navegação de uma extensão instalada no Chrome comum e as variantes reais do Mercado Livre exigem homologação.
+
+## Análise automática no produto 0.9.0 — 16/10/2026
+
+O produto passa a carregar a análise sem escolher ferramentas ou abrir o painel. A conclusão resumida fica junto ao preço; a análise completa entra depois do bloco principal quando o layout tem âncora reconhecida, com grade própria responsiva. Essa disposição evita inserir a análise inteira antes do botão de compra. Sem âncora ampla, há fallback dentro do bloco isolado.
+
+Consultas autenticadas por referência/preço/counters: histórico, detalhes, candidatos e tarifas Clássico/Premium. Alterações na interface própria não geram consultas adicionais. Sem autenticação/protocolo compatível, mantém a leitura local e informa a conexão. Ocultar a análise interrompe novas consultas automáticas. Resultados de referências ou sessões anteriores são descartados.
+
+Demanda baixa/média/alta/excelente usa os mesmos limiares de ritmo já existentes, com janela de pedidos próprios ou contador exato. Não deduz velocidade do acumulado, avaliações ou número do anúncio. Média de vida é identificada como histórica. A conclusão combina essa base com o resultado financeiro do backend: boa oportunidade, margem apertada, pouco giro, margem boa com demanda a confirmar ou ruim para o custo informado. Falta de dados continua explícita.
+
+O endpoint de detalhes recebe o campo aditivo `savedCost`: apenas para anúncio confirmado como próprio, com custo do mesmo anúncio ou SKU exato ativo do workspace. Nenhuma busca por título atribui custo automaticamente. Custo/frete/imposto informados no produto recalculam a mesma fórmula do backend. Repasse é separado de lucro e tarifas/categoria/modalidade simuladas têm rótulo próprio. A faixa automática é preliminar, com pelo menos três candidatos únicos; a amostra manual revisada continua disponível.
+
+Escopo: extensão, campo de custo autorizado na API de detalhes, instalador, apresentação, documentação e testes. Não muda schema/migrations, OAuth, permissões, CSP, dependências ou fórmula financeira. Protocolo 2 preservado. Homologação em Chrome instalado e variantes reais do Mercado Livre permanece necessária.
+
+Validação: 44 testes de regras/autenticação/controller, 17 cenários de navegador, typecheck, build e empacotamento; teste HTTP adicional cobre custo próprio por anúncio/SKU e não exposição a outro cliente. CI utiliza PostgreSQL 17.

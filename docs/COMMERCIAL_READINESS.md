@@ -106,7 +106,7 @@ Migration: `202610152100_commercial_workspaces`.
 
 Até fechar esses gates, a entrega deve ser chamada de piloto com acessos controlados, não SaaS público pronto.
 
-## Correção da extensão — 16/10/2026
+## Correção da extensão 0.7.0 — 16/10/2026 (histórico)
 
 A versão 0.7.0 substitui os cartões/colunas injetados por uma única superfície no painel lateral do Chrome. Não altera os cards, ordenação, estilos ou colunas do Mercado Livre. O site mantém seus botões nativos e a extensão só adiciona um lançador fixo isolado.
 
@@ -123,3 +123,15 @@ O login solicita leitura + offline_access; a renovação ML usa bloqueio de linh
 Validação da revisão: regras de domínio, testes HTTP com API restrita simulada, migrações e regressões no navegador (geometria do site, botão nativo, preços, MLBU, calculadora, comparação e troca de abas). As fixtures são sintéticas; homologação no Mercado Livre real continua pendente. O anúncio das capturas retornou uma página de erro ao ser aberto neste ambiente.
 
 **Atualização tem duas partes:** implantar a branch no backend e atualizar/recarregar a extensão no Chrome. Apenas deploy no Coolify não atualiza uma extensão sem compactação. Recarregar também as abas ML para retirar a UI da versão anterior. Nenhum merge ou deploy de produção foi feito nesta revisão.
+
+## Experiência contextual 0.8.0 — 16/10/2026
+
+As capturas de busca, produto e menu do Cargoos fornecidas pelo usuário mostraram que concentrar todos os fluxos no painel aumentava os passos. A extensão agora oferece uma barra na busca, atalhos sobre as fotos e um resumo compacto depois do preço do produto. O menu **R** dá acesso às ferramentas existentes, monitoramentos e conta. A interface pode ser ocultada e restaurada. Padrões de navegação são a referência; marca, arte e código do concorrente não são reutilizados.
+
+Os atalhos dos cards ficam em elementos próprios, fora dos cards, posicionados sobre a área da foto. Não se adicionam alturas a grades fixas nem se alteram conteúdo, estilos, ordem, filtros ou colunas ML. A barra e o resumo usam apenas âncoras de fluxo vertical reconhecidas; caso não existam, o menu/painel permanece disponível. Esses pontos ainda dependem de conferência nos layouts reais do Mercado Livre.
+
+Marcar **+** seleciona os anúncios revisados. Com três preços válidos, a barra mostra a mediana dessa seleção e abre os mesmos IDs no painel. **Analisar** abre a calculadora do card específico sem navegar para outro anúncio. A lista do Radar oferece filtro por título e ordenação por preço, preservando a seleção. **Monitorar preço** salva pela página e trata login necessário, sucesso e tentativa após falha. Trocar anúncio invalida resultados anteriores. Pedidos oficiais só podem enriquecer o mesmo ID e a própria conta.
+
+Escopo: extensão, apresentação da página de instalação, documentação e regressões dos novos fluxos. Nenhuma mudança de fórmula financeira, API HTTP, schema, OAuth, CSP, permissões ou dependências nesta etapa. Continua sendo protocolo 2; backend e extensão devem vir da mesma branch de homologação. A revisão não inclui publicação Chrome Web Store, merge na principal ou deploy de produção.
+
+Validação: 40 testes de regras/autenticação, 15 verificações de navegador com DOM sintético (busca e produto, card correto, seleção compartilhada, monitoramento, menu, ocultar/restaurar, dimensões nativas, responsividade e erros), typecheck, build e empacotamento. Os testes HTTP continuam no CI com PostgreSQL. A navegação de uma extensão instalada no Chrome comum e as variantes reais do Mercado Livre exigem homologação.

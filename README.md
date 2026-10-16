@@ -157,9 +157,9 @@ npm run build
 
 Testes de integração exigem banco isolado e `RADAR_TEST_DATABASE=1`; veja `.github/workflows/ci.yml`.
 
-## Extensão 0.7.0 e APIs por cliente
+## Extensão 0.8.0 e APIs por cliente
 
-A revisão de 16/10/2026 move as ferramentas para o painel lateral, corrige IDs MLB/MLBU, explicita as fontes e elimina estimativas sem evidência. Monitoramento público funciona por novas leituras; comparação exige amostra revisada; a calculadora permite custos e tarifas manuais identificados.
+A revisão de 16/10/2026 oferece menu rápido, análise no produto e atalhos nos cards de busca, com painel lateral para os detalhes. Os cards nativos preservam dimensões e conteúdo; a lista do Radar permite filtrar e ordenar. IDs MLB/MLBU são separados e as fontes ficam explícitas, sem estimativas sem evidência. Monitoramento público funciona por novas leituras; comparação exige amostra revisada; a calculadora permite custos e tarifas manuais identificados.
 
 - [Instalação, atualização e validação da extensão](extension/README.md)
 - [Mapa de APIs, grants, limitações e prioridades de integração](docs/MERCADO_LIVRE_API_MAP.md)

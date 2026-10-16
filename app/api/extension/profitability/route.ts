@@ -7,11 +7,13 @@ import {
   getItemCurrentPrice,
   getItemsBulk,
   getListingPriceQuote,
+  getShippingQuote,
   predictCategory,
 } from "@/lib/mercado-livre";
 import { analyzeProfitability } from "@/lib/profitability";
 import { buildCompetitivePriceStrategy } from "@/lib/price-strategy";
 import { referenceIdSchema } from "@/lib/extension-observation";
+import { simulateAdvertising } from "@/lib/ads-simulation";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +45,9 @@ const schema = z.object({
   targetMarginPercent: z.coerce.number().min(0).max(80).default(20),
   targetRoiPercent: z.coerce.number().min(0).max(500).default(30),
   save: z.boolean().default(false),
+  saveMode: z.enum(["VERIFIED", "SNAPSHOT"]).default("VERIFIED"),
+  supplierName: z.string().trim().max(160).optional(),
+  expectedProfit: z.number().optional(),
   // Anúncio de outro vendedor: a API não libera os detalhes, então a página
   // informa título/categoria/tipo e o Radar calcula as tarifas mesmo assim.
   title: z.string().trim().min(3).max(300).optional(),
@@ -54,6 +59,21 @@ const schema = z.object({
   listingType: z.enum(["CLASSIC", "PREMIUM"]).optional(),
   freeShipping: z.boolean().optional(),
   shippingCost: z.coerce.number().min(0).max(10000).optional(),
+  shippingPackage: z
+    .object({
+      weightGrams: z.number().int().min(1).max(100000),
+      heightCm: z.number().min(1).max(300),
+      widthCm: z.number().min(1).max(300),
+      lengthCm: z.number().min(1).max(300),
+      freeShipping: z.boolean(),
+    })
+    .optional(),
+  advertising: z
+    .object({
+      roasTarget: z.number().positive().max(1000),
+      attributedSalesPercent: z.number().min(0).max(100),
+    })
+    .optional(),
 });
 
 export async function POST(request: Request) {
@@ -150,6 +170,31 @@ export async function POST(request: Request) {
 
     const logisticType =
       parsed.data.logisticType ?? apiItem?.logisticType ?? "drop_off";
+    const matchesOwnListing =
+      isOwnItem &&
+      price === apiItem?.currentPrice &&
+      listingType ===
+        (apiItem?.listingTypeId === "gold_pro" ? "PREMIUM" : "CLASSIC") &&
+      logisticType === apiItem?.logisticType;
+    const parcel =
+      parsed.data.shippingPackage ||
+      (!matchesOwnListing && apiItem?.shippingPackage
+        ? {
+            ...apiItem.shippingPackage,
+            freeShipping: parsed.data.freeShipping ?? item.freeShipping,
+          }
+        : undefined);
+    const matchesApiPackage =
+      apiItem?.shippingPackage &&
+      parcel &&
+      (["weightGrams", "heightCm", "widthCm", "lengthCm"] as const).every(
+        (key) => parcel[key] === apiItem.shippingPackage![key],
+      );
+    const shippingPackageSource = parcel
+      ? !parsed.data.shippingPackage || matchesApiPackage
+        ? "ITEM_API"
+        : "USER"
+      : null;
     const [quotedFee, shipping] = await Promise.all([
       categoryId && !parsed.data.manualFees
         ? getListingPriceQuote({
@@ -160,20 +205,27 @@ export async function POST(request: Request) {
             logisticType,
           }).catch(() => null)
         : Promise.resolve(null),
-      (isOwnItem &&
-      parsed.data.shippingCost == null &&
-      price === apiItem?.currentPrice &&
-      listingType ===
-        (apiItem?.listingTypeId === "gold_pro" ? "PREMIUM" : "CLASSIC")
-        ? getExistingItemShippingQuote({
-            accessToken: session.accessToken,
-            userId: session.account.mercadoLivreUserId,
-            itemId,
-            price,
-            listingType,
-            freeShipping: item.freeShipping,
-          })
-        : Promise.resolve(null)
+      (parsed.data.shippingCost != null
+        ? Promise.resolve(null)
+        : parcel
+          ? getShippingQuote({
+              accessToken: session.accessToken,
+              userId: session.account.mercadoLivreUserId,
+              price,
+              listingType,
+              logisticType,
+              ...parcel,
+            })
+          : matchesOwnListing
+            ? getExistingItemShippingQuote({
+                accessToken: session.accessToken,
+                userId: session.account.mercadoLivreUserId,
+                itemId,
+                price,
+                listingType,
+                freeShipping: item.freeShipping,
+              })
+            : Promise.resolve(null)
       ).catch(() => null),
     ]);
     const fee = parsed.data.manualFees ?? quotedFee;
@@ -184,7 +236,31 @@ export async function POST(request: Request) {
         : "UNAVAILABLE";
     const shippingKnown =
       parsed.data.shippingCost == null &&
+      !parcel &&
       Boolean(isOwnItem && shipping?.raw != null);
+    const shippingEstimated =
+      parsed.data.shippingCost == null &&
+      Boolean(parcel && shipping?.raw != null);
+    const shippingSource = shippingKnown
+      ? "MERCADO_LIVRE_API"
+      : shippingEstimated
+        ? "MERCADO_LIVRE_PACKAGE_ESTIMATE"
+        : parsed.data.shippingCost != null
+          ? "MANUAL_ESTIMATE"
+          : "UNAVAILABLE";
+    const shippingNote =
+      parsed.data.shippingCost != null
+        ? "Custo de frete informado para esta simulação."
+        : shippingEstimated
+          ? (shippingPackageSource === "ITEM_API"
+              ? "Medidas do anúncio informadas pela API; confira para sua embalagem. "
+              : "Medidas informadas por você. ") +
+            "Estimativa na sua conta para preço, modalidade e logística simulados. Produto novo; pode mudar no envio."
+          : parcel && !shipping
+            ? "A API não retornou frete para esta embalagem. Confira as medidas/logística ou informe um valor verificado."
+            : shippingKnown
+              ? "Cotação da API para o anúncio próprio. O custo final depende do envio realizado."
+              : "Informe a embalagem para estimar na sua conta ou um custo de frete verificado.";
     const shippingCost =
       parsed.data.shippingCost ?? shipping?.shippingCost ?? null;
     const taxPercent = parsed.data.taxPercent ?? null;
@@ -200,11 +276,10 @@ export async function POST(request: Request) {
       categorySource,
       logisticType,
       shippingKnown,
-      shippingSource: shippingKnown
-        ? "MERCADO_LIVRE_API"
-        : shippingCost == null
-          ? "UNAVAILABLE"
-          : "MANUAL_ESTIMATE",
+      shippingEstimated,
+      shippingSource,
+      shippingNote,
+      shippingPackageSource,
       fees: {
         commissionPercent: fee?.commissionPercent ?? null,
         commissionAmount: fee
@@ -218,6 +293,7 @@ export async function POST(request: Request) {
       },
       needs,
       result: null,
+      adsSimulation: null,
       availability: needs.length ? "PARTIAL" : "READY",
       note: !fee
         ? "A API não retornou tarifas. Informe comissão e tarifa fixa do simulador oficial para fazer uma simulação manual."
@@ -269,14 +345,17 @@ export async function POST(request: Request) {
 
     if (
       parsed.data.save &&
-      (!shippingKnown ||
+      parsed.data.saveMode !== "SNAPSHOT" &&
+      (parsed.data.advertising ||
+        !shippingKnown ||
         feeSource !== "MERCADO_LIVRE_API" ||
         categorySource !== "API")
     )
       return NextResponse.json(
         {
-          error:
-            "A simulação usa frete estimado. Confirme a logística na análise do painel antes de salvar uma decisão.",
+          error: parsed.data.advertising
+            ? "O cenário de Ads é uma hipótese. Copie a memória para revisão; não é resultado realizado."
+            : "A simulação usa frete estimado. Confirme a logística na análise do painel antes de salvar uma decisão.",
         },
         { status: 422 },
       );
@@ -285,18 +364,39 @@ export async function POST(request: Request) {
         { error: "A meta de margem é inviável com estas taxas." },
         { status: 400 },
       );
+    if (
+      parsed.data.save &&
+      parsed.data.expectedProfit != null &&
+      Math.round(analysis.profit * 100) !==
+        Math.round(parsed.data.expectedProfit * 100)
+    )
+      return NextResponse.json(
+        {
+          error:
+            "A cotação mudou desde a revisão. Atualize a simulação e confira os novos valores antes de salvar.",
+        },
+        { status: 409 },
+      );
+    const adsSimulation = parsed.data.advertising
+      ? simulateAdvertising({
+          salePrice: price,
+          profitBeforeAds: analysis.profit,
+          ...parsed.data.advertising,
+        })
+      : null;
     if (parsed.data.save) {
-      const localProduct = item.sellerSku
-        ? await prisma.product.findUnique({
-            where: {
-              workspaceId_sku: {
-                workspaceId: session.account.workspaceId,
-                sku: item.sellerSku,
+      const localProduct =
+        isOwnItem && item.sellerSku
+          ? await prisma.product.findUnique({
+              where: {
+                workspaceId_sku: {
+                  workspaceId: session.account.workspaceId,
+                  sku: item.sellerSku,
+                },
               },
-            },
-            select: { id: true },
-          })
-        : null;
+              select: { id: true },
+            })
+          : null;
 
       const saved = await prisma.productAnalysis.create({
         data: {
@@ -323,13 +423,25 @@ export async function POST(request: Request) {
           targetRoiPercent: analysis.targetRoiPercent,
           minimumSuggestedPrice: analysis.minimumSuggestedPrice!,
           verdict: analysis.verdict,
-          source: "EXTENSION",
+          source:
+            parsed.data.saveMode === "SNAPSHOT"
+              ? "EXTENSION_SIMULATION"
+              : "EXTENSION",
           metadata: {
             mlItemId: item.id,
             taxPercent,
             taxAmount: analysis.taxAmount,
             marketReferencePrice: parsed.data.marketReferencePrice ?? null,
             strategy,
+            simulation: true,
+            feeSource,
+            shippingSource,
+            shippingNote,
+            shippingPackage: parcel ?? null,
+            shippingPackageSource,
+            supplierName: parsed.data.supplierName || null,
+            adsSimulation,
+            capturedAt: new Date().toISOString(),
           },
         },
       });
@@ -354,7 +466,10 @@ export async function POST(request: Request) {
       availability: "READY",
       note: partial.note,
       shippingKnown,
-      shippingSource: shippingKnown ? "MERCADO_LIVRE_API" : "MANUAL_ESTIMATE",
+      shippingEstimated,
+      shippingSource,
+      shippingNote,
+      shippingPackageSource,
       fees: {
         commissionPercent: fee.commissionPercent,
         commissionAmount: analysis.commissionAmount,
@@ -364,6 +479,7 @@ export async function POST(request: Request) {
         taxAmount: analysis.taxAmount,
       },
       result: analysis,
+      adsSimulation,
       strategy,
       savedAnalysisId,
     });

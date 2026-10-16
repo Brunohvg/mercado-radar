@@ -2,6 +2,7 @@ import { getWorkspaceId } from "@/lib/workspace-auth";
 import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { decryptSecret, encryptSecret } from "@/lib/security";
+import { parseShippingDimensions } from "@/lib/shipping-package";
 
 const API = "https://api.mercadolibre.com";
 
@@ -516,9 +517,9 @@ export async function getShippingQuote(input: {
   lengthCm: number;
   logisticType?: string;
   shippingMode?: string;
+  freeShipping?: boolean;
 }) {
-  const dimensions =
-    `${Math.round(input.heightCm)}x${Math.round(input.widthCm)}x${Math.round(input.lengthCm)},${Math.round(input.weightGrams)}`;
+  const dimensions = `${Math.round(input.heightCm)}x${Math.round(input.widthCm)}x${Math.round(input.lengthCm)},${Math.round(input.weightGrams)}`;
 
   const query = new URLSearchParams({
     dimensions,
@@ -528,7 +529,7 @@ export async function getShippingQuote(input: {
     mode: input.shippingMode ?? "me2",
     condition: "new",
     logistic_type: input.logisticType ?? "drop_off",
-    free_shipping: "True",
+    free_shipping: input.freeShipping === false ? "False" : "True",
   });
 
   const raw = await jsonFetch<any>(
@@ -537,7 +538,14 @@ export async function getShippingQuote(input: {
   );
 
   const coverage = raw?.coverage?.all_country;
-  if (!coverage || coverage.list_cost == null || !Number.isFinite(Number(coverage.list_cost)) || Number(coverage.list_cost) < 0) {
+  if (
+    !coverage ||
+    !["number", "string"].includes(typeof coverage.list_cost) ||
+    String(coverage.list_cost).trim() === "" ||
+    !Number.isFinite(Number(coverage.list_cost)) ||
+    Number(coverage.list_cost) < 0 ||
+    (coverage.currency_id && coverage.currency_id !== "BRL")
+  ) {
     throw new Error("Mercado Livre não retornou cotação de frete.");
   }
 
@@ -756,6 +764,7 @@ export type SellerItemDetail = {
   freeShipping: boolean;
   logisticType: string | null;
   shippingMode: string | null;
+  shippingPackage: ReturnType<typeof parseShippingDimensions>;
   sellerSku: string | null;
   raw: unknown;
 };
@@ -776,7 +785,12 @@ type MultigetEntry = {
   status_code?: number;
   body?: Record<string, any> & {
     id?: string;
-    shipping?: { free_shipping?: boolean; logistic_type?: string; mode?: string };
+    shipping?: {
+      free_shipping?: boolean;
+      logistic_type?: string;
+      mode?: string;
+      dimensions?: unknown;
+    };
     attributes?: Array<{ id?: string; value_name?: string }>;
   };
 };
@@ -809,6 +823,7 @@ function toSellerItemDetail(entry: MultigetEntry): SellerItemDetail | null {
     freeShipping: Boolean(body.shipping?.free_shipping),
     logisticType: body.shipping?.logistic_type ?? null,
     shippingMode: body.shipping?.mode ?? null,
+    shippingPackage: parseShippingDimensions(body.shipping?.dimensions),
     sellerSku,
     raw: entry,
   };
@@ -1243,6 +1258,14 @@ export async function getCatalogProductOffers(input: {
   productId: string;
   limit?: number;
 }): Promise<CatalogOffer[]> {
+  return (await getCatalogProductOffersSnapshot(input)).offers;
+}
+
+export async function getCatalogProductOffersSnapshot(input: {
+  accessToken: string;
+  productId: string;
+  limit?: number;
+}) {
   const params = new URLSearchParams({ limit: String(input.limit ?? 20) });
 
   const raw = await jsonFetch<any>(
@@ -1252,7 +1275,7 @@ export async function getCatalogProductOffers(input: {
 
   const list: any[] = Array.isArray(raw) ? raw : (raw?.results ?? []);
 
-  return list
+  const offers = list
     .map((entry) => {
       const itemId = String(entry?.item_id ?? entry?.id ?? "").toUpperCase();
       return {
@@ -1263,10 +1286,69 @@ export async function getCatalogProductOffers(input: {
         freeShipping: Boolean(entry?.shipping?.free_shipping),
         logisticType: entry?.shipping?.logistic_type ?? null,
         officialStoreId:
-          entry?.official_store_id == null ? null : String(entry.official_store_id),
+          entry?.official_store_id == null
+            ? null
+            : String(entry.official_store_id),
       } satisfies CatalogOffer;
     })
-    .filter((offer) => /^MLB\d+$/.test(offer.itemId) && offer.price > 0);
+    .filter(
+      (offer) =>
+        /^MLB\d+$/.test(offer.itemId) &&
+        Number.isFinite(offer.price) &&
+        offer.price > 0,
+    );
+  const reported = raw?.paging?.total;
+  return {
+    offers: [...new Map(offers.map((offer) => [offer.itemId, offer])).values()],
+    total:
+      typeof reported === "number" &&
+      Number.isInteger(reported) &&
+      reported >= offers.length
+        ? reported
+        : null,
+  };
+}
+
+export async function getItemVisitWindow(input: {
+  accessToken: string;
+  itemId: string;
+  ending: string;
+}) {
+  const params = new URLSearchParams({
+    last: "30",
+    unit: "day",
+    ending: input.ending,
+  });
+  const raw = await jsonFetch<any>(
+    `${API}/items/${input.itemId}/visits/time_window?${params}`,
+    {
+      headers: { Authorization: `Bearer ${input.accessToken}` },
+    },
+  );
+  const from = Date.parse(raw.date_from),
+    to = Date.parse(raw.date_to);
+  const days = (to - from) / 86400000;
+  if (
+    raw.item_id !== input.itemId ||
+    !Number.isFinite(days) ||
+    days < 1 ||
+    days > 31 ||
+    Math.abs(to - Date.parse(input.ending)) > 36 * 3600000 ||
+    typeof raw.total_visits !== "number" ||
+    !Number.isInteger(raw.total_visits) ||
+    raw.total_visits < 0
+  )
+    throw new Error(
+      "A API não retornou visitas com referência e período válidos.",
+    );
+  return {
+    itemId: input.itemId,
+    total: raw.total_visits as number,
+    from: raw.date_from as string,
+    to: raw.date_to as string,
+    days,
+    perDay: raw.total_visits / days,
+  };
 }
 
 
@@ -1338,7 +1420,14 @@ export async function getExistingItemShippingQuote(input: {
   );
 
   const coverage = raw?.coverage?.all_country;
-  if (!coverage || coverage.list_cost == null || !Number.isFinite(Number(coverage.list_cost)) || Number(coverage.list_cost) < 0) {
+  if (
+    !coverage ||
+    !["number", "string"].includes(typeof coverage.list_cost) ||
+    String(coverage.list_cost).trim() === "" ||
+    !Number.isFinite(Number(coverage.list_cost)) ||
+    Number(coverage.list_cost) < 0 ||
+    (coverage.currency_id && coverage.currency_id !== "BRL")
+  ) {
     throw new Error("Mercado Livre não retornou o custo de envio do anúncio.");
   }
 

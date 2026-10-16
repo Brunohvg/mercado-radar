@@ -32,7 +32,14 @@ export async function GET(request: Request) {
         productId: analysis.productId,
         productName: analysis.productName,
         sku: analysis.product?.sku ?? null,
-        supplier: analysis.product?.supplier ?? null,
+        supplier:
+          analysis.product?.supplier ??
+          (analysis.metadata &&
+          typeof analysis.metadata === "object" &&
+          !Array.isArray(analysis.metadata) &&
+          typeof analysis.metadata.supplierName === "string"
+            ? analysis.metadata.supplierName
+            : null),
         listingType: analysis.listingType,
         kitQuantity: analysis.kitQuantity,
         supplierPrice: Number(analysis.supplierPrice),
@@ -80,8 +87,14 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    const result = await prisma.productAnalysis.deleteMany({ where: { id, workspaceId: await getWorkspaceId() } });
-    if (!result.count) return NextResponse.json({ error: "Análise não encontrada." }, { status: 404 });
+    const result = await prisma.productAnalysis.deleteMany({
+      where: { id, workspaceId: await getWorkspaceId() },
+    });
+    if (!result.count)
+      return NextResponse.json(
+        { error: "Análise não encontrada." },
+        { status: 404 },
+      );
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message =

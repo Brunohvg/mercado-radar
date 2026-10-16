@@ -9,11 +9,17 @@ import {
 } from "@/lib/mercado-livre";
 import { referenceIdSchema } from "@/lib/extension-observation";
 import { prisma } from "@/lib/prisma";
+import { getExtensionAnalytics } from "@/lib/extension-analytics";
 
 export const dynamic = "force-dynamic";
 const schema = z.object({
   id: referenceIdSchema,
   kind: z.enum(["ITEM", "USER_PRODUCT", "CATALOG"]).optional(),
+  catalogProductId: z
+    .string()
+    .regex(/^MLB\d+$/i)
+    .optional(),
+  analyticsOnly: z.literal("1").optional(),
 });
 
 export async function GET(request: Request) {
@@ -40,6 +46,8 @@ export async function GET(request: Request) {
   const parsed = schema.safeParse({
     id: url.searchParams.get("id"),
     kind: url.searchParams.get("kind") ?? undefined,
+    catalogProductId: url.searchParams.get("catalogProductId") ?? undefined,
+    analyticsOnly: url.searchParams.get("analyticsOnly") ?? undefined,
   });
   if (!parsed.success)
     return NextResponse.json(
@@ -47,7 +55,24 @@ export async function GET(request: Request) {
       { status: 400 },
     );
   const { id, kind } = parsed.data;
-  const partial = (reason: string, upstreamStatus: number | null = null) =>
+  const analytics = (
+    resolvedItemId: string | null,
+    catalogId?: string | null,
+  ) =>
+    getExtensionAnalytics({
+      workspaceId: session.account.workspaceId,
+      accountId: session.account.id,
+      accessToken: session.ml.accessToken,
+      itemId: kind === "CATALOG" ? null : resolvedItemId,
+      catalogProductId:
+        catalogId ||
+        parsed.data.catalogProductId ||
+        (kind === "CATALOG" ? id : null),
+    });
+  const partial = async (
+    reason: string,
+    upstreamStatus: number | null = null,
+  ) =>
     NextResponse.json({
       referenceId: id,
       item: null,
@@ -57,7 +82,12 @@ export async function GET(request: Request) {
       upstreamStatus,
       note: reason,
       catalog: null,
+      analytics: null,
       trends: [],
+    });
+  if (parsed.data.analyticsOnly === "1")
+    return NextResponse.json({
+      analytics: await analytics(/^MLB\d+$/.test(id) ? id : null),
     });
   if (kind === "CATALOG")
     return partial(
@@ -141,6 +171,7 @@ export async function GET(request: Request) {
       availability: "API",
       source: "MERCADO_LIVRE_API",
       savedCost,
+      analytics: null,
       item: {
         id: item.id,
         title: item.title,
@@ -148,6 +179,7 @@ export async function GET(request: Request) {
         categoryId: item.categoryId,
         listingTypeId: item.listingTypeId,
         logisticType: item.logisticType,
+        shippingPackage: item.shippingPackage,
         isOwn,
         sellerId: item.sellerId,
         soldQuantity: isOwn ? item.soldQuantity : null,

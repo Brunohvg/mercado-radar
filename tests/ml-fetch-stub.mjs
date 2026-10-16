@@ -58,26 +58,29 @@ globalThis.fetch = async (input, init) => {
     return json({ results: [item] });
   if (url.pathname === "/items" || url.pathname === "/items/bulk")
     return json(
-      (url.searchParams.get("ids") || "")
-        .split(",")
-        .map((id) =>
-          id === item
-            ? {
-                code: 200,
-                body: {
-                  id,
-                  title: "Kit ilhós",
-                  price: 100,
-                  category_id: "MLB1234",
-                  seller_id: seller,
-                  listing_type_id: "gold_special",
-                  sold_quantity: 205,
-                  available_quantity: 20,
-                  shipping: { free_shipping: false, logistic_type: "drop_off" },
+      (url.searchParams.get("ids") || "").split(",").map((id) =>
+        [item, "MLB999000002"].includes(id)
+          ? {
+              code: 200,
+              body: {
+                id,
+                title: "Kit ilhós",
+                price: 100,
+                category_id: "MLB1234",
+                seller_id: id === item ? seller : "foreign-seller",
+                seller_custom_field: id === item ? undefined : "SAME-SKU",
+                listing_type_id: "gold_special",
+                sold_quantity: 205,
+                available_quantity: 20,
+                shipping: {
+                  free_shipping: id !== item,
+                  logistic_type: "drop_off",
+                  dimensions: id === item ? null : "10x15x20,500",
                 },
-              }
-            : { code: 403, body: { id } },
-        ),
+              },
+            }
+          : { code: 403, body: { id } },
+      ),
     );
   if (url.pathname === "/sites/MLB/listing_prices") {
     const rate =
@@ -91,6 +94,54 @@ globalThis.fetch = async (input, init) => {
   }
   if (url.pathname === "/sites/MLB/domain_discovery/search")
     return json([{ category_id: "MLB1234", category_name: "Fios" }]);
+  if (/^\/users\/[^/]+\/shipping_options\/free$/.test(url.pathname)) {
+    const account = url.pathname.split("/")[2];
+    if (![seller, prefix + "200"].includes(account)) return denied();
+    const dimensions = url.searchParams.get("dimensions");
+    if (dimensions?.endsWith(",99999")) return denied();
+    if (
+      dimensions &&
+      (!url.searchParams.has("item_price") ||
+        !url.searchParams.has("listing_type_id") ||
+        !url.searchParams.has("logistic_type"))
+    )
+      return denied();
+    if (!dimensions && url.searchParams.get("item_id") !== item)
+      return denied();
+    return json({
+      coverage: {
+        all_country: {
+          list_cost: dimensions ? (account === seller ? 6.85 : 9.85) : 0,
+          billable_weight: 500,
+        },
+      },
+    });
+  }
+  if (url.pathname === "/products/MLB88800001/items")
+    return json({
+      paging: { total: 52 },
+      results: [0, 1, 2, 3, 4].map((i) => ({
+        item_id: "MLB88000000" + (i + 1),
+        seller_id: "seller-" + i,
+        price: 19.68 + i,
+        shipping: {
+          logistic_type: [0, 2].includes(i) ? "fulfillment" : "drop_off",
+        },
+      })),
+    });
+  if (/^\/items\/MLB\d+\/visits\/time_window$/.test(url.pathname)) {
+    const id = url.pathname.split("/")[2];
+    if (!/^MLB88000000[1-5]$/.test(id) && id !== item) return denied();
+    const to = new Date(url.searchParams.get("ending"));
+    const from = new Date(to.getTime() - 30 * 86400000);
+    return json({
+      item_id: id,
+      date_from: from.toISOString(),
+      date_to: to.toISOString(),
+      total_visits:
+        id === item ? 600 : [900, 700, 354, 326, 0][Number(id.at(-1)) - 1],
+    });
+  }
   if (
     url.pathname.startsWith("/user-products/") ||
     url.pathname.startsWith("/products") ||

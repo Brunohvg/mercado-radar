@@ -518,6 +518,7 @@ try {
     rating: 4.8,
     permalink: "https://www.mercadolivre.com.br/fio/up/MLBU5074600649",
   };
+  let extensionBToken;
   await check(
     "automatic analysis reuses only exact own listing or workspace SKU costs",
     async () => {
@@ -562,6 +563,7 @@ try {
           "https://" + "a".repeat(32) + ".chromiumapp.org/radar-auth",
       });
       assert.equal(tokenB.status, 200, tokenB.text);
+      extensionBToken = tokenB.json.access_token;
       const other = await req(path, "", "GET", undefined, {
         authorization: "Bearer " + tokenB.json.access_token,
       });
@@ -744,6 +746,189 @@ try {
     supplierPrice: 10.9,
     listingType: "PREMIUM",
   };
+  await check(
+    "catalog analytics measures a dated sample and never calls it unique catalog visitors",
+    async () => {
+      const response = await req(
+        "/api/extension/item?id=MLB999000001&kind=ITEM&catalogProductId=MLB88800001&analyticsOnly=1",
+        "",
+        "GET",
+        undefined,
+        extensionHeaders(),
+      );
+      assert.equal(response.status, 200, response.text);
+      const analytics = response.json.analytics,
+        c = analytics.catalog;
+      assert.equal(analytics.itemVisits.perDay, 20);
+      assert.equal(c.offersObserved, 5);
+      assert.equal(c.totalReported, 52);
+      assert.equal(c.fullOffersObserved, 2);
+      assert.equal(c.visitsSample.offersMeasured, 5);
+      assert.equal(c.visitsSample.perDay, 76);
+      assert.ok(Math.abs(c.visitsSample.fullVisitSharePercent - 55) < 1e-8);
+      assert.match(c.note, /não são visitantes únicos/);
+      const unavailable = await req(
+        "/api/extension/item?id=MLB777777777&kind=ITEM&catalogProductId=MLB7777777&analyticsOnly=1",
+        "",
+        "GET",
+        undefined,
+        extensionHeaders(),
+      );
+      assert.equal(unavailable.json.analytics.itemVisits, null);
+      assert.equal(unavailable.json.analytics.catalog.offersObserved, null);
+      assert.equal(unavailable.json.analytics.catalog.visitsSample, null);
+    },
+  );
+  const shippingPackage = {
+    weightGrams: 500,
+    heightCm: 10,
+    widthCm: 15,
+    lengthCm: 20,
+    freeShipping: true,
+  };
+  await check(
+    "package shipping quotes use each client's account and remain estimates",
+    async () => {
+      const payload = {
+        ...simulation,
+        salePrice: 100,
+        supplierPrice: 40,
+        taxPercent: 6,
+        listingType: "CLASSIC",
+        shippingPackage,
+        logisticType: "drop_off",
+      };
+      const response = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        payload,
+        extensionHeaders(),
+      );
+      assert.equal(response.status, 200, response.text);
+      assert.equal(response.json.fees.shippingCost, 6.85);
+      assert.equal(
+        response.json.shippingSource,
+        "MERCADO_LIVRE_PACKAGE_ESTIMATE",
+      );
+      assert.equal(response.json.shippingKnown, false);
+      assert.equal(response.json.shippingEstimated, true);
+      assert.equal(response.json.result.profit, 31.15);
+      const automatic = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        { ...payload, itemId: "MLB999000002", shippingPackage: undefined },
+        extensionHeaders(),
+      );
+      assert.equal(automatic.status, 200, automatic.text);
+      assert.equal(automatic.json.shippingEstimated, true);
+      assert.equal(automatic.json.shippingPackageSource, "ITEM_API");
+      assert.equal(automatic.json.fees.shippingCost, 6.85);
+      const other = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        payload,
+        { authorization: "Bearer " + extensionBToken },
+      );
+      assert.equal(other.status, 200, other.text);
+      assert.equal(other.json.fees.shippingCost, 9.85);
+      const missing = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        {
+          ...payload,
+          shippingPackage: { ...shippingPackage, weightGrams: 99999 },
+        },
+        extensionHeaders(),
+      );
+      assert.equal(missing.json.shippingSource, "UNAVAILABLE");
+      assert.equal(missing.json.fees.shippingCost, null);
+      assert.equal(missing.json.result, null);
+      assert.ok(missing.json.needs.includes("shippingCost"));
+      const invalid = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        {
+          ...payload,
+          shippingPackage: { ...shippingPackage, weightGrams: 0.5 },
+        },
+        extensionHeaders(),
+      );
+      assert.equal(invalid.status, 400);
+    },
+  );
+  await check(
+    "reviewed snapshots preserve supplier and Ads assumptions without becoming realized profit or crossing clients",
+    async () => {
+      const payload = {
+        ...simulation,
+        itemId: "MLB999000002",
+        salePrice: 100,
+        supplierPrice: 40,
+        taxPercent: 6,
+        listingType: "CLASSIC",
+        shippingPackage,
+        advertising: { roasTarget: 5, attributedSalesPercent: 20 },
+      };
+      const response = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        payload,
+        extensionHeaders(),
+      );
+      assert.equal(response.json.adsSimulation.costPerSale, 4);
+      assert.equal(response.json.adsSimulation.profitAfterAds, 27.15);
+      const changed = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        { ...payload, save: true, saveMode: "SNAPSHOT", expectedProfit: 1 },
+        extensionHeaders(),
+      );
+      assert.equal(changed.status, 409);
+      const saved = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        {
+          ...payload,
+          save: true,
+          saveMode: "SNAPSHOT",
+          expectedProfit: 31.15,
+          supplierName: "Fornecedor teste",
+        },
+        extensionHeaders(),
+      );
+      assert.equal(saved.status, 200, saved.text);
+      assert.ok(saved.json.savedAnalysisId);
+      const list = await req("/api/analyses", cookieA);
+      const row = list.json.analyses.find(
+        (item) => item.id === saved.json.savedAnalysisId,
+      );
+      assert.equal(row.source, "EXTENSION_SIMULATION");
+      assert.equal(row.productId, null);
+      assert.equal(row.supplier, "Fornecedor teste");
+      assert.equal(row.profit, 31.15);
+      assert.equal(
+        row.metadata.shippingSource,
+        "MERCADO_LIVRE_PACKAGE_ESTIMATE",
+      );
+      assert.equal(row.metadata.adsSimulation.profitAfterAds, 27.15);
+      const other = await req("/api/analyses", cookieB);
+      assert.ok(other.json.analyses.every((item) => item.id !== row.id));
+      const removed = await req(
+        "/api/analyses?id=" + row.id,
+        cookieB,
+        "DELETE",
+      );
+      assert.equal(removed.status, 404);
+    },
+  );
   await check(
     "missing tax and freight produce partial costs, not a false profit or error page",
     async () => {

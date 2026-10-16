@@ -157,7 +157,7 @@ npm run build
 
 Testes de integração exigem banco isolado e `RADAR_TEST_DATABASE=1`; veja `.github/workflows/ci.yml`.
 
-## Extensão 0.9.1 e APIs por cliente
+## Extensão 0.10.0 e APIs por cliente
 
 A revisão de 16/10/2026 oferece análise automática no produto, com classificação de demanda/oportunidade, tarifas, repasse e simulação no próprio anúncio. O custo de anúncio próprio pode ser recuperado por vínculo exato. Na busca, indicadores compactos abaixo do título substituem os botões sobre a foto: demanda e receita estimada por dia quando há janela medida, ou ritmo/acumulado com fonte explícita. A altura reserva espaço para o bloco; fotos, largura, colunas e conteúdo nativos são preservados. A caixa Comparar envia a amostra revisada ao painel. Menu rápido e painel lateral continuam disponíveis. IDs MLB/MLBU são separados. Monitoramento público funciona por novas leituras; a calculadora permite custos e tarifas manuais identificados.
 
@@ -166,3 +166,5 @@ A revisão de 16/10/2026 oferece análise automática no produto, com classifica
 - [Preparação comercial e homologação](docs/COMMERCIAL_READINESS.md)
 
 Atualize o backend e os arquivos da extensão para a mesma branch. Depois recarregue a extensão e as abas do Mercado Livre.
+
+A versão 0.10.0 também apresenta análise automática no painel, visitas por janela quando liberadas, ofertas/participação Full com cobertura da amostra, cotação de frete por embalagem na conta de cada cliente, calculadora automática com cenário opcional de Ads e revisão para salvar simulações com fornecedor no histórico. As fontes e hipóteses são preservadas; histórico de simulação permanece separado do lucro realizado.

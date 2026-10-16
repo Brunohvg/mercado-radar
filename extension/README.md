@@ -1,4 +1,4 @@
-# Mercado Radar — extensão 0.9.1
+# Mercado Radar — extensão 0.10.0
 
 Chrome 116+. Manifest V3. Backend da branch `feature/radar-commercial-readiness-v1`, protocolo 2.
 
@@ -8,7 +8,7 @@ Chrome 116+. Manifest V3. Backend da branch `feature/radar-commercial-readiness-
 2. Baixar os arquivos desta mesma branch. O instalador em `/extensao` só entrega a versão do backend que estiver implantada.
 3. Em `chrome://extensions`, carregar a pasta `extension` sem compactação. Para atualizar, substituir os arquivos da pasta que o Chrome usa e clicar em **Recarregar**.
 4. **Recarregar também todas as abas abertas do Mercado Livre** para retirar scripts e interfaces da versão anterior.
-5. Confirmar **0.9.1** na tela de extensões e no cabeçalho do painel lateral.
+5. Confirmar **0.10.0** na tela de extensões e no cabeçalho do painel lateral.
 6. Entrar na sua conta Radar. Cada cliente autoriza seu próprio vendedor ML. Não usa chave global de API.
 
 A aplicação web e a extensão são atualizadas separadamente: apenas fazer deploy no Coolify não substitui os arquivos carregados no Chrome. O painel avisa se o backend ainda usa o protocolo anterior.
@@ -17,6 +17,7 @@ A aplicação web e a extensão são atualizadas separadamente: apenas fazer dep
 
 - A busca recebe uma barra acima dos resultados e um bloco compacto com dois indicadores após o título de cada card reconhecido, antes do preço. A foto fica livre de botões. Apenas a altura dos contêineres é ajustada para reservar espaço; largura, colunas, conteúdo, filtros e ordem nativos são preservados. Ocultar a análise remove esses ajustes.
 - No produto, a conclusão aparece automaticamente junto ao preço. A análise completa fica aberta logo após o bloco principal, quando há âncora segura. A grade própria se adapta à largura; não cria colunas do ML nem cobre seus controles. Layouts sem âncora ampla mostram o conteúdo dentro do bloco isolado.
+- O painel lateral também abre com a análise, tarifas de Clássico/Premium e repasse automáticos. Dados brutos ficam recolhidos. Visitas, vendas por período, ofertas e participação Full informam acesso e cobertura; a calculadora concentra as entradas da sua operação.
 - O botão **R** abre um menu com análise, lucro, pesquisa, monitoramentos e conta. **Ocultar análise na página** remove os elementos contextuais; o menu permite restaurar. O ícone da extensão continua abrindo o painel nativo.
 - A camada `selectors.js` lê o DOM; `content.js` envia contexto por aba; `sidepanel.js` apresenta as ferramentas; `background.js` guarda a sessão Radar e fala com o backend.
 - Nenhum token ML vai ao navegador. A extensão recebe somente tokens revogáveis do Radar, por cliente/dispositivo.
@@ -36,6 +37,14 @@ A aplicação web e a extensão são atualizadas separadamente: apenas fazer dep
 **Leitura:** preço exibido, texto acumulado de vendidos e avaliações, quando presentes. A tela separa MLB de anúncio, MLBU de User Product e produto de catálogo. Scripts de recomendações não fornecem o ID do anúncio aberto. Parcelamento sem juros não confirma Premium.
 
 **Simular lucro:** preço, custo unitário, quantidade do kit, desconto, imposto, operação, modalidade e logística. Frete desconhecido fica ausente. Informar zero é uma confirmação explícita. As tarifas vêm da API para os parâmetros da simulação; se não estiverem disponíveis, o usuário pode informar comissão e tarifa fixa verificadas no simulador oficial. Esse resultado é identificado como manual. Alterar entradas invalida a memória anterior. O piso é teórico e requer nova cotação ao mudar o preço.
+
+**Frete estimado:** anúncio próprio preserva a cotação do próprio item nos parâmetros atuais. Havendo `shipping.dimensions` válido na API, as medidas de envio podem alimentar a estimativa automaticamente. Sem essas medidas, informe peso em gramas e altura/largura/comprimento da embalagem em centímetros. Modalidade, logística, preço e opção de oferecer frete grátis acompanham a consulta, sempre na conta autorizada do cliente. “Frete estimado” pode diferir do custo final de um envio; não assume o custo de outro vendedor. Falha ou dados incompletos mantêm o frete desconhecido, com caminho manual. O `list_cost` devolvido já considera o desconto indicado pelo serviço.
+
+**Visitas e concorrência:** a API de visitas usa janela datada de até 30 dias por anúncio. O catálogo consulta até 20 ofertas e mede visitas de até seis delas. O total reportado de ofertas aparece separado das ofertas carregadas. “Visitas/dia · ofertas” soma as visitas das ofertas medidas; não representa visitantes únicos do catálogo. “Visitas Full · amostra” é a participação no tráfego medido na mesma janela. Cobertura parcial fica explícita; restrição/ausência não vira zero. Consultas têm cache de cinco minutos por workspace/conta/referência e não atrasam a apresentação das tarifas.
+
+**Calculadora e Ads:** modalidades/logística têm seletores visuais; imposto tem atalhos de alíquota, sem inferir tributo zero pelo regime. Campos completos recalculam após a edição; kit, operação e tarifas manuais ficam em detalhes. O cenário opcional de publicidade usa ROAS e participação de vendas informados: gasto médio = preço × participação ÷ ROAS. Mostra lucro/margem após Ads, gasto médio, TACOS e ROAS de equilíbrio. ROI e piso antes de Ads têm legenda explícita. Não são métricas de uma campanha real nem uma recomendação de escala.
+
+**Salvar cenário:** revise preço, custo, lucro, margem e fontes, informe um fornecedor opcional e confirme. A API confere a cotação novamente e rejeita lucro diferente do revisado. O histórico guarda parâmetros e hipóteses como `EXTENSION_SIMULATION`, por workspace, com fornecedor e detalhes do cenário. Estimativa de embalagem, tarifa manual e Ads mantêm origem explícita. O vínculo de fornecedor identifica somente o cenário; não altera o custo cadastrado do produto. Valores principais no histórico ficam antes de Ads; o detalhe mostra o cenário após Ads. Meta inviável ainda precisa ser ajustada antes de salvar.
 
 **Pesquisar e comparar:** a caixa **Comparar** abaixo dos indicadores marca anúncios; a barra calcula a mediana somente após três selecionados e envia essa seleção ao painel. Marcar a caixa não abre o anúncio nem o painel. Os links nativos continuam abrindo o produto, onde a análise é automática. A lista do Radar oferece filtro por título e ordenação por preço, sem reordenar a página ML. Candidatos da navegação do mesmo cliente e do catálogo liberado. Confira quantidade/medida/marca/condição e selecione uma amostra. São necessários ao menos três selecionados para a faixa central. Sem amostra, há ação para abrir uma busca e comparar os cards visíveis. Não há mediana inventada nem busca automática em páginas fechadas.
 

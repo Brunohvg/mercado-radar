@@ -113,6 +113,14 @@ globalThis.fetch = async (input, init) => {
         all_country: {
           list_cost: dimensions ? (account === seller ? 6.85 : 9.85) : 0,
           billable_weight: 500,
+          ...(dimensions
+            ? {
+                discount: {
+                  rate: 0.5,
+                  promoted_amount: account === seller ? 13.7 : 19.7,
+                },
+              }
+            : {}),
         },
       },
     });

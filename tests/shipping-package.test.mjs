@@ -1,7 +1,30 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { loadTs } from "./load-ts.mjs";
-const { parseShippingDimensions } = await loadTs("../lib/shipping-package.ts");
+const { parseShippingDimensions, parseShippingDiscount } = await loadTs(
+  "../lib/shipping-package.ts",
+);
+test("desconto de frete preserva a taxa informada e rejeita valores inválidos", () => {
+  assert.deepEqual(
+    parseShippingDiscount({ rate: 0.5, promoted_amount: 13.7 }),
+    { rate: 0.5, baseAmount: 13.7 },
+  );
+  assert.deepEqual(
+    parseShippingDiscount({ rate: "0", promoted_amount: null }),
+    { rate: 0, baseAmount: null },
+  );
+  for (const value of [
+    null,
+    {},
+    [],
+    { rate: true },
+    { rate: "" },
+    { rate: -0.1 },
+    { rate: 50 },
+    { rate: Infinity },
+  ])
+    assert.equal(parseShippingDiscount(value), null);
+});
 test("embalagem automática usa somente dimensões de envio com unidades conhecidas", () => {
   assert.deepEqual(parseShippingDimensions("10x15x20,500"), {
     heightCm: 10,

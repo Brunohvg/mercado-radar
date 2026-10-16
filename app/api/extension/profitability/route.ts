@@ -14,6 +14,7 @@ import { analyzeProfitability } from "@/lib/profitability";
 import { buildCompetitivePriceStrategy } from "@/lib/price-strategy";
 import { referenceIdSchema } from "@/lib/extension-observation";
 import { simulateAdvertising } from "@/lib/ads-simulation";
+import { parseShippingDiscount } from "@/lib/shipping-package";
 
 export const dynamic = "force-dynamic";
 
@@ -263,6 +264,9 @@ export async function POST(request: Request) {
               : "Informe a embalagem para estimar na sua conta ou um custo de frete verificado.";
     const shippingCost =
       parsed.data.shippingCost ?? shipping?.shippingCost ?? null;
+    const shippingDiscount = parseShippingDiscount(
+      shipping?.raw?.coverage?.all_country?.discount,
+    );
     const taxPercent = parsed.data.taxPercent ?? null;
     const needs = [
       !fee ? "fees" : null,
@@ -280,6 +284,7 @@ export async function POST(request: Request) {
       shippingSource,
       shippingNote,
       shippingPackageSource,
+      shippingDiscount,
       fees: {
         commissionPercent: fee?.commissionPercent ?? null,
         commissionAmount: fee
@@ -439,6 +444,7 @@ export async function POST(request: Request) {
             shippingNote,
             shippingPackage: parcel ?? null,
             shippingPackageSource,
+            shippingDiscount,
             supplierName: parsed.data.supplierName || null,
             adsSimulation,
             capturedAt: new Date().toISOString(),
@@ -468,6 +474,7 @@ export async function POST(request: Request) {
       shippingKnown,
       shippingEstimated,
       shippingSource,
+      shippingDiscount,
       shippingNote,
       shippingPackageSource,
       fees: {

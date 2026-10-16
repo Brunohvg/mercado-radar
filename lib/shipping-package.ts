@@ -17,3 +17,20 @@ export function parseShippingDimensions(value: unknown) {
     return null;
   return { heightCm, widthCm, lengthCm, weightGrams };
 }
+
+/** Information only: coverage.list_cost already includes this discount. */
+export function parseShippingDiscount(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const raw = value as Record<string, unknown>;
+  const amount = (value: unknown) =>
+    (typeof value === "number" || typeof value === "string") &&
+    String(value).trim() !== "" &&
+    Number.isFinite(Number(value)) &&
+    Number(value) >= 0
+      ? Number(value)
+      : null;
+  const rate = amount(raw.rate),
+    baseAmount = amount(raw.promoted_amount);
+  if (rate == null || rate > 1) return null;
+  return { rate, baseAmount };
+}

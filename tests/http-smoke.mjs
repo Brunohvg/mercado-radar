@@ -807,6 +807,10 @@ try {
       );
       assert.equal(response.status, 200, response.text);
       assert.equal(response.json.fees.shippingCost, 6.85);
+      assert.deepEqual(response.json.shippingDiscount, {
+        rate: 0.5,
+        baseAmount: 13.7,
+      });
       assert.equal(
         response.json.shippingSource,
         "MERCADO_LIVRE_PACKAGE_ESTIMATE",

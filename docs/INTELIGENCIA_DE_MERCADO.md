@@ -1,6 +1,6 @@
 # Inteligência de mercado: evidência e limites
 
-Atualizado em 16/10/2026 para a extensão 0.7.0.
+Atualizado em 16/10/2026 para a extensão 0.10.1.
 
 O Radar mantém leituras datadas de páginas abertas pelo usuário e separa essas observações de pedidos e métricas autorizados da própria conta.
 
@@ -15,7 +15,7 @@ O Radar mantém leituras datadas de páginas abertas pelo usuário e separa essa
 | Visitas                    | Recurso oficial autorizado e período correspondente | Sem derivação por uma taxa de conversão presumida            |
 | Faixa de preço             | Três ou mais anúncios equivalentes selecionados     | Amostra datada, com origem e revisão de kit/medida/condição  |
 
-Sem evidência de ritmo, score e demanda ficam ausentes. Não há “demanda baixa” só porque um produto mostra poucos vendidos. O cálculo `vendidos × preço atual` também não comprova faturamento histórico: preços e condições podem ter mudado.
+Sem evidência de ritmo, a classificação de demanda recente e o score ficam ausentes; o card ainda apresenta o acumulado como sinal público. Não há “demanda baixa” só porque um produto mostra poucos vendidos. O cálculo `vendidos × preço atual` aparece como **faturamento de referência**, com fórmula visível e limite inferior para `+N`. Ele não comprova faturamento histórico: preços e condições podem ter mudado. Sem período, essa referência não é dividida arbitrariamente em dias ou meses.
 
 A versão anterior tentava inferir vendas por avaliações, visitas por conversão calibrada e idade por sequência numérica. Essas heurísticas foram retiradas do fluxo ativo por não sustentarem a precisão que a interface sugeria.
 
@@ -23,7 +23,7 @@ A versão anterior tentava inferir vendas por avaliações, visitas por convers�
 
 - `MarketItem` e snapshots pertencem ao workspace.
 - MLB de anúncio, MLBU de User Product e catálogo são identificados separadamente no adaptador da página. IDs de recomendações não fornecem a identidade da página aberta.
-- O painel envia somente os cards/anúncio da aba ativa, quando está aberto e autenticado. Não há robô navegando por páginas fechadas.
+- A análise ativa registra os cards/anúncio da aba ativa quando autenticada; o cálculo local de referência continua disponível sem autenticação. Não há robô navegando por páginas fechadas.
 - Monitoramento `PAGE` acompanha novas visitas com o painel aberto. Monitoramento `API` depende de recursos autorizados e do agendador.
 - Contadores desconhecidos e limites inferiores não são usados como deltas exatos de vendas.
 

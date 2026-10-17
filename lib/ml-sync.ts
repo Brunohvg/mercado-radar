@@ -1,3 +1,5 @@
+import { hasRefund, allocateCents } from "@/lib/sales-economics";
+import { recalculateOrder } from "@/lib/recalculate-order";
 import { prisma } from "@/lib/prisma";
 import { recordOwnListings } from "@/lib/market-intel";
 import {
@@ -5,8 +7,10 @@ import {
   getItemsCurrentPrices,
   getItemsVisitTotals,
   getMlSession,
+  getMlSessionForAccount,
   getOrderShipment,
   getShipmentCosts,
+  getShipmentOrderIds,
   getSellerItemIds,
   getSellerOrders,
 } from "@/lib/mercado-livre";
@@ -22,11 +26,11 @@ function toDate(value: unknown) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export async function syncMercadoLivreProducts() {
-  const session = await getMlSession();
+export async function syncMercadoLivreProducts(accountId?: string) {
+  const session = accountId ? await getMlSessionForAccount(accountId) : await getMlSession();
   const sellerUserId = session.account.mercadoLivreUserId;
   const syncRun = await prisma.syncRun.create({
-    data: { kind: "ML_PRODUCTS", status: "RUNNING" },
+    data: { workspaceId: session.account.workspaceId, kind: "ML_PRODUCTS", status: "RUNNING" },
   });
 
   try {
@@ -121,6 +125,7 @@ export async function syncMercadoLivreProducts() {
       // Série oficial dos anúncios próprios (vendidos exatos + visitas da API):
       // calibra a conversão e a idade usadas nas estimativas de terceiros.
       await recordOwnListings(
+        session.account.workspaceId,
         details.map((item) => ({
           id: item.id,
           title: item.title,
@@ -148,10 +153,11 @@ export async function syncMercadoLivreProducts() {
         finishedAt: new Date(),
         itemsRead: ids.length,
         itemsSaved: saved,
+        metadata: { total, truncated: ids.length < total },
       },
     });
 
-    return { itemsRead: ids.length, itemsSaved: saved };
+    return { itemsRead: ids.length, itemsSaved: saved, total, truncated: ids.length < total };
   } catch (error) {
     await prisma.syncRun.update({
       where: { id: syncRun.id },
@@ -165,11 +171,12 @@ export async function syncMercadoLivreProducts() {
   }
 }
 
-export async function syncMercadoLivreOrders(days = 30) {
-  const session = await getMlSession();
+export async function syncMercadoLivreOrders(days = 30, accountId?: string) {
+  const session = accountId ? await getMlSessionForAccount(accountId) : await getMlSession();
   const sellerUserId = session.account.mercadoLivreUserId;
   const syncRun = await prisma.syncRun.create({
     data: {
+      workspaceId: session.account.workspaceId,
       kind: "ML_ORDERS",
       status: "RUNNING",
       metadata: { days },
@@ -195,10 +202,12 @@ export async function syncMercadoLivreOrders(days = 30) {
       total = Number(page.paging?.total ?? orders.length);
       offset += results.length;
 
-      if (results.length === 0 || orders.length >= 200) break;
+      if (results.length === 0 || orders.length >= 2000) break;
     } while (offset < total);
 
     let saved = 0;
+    const shipmentQuotes = new Map<string, Promise<{ cost: number | null; orderIds: string[] | null }>>();
+    const sharedShipments = new Map<string, { cost: number; orderIds: string[] }>();
 
     for (const raw of orders) {
       const mlOrderId = String(raw.id ?? "");
@@ -207,17 +216,17 @@ export async function syncMercadoLivreOrders(days = 30) {
       const paymentRows = Array.isArray(raw.payments) ? raw.payments : [];
       const orderMarketplaceFee =
         raw.marketplace_fee == null ? null : toNumber(raw.marketplace_fee);
-      const paymentMarketplaceFee = paymentRows.length
+      const paymentMarketplaceFee = paymentRows.length && paymentRows.every((p: Record<string, any>) => p.marketplace_fee != null)
         ? paymentRows.reduce(
             (sum: number, payment: Record<string, any>) =>
               sum + toNumber(payment.marketplace_fee),
             0,
           )
-        : 0;
+        : null;
       const marketplaceFeeTotal =
-        orderMarketplaceFee != null && orderMarketplaceFee > 0
+        orderMarketplaceFee != null
           ? orderMarketplaceFee
-          : paymentMarketplaceFee > 0
+          : paymentMarketplaceFee != null
             ? paymentMarketplaceFee
             : null;
 
@@ -233,7 +242,6 @@ export async function syncMercadoLivreOrders(days = 30) {
 
       let resolvedShipmentId =
         raw.shipping?.id == null ? null : String(raw.shipping.id);
-      let orderShipmentCost: number | null = null;
 
       const orderShipment = await getOrderShipment({
         accessToken: session.accessToken,
@@ -243,13 +251,13 @@ export async function syncMercadoLivreOrders(days = 30) {
       if (orderShipment) {
         resolvedShipmentId =
           resolvedShipmentId ?? orderShipment.shipmentId;
-        orderShipmentCost = orderShipment.orderCost;
       }
 
       const order = await prisma.mercadoLivreOrder.upsert({
         where: { mlOrderId },
         update: {
           sellerUserId,
+          refundDetected: hasRefund(raw),
           status: String(raw.status ?? "unknown"),
           dateCreated,
           dateClosed,
@@ -266,6 +274,7 @@ export async function syncMercadoLivreOrders(days = 30) {
         create: {
           mlOrderId,
           sellerUserId,
+          refundDetected: hasRefund(raw),
           status: String(raw.status ?? "unknown"),
           dateCreated,
           dateClosed,
@@ -320,7 +329,7 @@ export async function syncMercadoLivreOrders(days = 30) {
             (1 - Number(mlProductCost.discountPercent) / 100);
         } else if (sku) {
           const localProduct = await prisma.product.findUnique({
-            where: { sku },
+            where: { workspaceId_sku: { workspaceId: session.account.workspaceId, sku } },
             select: {
               supplierPrice: true,
               discountPercent: true,
@@ -350,7 +359,7 @@ export async function syncMercadoLivreOrders(days = 30) {
               typeof row.listing_type_id === "string"
                 ? row.listing_type_id
                 : null,
-            ...(unitCost != null ? { unitCost } : {}),
+
           },
           create: {
             externalKey,
@@ -370,12 +379,18 @@ export async function syncMercadoLivreOrders(days = 30) {
             unitCost,
           },
         });
+        if (unitCost != null) await prisma.mercadoLivreOrderItem.updateMany({ where: { externalKey, unitCost: null }, data: { unitCost } });
       }
 
+      if (Array.isArray(raw.order_items)) {
+        const currentKeys = orderItems.map((row: Record<string, any>, index: number) => [mlOrderId, String(row.item?.id ?? ""), row.item?.variation_id == null ? "base" : String(row.item.variation_id), String(index)].join(":"));
+        await prisma.mercadoLivreOrderItem.deleteMany({ where: { orderId: order.id, externalKey: { notIn: currentKeys } } });
+      }
       const persistedItems = await prisma.mercadoLivreOrderItem.findMany({
         where: { orderId: order.id },
         select: {
           id: true,
+          mlItemId: true,
           quantity: true,
           unitPrice: true,
           unitCost: true,
@@ -389,19 +404,21 @@ export async function syncMercadoLivreOrders(days = 30) {
 
       let realizedShippingCost: number | null = null;
       if (order.shippingId) {
-        realizedShippingCost = await getShipmentCosts({
-          accessToken: session.accessToken,
-          shipmentId: order.shippingId,
-        })
-          .then((quote) => quote.sellerCost)
-          .catch(() => null);
-      }
-
-      // /shipments/{id}/costs is the preferred source. If that endpoint is
-      // temporarily unavailable for the account, the order shipment resource
-      // still exposes order_cost, which is the seller's shipping cost.
-      if (realizedShippingCost == null && orderShipmentCost != null) {
-        realizedShippingCost = orderShipmentCost;
+        let quote = shipmentQuotes.get(order.shippingId);
+        if (!quote) {
+          quote = Promise.all([
+            getShipmentCosts({ accessToken: session.accessToken, shipmentId: order.shippingId }).then((q) => q.sellerCost).catch(() => null),
+            getShipmentOrderIds({ accessToken: session.accessToken, shipmentId: order.shippingId, sellerUserId }).catch(() => null),
+          ]).then(([cost, orderIds]) => ({ cost, orderIds }));
+          shipmentQuotes.set(order.shippingId, quote);
+        }
+        const shipping = await quote;
+        if (shipping.orderIds?.length === 1 && shipping.orderIds[0] === mlOrderId) {
+          realizedShippingCost = shipping.cost;
+        } else if (shipping.orderIds && shipping.orderIds.length > 1 && shipping.cost != null) {
+          sharedShipments.set(order.shippingId, { cost: shipping.cost, orderIds: shipping.orderIds });
+        }
+        // Unknown members of a shipment cannot safely be charged its full cost.
       }
 
       const itemFeeTotal = persistedItems.reduce(
@@ -410,93 +427,31 @@ export async function syncMercadoLivreOrders(days = 30) {
         0,
       );
       const realizedFee =
-        marketplaceFeeTotal != null && marketplaceFeeTotal > 0
+        marketplaceFeeTotal != null
           ? marketplaceFeeTotal
-          : itemFeeTotal > 0
+          : persistedItems.length > 0 && persistedItems.every((item) => item.saleFee != null)
             ? itemFeeTotal
             : null;
 
-      const totalProductCost = missingProductCost
-        ? null
-        : persistedItems.reduce(
-            (sum, item) =>
-              sum + Number(item.unitCost ?? 0) * item.quantity,
-            0,
-          );
-
-      const settings = await prisma.appSettings.findUnique({
-        where: { id: "default" },
-        select: { operatingCostDefault: true },
-      });
-      const operatingCost = Number(settings?.operatingCostDefault ?? 0);
-
-      const profitReady =
-        totalProductCost != null &&
-        realizedShippingCost != null &&
-        realizedFee != null;
-
-      const realizedFeeValue = realizedFee ?? 0;
-      const realizedShippingValue = realizedShippingCost ?? 0;
-      const totalProductCostValue = totalProductCost ?? 0;
-
-      const realizedProfit = profitReady
-        ? totalAmount -
-          realizedFeeValue -
-          realizedShippingValue -
-          totalProductCostValue -
-          operatingCost
-        : null;
-      const realizedMargin =
-        realizedProfit != null && totalAmount > 0
-          ? (realizedProfit / totalAmount) * 100
-          : null;
-
-      if (profitReady && realizedProfit != null) {
-        const totalItemRevenue = persistedItems.reduce(
-          (sum, item) => sum + Number(item.unitPrice) * item.quantity,
-          0,
-        );
-
-        for (const item of persistedItems) {
-          const itemRevenue = Number(item.unitPrice) * item.quantity;
-          const share =
-            totalItemRevenue > 0 ? itemRevenue / totalItemRevenue : 0;
-          const allocatedFee = realizedFeeValue * share;
-          const allocatedShipping = realizedShippingValue * share;
-          const allocatedOperating = operatingCost * share;
-          const itemCost = Number(item.unitCost ?? 0) * item.quantity;
-          const itemProfit =
-            itemRevenue -
-            allocatedFee -
-            allocatedShipping -
-            allocatedOperating -
-            itemCost;
-
-          await prisma.mercadoLivreOrderItem.update({
-            where: { id: item.id },
-            data: { profit: itemProfit },
-          });
-        }
-      }
-
       await prisma.mercadoLivreOrder.update({
         where: { id: order.id },
-        data: {
-          shippingCost: realizedShippingCost,
-          marketplaceFeeTotal: realizedFee,
-          profit: realizedProfit,
-          marginPercent: realizedMargin,
-          profitabilityStatus: missingProductCost
-            ? "AWAITING_PRODUCT_COST"
-            : realizedShippingCost == null
-              ? "AWAITING_SHIPPING_COST"
-              : realizedFee == null
-                ? "AWAITING_FEE"
-                : "REALIZED",
-        },
+        data: { shippingCost: realizedShippingCost, marketplaceFeeTotal: realizedFee },
       });
+      await recalculateOrder(order.id, session.account.workspaceId, sellerUserId);
+      await prisma.mercadoLivreNotification.updateMany({ where: { userId: sellerUserId, resource: `/orders/${mlOrderId}`, topic: "orders_v2", status: "PENDING", createdAt: { lte: syncRun.startedAt } }, data: { status: "PROCESSED", processedAt: new Date() } });
 
       saved += 1;
+    }
+
+    for (const [shipmentId, shipping] of sharedShipments) {
+      const siblings = await prisma.mercadoLivreOrder.findMany({ where: { sellerUserId, shippingId: shipmentId, mlOrderId: { in: shipping.orderIds } }, orderBy: { mlOrderId: "asc" } });
+      if (siblings.length !== shipping.orderIds.length || siblings.some((o) => o.status !== "paid" || o.refundDetected)) continue;
+      const allocated = allocateCents(Math.round(shipping.cost * 100), siblings.map((o) => Number(o.totalAmount)));
+      for (let index = 0; index < siblings.length; index++) {
+        const sibling = siblings[index];
+        await prisma.mercadoLivreOrder.update({ where: { id: sibling.id }, data: { shippingCost: allocated[index] / 100 } });
+        await recalculateOrder(sibling.id, session.account.workspaceId, sellerUserId);
+      }
     }
 
     await prisma.syncRun.update({
@@ -512,7 +467,7 @@ export async function syncMercadoLivreOrders(days = 30) {
       },
     });
 
-    return { itemsRead: orders.length, itemsSaved: saved };
+    return { itemsRead: orders.length, itemsSaved: saved, total, truncated: orders.length < total };
   } catch (error) {
     await prisma.syncRun.update({
       where: { id: syncRun.id },

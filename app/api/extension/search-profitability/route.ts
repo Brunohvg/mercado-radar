@@ -155,7 +155,7 @@ export async function POST(request: Request) {
 
     if (unitCost == null && ownProduct.sku) {
       const localProduct = await prisma.product.findUnique({
-        where: { sku: ownProduct.sku },
+        where: { workspaceId_sku: { workspaceId: session.account.workspaceId, sku: ownProduct.sku } },
         select: {
           supplierPrice: true,
           discountPercent: true,
@@ -212,13 +212,7 @@ export async function POST(request: Request) {
             price,
             listingType,
             freeShipping: ownProduct.freeShipping,
-          }).catch(() => ({
-            shippingCost: 0,
-            billableWeight: 0,
-            discountRate: 0,
-            promotedAmount: 0,
-            raw: null,
-          })),
+          }),
         ]);
 
         economicsByPrice.set(

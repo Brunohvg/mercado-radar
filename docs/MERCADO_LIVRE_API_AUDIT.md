@@ -1,10 +1,13 @@
 # Auditoria de APIs Mercado Livre — 2026-10-06
 
+> Registro histórico anterior à extensão 0.7.0. Para estado atual, autenticação individual, limites de dados públicos e passos de configuração, consulte [mapa de APIs](MERCADO_LIVRE_API_MAP.md) e [guia da extensão](../extension/README.md). Chave global, cards injetados e inferências de visitas/vendas não fazem parte do fluxo atual.
+
 ## Resultado
 
 A arquitetura atual usa os endpoints corretos para os fluxos principais do Mercado Radar.
 
 ### OAuth
+
 - Authorization Code server-side;
 - state;
 - PKCE;
@@ -13,46 +16,60 @@ A arquitetura atual usa os endpoints corretos para os fluxos principais do Merca
 - Authorization: Bearer no backend.
 
 ### Itens
+
 Atual:
+
 - /users/{user_id}/items/search
 - /items/bulk?ids=...
 
 Correto e alinhado com a migração oficial de /items?ids= para /items/bulk?ids=.
 
 ### Busca de marketplace
+
 Atual:
+
 - /sites/MLB/search?q=...
 
 Endpoint válido para leitura das listagens do marketplace.
 
 ### Visitas
+
 Atual:
+
 - /visits/items?ids=...
 
 Endpoint válido para visitas totais por anúncio.
 
 ### Trends
+
 Atual:
+
 - /trends/MLB
 - /trends/MLB/{category_id}
 
 Correto.
 
 ### Mais vendidos
+
 Atual:
+
 - /highlights/MLB/category/{category_id}
 
 Correto.
 
 ### Product Ads — advertiser
+
 Atual:
+
 - /advertising/advertisers?product_id=PADS
 - Api-Version: 1
 
 Correto.
 
 ### Product Ads — campanhas
+
 Atual:
+
 - /advertising/{site_id}/advertisers/{advertiser_id}/product_ads/campaigns/search
 - api-version: 2
 - metrics_summary=true
@@ -60,7 +77,9 @@ Atual:
 Correto.
 
 ### Product Ads — Ad Groups
+
 Atual:
+
 - /advertising/{site_id}/advertisers/{advertiser_id}/product_ads/ad_groups/search
 - api-version: 2
 - métricas atuais de Ad Group
@@ -82,6 +101,7 @@ Manter offline_access para refresh token.
 ## Diagnóstico de 403
 
 Um 403 com:
+
 - PA_UNAUTHORIZED_RESULT_FROM_POLICIES
 - At least one policy returned UNAUTHORIZED
 
@@ -94,6 +114,7 @@ Após alterar permissões no DevCenter, refazer o fluxo OAuth para garantir um g
 O erro "Não autorizado" mostrado pelo Side Panel não é uma resposta do Mercado Livre.
 
 Ele acontece antes, na autenticação:
+
 - browser extension -> radar.optarys.com.br
 - header x-radar-extension-key
 - comparação com RADAR_EXTENSION_API_KEY
@@ -103,6 +124,7 @@ A chave exibida/configurada na extensão nunca deve ser o access token do Mercad
 ## Diagnóstico do Radar
 
 /api/integrations/mercadolivre/diagnostics agora testa separadamente:
+
 - conta;
 - aplicação;
 - publicações;
@@ -115,12 +137,12 @@ A chave exibida/configurada na extensão nunca deve ser o access token do Mercad
 - trends.
 
 Assim conseguimos distinguir:
+
 - problema de token;
 - permissão funcional;
 - endpoint bloqueado;
 - rate limit;
 - API indisponível.
-
 
 ## Correção — busca ampla por palavra-chave
 
@@ -141,13 +163,13 @@ A busca ampla antiga deixa de ser requisito de saúde da integração.
 O Radar não tenta mais inferir posição orgânica chamando uma busca ampla bloqueada.
 
 A Extensão Radar observa a posição real dos cards na página de resultados e grava `MarketSnapshot` quando anúncios da conta conectada aparecem. Esse snapshot abastece:
+
 - posição;
 - P25/mediana/P75 dos anúncios visíveis;
 - concorrentes observados;
 - histórico de preço e posição.
 
 Assim, o ranking representa o que o usuário realmente viu na busca do Mercado Livre.
-
 
 ## Revisão 07/10/2026
 

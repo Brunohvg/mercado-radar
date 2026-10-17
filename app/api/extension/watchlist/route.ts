@@ -8,11 +8,18 @@ import {
   getItemsVisitTotals,
 } from "@/lib/mercado-livre";
 import { calculateRadarOpportunityScore } from "@/lib/radar-score";
+import {
+  observationSchema,
+  referenceIdSchema,
+} from "@/lib/extension-observation";
+import { recordObservations } from "@/lib/market-intel";
+import { savePageWatch } from "@/lib/page-watchlist";
 
 export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
-  itemId: z.string().trim().regex(/^MLB\d+$/i),
+  itemId: referenceIdSchema,
+  observation: observationSchema.optional(),
   referenceId: z.string().trim().max(40).optional(),
 });
 
@@ -67,7 +74,9 @@ export async function GET(request: Request) {
           item.currentPrice == null ? null : Number(item.currentPrice),
         score: item.score,
         demandLabel: item.demandLabel,
-        soldQuantity: item.soldQuantity,
+        soldQuantity: item.soldKnown ? item.soldQuantity : null,
+        soldIsLowerBound: item.soldIsLowerBound,
+        trackingMode: item.trackingMode,
         visits: item.visits,
         lastCheckedAt: item.lastCheckedAt,
         createdAt: item.createdAt,
@@ -75,7 +84,9 @@ export async function GET(request: Request) {
           price: snapshot.price == null ? null : Number(snapshot.price),
           score: snapshot.score,
           demandLabel: snapshot.demandLabel,
-          soldQuantity: snapshot.soldQuantity,
+          soldQuantity: snapshot.soldKnown ? snapshot.soldQuantity : null,
+          soldIsLowerBound: snapshot.soldIsLowerBound,
+          trackingMode: snapshot.trackingMode,
           visits: snapshot.visits,
           capturedAt: snapshot.capturedAt,
         })),
@@ -83,7 +94,9 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Falha ao carregar monitoramento.";
+      error instanceof Error
+        ? error.message
+        : "Falha ao carregar monitoramento.";
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }
@@ -111,7 +124,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const parsed = createSchema.safeParse(await request.json());
+  const parsed = createSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Anúncio inválido." }, { status: 400 });
   }
@@ -120,6 +133,42 @@ export async function POST(request: Request) {
     const session = extensionSession.ml;
     const itemId = parsed.data.itemId.toUpperCase();
 
+    if (parsed.data.observation) {
+      if (parsed.data.observation.id !== itemId)
+        return NextResponse.json(
+          { error: "A leitura não corresponde ao anúncio selecionado." },
+          { status: 400 },
+        );
+      const observation = parsed.data.observation;
+      await recordObservations({
+        workspaceId: session.account.workspaceId,
+        sellerUserId: session.account.mercadoLivreUserId,
+        source: "PRODUCT_PAGE",
+        listings: [observation],
+      });
+      const watchItem = await savePageWatch(
+        session.account.mercadoLivreUserId,
+        observation,
+        true,
+      );
+      return NextResponse.json({
+        ok: true,
+        trackingMode: watchItem?.trackingMode ?? "PAGE",
+        watchItem,
+        note:
+          watchItem?.trackingMode === "API"
+            ? "Este anúncio já é acompanhado pela API. As leituras públicas também ficam no seu histórico de mercado."
+            : "Salvo. O histórico será atualizado quando você visitar o anúncio com o painel aberto. A API não garante acompanhamento em segundo plano para terceiros.",
+      });
+    }
+    if (!/^MLB\d+$/.test(itemId))
+      return NextResponse.json(
+        {
+          error:
+            "Abra a página deste produto para salvar uma leitura no monitoramento.",
+        },
+        { status: 422 },
+      );
     const [details, price, visits] = await Promise.all([
       getItemsBulk({
         accessToken: session.accessToken,
@@ -132,16 +181,26 @@ export async function POST(request: Request) {
       getItemsVisitTotals({
         accessToken: session.accessToken,
         itemIds: [itemId],
-      }).catch(() => ({} as Record<string, number>)),
+      }).catch(() => ({}) as Record<string, number>),
     ]);
 
     const item = details[0];
     if (!item) {
-      return NextResponse.json({ error: "Anúncio não encontrado." }, { status: 404 });
+      return NextResponse.json(
+        {
+          error:
+            "A API não disponibilizou este anúncio. Abra sua página e monitore pela leitura visível.",
+        },
+        { status: 422 },
+      );
     }
 
     const currentPrice =
-      price && price > 0 ? price : item.currentPrice > 0 ? item.currentPrice : null;
+      price && price > 0
+        ? price
+        : item.currentPrice > 0
+          ? item.currentPrice
+          : null;
     const itemVisits = visits[item.id] ?? null;
     const intelligence = calculateRadarOpportunityScore({
       price: currentPrice ?? 0,
@@ -207,7 +266,9 @@ export async function POST(request: Request) {
         mlItemId: watchItem.mlItemId,
         title: watchItem.title,
         currentPrice:
-          watchItem.currentPrice == null ? null : Number(watchItem.currentPrice),
+          watchItem.currentPrice == null
+            ? null
+            : Number(watchItem.currentPrice),
         score: watchItem.score,
         demandLabel: watchItem.demandLabel,
       },
@@ -244,7 +305,7 @@ export async function DELETE(request: Request) {
 
   const url = new URL(request.url);
   const itemId = (url.searchParams.get("itemId") ?? "").trim().toUpperCase();
-  if (!/^MLB\d+$/.test(itemId)) {
+  if (!/^MLBU?\d+$/.test(itemId)) {
     return NextResponse.json({ error: "Anúncio inválido." }, { status: 400 });
   }
 
@@ -261,7 +322,9 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Falha ao remover monitoramento.";
+      error instanceof Error
+        ? error.message
+        : "Falha ao remover monitoramento.";
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }

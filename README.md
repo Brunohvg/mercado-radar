@@ -17,6 +17,10 @@ O Mercado Radar é um sistema completo, não um conjunto de automações externa
 
 As integrações, cálculos, sincronizações, regras de preço, histórico, alertas e decisões ficam versionadas dentro do próprio projeto. Processos assíncronos serão executados por workers nativos usando PostgreSQL como fonte de verdade.
 
+## Piloto para clientes
+
+A preparação comercial está em `feature/radar-commercial-readiness-v1`: login individual, dados por operação, metas financeiras, central de decisões e gestão de acessos. Consulte [preparação comercial](docs/COMMERCIAL_READINESS.md) para implantação, validações e limites. Billing e lançamento público ainda dependem dos gates documentados.
+
 ## MVP atual
 
 - cálculo do custo real após desconto do fornecedor;
@@ -63,6 +67,8 @@ npm run db:deploy
 npm run dev
 ```
 
+Antes do primeiro login local, configure `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH` (gerado por `scripts/hash-password.mjs`) e `APP_ENCRYPTION_KEY`. O painel usa autenticação também em desenvolvimento.
+
 ## Coolify
 
 O repositório segue o mesmo padrão dos demais apps:
@@ -91,12 +97,12 @@ Variáveis externas:
 ## Regras iniciais
 
 - margem boa: >= 20%;
-- margem mínima: 15%;
-- ROI alvo: >= 30%;
-- ROI abaixo de 20%: produto reprovado;
+- margem de 10% até atingir as metas: apertada;
+- margem abaixo de 10% ou prejuízo: revisar;
+- ROI alvo: >= 30%, configurável por operação;
 - fornecedor e desconto são configuráveis; nenhum fornecedor é fixo no produto.
 
-Esses limites serão configuráveis.
+Metas, imposto, desconto, operação e prazos são configuráveis em **Metas e configurações**.
 
 ## Roadmap
 
@@ -120,13 +126,11 @@ Esses limites serão configuráveis.
 - [ ] histórico previsto × realizado
 - [ ] lead time de fornecedor e estoque de segurança configurável
 
-
 ## Próximo foco
 
 Validar em produção os cinco fluxos reais: busca/scan, análise, oportunidades, lucro realizado e Product Health. Depois disso, fechar processamento automático de `orders_v2`, previsto × realizado e reposição com lead time.
 
 A camada de IA do MVP terá custo zero: apenas provedor gratuito ou modelo self-hosted, sempre opcional e desacoplado do motor financeiro.
-
 
 ## Documentação de desenvolvimento
 
@@ -142,3 +146,27 @@ Antes de implementar qualquer feature, consulte:
 - `docs/MVP_CHECKLIST.md` — validação específica do MVP.
 
 Regra: uma feature escrita no código não é automaticamente concluída. O status só avança após CI verde, deploy saudável e validação real quando aplicável.
+
+## Testes
+
+```bash
+npm test
+npm run typecheck
+npm run build
+```
+
+Testes de integração exigem banco isolado e `RADAR_TEST_DATABASE=1`; veja `.github/workflows/ci.yml`.
+
+## Extensão 0.10.1 e APIs por cliente
+
+A revisão de 16/10/2026 oferece análise automática no produto, com classificação de demanda/oportunidade, tarifas, repasse e simulação no próprio anúncio. O custo de anúncio próprio pode ser recuperado por vínculo exato. Na busca, indicadores compactos abaixo do título substituem os botões sobre a foto: demanda e receita estimada por dia quando há janela medida; sem período, vendas acumuladas e faturamento de referência ao preço atual, com a base da conta visível. A altura reserva espaço para o bloco; fotos, largura, colunas e conteúdo nativos são preservados. A caixa Comparar envia a amostra revisada ao painel. Menu rápido e painel lateral continuam disponíveis. IDs MLB/MLBU são separados. Monitoramento público funciona por novas leituras; a calculadora permite custos e tarifas manuais identificados.
+
+- [Instalação, atualização e validação da extensão](extension/README.md)
+- [Mapa de APIs, grants, limitações e prioridades de integração](docs/MERCADO_LIVRE_API_MAP.md)
+- [Preparação comercial e homologação](docs/COMMERCIAL_READINESS.md)
+
+Atualize o backend e os arquivos da extensão para a mesma branch. Depois recarregue a extensão e as abas do Mercado Livre.
+
+A versão 0.10.0 também apresenta análise automática no painel, visitas por janela quando liberadas, ofertas/participação Full com cobertura da amostra, cotação de frete por embalagem na conta de cada cliente, calculadora automática com cenário opcional de Ads e revisão para salvar simulações com fornecedor no histórico. As fontes e hipóteses são preservadas; histórico de simulação permanece separado do lucro realizado.
+
+A extensão 0.10.1 reduz a calculadora ao custo de compra quando os demais dados são conhecidos: preço, modalidade e tarifas vêm da página/API, frete da cotação autorizada e imposto/operação das preferências confirmadas. Faltas exigem confirmação; não se presume zero. Resultado, margem e preço para as metas aparecem antes dos ajustes avançados. Desconto de frete da API é preservado e informado sem descontá-lo duas vezes.

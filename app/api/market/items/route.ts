@@ -1,3 +1,4 @@
+import { getWorkspaceId } from "@/lib/workspace-auth";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCalibration, getMarketInsights } from "@/lib/market-intel";
@@ -15,7 +16,9 @@ export async function GET(request: Request) {
   const limit = Math.min(200, Math.max(10, Number(url.searchParams.get("limit")) || 120));
 
   try {
+    const workspaceId = await getWorkspaceId();
     const where = {
+      workspaceId,
       ...(scope === "own" ? { isOwn: true } : scope === "market" ? { isOwn: false } : {}),
       ...(q
         ? {
@@ -34,12 +37,12 @@ export async function GET(request: Request) {
         take: limit,
         select: { id: true },
       }),
-      prisma.marketItem.groupBy({ by: ["isOwn"], _count: { _all: true } }),
-      getCalibration(),
-      prisma.marketItemSnapshot.count(),
+      prisma.marketItem.groupBy({ where: { workspaceId }, by: ["isOwn"], _count: { _all: true } }),
+      getCalibration(workspaceId),
+      prisma.marketItemSnapshot.count({ where: { workspaceId } }),
     ]);
 
-    const items = await getMarketInsights(rows.map((r) => r.id));
+    const items = await getMarketInsights(workspaceId, rows.map((r) => r.id));
 
     return NextResponse.json({
       items,

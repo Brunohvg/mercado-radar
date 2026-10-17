@@ -12,9 +12,11 @@ import { calculateRadarOpportunityScore } from "@/lib/radar-score";
 
 export const dynamic = "force-dynamic";
 
-
 const createSchema = z.object({
-  itemId: z.string().trim().regex(/^MLB\d+$/i),
+  itemId: z
+    .string()
+    .trim()
+    .regex(/^MLB\d+$/i),
   referenceId: z.string().trim().max(120).optional(),
 });
 
@@ -41,7 +43,7 @@ export async function POST(request: Request) {
       getItemsVisitTotals({
         accessToken: session.accessToken,
         itemIds: [itemId],
-      }).catch(() => ({} as Record<string, number>)),
+      }).catch(() => ({}) as Record<string, number>),
     ]);
 
     const item = details[0];
@@ -164,24 +166,30 @@ export async function GET() {
           item.currentPrice == null ? null : Number(item.currentPrice),
         score: item.score,
         demandLabel: item.demandLabel,
-        soldQuantity: item.soldQuantity,
+        soldQuantity: item.soldKnown ? item.soldQuantity : null,
+        soldIsLowerBound: item.soldIsLowerBound,
+        trackingMode: item.trackingMode,
         visits: item.visits,
         lastCheckedAt: item.lastCheckedAt,
         createdAt: item.createdAt,
         momentum: calculateRadarMomentum(
-          item.snapshots.map((snapshot) => ({
-            score: snapshot.score,
-            demandLabel: snapshot.demandLabel,
-            soldQuantity: snapshot.soldQuantity,
-            visits: snapshot.visits,
-            capturedAt: snapshot.capturedAt,
-          })),
+          item.snapshots
+            .filter((snapshot) => snapshot.trackingMode === "API")
+            .map((snapshot) => ({
+              score: snapshot.score,
+              demandLabel: snapshot.demandLabel,
+              soldQuantity: snapshot.soldQuantity,
+              visits: snapshot.visits,
+              capturedAt: snapshot.capturedAt,
+            })),
         ),
         snapshots: item.snapshots.map((snapshot) => ({
           price: snapshot.price == null ? null : Number(snapshot.price),
           score: snapshot.score,
           demandLabel: snapshot.demandLabel,
-          soldQuantity: snapshot.soldQuantity,
+          soldQuantity: snapshot.soldKnown ? snapshot.soldQuantity : null,
+          soldIsLowerBound: snapshot.soldIsLowerBound,
+          trackingMode: snapshot.trackingMode,
           visits: snapshot.visits,
           capturedAt: snapshot.capturedAt,
         })),
@@ -189,7 +197,9 @@ export async function GET() {
     });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Falha ao carregar monitoramento.";
+      error instanceof Error
+        ? error.message
+        : "Falha ao carregar monitoramento.";
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }
@@ -198,7 +208,7 @@ export async function DELETE(request: Request) {
   const url = new URL(request.url);
   const itemId = (url.searchParams.get("itemId") ?? "").trim().toUpperCase();
 
-  if (!/^MLB\d+$/.test(itemId)) {
+  if (!/^MLBU?\d+$/.test(itemId)) {
     return NextResponse.json({ error: "Anúncio inválido." }, { status: 400 });
   }
 
@@ -215,7 +225,9 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Falha ao remover monitoramento.";
+      error instanceof Error
+        ? error.message
+        : "Falha ao remover monitoramento.";
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }

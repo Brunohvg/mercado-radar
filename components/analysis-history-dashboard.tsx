@@ -54,6 +54,56 @@ function verdictTone(value: AnalysisRow["verdict"]) {
   return "bad";
 }
 
+function SavedScenario({ item }: { item: AnalysisRow }) {
+  if (item.source !== "EXTENSION_SIMULATION") return null;
+  const meta =
+    item.metadata &&
+    typeof item.metadata === "object" &&
+    !Array.isArray(item.metadata)
+      ? (item.metadata as Record<string, unknown>)
+      : {};
+  const ads =
+    meta.adsSimulation && typeof meta.adsSimulation === "object"
+      ? (meta.adsSimulation as Record<string, unknown>)
+      : null;
+  const shipping =
+    meta.shippingSource === "MERCADO_LIVRE_PACKAGE_ESTIMATE"
+      ? "estimado pela API"
+      : meta.shippingSource === "MANUAL_ESTIMATE"
+        ? "informado"
+        : "cotado pela API";
+  return (
+    <details>
+      <summary>Ver cenário salvo</summary>
+      <div className="table-subtext">
+        <p>Referência: {String(meta.mlItemId || "Não informada")}</p>
+        <p>
+          Comissão: {item.commissionPercent}% · tarifa fixa:{" "}
+          {money.format(item.fixedFee)}
+        </p>
+        <p>
+          Frete {shipping}: {money.format(item.shippingCost)}
+        </p>
+        <p>
+          Operação: {money.format(item.operatingCost)} · imposto:{" "}
+          {String(meta.taxPercent ?? "Não confirmado")}%
+        </p>
+        {ads && (
+          <p>
+            Ads: ROAS {String(ads.roasTarget)}× ·{" "}
+            {String(ads.attributedSalesPercent)}% das vendas. Lucro após Ads:{" "}
+            {typeof ads.profitAfterAds === "number"
+              ? money.format(ads.profitAfterAds)
+              : "Indisponível"}
+            .
+          </p>
+        )}
+        <p>Simulação com as fontes registradas; não é lucro realizado.</p>
+      </div>
+    </details>
+  );
+}
+
 export function AnalysisHistoryDashboard() {
   const [items, setItems] = useState<AnalysisRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,10 +144,9 @@ export function AnalysisHistoryDashboard() {
   }, [load]);
 
   async function remove(id: string) {
-    const response = await fetch(
-      "/api/analyses?id=" + encodeURIComponent(id),
-      { method: "DELETE" },
-    );
+    const response = await fetch("/api/analyses?id=" + encodeURIComponent(id), {
+      method: "DELETE",
+    });
     const payload = await response.json();
 
     if (!response.ok) {
@@ -112,7 +161,13 @@ export function AnalysisHistoryDashboard() {
     const normalized = query.trim().toLowerCase();
 
     return items.filter((item) => {
-      if (source !== "ALL" && item.source !== source) return false;
+      if (
+        source !== "ALL" &&
+        (source === "EXTENSION"
+          ? !item.source.startsWith("EXTENSION")
+          : item.source !== source)
+      )
+        return false;
       if (!normalized) return true;
 
       return (
@@ -125,8 +180,8 @@ export function AnalysisHistoryDashboard() {
 
   const summary = useMemo(() => {
     const healthy = items.filter((item) => item.verdict === "GOOD").length;
-    const fromExtension = items.filter(
-      (item) => item.source === "EXTENSION",
+    const fromExtension = items.filter((item) =>
+      item.source.startsWith("EXTENSION"),
     ).length;
     const averageMargin =
       items.length > 0
@@ -165,9 +220,7 @@ export function AnalysisHistoryDashboard() {
         </div>
       </header>
 
-      {loading && (
-        <div className="clean-loading">Carregando histórico...</div>
-      )}
+      {loading && <div className="clean-loading">Carregando histórico...</div>}
       {error && <div className="error">{error}</div>}
 
       {!loading && (
@@ -244,127 +297,144 @@ export function AnalysisHistoryDashboard() {
             ) : visible.length === 0 ? (
               <div className="module-empty history-empty">
                 <strong>Nada encontrado</strong>
-                <p>Nenhuma análise corresponde à busca ou à origem escolhida.</p>
+                <p>
+                  Nenhuma análise corresponde à busca ou à origem escolhida.
+                </p>
               </div>
             ) : (
-            <div className="clean-table-wrap">
-              <table className="clean-table analysis-history-table">
-                <thead>
-                  <tr>
-                    <th>Produto</th>
-                    <th>Origem</th>
-                    <th className="history-num">Kit</th>
-                    <th className="history-num">Custo</th>
-                    <th className="history-num">Preço</th>
-                    <th className="history-num">Lucro</th>
-                    <th className="history-num">Margem</th>
-                    <th className="history-num">ROI</th>
-                    <th className="history-num">Piso saudável</th>
-                    <th>Status</th>
-                    <th>Data</th>
-                    <th>
-                      <span className="history-sr">Ações</span>
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {visible.map((item) => (
-                    <tr key={item.id}>
-                      <td className="history-product">
-                        <strong className="history-product-name">
-                          {item.productName}
-                        </strong>
-                        <small className="table-subtext">
-                          {item.sku ?? "Sem SKU"}
-                          {item.supplier ? " · " + item.supplier : ""}
-                        </small>
-                      </td>
-
-                      <td>
-                        <span className="neutral-chip">
-                          {item.source === "EXTENSION"
-                            ? "Extensão"
-                            : "Painel"}
-                        </span>
-                      </td>
-
-                      <td className="history-num">{item.kitQuantity}x</td>
-                      <td className="history-num">
-                        {money.format(item.purchaseCost)}
-                      </td>
-                      <td className="history-num">
-                        {money.format(item.salePrice)}
-                      </td>
-                      <td className="history-num history-profit">
-                        <span
-                          className={
-                            item.profit >= 0 ? "margin-good" : "margin-bad"
-                          }
-                        >
-                          {money.format(item.profit)}
-                        </span>
-                      </td>
-                      <td className="history-num">
-                        {item.marginPercent.toFixed(1)}%
-                      </td>
-                      <td className="history-num">
-                        {item.roiPercent.toFixed(1)}%
-                      </td>
-                      <td className="history-num">
-                        {money.format(item.minimumSuggestedPrice)}
-                      </td>
-
-                      <td>
-                        <span
-                          className={
-                            "table-status " + verdictTone(item.verdict)
-                          }
-                        >
-                          {verdictLabel(item.verdict)}
-                        </span>
-                      </td>
-
-                      <td className="history-date">
-                        <span>
-                          {new Date(item.createdAt).toLocaleDateString("pt-BR")}
-                        </span>
-                        <small className="table-subtext">
-                          {new Date(item.createdAt).toLocaleTimeString("pt-BR", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </small>
-                      </td>
-
-                      <td>
-                        <button
-                          type="button"
-                          className="history-delete-button"
-                          onClick={() => void remove(item.id)}
-                          title="Excluir análise"
-                          aria-label={"Excluir análise de " + item.productName}
-                        >
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                          >
-                            <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
-                          </svg>
-                        </button>
-                      </td>
+              <div className="clean-table-wrap">
+                <table className="clean-table analysis-history-table">
+                  <thead>
+                    <tr>
+                      <th>Produto</th>
+                      <th>Origem</th>
+                      <th className="history-num">Kit</th>
+                      <th className="history-num">Custo</th>
+                      <th className="history-num">Preço</th>
+                      <th className="history-num">Lucro</th>
+                      <th className="history-num">Margem</th>
+                      <th className="history-num">ROI</th>
+                      <th className="history-num">Piso saudável</th>
+                      <th>Status</th>
+                      <th>Data</th>
+                      <th>
+                        <span className="history-sr">Ações</span>
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+
+                  <tbody>
+                    {visible.map((item) => (
+                      <tr key={item.id}>
+                        <td className="history-product">
+                          <strong className="history-product-name">
+                            {item.productName}
+                          </strong>
+                          <small className="table-subtext">
+                            {item.sku ?? "Sem SKU"}
+                            {item.supplier ? " · " + item.supplier : ""}
+                          </small>
+                          <SavedScenario item={item} />
+                        </td>
+
+                        <td>
+                          <span className="neutral-chip">
+                            {item.source.startsWith("EXTENSION")
+                              ? item.source === "EXTENSION_SIMULATION"
+                                ? "Simulação da extensão"
+                                : "Extensão"
+                              : "Painel"}
+                          </span>
+                          {item.source === "EXTENSION_SIMULATION" && (
+                            <small className="table-subtext">
+                              Estimativas preservadas · valores antes de Ads
+                            </small>
+                          )}
+                        </td>
+
+                        <td className="history-num">{item.kitQuantity}x</td>
+                        <td className="history-num">
+                          {money.format(item.purchaseCost)}
+                        </td>
+                        <td className="history-num">
+                          {money.format(item.salePrice)}
+                        </td>
+                        <td className="history-num history-profit">
+                          <span
+                            className={
+                              item.profit >= 0 ? "margin-good" : "margin-bad"
+                            }
+                          >
+                            {money.format(item.profit)}
+                          </span>
+                        </td>
+                        <td className="history-num">
+                          {item.marginPercent.toFixed(1)}%
+                        </td>
+                        <td className="history-num">
+                          {item.roiPercent.toFixed(1)}%
+                        </td>
+                        <td className="history-num">
+                          {money.format(item.minimumSuggestedPrice)}
+                        </td>
+
+                        <td>
+                          <span
+                            className={
+                              "table-status " + verdictTone(item.verdict)
+                            }
+                          >
+                            {verdictLabel(item.verdict)}
+                          </span>
+                        </td>
+
+                        <td className="history-date">
+                          <span>
+                            {new Date(item.createdAt).toLocaleDateString(
+                              "pt-BR",
+                            )}
+                          </span>
+                          <small className="table-subtext">
+                            {new Date(item.createdAt).toLocaleTimeString(
+                              "pt-BR",
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )}
+                          </small>
+                        </td>
+
+                        <td>
+                          <button
+                            type="button"
+                            className="history-delete-button"
+                            onClick={() => void remove(item.id)}
+                            title="Excluir análise"
+                            aria-label={
+                              "Excluir análise de " + item.productName
+                            }
+                          >
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </section>
         </>

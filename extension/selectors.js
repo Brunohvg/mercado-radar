@@ -37,7 +37,10 @@
     "input.nav-search-input",
   ];
 
-  const SIDEBAR_SELECTORS = [".ui-search-sidebar", "[class*='ui-search-sidebar']"];
+  const SIDEBAR_SELECTORS = [
+    ".ui-search-sidebar",
+    "[class*='ui-search-sidebar']",
+  ];
 
   const PDP_COLUMN_SELECTORS = [
     ".ui-vip-core-container--column__right",
@@ -85,6 +88,7 @@
       decoded.match(/item_id[:=]\s*(MLB)-?(\d{6,})/i) ||
       decoded.match(/[?&#]wid=(MLB)-?(\d{6,})/i);
     const product = decoded.match(/\/p\/(MLB)(\d{5,})/i);
+    const userProduct = decoded.match(/\/up\/(MLBU)(\d{5,})/i);
     const listing = decoded.match(/(?:^|\/)(MLB)-(\d{6,})/i);
 
     return {
@@ -94,11 +98,13 @@
           ? "MLB" + listing[2]
           : null,
       productId: product ? "MLB" + product[2] : null,
+      userProductId: userProduct ? "MLBU" + userProduct[2] : null,
     };
   }
 
   function currentReference() {
-    return referenceFromHref(location.href);
+    const ids = idsFromHref(location.href);
+    return ids.itemId || ids.userProductId || ids.productId;
   }
 
   function parseMoneyAmount(container) {
@@ -110,7 +116,10 @@
     const integer = Number((fraction.textContent || "").replace(/\D/g, ""));
     const decimal = cents
       ? Number(
-          (cents.textContent || "").replace(/\D/g, "").slice(0, 2).padEnd(2, "0"),
+          (cents.textContent || "")
+            .replace(/\D/g, "")
+            .slice(0, 2)
+            .padEnd(2, "0"),
         ) / 100
       : 0;
 
@@ -131,12 +140,18 @@
       element.closest(
         ".poly-component__title-wrapper, .ui-search-item__group--title, h2, h3",
       ) || element.parentElement;
-    return wrapper && wrapper !== card && card.contains(wrapper) ? wrapper : null;
+    return wrapper && wrapper !== card && card.contains(wrapper)
+      ? wrapper
+      : null;
   }
 
   function cardTitle(card) {
     const element = first(TITLE_SELECTORS, card);
-    return (element?.textContent || element?.getAttribute("title") || "").trim();
+    return (
+      element?.textContent ||
+      element?.getAttribute("title") ||
+      ""
+    ).trim();
   }
 
   function cardReference(card) {
@@ -156,7 +171,9 @@
    * Retorna { lower, hasPlus, label } ou null.
    */
   function parseSold(text) {
-    const raw = String(text || "").toLowerCase().replace(/\s+/g, " ");
+    const raw = String(text || "")
+      .toLowerCase()
+      .replace(/\s+/g, " ");
     const match = raw.match(
       /(\+|mais de)?\s*(\d{1,3}(?:\.\d{3})+|\d+(?:,\d+)?)\s*(mil|k)?\s*vendid[oa]s?/,
     );
@@ -203,7 +220,9 @@
     return {
       freeShipping: text.includes("frete gratis"),
       logisticType:
-        text.includes(" full") || text.startsWith("full") ? "fulfillment" : null,
+        text.includes(" full") || text.startsWith("full")
+          ? "fulfillment"
+          : null,
     };
   }
 
@@ -215,24 +234,37 @@
   function cardIds(card) {
     let itemId = null;
     let productId = null;
+    let userProductId = null;
     for (const link of card.querySelectorAll("a[href*='MLB']")) {
       const ids = idsFromHref(link.getAttribute("href") || link.href);
       itemId = itemId || ids.itemId;
       productId = productId || ids.productId;
-      if (itemId && productId) break;
+      userProductId = userProductId || ids.userProductId;
+      if (itemId && (productId || userProductId)) break;
     }
-    return { itemId, productId };
+    return { itemId, productId, userProductId };
   }
 
   function cardRating(card) {
-    const ratingText = textOf(card, [".poly-reviews__rating", ".ui-search-reviews__rating-number"]);
-    const totalText = textOf(card, [".poly-reviews__total", ".ui-search-reviews__amount"]);
+    const ratingText = textOf(card, [
+      ".poly-reviews__rating",
+      ".ui-search-reviews__rating-number",
+    ]);
+    const totalText = textOf(card, [
+      ".poly-reviews__total",
+      ".ui-search-reviews__amount",
+    ]);
     let rating = parseRating(ratingText);
     let reviews = parseCount(totalText);
 
     if (rating == null || reviews == null) {
-      const label = card.querySelector("[aria-label*='valia' i], [aria-label*='opini' i]")?.getAttribute("aria-label") || "";
-      const fromLabel = label.match(/([0-5][.,]\d)[^\d]+(\d[\d.]*)\s*(opini|avalia)/i);
+      const label =
+        card
+          .querySelector("[aria-label*='valia' i], [aria-label*='opini' i]")
+          ?.getAttribute("aria-label") || "";
+      const fromLabel = label.match(
+        /([0-5][.,]\d)[^\d]+(\d[\d.]*)\s*(opini|avalia)/i,
+      );
       if (fromLabel) {
         rating = rating ?? parseRating(fromLabel[1]);
         reviews = reviews ?? parseCount(fromLabel[2]);
@@ -240,7 +272,9 @@
     }
 
     if (rating == null || reviews == null) {
-      const inline = (card.textContent || "").match(/\b([1-5][.,]\d)\s*\(\s*(\d{1,3}(?:\.\d{3})*|\d+)\s*\)/);
+      const inline = (card.textContent || "").match(
+        /\b([1-5][.,]\d)\s*\(\s*(\d{1,3}(?:\.\d{3})*|\d+)\s*\)/,
+      );
       if (inline) {
         rating = rating ?? parseRating(inline[1]);
         reviews = reviews ?? parseCount(inline[2]);
@@ -263,28 +297,46 @@
     const rank = text.match(/(\d{1,3})\s*o?\s*em\s+[a-z]/);
     return {
       rank: rank && Number(rank[1]) >= 1 ? Number(rank[1]) : null,
-      label: (highlight || (isBest ? "Mais vendido" : "")).slice(0, 120) || null,
+      label:
+        (highlight || (isBest ? "Mais vendido" : "")).slice(0, 120) || null,
     };
   }
 
   function isFulfillment(root) {
-    if (root.querySelector("[aria-label='Full' i], svg[aria-label='Full' i], [class*='fulfillment']")) return true;
+    if (
+      root.querySelector(
+        "[aria-label='Full' i], svg[aria-label='Full' i], [class*='fulfillment']",
+      )
+    )
+      return true;
     const text = " " + normalize(root.textContent || "") + " ";
-    if (text.includes("enviado pelo full") || text.includes("armazenado e enviado")) return true;
+    if (
+      text.includes("enviado pelo full") ||
+      text.includes("armazenado e enviado")
+    )
+      return true;
     // "Full" sozinho como selo; evita "Full HD", "Full Frame" etc.
     return [...root.querySelectorAll("span, p, div, svg title")].some(
-      (el) => el.children.length === 0 && normalize(el.textContent || "").trim() === "full",
+      (el) =>
+        el.children.length === 0 &&
+        normalize(el.textContent || "").trim() === "full",
     );
   }
 
   function hasFreeShipping(root) {
     const text = normalize(root.textContent || "");
-    return text.includes("frete gratis") || text.includes("chegara gratis") || text.includes("envio gratis") || text.includes("chegara gratis");
+    return (
+      text.includes("frete gratis") ||
+      text.includes("chegara gratis") ||
+      text.includes("envio gratis") ||
+      text.includes("chegara gratis")
+    );
   }
 
   function imageOf(root) {
     const img = root.querySelector("img");
-    const src = img?.getAttribute("data-src") || img?.currentSrc || img?.src || "";
+    const src =
+      img?.getAttribute("data-src") || img?.currentSrc || img?.src || "";
     return /^https:\/\//.test(src) ? src.slice(0, 500) : null;
   }
 
@@ -301,7 +353,11 @@
   function moneyFrom(root, selectors) {
     for (const selector of selectors) {
       const element = root.querySelector(selector);
-      const value = parseMoneyAmount(element?.matches(".andes-money-amount") ? element : element?.querySelector(".andes-money-amount") || element);
+      const value = parseMoneyAmount(
+        element?.matches(".andes-money-amount")
+          ? element
+          : element?.querySelector(".andes-money-amount") || element,
+      );
       if (value) return value;
     }
     return null;
@@ -312,8 +368,10 @@
    * Retorna null se o card não tiver ID de anúncio identificável.
    */
   function cardObservation(card, index) {
-    const { itemId, productId } = cardIds(card);
-    if (!itemId) return null;
+    const ids = cardIds(card);
+    const { itemId, productId, userProductId } = ids;
+    const reference = itemId || userProductId || productId;
+    if (!reference) return null;
 
     const title = cardTitle(card);
     if (!title) return null;
@@ -322,15 +380,28 @@
     const { rating, reviews } = cardRating(card);
     const best = bestSeller(card);
     const link = card.querySelector("a[href*='MLB']");
-    const seller = textOf(card, [".poly-component__seller", ".ui-search-official-store-label"])
+    const seller = textOf(card, [
+      ".poly-component__seller",
+      ".ui-search-official-store-label",
+    ])
       .replace(/^por\s+/i, "")
       .trim();
 
     return {
-      id: itemId,
+      id: reference,
+      referenceKind: itemId
+        ? "ITEM"
+        : userProductId
+          ? "USER_PRODUCT"
+          : "CATALOG",
+      userProductId,
       title: title.slice(0, 300),
       price: cardPrice(card),
-      originalPrice: moneyFrom(card, [".andes-money-amount--previous", "s.andes-money-amount", ".poly-price__original"]),
+      originalPrice: moneyFrom(card, [
+        ".andes-money-amount--previous",
+        "s.andes-money-amount",
+        ".poly-price__original",
+      ]),
       soldLower: sold ? sold.lower : null,
       soldHasPlus: sold ? sold.hasPlus : true,
       soldLabel: sold ? sold.label.slice(0, 60) : null,
@@ -347,7 +418,6 @@
       position: index + 1,
     };
   }
-
 
   /**
    * Extras de card lidos só do DOM (não vão para o servidor):
@@ -376,11 +446,18 @@
   /** Onde colocar o selo de tipo/idade: a área da imagem do card. */
   function cardMediaAnchor(card) {
     const direct = first(
-      [".poly-card__portada", ".ui-search-result__image", ".ui-search-result-image__element", ".poly-component__picture"],
+      [
+        ".poly-card__portada",
+        ".ui-search-result__image",
+        ".ui-search-result-image__element",
+        ".poly-component__picture",
+      ],
       card,
     );
     if (direct) {
-      return direct.tagName === "IMG" || direct.tagName === "PICTURE" ? direct.parentElement : direct;
+      return direct.tagName === "IMG" || direct.tagName === "PICTURE"
+        ? direct.parentElement
+        : direct;
     }
     const img = card.querySelector("img");
     return img ? img.parentElement : null;
@@ -407,24 +484,41 @@
    */
   function sellerInfo(fallbackName) {
     const root = first(SELLER_SELECTORS);
-    const scope = root || document.querySelector(".ui-pdp-container--column-right, .ui-vip-core-container--column__right");
-    const text = scope ? String(scope.textContent || "").replace(/\s+/g, " ") : "";
+    const scope =
+      root ||
+      document.querySelector(
+        ".ui-pdp-container--column-right, .ui-vip-core-container--column__right",
+      );
+    const text = scope
+      ? String(scope.textContent || "").replace(/\s+/g, " ")
+      : "";
 
     const name =
-      textOf(document, [".ui-pdp-seller__link-trigger", ".ui-pdp-seller__header__title", ".ui-pdp-seller__link-trigger-button"]) ||
+      textOf(document, [
+        ".ui-pdp-seller__link-trigger",
+        ".ui-pdp-seller__header__title",
+        ".ui-pdp-seller__link-trigger-button",
+      ]) ||
       fallbackName ||
       "";
 
     let sales = null;
-    const salesMatch = text.match(/\+\s*(\d{1,3}(?:\.\d{3})+|\d+)\s*(mil)?\s*vendas/i);
-    if (salesMatch) sales = "+" + salesMatch[1] + (salesMatch[2] ? " mil" : "") + " vendas";
+    const salesMatch = text.match(
+      /\+\s*(\d{1,3}(?:\.\d{3})+|\d+)\s*(mil)?\s*vendas/i,
+    );
+    if (salesMatch)
+      sales = "+" + salesMatch[1] + (salesMatch[2] ? " mil" : "") + " vendas";
 
     let city = null;
-    const cityMatch = text.match(/([A-ZÀ-Ú][A-Za-zÀ-ú'. ]{2,40})\s+-\s+([A-Z]{2})\b/);
+    const cityMatch = text.match(
+      /([A-ZÀ-Ú][A-Za-zÀ-ú'. ]{2,40})\s+-\s+([A-Z]{2})\b/,
+    );
     if (cityMatch) city = cityMatch[1].trim() + " - " + cityMatch[2];
 
     let reputation = null;
-    const thermo = root?.querySelector("[class*='thermometer'], [class*='reputation']");
+    const thermo = root?.querySelector(
+      "[class*='thermometer'], [class*='reputation']",
+    );
     if (thermo) {
       // Só confia se a cor for inequívoca: se o termômetro lista várias cores, não mostra nada.
       const tokens = [thermo, ...thermo.querySelectorAll("*")]
@@ -455,11 +549,15 @@
   }
 
   function jsonLdProduct() {
-    for (const script of document.querySelectorAll("script[type='application/ld+json']")) {
+    for (const script of document.querySelectorAll(
+      "script[type='application/ld+json']",
+    )) {
       try {
         const data = JSON.parse(script.textContent || "null");
         const list = Array.isArray(data) ? data : data?.["@graph"] || [data];
-        const product = list.find((entry) => entry && /product/i.test(String(entry["@type"])));
+        const product = list.find(
+          (entry) => entry && /product/i.test(String(entry["@type"])),
+        );
         if (product) return product;
       } catch {}
     }
@@ -468,74 +566,120 @@
 
   /** IDs de anúncio, catálogo e categoria a partir da URL e de dados embutidos na página. */
   function pageIds() {
-    const fromUrl = idsFromHref(location.href);
-    let itemId = fromUrl.itemId;
-    const productId = fromUrl.productId;
-
-    if (!itemId) {
-      const input = document.querySelector("input[name='item_id'], input[name='itemId']");
-      const value = (input?.value || "").toUpperCase();
-      if (/^MLB\d{6,}$/.test(value)) itemId = value;
+    const ids = idsFromHref(location.href);
+    // Não varrer scripts por "item_id": recomendações contêm IDs de OUTROS anúncios.
+    let itemId = ids.itemId;
+    const buyBox = document.querySelector(
+      ".ui-pdp-buybox, .ui-pdp-buy-box, .ui-pdp-container--column-right",
+    );
+    const input = buyBox?.querySelector(
+      "input[name='item_id'], input[name='itemId']",
+    );
+    const selected = String(input?.value || "").toUpperCase();
+    if (!itemId && /^MLB\d{6,}$/.test(selected)) itemId = selected;
+    const categoryMeta = document.querySelector(
+      "meta[name='category_id'], meta[property='category_id']",
+    )?.content;
+    let categoryId = /^MLB\d+$/.test(categoryMeta || "") ? categoryMeta : null;
+    const breadcrumbs = document.querySelectorAll(
+      ".andes-breadcrumb a[href], .ui-pdp-breadcrumb a[href]",
+    );
+    for (const link of breadcrumbs) {
+      const match = link.href.match(/(?:_CatID_|category[=:])(MLB)?(\d{3,})/i);
+      if (match) categoryId = "MLB" + match[2];
     }
-
-    let categoryId = null;
-    // Dados embutidos pelo próprio Mercado Livre (só leitura de texto; nada é executado).
-    for (const script of document.querySelectorAll("script:not([src])")) {
-      const text = script.textContent || "";
-      if (text.length > 2_000_000) continue;
-      if (!itemId) {
-        const m = text.match(/"item_id"\s*:\s*"(MLB\d{6,})"/);
-        if (m) itemId = m[1];
-      }
-      if (!categoryId) {
-        const c = text.match(/"category_id"\s*:\s*"(MLB\d{3,})"/);
-        if (c) categoryId = c[1];
-      }
-      if (itemId && categoryId) break;
-    }
-
-    return { itemId, productId, categoryId };
+    return { ...ids, itemId, categoryId };
   }
 
   /** Observação do anúncio aberto (PDP). */
   function pageObservation() {
-    const { itemId, productId, categoryId } = pageIds();
-    if (!itemId) return null;
+    const { itemId, productId, userProductId, categoryId } = pageIds();
+    const reference = itemId || userProductId || productId;
+    if (!reference) return null;
 
     const ld = jsonLdProduct();
-    const subtitle = textOf(document, [".ui-pdp-subtitle", ".ui-pdp-header__subtitle"]);
-    const sold = parseSold(subtitle) || parseSold(textOf(document, [".ui-pdp-header"]));
-    const condition = /usado/i.test(subtitle) ? "usado" : /novo/i.test(subtitle) ? "novo" : null;
+    const subtitle = textOf(document, [
+      ".ui-pdp-subtitle",
+      ".ui-pdp-header__subtitle",
+    ]);
+    const sold =
+      parseSold(subtitle) || parseSold(textOf(document, [".ui-pdp-header"]));
+    const condition = /usado/i.test(subtitle)
+      ? "usado"
+      : /novo/i.test(subtitle)
+        ? "novo"
+        : null;
 
-    let rating = parseRating(textOf(document, [".ui-pdp-review__rating", ".ui-review-capability__rating__average"]));
-    let reviews = parseCount(textOf(document, [".ui-pdp-review__amount", ".ui-review-capability__rating__label"]));
+    let rating = parseRating(
+      textOf(document, [
+        ".ui-pdp-review__rating",
+        ".ui-review-capability__rating__average",
+      ]),
+    );
+    let reviews = parseCount(
+      textOf(document, [
+        ".ui-pdp-review__amount",
+        ".ui-review-capability__rating__label",
+      ]),
+    );
     const aggregate = ld?.aggregateRating;
     if (aggregate) {
       rating = rating ?? parseRating(String(aggregate.ratingValue ?? ""));
-      reviews = reviews ?? parseCount(String(aggregate.reviewCount ?? aggregate.ratingCount ?? ""));
+      reviews =
+        reviews ??
+        parseCount(
+          String(aggregate.reviewCount ?? aggregate.ratingCount ?? ""),
+        );
     }
 
     const header = document.querySelector(".ui-pdp-header") || document;
     const best = bestSeller(header);
-    const buyBox = document.querySelector(".ui-pdp-container--column-right, .ui-vip-core-container--column__right") || document.body;
+    const buyBox =
+      document.querySelector(
+        ".ui-pdp-container--column-right, .ui-vip-core-container--column__right",
+      ) || document.body;
     const seller = (
-      textOf(document, [".ui-pdp-seller__link-trigger", ".ui-pdp-seller__header__title"]) ||
-      ((buyBox.textContent || "").match(/vendido por\s+([^\n|]{2,60})/i)?.[1] ?? "")
+      textOf(document, [
+        ".ui-pdp-seller__link-trigger",
+        ".ui-pdp-seller__header__title",
+      ]) ||
+      ((buyBox.textContent || "").match(/vendido por\s+([^\n|]{2,60})/i)?.[1] ??
+        "")
     )
       .replace(/^vendido por\s+/i, "")
       .trim();
 
-    const ldPrice = Number(ld?.offers?.price ?? (Array.isArray(ld?.offers) ? ld.offers[0]?.price : NaN));
-    const price = pagePrice() ?? (Number.isFinite(ldPrice) && ldPrice > 0 ? ldPrice : null);
-    const image = document.querySelector("meta[property='og:image']")?.getAttribute("content") || (Array.isArray(ld?.image) ? ld.image[0] : ld?.image) || null;
-    const canonical = document.querySelector("link[rel='canonical']")?.getAttribute("href") || location.href;
+    const ldPrice = Number(
+      ld?.offers?.price ??
+        (Array.isArray(ld?.offers) ? ld.offers[0]?.price : NaN),
+    );
+    const price =
+      pagePrice() ?? (Number.isFinite(ldPrice) && ldPrice > 0 ? ldPrice : null);
+    const image =
+      document
+        .querySelector("meta[property='og:image']")
+        ?.getAttribute("content") ||
+      (Array.isArray(ld?.image) ? ld.image[0] : ld?.image) ||
+      null;
+    const canonical =
+      document.querySelector("link[rel='canonical']")?.getAttribute("href") ||
+      location.href;
     const buyText = normalize(buyBox.textContent || "");
 
     return {
-      id: itemId,
+      id: reference,
+      referenceKind: itemId
+        ? "ITEM"
+        : userProductId
+          ? "USER_PRODUCT"
+          : "CATALOG",
+      userProductId,
       title: (pageTitle() || ld?.name || "").slice(0, 300),
       price,
-      originalPrice: moneyFrom(document, [".ui-pdp-price__original-value", ".andes-money-amount--previous"]),
+      originalPrice: moneyFrom(document, [
+        ".ui-pdp-price__original-value",
+        ".andes-money-amount--previous",
+      ]),
       soldLower: sold ? sold.lower : null,
       soldHasPlus: sold ? sold.hasPlus : true,
       soldLabel: sold ? sold.label.slice(0, 60) : null,
@@ -548,12 +692,16 @@
       catalogProductId: productId,
       sellerName: seller ? seller.slice(0, 120) : null,
       condition,
-      thumbnail: typeof image === "string" && /^https:\/\//.test(image) ? image.slice(0, 500) : null,
+      thumbnail:
+        typeof image === "string" && /^https:\/\//.test(image)
+          ? image.slice(0, 500)
+          : null,
       permalink: cleanUrl(canonical),
       position: null,
       // dicas para a calculadora (não são gravadas no histórico)
       categoryId,
-      listingTypeHint: buyText.includes("sem juros") ? "PREMIUM" : "CLASSIC",
+      listingTypeHint: null, // Parcelamento não confirma a modalidade do anúncio.
+      logisticType: isFulfillment(buyBox) ? "fulfillment" : null,
     };
   }
 
@@ -614,6 +762,132 @@
     return Boolean(currentReference()) && Boolean(document.querySelector("h1"));
   }
 
+  // Insert only in a vertical content flow. Unknown layouts keep the menu/panel.
+  // A title link can have a sibling indicator, never content injected inside it.
+  function verticalParent(element, allowTitleLink = false) {
+    const parent = element?.parentElement;
+    if (
+      !parent ||
+      (allowTitleLink && element.matches("a") ? parent : element).closest(
+        "a, button, form",
+      ) ||
+      parent === document.body
+    )
+      return false;
+    const style = getComputedStyle(parent);
+    return (
+      !(
+        style.display.includes("flex") &&
+        !style.flexDirection.startsWith("column")
+      ) &&
+      !(
+        style.display.includes("grid") &&
+        style.gridTemplateColumns.split(/\s+/).length > 1
+      )
+    );
+  }
+
+  function contextualProductAnchor() {
+    const price = document.querySelector(".ui-pdp-price");
+    let element = price;
+    // The price may sit inside a horizontal row. Insert after its small wrapper,
+    // never after the whole buy box, gallery or a native purchase control.
+    for (
+      let depth = 0;
+      element && depth < 3;
+      depth++, element = element.parentElement
+    ) {
+      if (
+        element.matches(
+          "main, aside, form, a, button, .ui-pdp-container--column-right",
+        ) ||
+        element.querySelector(
+          "h1, .ui-pdp-gallery, .ui-pdp-actions, button[type=submit]",
+        )
+      )
+        break;
+      if (verticalParent(element)) return { element, position: "afterend" };
+    }
+    const header = document.querySelector(".ui-pdp-header");
+    return verticalParent(header)
+      ? { element: header, position: "afterend" }
+      : null;
+  }
+
+  function contextualSearchAnchor() {
+    const element = document.querySelector(
+      "ol.ui-search-layout, ul.ui-search-layout, .ui-search-layout, [data-testid='search-results']",
+    );
+    return verticalParent(element)
+      ? { element, position: "beforebegin" }
+      : null;
+  }
+
+  function contextualCardAnchor(card) {
+    const title = first(TITLE_SELECTORS, card);
+    const element =
+      title?.closest(
+        ".poly-component__title-wrapper, .ui-search-item__group--title, h2, h3",
+      ) || title;
+    if (
+      !element ||
+      !card.contains(element) ||
+      element.parentElement?.closest("a") ||
+      !verticalParent(element, true) ||
+      getComputedStyle(card).position === "absolute"
+    )
+      return null;
+    const resize = [];
+    let node = element.parentElement;
+    while (node && card.contains(node)) {
+      resize.push(node);
+      if (node === card) break;
+      node = node.parentElement;
+    }
+    const grid = card.closest(
+      "ol.ui-search-layout, ul.ui-search-layout, .ui-search-layout",
+    );
+    if (
+      resize.some((node) => getComputedStyle(node).position === "absolute") ||
+      [...resize, ...(grid ? [grid] : [])].some((node) =>
+        [
+          "height",
+          "max-height",
+          ...(node === grid ? ["grid-template-rows"] : []),
+        ].some(
+          (property) =>
+            node.style.getPropertyPriority(property) === "important",
+        ),
+      )
+    )
+      return null;
+    return {
+      element,
+      position: "afterend",
+      resize,
+      grid,
+    };
+  }
+
+  function contextualProductAnalysisAnchor() {
+    let element = document.querySelector(".ui-pdp-price");
+    while (element && element !== document.body) {
+      if (
+        element.matches(
+          ".ui-pdp-container__row, main, .ui-pdp-container--pdp",
+        ) &&
+        element.querySelector(
+          ".ui-pdp-gallery, .ui-pdp-gallery__figure, .gallery",
+        ) &&
+        element.querySelector("h1") &&
+        (element.parentElement === document.body || verticalParent(element))
+      )
+        return { element, position: "afterend" };
+      element = element.parentElement;
+    }
+    return null;
+  }
+
   /**
    * Diagnóstico de compatibilidade com o layout atual do ML.
    * Retorna { ok, problems[] } e nunca lança.
@@ -632,15 +906,19 @@
       if (onSearch && cards.length > 0) {
         const withPrice = cards.filter((card) => cardPrice(card)).length;
         const withRef = cards.filter((card) => cardReference(card)).length;
-        if (withPrice / cards.length < 0.5) problems.push("Preços não reconhecidos.");
-        if (withRef / cards.length < 0.5) problems.push("Códigos MLB não reconhecidos.");
+        if (withPrice / cards.length < 0.5)
+          problems.push("Preços não reconhecidos.");
+        if (withRef / cards.length < 0.5)
+          problems.push("Códigos MLB não reconhecidos.");
       }
 
       if (isProductPage() && cards.length < 2 && !pagePrice()) {
         problems.push("Preço do anúncio não reconhecido.");
       }
     } catch (error) {
-      problems.push("Erro ao ler a página: " + (error?.message || "desconhecido"));
+      problems.push(
+        "Erro ao ler a página: " + (error?.message || "desconhecido"),
+      );
     }
 
     return { ok: problems.length === 0, problems };
@@ -674,6 +952,10 @@
     extractQuery,
     findSidebar,
     findPdpAnchor,
+    contextualProductAnchor,
+    contextualProductAnalysisAnchor,
+    contextualSearchAnchor,
+    contextualCardAnchor,
     isProductPage,
     healthCheck,
   };

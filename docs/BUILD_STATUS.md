@@ -1,16 +1,26 @@
 # Mercado Radar — Build Status
 
+## Revisão 0.11.0 — Mercado e extensão
+
+**Implementado / aguardando validação real.** Branch `feature/radar-commercial-readiness-v1`; PR #2 em rascunho. Sem merge ou deploy automático.
+
+Demanda e potencial público compartilham regras entre web e extensão. Mercado ganhou cards/tabela, filtros e comparação; produto usa um painel único. A pesquisa separa catálogo/oferta e não infere giro de contadores com origens diferentes. Faixas históricas são triagem, não previsão calibrada por categoria. Fórmula financeira e permissões preservadas.
+
+Validação local: 62 testes de regras, 26 cenários da extensão, 8 da web, typecheck, build e pacote. Conferir CI do HEAD final, deploy de homologação, extensão 0.11.0 e três anúncios reais (próprio, terceiro e catálogo), inclusive custo/frete/tarifas na conta de cada cliente. Esses passos precedem a liberação comercial.
+
 ## MVP v0.1
 
 Status atual: **reforma funcional implementada / validação real pendente**.
 
 Implementado no código:
+
 - módulos Produtos e Vendas ativados no MVP;
 - sincronização de anúncios e pedidos;
 - persistência PostgreSQL de produtos, pedidos e itens;
 - dashboards operacionais iniciais.
 
 Já confirmados:
+
 - aplicação publicada no Coolify;
 - domínio público `radar.optarys.com.br`;
 - PostgreSQL na mesma stack;
@@ -52,7 +62,6 @@ Importar pedidos reais, processar novas vendas, calcular lucro realizado por ped
 
 Nenhuma feature deve ser chamada de concluída apenas porque foi implementada.
 
-
 ## Novo gate — Produtos e Vendas
 
 Após o deploy do HEAD atual:
@@ -65,10 +74,10 @@ Após o deploy do HEAD atual:
 6. validar que lucro aparece como pendente quando custos não estiverem completos;
 7. somente então avançar para lucro realizado automático.
 
-
 ## Reforma de experiência e inteligência — 22/09/2026
 
 Implementado no código:
+
 - home transformada em hub e módulos separados por rota;
 - menu mobile para navegação entre módulos;
 - busca com autocomplete por nome;
@@ -81,6 +90,7 @@ Implementado no código:
 - Product Health com giro 30d, cobertura, decisão e capital de reposição.
 
 Gate antes de chamar esta reforma de validada:
+
 1. CI do HEAD final verde;
 2. deploy no Coolify saudável;
 3. testar scanner em iPhone e Android;

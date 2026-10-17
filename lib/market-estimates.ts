@@ -1,26 +1,6 @@
-/**
- * Modelo de estimativa do Mercado Radar (funções puras, sem banco nem rede).
- *
- * Por que existe: com um token comum, a API do Mercado Livre não entrega
- * vendas, estoque nem visitas de anúncios de outros vendedores. O que a página
- * mostra a qualquer comprador é: preço, faixa de vendidos ("+1000 vendidos"),
- * número de avaliações e nota. Este módulo transforma leituras datadas desses
- * sinais em vendas/dia, faturamento/dia e visitas/dia, SEMPRE com intervalo e
- * dizendo de onde veio cada número.
- *
- * Métodos, do mais forte para o mais fraco:
- *  - OFICIAL   anúncio da própria conta: pedidos reais (ou vendidos exatos da
- *              API) e visitas da API.
- *  - HISTORICO duas ou mais leituras do mesmo anúncio separadas no tempo:
- *              Δavaliações/Δdias × (vendidos por avaliação do próprio anúncio),
- *              cruzado com a mudança de faixa de vendidos quando houver.
- *  - VIDA      uma leitura só: vendidos acumulados ÷ idade do anúncio
- *              (idade da API ou estimada pelo número do anúncio).
- *  - PAGINA    sem idade nem histórico: só o acumulado que a página mostra.
- *
- * Visitas/dia de terceiros = vendas/dia ÷ conversão. A conversão é calibrada
- * com os anúncios da própria conta (visitas e vendas oficiais); sem eles, usa
- * uma faixa padrão de mercado e diz isso.
+/** Public counters are observations, not seller order data. We never derive visits
+ * from an assumed conversion rate, sales from reviews, or creation date from IDs.
+ * Official orders and changes in exact counters are the only velocity evidence.
  */
 
 export type Range = {
@@ -49,7 +29,13 @@ export type AgeHint = {
 };
 
 export type Calibration = {
-  conversion: { value: number; low: number; high: number; source: "SUA_CONTA" | "PADRAO"; sample: number };
+  conversion: {
+    value: number;
+    low: number;
+    high: number;
+    source: "SUA_CONTA" | "PADRAO";
+    sample: number;
+  };
   soldPerReview: { value: number; low: number; high: number; sample: number };
 };
 
@@ -76,7 +62,13 @@ export type ItemEstimate = {
 };
 
 export const DEFAULT_CALIBRATION: Calibration = {
-  conversion: { value: 0.025, low: 0.012, high: 0.05, source: "PADRAO", sample: 0 },
+  conversion: {
+    value: 0.025,
+    low: 0.012,
+    high: 0.05,
+    source: "PADRAO",
+    sample: 0,
+  },
   soldPerReview: { value: 28, low: 12, high: 60, sample: 0 },
 };
 
@@ -86,23 +78,15 @@ const DAY_MS = 86_400_000;
 /* faixa de "vendidos" exibida pelo Mercado Livre                      */
 /* ------------------------------------------------------------------ */
 
-/**
- * Degraus que o Mercado Livre usa em "+N vendidos". O limite superior real de
- * uma faixa é o próximo degrau (exclusivo). Se o número não estiver na
- * escada, assumimos o dobro como teto conservador.
- */
-const SOLD_LADDER = [
-  5, 10, 25, 50, 100, 150, 200, 250, 500, 1_000, 2_000, 5_000, 10_000, 25_000,
-  50_000, 100_000, 500_000, 1_000_000, 5_000_000,
-];
-
-export function soldRangeFromLabel(lower: number | null | undefined, hasPlus: boolean) {
+export function soldRangeFromLabel(
+  lower: number | null | undefined,
+  hasPlus: boolean,
+) {
   if (lower == null || !Number.isFinite(lower) || lower < 0) {
     return { lower: null, upper: null };
   }
   if (!hasPlus) return { lower, upper: lower };
-  const next = SOLD_LADDER.find((step) => step > lower);
-  return { lower, upper: next ?? lower * 2 };
+  return { lower, upper: null };
 }
 
 /* ------------------------------------------------------------------ */
@@ -186,15 +170,30 @@ function round(value: number | null, digits = 2) {
   return Math.round(value * factor) / factor;
 }
 
-function range(value: number | null, low: number | null, high: number | null, digits = 2): Range {
-  return { value: round(value, digits), low: round(low, digits), high: round(high, digits) };
+function range(
+  value: number | null,
+  low: number | null,
+  high: number | null,
+  digits = 2,
+): Range {
+  return {
+    value: round(value, digits),
+    low: round(low, digits),
+    high: round(high, digits),
+  };
 }
 
 const EMPTY: Range = { value: null, low: null, high: null };
 
 function scaleRange(r: Range, factor: number | null, digits = 2): Range {
-  if (factor == null || !Number.isFinite(factor) || r.value == null) return EMPTY;
-  return range(r.value * factor, (r.low ?? r.value) * factor, (r.high ?? r.value) * factor, digits);
+  if (factor == null || !Number.isFinite(factor) || r.value == null)
+    return EMPTY;
+  return range(
+    r.value * factor,
+    (r.low ?? r.value) * factor,
+    (r.high ?? r.value) * factor,
+    digits,
+  );
 }
 
 function fmt(n: number, digits = 1) {
@@ -240,17 +239,19 @@ export function estimateItem(input: {
 
   const exact = latest?.soldExact ?? null;
   const soldLower = exact ?? latest?.soldLower ?? null;
-  const soldUpper = exact ?? latest?.soldUpper ?? latest?.soldLower ?? null;
+  const soldUpper = exact ?? latest?.soldUpper ?? null;
   const sold = { lower: soldLower, upper: soldUpper, exact: exact != null };
   // Idade estimada pelo número do anúncio tem erro de dias: abaixo de 14 dias
   // ela inflaria demais o ritmo (ex.: "+5000 vendidos" em "1 dia").
-  const ageDays = input.age
-    ? Math.max(input.age.source === "ID_ESTIMADO" ? 14 : 1, input.age.days)
-    : null;
+  const ageDays =
+    input.age?.source === "API" ? Math.max(1, input.age.days) : null;
 
   const base = {
     sold,
-    ageDays: { value: ageDays == null ? null : Math.round(ageDays), source: input.age?.source ?? null },
+    ageDays: {
+      value: ageDays == null ? null : Math.round(ageDays),
+      source: input.age?.source ?? null,
+    },
     observations: obs.length,
   };
 
@@ -269,18 +270,18 @@ export function estimateItem(input: {
     if (official.visitsInWindow != null && official.visitsInWindow > 0) {
       const v = official.visitsInWindow / days;
       visits = range(v, v, v, 1);
-      conversion = { value: official.unitsInWindow / official.visitsInWindow, source: "OFICIAL" };
-      basis.push(`${fmt(official.visitsInWindow, 0)} visitas oficiais em ${days} dias.`);
-    } else if (perDay > 0) {
-      visits = range(
-        perDay / calibration.conversion.value,
-        perDay / calibration.conversion.high,
-        perDay / calibration.conversion.low,
-        1,
+      conversion = {
+        value: official.unitsInWindow / official.visitsInWindow,
+        source: "OFICIAL",
+      };
+      basis.push(
+        `${fmt(official.visitsInWindow, 0)} visitas oficiais em ${days} dias.`,
       );
     }
 
-    basis.unshift(`${fmt(official.unitsInWindow, 0)} unidades vendidas em ${days} dias (pedidos da sua conta).`);
+    basis.unshift(
+      `${fmt(official.unitsInWindow, 0)} unidades vendidas em ${days} dias (pedidos da sua conta).`,
+    );
 
     return {
       ...base,
@@ -299,8 +300,7 @@ export function estimateItem(input: {
   const history = estimateFromHistory(obs, calibration, now);
   if (history) {
     basis.push(...history.basis);
-    const visits = visitsFromSales(history.sales, calibration);
-    basis.push(conversionNote(calibration));
+    const visits = EMPTY;
     return {
       ...base,
       method: "HISTORICO",
@@ -308,7 +308,10 @@ export function estimateItem(input: {
       salesPerDay: history.sales,
       revenuePerDay: scaleRange(history.sales, price),
       visitsPerDay: visits,
-      conversion: { value: calibration.conversion.value, source: calibration.conversion.source },
+      conversion: {
+        value: calibration.conversion.value,
+        source: calibration.conversion.source,
+      },
       windowDays: round(history.windowDays, 1),
       basis,
     };
@@ -329,8 +332,9 @@ export function estimateItem(input: {
         ? "Idade do anúncio informada pelo Mercado Livre."
         : "Idade do anúncio estimada pelo número do anúncio (os números são sequenciais no tempo).",
     );
-    basis.push("Média desde a criação: anúncios que aceleraram ou esfriaram ficam suavizados até o Radar ter histórico.");
-    basis.push(conversionNote(calibration));
+    basis.push(
+      "Média desde a criação: anúncios que aceleraram ou esfriaram ficam suavizados até o Radar ter histórico.",
+    );
 
     return {
       ...base,
@@ -338,8 +342,11 @@ export function estimateItem(input: {
       confidence: 1,
       salesPerDay: sales,
       revenuePerDay: scaleRange(sales, price),
-      visitsPerDay: visitsFromSales(sales, calibration),
-      conversion: { value: calibration.conversion.value, source: calibration.conversion.source },
+      visitsPerDay: EMPTY,
+      conversion: {
+        value: calibration.conversion.value,
+        source: calibration.conversion.source,
+      },
       windowDays: null,
       basis,
     };
@@ -349,7 +356,9 @@ export function estimateItem(input: {
   if (soldLower != null) {
     basis.push(`A página mostra ${fmt(soldLower, 0)}+ vendidos no total.`);
   }
-  basis.push("Ainda sem histórico nem idade do anúncio. Abra este anúncio de novo em alguns dias para o Radar medir o ritmo.");
+  basis.push(
+    "O acumulado não informa ritmo de vendas. Avaliações não são convertidas em vendas ou visitas; acompanhe a evolução de preço por novas leituras.",
+  );
 
   return {
     ...base,
@@ -358,116 +367,40 @@ export function estimateItem(input: {
     salesPerDay: EMPTY,
     revenuePerDay: EMPTY,
     visitsPerDay: EMPTY,
-    conversion: { value: calibration.conversion.value, source: calibration.conversion.source },
+    conversion: {
+      value: calibration.conversion.value,
+      source: calibration.conversion.source,
+    },
     windowDays: null,
     basis,
   };
 }
 
-function conversionNote(calibration: Calibration) {
-  const c = calibration.conversion;
-  return c.source === "SUA_CONTA"
-    ? `Visitas = vendas ÷ conversão de ${fmt(c.value * 100)}% (mediana de ${c.sample} anúncios seus).`
-    : `Visitas = vendas ÷ conversão típica de ${fmt(c.low * 100)}% a ${fmt(c.high * 100)}%. Conecte e sincronize seus anúncios para calibrar com seus números.`;
-}
-
-function visitsFromSales(sales: Range, calibration: Calibration): Range {
-  if (sales.value == null) return EMPTY;
-  const c = calibration.conversion;
-  return range(
-    sales.value / c.value,
-    (sales.low ?? sales.value) / c.high,
-    (sales.high ?? sales.value) / c.low,
-    1,
+function estimateFromHistory(
+  obs: Observation[],
+  _calibration: Calibration,
+  now: Date,
+) {
+  const exact = obs.filter(
+    (o) => o.soldExact != null && now.getTime() - o.at.getTime() <= 45 * DAY_MS,
   );
-}
-
-function estimateFromHistory(obs: Observation[], calibration: Calibration, now: Date) {
-  const recent = obs.filter((o) => now.getTime() - o.at.getTime() <= 90 * DAY_MS);
-  const withReviews = recent.filter((o) => o.reviews != null);
-  if (withReviews.length < 2) return null;
-
-  const latest = withReviews[withReviews.length - 1];
-  // janela: a leitura mais antiga dentro de 45 dias, com pelo menos 2 dias de distância
-  const startCandidates = withReviews.filter(
-    (o) =>
-      latest.at.getTime() - o.at.getTime() >= 2 * DAY_MS &&
-      latest.at.getTime() - o.at.getTime() <= 45 * DAY_MS,
+  const last = exact.at(-1);
+  if (!last) return null;
+  const first = exact.find(
+    (o) => last.at.getTime() - o.at.getTime() >= 2 * DAY_MS,
   );
-  const start = startCandidates[0];
-  if (!start) return null;
-
-  const days = (latest.at.getTime() - start.at.getTime()) / DAY_MS;
-  const deltaReviews = Math.max(0, (latest.reviews ?? 0) - (start.reviews ?? 0));
-
-  // vendidos por avaliação: do próprio anúncio (faixa ÷ avaliações), senão calibrado
-  const reviews = latest.reviews ?? 0;
-  const lower = latest.soldExact ?? latest.soldLower ?? null;
-  const upper = latest.soldExact ?? latest.soldUpper ?? null;
-  let ratioLow = calibration.soldPerReview.low;
-  let ratioHigh = calibration.soldPerReview.high;
-  let ratioSource = "típica";
-
-  if (reviews >= 5 && lower != null && upper != null) {
-    // Sem piso artificial: em anúncios de catálogo as avaliações são do produto
-    // (somam todos os vendedores), e a razão vendidos÷avaliações deste anúncio
-    // já converte o ritmo do produto na fatia deste anúncio.
-    ratioLow = clamp(lower / reviews, 0.05, 250);
-    ratioHigh = clamp(upper / reviews, ratioLow, 300);
-    ratioSource = "deste anúncio";
-  }
-
-  const basis: string[] = [];
-  let low: number;
-  let high: number;
-
-  if (deltaReviews > 0) {
-    low = (deltaReviews / days) * ratioLow;
-    high = (deltaReviews / days) * ratioHigh;
-    basis.push(
-      `+${fmt(deltaReviews, 0)} avaliações em ${fmt(days)} dias, com ${fmt(ratioLow, 0)}–${fmt(ratioHigh, 0)} vendas por avaliação (razão ${ratioSource}).`,
-    );
-  } else {
-    // nenhuma avaliação nova: menos de 1 avaliação no período
-    low = 0;
-    high = (1 / days) * ratioHigh;
-    basis.push(`Nenhuma avaliação nova em ${fmt(days)} dias: ritmo baixo no período.`);
-  }
-
-  // mudança de faixa de vendidos entre as leituras reforça/limita o intervalo
-  const startLower = start.soldExact ?? start.soldLower ?? null;
-  const startUpper = start.soldExact ?? start.soldUpper ?? null;
-  if (lower != null && upper != null && startLower != null && startUpper != null) {
-    const minDelta = Math.max(0, lower - startUpper) / days;
-    const maxDelta = Math.max(0, upper - startLower) / days;
-    if (maxDelta > 0) {
-      if (minDelta > high) {
-        // a mudança de faixa prova mais vendas do que as avaliações sugerem: vale a faixa
-        low = minDelta;
-        high = Math.max(maxDelta, minDelta);
-      } else if (maxDelta >= low) {
-        low = Math.max(low, minDelta);
-        high = Math.min(high, maxDelta);
-      }
-      if (lower !== startLower) {
-        basis.push(`Faixa de vendidos passou de ${fmt(startLower, 0)}+ para ${fmt(lower, 0)}+ no período.`);
-      }
-    }
-  }
-
-  if (high < low) high = low;
-  const raw = deltaReviews > 0 || low > 0 ? geo(low, high) : high / 3;
-  const value = clamp(raw, low, high);
-
-  const confidence: Confidence = deltaReviews >= 3 && days >= 5 ? 2 : 1;
-
-  basis.push(`${withReviews.length} leituras do Radar entre ${start.at.toLocaleDateString("pt-BR")} e ${latest.at.toLocaleDateString("pt-BR")}.`);
-
+  if (!first || last.soldExact! < first.soldExact!) return null;
+  const days = (last.at.getTime() - first.at.getTime()) / DAY_MS;
+  const delta = last.soldExact! - first.soldExact!;
+  const rate = delta / days;
   return {
-    sales: range(value, low, high),
+    sales: range(rate, rate, rate),
     windowDays: days,
-    confidence,
-    basis,
+    confidence: 2 as Confidence,
+    basis: [
+      `Contador exato aumentou ${fmt(delta, 0)} unidades em ${fmt(days)} dias.`,
+      "Média observada entre leituras; não é previsão nem relatório mensal.",
+    ],
   };
 }
 
@@ -485,11 +418,7 @@ export function demandFrom(estimate: ItemEstimate): DemandLabel | null {
     if (perDay >= 0.7) return "MEDIA";
     return "BAIXA";
   }
-  const sold = estimate.sold.lower;
-  if (sold == null) return null;
-  if (sold >= 5000) return "ALTA";
-  if (sold >= 500) return "MEDIA";
-  return "BAIXA";
+  return null;
 }
 
 export function marketScore(input: {
@@ -501,20 +430,32 @@ export function marketScore(input: {
   const { estimate } = input;
   const perDay = estimate.salesPerDay.value;
   const revenue = estimate.revenuePerDay.value;
+  if (perDay == null) return null;
   const sold = estimate.sold.lower ?? 0;
 
-  const velocity = perDay == null ? null : clamp((Math.log10(perDay + 1) / Math.log10(51)) * 100, 0, 100);
-  const money = revenue == null ? null : clamp((Math.log10(revenue + 1) / Math.log10(20_001)) * 100, 0, 100);
+  const velocity =
+    perDay == null
+      ? null
+      : clamp((Math.log10(perDay + 1) / Math.log10(51)) * 100, 0, 100);
+  const money =
+    revenue == null
+      ? null
+      : clamp((Math.log10(revenue + 1) / Math.log10(20_001)) * 100, 0, 100);
   const proof = clamp((Math.log10(sold + 1) / 4.5) * 100, 0, 100);
   const rating =
-    input.rating == null ? 50 : clamp(((input.rating - 3.5) / 1.5) * 100, 0, 100);
+    input.rating == null
+      ? 50
+      : clamp(((input.rating - 3.5) / 1.5) * 100, 0, 100);
   const logistics = input.fulfillment ? 100 : input.freeShipping ? 70 : 40;
 
   const score =
     velocity != null && money != null
-      ? velocity * 0.4 + money * 0.2 + proof * 0.2 + rating * 0.1 + logistics * 0.1
-      : // sem ritmo medido: só prova acumulada, com teto (não compete com quem foi medido)
-        Math.min(60, proof * 0.7 + rating * 0.15 + logistics * 0.15);
+      ? velocity * 0.4 +
+        money * 0.2 +
+        proof * 0.2 +
+        rating * 0.1 +
+        logistics * 0.1
+      : 0;
 
   return Math.round(clamp(score, 0, 100));
 }

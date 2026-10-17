@@ -45,10 +45,7 @@ function summarizeRows(rows: Array<Record<string, any>>) {
   const summary: Record<string, number> = {};
 
   for (const key of sumKeys) {
-    summary[key] = rows.reduce(
-      (sum, row) => sum + numberValue(row, key),
-      0,
-    );
+    summary[key] = rows.reduce((sum, row) => sum + numberValue(row, key), 0);
   }
 
   const cost = summary.cost ?? 0;
@@ -161,87 +158,88 @@ export async function GET(request: Request) {
     }
 
     const now = new Date();
-    const from = new Date(
-      now.getTime() - (days - 1) * 24 * 60 * 60 * 1000,
-    );
+    const from = new Date(now.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
     const dateFrom = dateOnly(from);
     const dateTo = dateOnly(now);
 
     const [campaignResult, adGroupResult, orders, orderItems, products] =
       await Promise.all([
-      getProductAdsCampaigns({
-        accessToken: session.accessToken,
-        siteId: advertiser.siteId,
-        advertiserId: advertiser.advertiserId,
-        dateFrom,
-        dateTo,
-        limit: 50,
-      })
-        .then((payload) => ({ ok: true as const, payload, error: null }))
-        .catch((error) => ({
-          ok: false as const,
-          payload: null,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Falha ao carregar campanhas Product Ads.",
-        })),
-      getProductAdsAdGroups({
-        accessToken: session.accessToken,
-        siteId: advertiser.siteId,
-        advertiserId: advertiser.advertiserId,
-        dateFrom,
-        dateTo,
-        limit: 100,
-      })
-        .then((payload) => ({ ok: true as const, payload, error: null }))
-        .catch((error) => ({
-          ok: false as const,
-          payload: null,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Falha ao carregar Ad Groups Product Ads.",
-        })),
-      prisma.mercadoLivreOrder.findMany({
-        where: {
-          sellerUserId,
-          status: { not: "cancelled" },
-          dateCreated: { gte: from },
-        },
-        select: {
-          totalAmount: true,
-          profit: true,
-        },
-        take: 1000,
-      }),
-      prisma.mercadoLivreOrderItem.findMany({
-        where: {
-          order: {
+        getProductAdsCampaigns({
+          accessToken: session.accessToken,
+          siteId: advertiser.siteId,
+          advertiserId: advertiser.advertiserId,
+          dateFrom,
+          dateTo,
+          limit: 50,
+        })
+          .then((payload) => ({ ok: true as const, payload, error: null }))
+          .catch((error) => ({
+            ok: false as const,
+            payload: null,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Falha ao carregar campanhas Product Ads.",
+          })),
+        getProductAdsAdGroups({
+          accessToken: session.accessToken,
+          siteId: advertiser.siteId,
+          advertiserId: advertiser.advertiserId,
+          dateFrom,
+          dateTo,
+          limit: 100,
+        })
+          .then((payload) => ({ ok: true as const, payload, error: null }))
+          .catch((error) => ({
+            ok: false as const,
+            payload: null,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Falha ao carregar Ad Groups Product Ads.",
+          })),
+        prisma.mercadoLivreOrder.findMany({
+          where: {
             sellerUserId,
-            status: { not: "cancelled" },
+            status: "paid",
+            refundDetected: false,
+            currencyId: "BRL",
             dateCreated: { gte: from },
           },
-        },
-        select: {
-          mlItemId: true,
-          quantity: true,
-          unitPrice: true,
-          profit: true,
-        },
-        take: 5000,
-      }),
-      prisma.mercadoLivreProduct.findMany({
-        where: { sellerUserId },
-        select: {
-          mlItemId: true,
-          userProductId: true,
-          title: true,
-          thumbnail: true,
-        },
-        take: 500,
-      }),
-    ]);
+          select: {
+            totalAmount: true,
+            profit: true,
+            economicsVersion: true,
+          },
+        }),
+        prisma.mercadoLivreOrderItem.findMany({
+          where: {
+            order: {
+              sellerUserId,
+              status: "paid",
+              refundDetected: false,
+              currencyId: "BRL",
+              dateCreated: { gte: from },
+            },
+          },
+          select: {
+            mlItemId: true,
+            quantity: true,
+            unitPrice: true,
+            profit: true,
+          },
+        }),
+        prisma.mercadoLivreProduct.findMany({
+          where: { sellerUserId },
+          select: {
+            mlItemId: true,
+            userProductId: true,
+            title: true,
+            thumbnail: true,
+          },
+          take: 500,
+        }),
+      ]);
 
     const campaignPayload = campaignResult.payload;
     const adGroupPayload = adGroupResult.payload;
@@ -271,14 +269,13 @@ export async function GET(request: Request) {
     );
 
     const metrics = normalizeSummary(
-      campaignPayload?.metrics_summary ??
-        adGroupPayload?.metrics_summary,
+      campaignPayload?.metrics_summary ?? adGroupPayload?.metrics_summary,
       campaignRows.length > 0 ? campaignRows : adGroupRows,
     );
 
     const validOrders = orders;
     const profitReadyOrders = validOrders.filter(
-      (order) => order.profit != null,
+      (order) => order.profit != null && order.economicsVersion === 1,
     );
     const realizedProfitBeforeAds = profitReadyOrders.reduce(
       (sum, order) => sum + Number(order.profit ?? 0),
@@ -290,9 +287,11 @@ export async function GET(request: Request) {
     );
     const adsCost = Number(metrics.cost ?? 0);
     const realizedProfitAfterAds =
-      realizedProfitBeforeAds - adsCost;
+      profitReadyOrders.length > 0 && issues.length === 0
+        ? realizedProfitBeforeAds - adsCost
+        : null;
     const realizedMarginAfterAds =
-      profitReadyRevenue > 0
+      profitReadyRevenue > 0 && realizedProfitAfterAds != null
         ? (realizedProfitAfterAds / profitReadyRevenue) * 100
         : null;
 
@@ -350,8 +349,7 @@ export async function GET(request: Request) {
         row.budget == null && row.daily_budget == null
           ? null
           : Number(row.budget ?? row.daily_budget),
-      roasTarget:
-        row.roas_target == null ? null : Number(row.roas_target),
+      roasTarget: row.roas_target == null ? null : Number(row.roas_target),
       metrics: {
         cost: numberValue(row, "cost"),
         roas: numberValue(row, "roas"),
@@ -365,6 +363,20 @@ export async function GET(request: Request) {
       },
     }));
 
+    // A product appearing in multiple ad groups has no reliable per-group
+    // attribution of its entire realized profit. Do not repeat that profit.
+    const groupsPerProduct = new Map<string, number>();
+    for (const row of adGroupRows) {
+      const product = productByExternalId.get(
+        String(row.ad_group_external_id ?? ""),
+      );
+      if (product)
+        groupsPerProduct.set(
+          product.mlItemId,
+          (groupsPerProduct.get(product.mlItemId) ?? 0) + 1,
+        );
+    }
+
     const adGroups = adGroupRows
       .map((row) => {
         const externalId =
@@ -372,12 +384,22 @@ export async function GET(request: Request) {
             ? null
             : String(row.ad_group_external_id);
         const product =
-          externalId == null ? null : productByExternalId.get(externalId) ?? null;
+          externalId == null
+            ? null
+            : (productByExternalId.get(externalId) ?? null);
         const realized =
-          product == null ? null : realizedByItem.get(product.mlItemId) ?? null;
+          product == null
+            ? null
+            : (realizedByItem.get(product.mlItemId) ?? null);
         const cost = numberValue(row, "cost");
 
-        const realizedProfitBeforeAds = realized?.profit ?? null;
+        const realizedProfitBeforeAds =
+          realized &&
+          realized.readyUnits > 0 &&
+          product &&
+          groupsPerProduct.get(product.mlItemId) === 1
+            ? realized.profit
+            : null;
         const realizedProfitAfterAds =
           realizedProfitBeforeAds == null
             ? null
@@ -387,7 +409,10 @@ export async function GET(request: Request) {
             ? null
             : (realizedProfitAfterAds / realized.revenue) * 100;
         const profitCoveragePercent =
-          !realized || realized.totalUnits <= 0
+          !realized ||
+          realized.totalUnits <= 0 ||
+          !product ||
+          groupsPerProduct.get(product.mlItemId) !== 1
             ? 0
             : (realized.readyUnits / realized.totalUnits) * 100;
 
@@ -403,8 +428,7 @@ export async function GET(request: Request) {
         return {
           id: row.id == null ? null : String(row.id),
           externalId,
-          campaignId:
-            row.campaign_id == null ? null : String(row.campaign_id),
+          campaignId: row.campaign_id == null ? null : String(row.campaign_id),
           status: String(row.status ?? "unknown").toLowerCase(),
           title: row.title == null ? null : String(row.title),
           catalogListing:
@@ -462,11 +486,7 @@ export async function GET(request: Request) {
       advertiser,
       advertisers,
       dataStatus:
-        issues.length === 0
-          ? "OK"
-          : issues.length === 2
-            ? "ERROR"
-            : "PARTIAL",
+        issues.length === 0 ? "OK" : issues.length === 2 ? "ERROR" : "PARTIAL",
       issues,
       summary: {
         ...metrics,
@@ -485,8 +505,7 @@ export async function GET(request: Request) {
       adGroups,
       freshness: {
         metricsWindowMaxDays: 90,
-        note:
-          "As métricas do Mercado Ads podem ter defasagem intradiária; trate o período atual como parcial.",
+        note: "As métricas do Mercado Ads podem ter defasagem intradiária; trate o período atual como parcial.",
       },
     });
   } catch (error) {

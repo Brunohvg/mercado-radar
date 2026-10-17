@@ -3,6 +3,10 @@
 // copia /extension e troca manifest.json pelo manifest.prod.json (sem localhost).
 import { cpSync, rmSync, mkdirSync, renameSync, existsSync } from "node:fs";
 
+import { marketModelAsset } from "./build-market-model.mjs";
+import { writeFileSync } from "node:fs";
+writeFileSync("extension/market-model.js", marketModelAsset());
+
 const out = "dist/extension-prod";
 rmSync(out, { recursive: true, force: true });
 mkdirSync("dist", { recursive: true });

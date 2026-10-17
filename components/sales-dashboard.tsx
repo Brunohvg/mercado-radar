@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type SalesPayload = {
   days: number;
+  pagination: { page: number; pages: number; total: number };
+  dataQuality: { reportComplete: boolean; syncedAt: string | null };
   summary: {
     orders: number;
     cancelled: number;
@@ -64,12 +66,18 @@ function profitStatus(status: string) {
   if (status === "AWAITING_PRODUCT_COST") return "Aguardando custo do produto";
   if (status === "AWAITING_SHIPPING_COST") return "Aguardando frete realizado";
   if (status === "AWAITING_FEE") return "Aguardando tarifa realizada";
+  if (status === "AWAITING_SETTINGS") return "Confirme impostos e operação";
+  if (status === "NOT_SETTLED") return "Pagamento não concluído";
+  if (status === "REFUND_REVIEW") return "Reembolso em revisão";
+  if (status === "INVALID_DATA") return "Dados precisam de revisão";
   if (status === "REALIZED") return "Lucro realizado";
   return "Em processamento";
 }
 
 export function SalesDashboard() {
   const [data, setData] = useState<SalesPayload | null>(null);
+  const [page, setPage] = useState(1);
+  const run = useRef(0);
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -77,11 +85,12 @@ export function SalesDashboard() {
   const [showAllOrders, setShowAllOrders] = useState(false);
 
   const load = useCallback(async (refresh = false, period = days) => {
+    const current = ++run.current;
     refresh ? setRefreshing(true) : setLoading(true);
     setError("");
 
     try {
-      const params = new URLSearchParams({ days: String(period) });
+      const params = new URLSearchParams({ days: String(period), page: String(page) });
       if (refresh) params.set("refresh", "1");
 
       const response = await fetch(`/api/ml/sales?${params.toString()}`, {
@@ -93,16 +102,15 @@ export function SalesDashboard() {
         throw new Error(payload.error ?? "Falha ao carregar vendas.");
       }
 
-      setData(payload);
+      if (current === run.current) setData(payload);
     } catch (caught) {
-      setError(
+      if (current === run.current) setError(
         caught instanceof Error ? caught.message : "Falha ao carregar vendas.",
       );
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (current === run.current) { setLoading(false); setRefreshing(false); }
     }
-  }, [days]);
+  }, [days, page]);
 
   useEffect(() => {
     void load(false, days);
@@ -123,7 +131,7 @@ export function SalesDashboard() {
                 type="button"
                 className={days === period ? "active" : ""}
                 aria-pressed={days === period}
-                onClick={() => setDays(period)}
+                onClick={() => { setPage(1); setDays(period); }}
               >
                 {period} dias
               </button>
@@ -143,13 +151,14 @@ export function SalesDashboard() {
       {loading && <div className="module-loading">Carregando vendas...</div>}
       {error && <div className="error">{error}</div>}
 
-      {data && (
+      {data && data.days === days && data.pagination.page === page && (
         <>
+          {!data.dataQuality.reportComplete && <div className="radar-notice"><p>Histórico parcial ou desatualizado. Sincronize para conferir todo o período.</p></div>}
           <div className="clean-kpi-grid sales-kpis">
             <article className="clean-kpi-card">
               <span>Faturamento</span>
               <strong>{money.format(data.summary.grossRevenue)}</strong>
-              <small>{data.summary.orders} pedidos válidos</small>
+              <small>{data.summary.orders} pedidos pagos</small>
             </article>
             <article className="clean-kpi-card">
               <span>Unidades</span>
@@ -217,7 +226,7 @@ export function SalesDashboard() {
             <div className="module-subhead">
               <strong>Pedidos recentes</strong>
               <small>
-                O Radar só chama de lucro real quando custo do produto, tarifa e
+                O Radar só chama de lucro real quando custo do produto, imposto, operação, tarifa e
                 frete realizado estiverem completos.
               </small>
             </div>
@@ -228,7 +237,7 @@ export function SalesDashboard() {
               </div>
             ) : (
               data.orders
-                .slice(0, showAllOrders ? 30 : 8)
+                .slice(0, showAllOrders ? data.orders.length : 8)
                 .map((order) => (
                 <article className="sales-order-card" key={order.mlOrderId}>
                   <div className="order-main">
@@ -305,10 +314,16 @@ export function SalesDashboard() {
               >
                 {showAllOrders
                   ? "Mostrar menos pedidos"
-                  : `Mostrar mais ${Math.min(data.orders.length - 8, 22)} pedido(s)`}
+                  : `Mostrar mais ${data.orders.length - 8} pedido(s)`}
               </button>
             )}
           </section>
+          <div className="page-header-actions">
+            <button className="secondary" disabled={loading || page <= 1} onClick={() => { setShowAllOrders(false); setPage((p) => p - 1); }}>Anterior</button>
+            <span>Página {page} de {Math.max(1, data.pagination.pages)} · {data.pagination.total} pedidos importados</span>
+            <button className="secondary" disabled={loading || page >= data.pagination.pages} onClick={() => { setShowAllOrders(false); setPage((p) => p + 1); }}>Próxima</button>
+            <a className="clean-secondary" href={`/api/ml/sales/export?days=${days}`}>Exportar período em CSV</a>
+          </div>
         </>
       )}
     </section>

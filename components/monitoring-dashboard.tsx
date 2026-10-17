@@ -6,7 +6,9 @@ type Snapshot = {
   price: number | null;
   score: number | null;
   demandLabel: string | null;
-  soldQuantity: number;
+  soldQuantity: number | null;
+  soldIsLowerBound?: boolean;
+  trackingMode?: string;
   visits: number | null;
   capturedAt: string;
 };
@@ -52,7 +54,9 @@ type WatchItem = {
   currentPrice: number | null;
   score: number | null;
   demandLabel: string | null;
-  soldQuantity: number;
+  soldQuantity: number | null;
+  soldIsLowerBound?: boolean;
+  trackingMode?: string;
   visits: number | null;
   lastCheckedAt: string;
   createdAt: string;
@@ -112,9 +116,7 @@ export function MonitoringDashboard() {
       }
 
       if (!alertResponse.ok) {
-        throw new Error(
-          alertPayload.error ?? "Falha ao carregar alertas.",
-        );
+        throw new Error(alertPayload.error ?? "Falha ao carregar alertas.");
       }
 
       setItems(watchPayload.items ?? []);
@@ -208,7 +210,9 @@ export function MonitoringDashboard() {
       const previous = item.snapshots[1]?.price ?? null;
       return delta(item.currentPrice, previous) != null;
     }).length;
-    const highScore = items.filter((item) => Number(item.score ?? 0) >= 70).length;
+    const highScore = items.filter(
+      (item) => Number(item.score ?? 0) >= 70,
+    ).length;
     const excellent = items.filter(
       (item) => item.demandLabel === "EXCELENTE" || item.demandLabel === "ALTA",
     ).length;
@@ -238,7 +242,8 @@ export function MonitoringDashboard() {
           <p className="page-kicker">Inteligência</p>
           <h1>Monitoramento</h1>
           <p>
-            Preço, demanda, score e evolução dos anúncios que você salvou pela extensão.
+            Preço e leituras dos anúncios que você salvou. Dados privados
+            dependem da conta autorizada.
           </p>
         </div>
         <div className="page-header-actions">
@@ -248,12 +253,14 @@ export function MonitoringDashboard() {
             disabled={refreshing}
             onClick={() => void refreshAll()}
           >
-            {refreshing ? "Atualizando..." : "Atualizar agora"}
+            {refreshing ? "Atualizando..." : "Atualizar via API"}
           </button>
         </div>
       </header>
 
-      {loading && <div className="clean-loading">Carregando monitoramento...</div>}
+      {loading && (
+        <div className="clean-loading">Carregando monitoramento...</div>
+      )}
       {error && <div className="error">{error}</div>}
 
       {!loading && (
@@ -277,9 +284,7 @@ export function MonitoringDashboard() {
             <article className="clean-kpi-card accent">
               <span>Momentum 70 ou mais</span>
               <strong>{summary.momentumStrong}</strong>
-              <small>
-                {summary.momentumReady} com histórico suficiente
-              </small>
+              <small>{summary.momentumReady} com histórico suficiente</small>
             </article>
           </section>
 
@@ -296,7 +301,8 @@ export function MonitoringDashboard() {
                     className="inline-link-button"
                     onClick={() => void markAllRead()}
                   >
-                    Marcar {unreadCount} como {unreadCount === 1 ? "lido" : "lidos"}
+                    Marcar {unreadCount} como{" "}
+                    {unreadCount === 1 ? "lido" : "lidos"}
                   </button>
                 )}
               </div>
@@ -311,11 +317,16 @@ export function MonitoringDashboard() {
                     }
                     key={alert.id}
                   >
-                    <span className="monitoring-alert-indicator" aria-hidden="true" />
+                    <span
+                      className="monitoring-alert-indicator"
+                      aria-hidden="true"
+                    />
                     <div className="monitoring-alert-copy">
                       <div>
                         <strong>{alert.title}</strong>
-                        {!alert.readAt && <span className="tag good">Novo</span>}
+                        {!alert.readAt && (
+                          <span className="tag good">Novo</span>
+                        )}
                       </div>
                       <p>{alert.message}</p>
                       <small>
@@ -355,7 +366,9 @@ export function MonitoringDashboard() {
                 <p>
                   Abra um anúncio no Mercado Livre, abra o painel lateral da
                   extensão Radar e clique em <b>Monitorar este anúncio</b>. Ele
-                  aparece aqui com preço, demanda e score atualizados.
+                  aparece aqui com preço e origem da leitura. Anúncios de
+                  terceiros são atualizados quando você os visita com o painel
+                  aberto.
                 </p>
                 <a className="inline-link-button" href="/extensao">
                   Instalar a extensão
@@ -364,13 +377,18 @@ export function MonitoringDashboard() {
             ) : (
               <div className="monitoring-grid">
                 {items.map((item) => {
-                  const previous = item.snapshots[1] ?? item.snapshots[0] ?? null;
+                  const previous =
+                    item.snapshots[1] ?? item.snapshots[0] ?? null;
                   const priceDelta = delta(
                     item.currentPrice,
                     previous?.price ?? null,
                   );
                   const soldDelta =
-                    previous == null
+                    previous == null ||
+                    item.soldQuantity == null ||
+                    previous.soldQuantity == null ||
+                    item.soldIsLowerBound ||
+                    previous.soldIsLowerBound
                       ? null
                       : item.soldQuantity - previous.soldQuantity;
 
@@ -380,24 +398,37 @@ export function MonitoringDashboard() {
                         {item.thumbnail ? (
                           <img src={item.thumbnail} alt="" loading="lazy" />
                         ) : (
-                          <span className="clean-product-thumb" aria-hidden="true">MR</span>
+                          <span
+                            className="clean-product-thumb"
+                            aria-hidden="true"
+                          >
+                            MR
+                          </span>
                         )}
                         <div>
                           <strong title={item.title}>{item.title}</strong>
-                          <small>{item.mlItemId}</small>
+                          <small>
+                            {item.mlItemId} ·{" "}
+                            {item.trackingMode === "PAGE"
+                              ? "leitura da página; atualiza por visita"
+                              : "consulta API"}
+                          </small>
                         </div>
                         <span
                           className={
                             "watch-score " +
-                            (Number(item.score ?? 0) >= 70
-                              ? "good"
-                              : Number(item.score ?? 0) < 40
-                                ? "low"
-                                : "")
+                            (item.score == null
+                              ? ""
+                              : Number(item.score) >= 70
+                                ? "good"
+                                : Number(item.score ?? 0) < 40
+                                  ? "low"
+                                  : "")
                           }
                           title="Score de oportunidade"
                         >
-                          <b>{item.score ?? 0}</b>/100
+                          <b>{item.score ?? "—"}</b>
+                          {item.score == null ? "" : "/100"}
                         </span>
                       </div>
 
@@ -427,19 +458,30 @@ export function MonitoringDashboard() {
                           <span>Demanda</span>
                           <strong>
                             {item.demandLabel
-                              ? demandText[item.demandLabel] ?? item.demandLabel
+                              ? (demandText[item.demandLabel] ??
+                                item.demandLabel)
                               : "—"}
                           </strong>
                           <small>
-                            {(item.visits ?? 0).toLocaleString("pt-BR")} visitas
+                            {item.visits == null
+                              ? "visitas não disponíveis"
+                              : item.visits.toLocaleString("pt-BR") +
+                                " visitas"}
                           </small>
                         </div>
                         <div>
                           <span>Vendidos</span>
-                          <strong>{item.soldQuantity.toLocaleString("pt-BR")}</strong>
+                          <strong>
+                            {item.soldQuantity == null
+                              ? "—"
+                              : (item.soldIsLowerBound ? "+" : "") +
+                                item.soldQuantity.toLocaleString("pt-BR")}
+                          </strong>
                           <small>
                             {soldDelta == null
-                              ? "primeiro snapshot"
+                              ? item.trackingMode === "PAGE"
+                                ? "acumulado exibido; período desconhecido"
+                                : "sem comparação exata"
                               : `+${Math.max(0, soldDelta)} desde a última leitura`}
                           </small>
                         </div>
@@ -448,7 +490,8 @@ export function MonitoringDashboard() {
                           <strong
                             className={
                               item.momentum?.status === "READY"
-                                ? "momentum-" + item.momentum.direction.toLowerCase()
+                                ? "momentum-" +
+                                  item.momentum.direction.toLowerCase()
                                 : "momentum-learning"
                             }
                           >
@@ -469,10 +512,13 @@ export function MonitoringDashboard() {
                       <div className="monitoring-card-foot">
                         <small>
                           Atualizado em{" "}
-                          {new Date(item.lastCheckedAt).toLocaleString("pt-BR", {
-                            dateStyle: "short",
-                            timeStyle: "short",
-                          })}
+                          {new Date(item.lastCheckedAt).toLocaleString(
+                            "pt-BR",
+                            {
+                              dateStyle: "short",
+                              timeStyle: "short",
+                            },
+                          )}
                         </small>
                         <div>
                           {item.permalink && (

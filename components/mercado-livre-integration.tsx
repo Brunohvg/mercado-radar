@@ -2,31 +2,21 @@
 
 import { useEffect, useState } from "react";
 
-type MlDiagnosticsCheck = {
-  ok: boolean;
-  status: number;
-  code: string | null;
-  message: string | null;
-};
-
 type MlDiagnostics = {
-  account: MlDiagnosticsCheck;
-  catalogSearch: MlDiagnosticsCheck;
-  categoryDiscovery: MlDiagnosticsCheck;
-  capabilities: {
-    listings: MlDiagnosticsCheck & { permission?: string; hint?: string };
-    businessMetrics: MlDiagnosticsCheck & { permission?: string; hint?: string };
-    orders: MlDiagnosticsCheck & { permission?: string; hint?: string };
-    productAds: MlDiagnosticsCheck & { permission?: string; hint?: string };
-    catalogSearch: MlDiagnosticsCheck & { hint?: string };
-    categoryDiscovery: MlDiagnosticsCheck & { hint?: string };
-    trends: MlDiagnosticsCheck & { hint?: string };
-  };
-  summary: {
-    healthy: boolean;
-    marketplaceKeywordSearchRequired?: boolean;
-    marketplaceKeywordSearchBlocked?: boolean;
-  };
+  checkedAt: string;
+  checks: Array<{
+    key: string;
+    title: string;
+    optional: boolean;
+    status: number;
+    state: string;
+    ok: boolean;
+    guidance: string;
+    grant: string;
+  }>;
+  oauth: { storedScope: string[]; offlineAccess: boolean; note: string };
+  summary: { healthy: boolean; optionalUnavailable: number };
+  limits: string;
 };
 
 type MlStatus = {
@@ -55,7 +45,9 @@ export function MercadoLivreIntegration() {
       })
       .catch((caught) => {
         setError(
-          caught instanceof Error ? caught.message : "Falha ao consultar integração.",
+          caught instanceof Error
+            ? caught.message
+            : "Falha ao consultar integração.",
         );
       });
   }, []);
@@ -72,9 +64,7 @@ export function MercadoLivreIntegration() {
       const payload = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          payload.error ?? "Falha ao diagnosticar integração.",
-        );
+        throw new Error(payload.error ?? "Falha ao diagnosticar integração.");
       }
 
       setDiagnostics(payload);
@@ -96,18 +86,22 @@ export function MercadoLivreIntegration() {
           <p className="page-kicker">Configuração</p>
           <h1>Integrações</h1>
           <p>
-            Conecte sua conta para o Radar buscar tarifa e frete da sua operação,
-            em vez de depender de estimativas manuais.
+            Conecte sua conta para o Radar buscar tarifa e frete da sua
+            operação, em vez de depender de estimativas manuais.
           </p>
         </div>
       </header>
 
       <section className="clean-panel integration-account">
         <div className="integration-account-head">
-          <span className="integration-logo" aria-hidden="true">ML</span>
+          <span className="integration-logo" aria-hidden="true">
+            ML
+          </span>
           <div>
             <strong>Mercado Livre</strong>
-            <span>Pedidos, anúncios, métricas e publicidade da sua conta de vendedor</span>
+            <span>
+              Pedidos, anúncios, métricas e publicidade da sua conta de vendedor
+            </span>
           </div>
           <span
             className={
@@ -132,7 +126,11 @@ export function MercadoLivreIntegration() {
           <div>
             <span>Conta</span>
             <strong>{status?.nickname ?? "—"}</strong>
-            <small>{status?.connected ? "vendedor autorizado" : "nenhuma conta ligada"}</small>
+            <small>
+              {status?.connected
+                ? "vendedor autorizado"
+                : "nenhuma conta ligada"}
+            </small>
           </div>
           <div>
             <span>ID do vendedor</span>
@@ -154,7 +152,9 @@ export function MercadoLivreIntegration() {
 
         <div className="integration-actions">
           <a
-            className={"primary-link " + (status?.connected ? "secondary" : "primary")}
+            className={
+              "primary-link " + (status?.connected ? "secondary" : "primary")
+            }
             href="/api/integrations/mercadolivre/authorize"
           >
             {status?.connected ? "Reconectar conta" : "Conectar Mercado Livre"}
@@ -165,11 +165,13 @@ export function MercadoLivreIntegration() {
             disabled={!status?.connected || diagnosticsLoading}
             onClick={runDiagnostics}
           >
-            {diagnosticsLoading ? "Testando permissões..." : "Testar permissões"}
+            {diagnosticsLoading
+              ? "Verificando recursos..."
+              : "Verificar acesso às APIs"}
           </button>
           <small>
-            Autorização OAuth 2.0 com PKCE. Os tokens ficam criptografados no banco
-            de dados.
+            Autorização OAuth 2.0 com PKCE. Os tokens ficam criptografados no
+            banco de dados.
           </small>
         </div>
       </section>
@@ -182,48 +184,59 @@ export function MercadoLivreIntegration() {
               <strong>
                 {diagnostics.summary.healthy
                   ? "Integração principal saudável"
-                  : "Há recursos bloqueados"}
+                  : "Verifique os recursos principais"}
               </strong>
             </div>
             <small>Teste feito com a conta conectada agora.</small>
           </div>
 
           <div className="integration-diagnostic-grid">
-            {[
-              ["Conta e autorização", diagnostics.account],
-              ["Publicações", diagnostics.capabilities.listings],
-              ["Métricas", diagnostics.capabilities.businessMetrics],
-              ["Pedidos", diagnostics.capabilities.orders],
-              ["Publicidade", diagnostics.capabilities.productAds],
-              ["Catálogo", diagnostics.capabilities.catalogSearch],
-              ["Categorias", diagnostics.capabilities.categoryDiscovery],
-              ["Tendências", diagnostics.capabilities.trends],
-            ].map(([label, check]) => {
-              const item = check as MlDiagnosticsCheck;
-              return (
-                <article
-                  className={
-                    "integration-diagnostic-item " +
-                    (item.ok ? "ok" : "blocked")
-                  }
-                  key={String(label)}
+            {diagnostics.checks.map((item) => (
+              <article
+                className={
+                  "integration-diagnostic-item " + (item.ok ? "ok" : "blocked")
+                }
+                key={item.key}
+              >
+                <span>
+                  {item.title} {item.optional ? "· opcional" : "· principal"}
+                </span>
+                <strong
+                  className={"status-chip " + (item.ok ? "good" : "neutral")}
                 >
-                  <span>{String(label)}</span>
-                  <strong
-                    className={"status-chip " + (item.ok ? "good" : "bad")}
-                  >
-                    {item.ok ? "OK" : `HTTP ${item.status || "—"}`}
-                  </strong>
-                  {!item.ok && (
-                    <small>
-                      {[item.code, item.message]
-                        .filter(Boolean)
-                        .join(" · ") || "Recurso indisponível"}
-                    </small>
-                  )}
-                </article>
-              );
-            })}
+                  {item.ok
+                    ? "Disponível"
+                    : item.state === "NOT_TESTED"
+                      ? "Sem amostra"
+                      : item.state === "RESTRICTED"
+                        ? "Acesso restrito"
+                        : item.state === "RECONNECT"
+                          ? "Reconectar"
+                          : item.state === "RATE_LIMITED"
+                            ? "Limite temporário"
+                            : "Indisponível"}
+                </strong>
+                <small>{item.guidance}</small>
+                <small>
+                  {item.grant}
+                  {item.status ? ` · HTTP ${item.status}` : ""}
+                </small>
+              </article>
+            ))}
+          </div>
+          <div className="integration-note">
+            <strong>Autorização desta conta:</strong>{" "}
+            {diagnostics.oauth.storedScope.join(", ") || "escopo não informado"}
+            .
+            {!diagnostics.oauth.offlineAccess &&
+              " Acesso offline não consta no token; confira a renovação autorizada no DevCenter."}
+            <p>{diagnostics.oauth.note}</p>
+            <p>{diagnostics.limits}</p>
+            <p>
+              Recursos opcionais indisponíveis não tornam o login inválido. O
+              operador configura a aplicação; cada cliente autoriza sua própria
+              conta.
+            </p>
           </div>
         </section>
       )}

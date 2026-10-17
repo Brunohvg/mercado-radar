@@ -55,7 +55,7 @@ export function recommendAdsAction(input: {
   }
 
   if (input.profitAfterAds != null && coverage >= 70) {
-    if (input.profitAfterAds < 0) {
+    if (input.profitAfterAds <= 0) {
       return {
         action: "REDUCE",
         confidence: "HIGH",
@@ -75,7 +75,7 @@ export function recommendAdsAction(input: {
       };
     }
 
-    if (target != null && roas >= target * 1.2) {
+    if (target != null && roas >= target * 1.2 && coverage >= 95 && units >= 10) {
       return {
         action: "SCALE",
         confidence: "HIGH",

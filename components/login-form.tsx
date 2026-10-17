@@ -5,7 +5,9 @@ import { useState } from "react";
 function safeNext() {
   const next = new URLSearchParams(window.location.search).get("next");
   // só caminhos internos; bloqueia "//host" e "http://host" (open redirect)
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+  if (!next || !next.startsWith("/") || next.includes("\\")) return "/";
+  const target = new URL(next, window.location.origin);
+  return target.origin === window.location.origin ? target.pathname + target.search : "/";
 }
 
 export function LoginForm({ configured }: { configured: boolean }) {
@@ -62,8 +64,7 @@ export function LoginForm({ configured }: { configured: boolean }) {
         <div className="rd-auth__pitch">
           <strong>Veja o que vende antes de investir.</strong>
           <p>
-            Vendas, faturamento e visitas estimadas de qualquer anúncio do Mercado Livre,
-            com a sua margem calculada na hora.
+            Compare produtos, confira seus custos e encontre a próxima decisão para proteger seu lucro.
           </p>
         </div>
       </aside>
@@ -78,7 +79,7 @@ export function LoginForm({ configured }: { configured: boolean }) {
         </div>
 
         <h1>Entrar</h1>
-        <p>Acesse o painel com a conta do operador.</p>
+        <p>Acesse sua operação com seu e-mail e senha.</p>
 
         {!configured ? (
           <div className="rd-auth__error" role="alert">

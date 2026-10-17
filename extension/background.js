@@ -27,7 +27,19 @@ async function sha256Base64Url(value) {
 
 async function getApiBase() {
   const settings = await chrome.storage.sync.get(["radarApiBase"]);
-  return settings.radarApiBase || DEFAULT_API_BASE;
+  const raw = settings.radarApiBase || DEFAULT_API_BASE;
+  const url = new URL(raw);
+  if (
+    url.origin !== DEFAULT_API_BASE &&
+    !(
+      url.protocol === "http:" &&
+      ["localhost", "127.0.0.1"].includes(url.hostname)
+    )
+  )
+    throw new Error(
+      "URL da API inválida. Use o Radar ou um servidor local de desenvolvimento.",
+    );
+  return url.origin;
 }
 
 async function getDeviceId() {
@@ -44,11 +56,13 @@ async function authTokens() {
     "radarAccessToken",
     "radarAccessTokenExpiresAt",
     "radarRefreshToken",
+    "radarAuthOrigin",
   ]);
 }
 
 async function saveTokens(payload) {
   await chrome.storage.local.set({
+    radarAuthOrigin: await getApiBase(),
     radarAccessToken: payload.access_token,
     radarAccessTokenExpiresAt:
       Date.now() + Number(payload.expires_in || 0) * 1000,
@@ -61,6 +75,7 @@ async function clearTokens() {
     "radarAccessToken",
     "radarAccessTokenExpiresAt",
     "radarRefreshToken",
+    "radarAuthOrigin",
   ]);
 }
 
@@ -76,6 +91,7 @@ async function refreshAccessToken() {
 
     const response = await fetch(base + "/api/extension/auth/refresh", {
       method: "POST",
+      signal: AbortSignal.timeout(20000),
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         grant_type: "refresh_token",
@@ -86,7 +102,7 @@ async function refreshAccessToken() {
 
     const body = await response.json().catch(() => ({}));
     if (!response.ok || !body.access_token) {
-      await clearTokens();
+      if ([400, 401, 403].includes(response.status)) await clearTokens();
       return null;
     }
 
@@ -103,6 +119,10 @@ async function refreshAccessToken() {
 
 async function currentAccessToken() {
   const tokens = await authTokens();
+  if ((tokens.radarAuthOrigin || DEFAULT_API_BASE) !== (await getApiBase())) {
+    await clearTokens();
+    return null;
+  }
 
   if (
     tokens.radarAccessToken &&
@@ -123,6 +143,7 @@ async function doFetch(message, accessToken) {
 
   const response = await fetch(base + message.path, {
     method: message.method || "GET",
+    signal: AbortSignal.timeout(25000),
     headers,
     body: message.body ? JSON.stringify(message.body) : undefined,
   });
@@ -132,6 +153,13 @@ async function doFetch(message, accessToken) {
 }
 
 async function radarRequest(message) {
+  if (
+    !/^\/api\/extension\/(?:item|items|market|observations|profitability|search-profitability|search|watchlist)(?:[?]|$)/.test(
+      message.path || "",
+    ) ||
+    !["GET", "POST", "DELETE"].includes(message.method || "GET")
+  )
+    throw new Error("Consulta não permitida pela extensão.");
   let token = await currentAccessToken();
 
   if (!token) {
@@ -228,7 +256,28 @@ async function authStatus() {
     };
   }
 
-  return response.body;
+  const profile = response.body;
+  const stored = await chrome.storage.sync.get([
+    "radarPreferencesWorkspace",
+    "radarPreferencesUpdatedAt",
+  ]);
+  if (
+    profile.preferences &&
+    (stored.radarPreferencesWorkspace !== profile.workspaceId ||
+      stored.radarPreferencesUpdatedAt !== profile.preferences.updatedAt)
+  ) {
+    await chrome.storage.sync.set({
+      radarPreferencesWorkspace: profile.workspaceId,
+      radarPreferencesUpdatedAt: profile.preferences.updatedAt,
+      radarTaxPercent: profile.preferences.taxPercent,
+      radarOperatingCost: profile.preferences.operatingCost,
+      radarTargetMarginPercent: profile.preferences.targetMarginPercent,
+      radarTargetRoiPercent: profile.preferences.targetRoiPercent,
+    });
+    if (stored.radarPreferencesWorkspace !== profile.workspaceId)
+      await chrome.storage.sync.remove(["radarShippingEstimate"]);
+  }
+  return profile;
 }
 
 async function logout() {
@@ -241,10 +290,85 @@ async function logout() {
   }
 
   await clearTokens();
+  await chrome.storage.session.remove([
+    "radarComparisonTarget",
+    "radarPanelIntent",
+  ]);
+  await chrome.storage.sync.remove([
+    "radarTaxPercent",
+    "radarOperatingCost",
+    "radarShippingEstimate",
+    "radarPreferencesWorkspace",
+    "radarPreferencesUpdatedAt",
+  ]);
   return { authenticated: false };
 }
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+async function activeContext() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) return null;
+  try {
+    const context = await chrome.tabs.sendMessage(tab.id, {
+      type: "RADAR_READ_CONTEXT",
+    });
+    return context ? { ...context, tabId: tab.id } : null;
+  } catch {
+    return null;
+  } // Do not reuse a context from another or navigated tab.
+}
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (sender.id !== chrome.runtime.id) return false;
+  if (message?.type === "RADAR_OPEN_PANEL") {
+    if (
+      !sender.tab?.id ||
+      !/^https:\/\/([a-z0-9-]+\.)*mercadolivre\.com\.br\//i.test(
+        sender.url || "",
+      )
+    ) {
+      sendResponse({ ok: false });
+      return false;
+    }
+    chrome.sidePanel
+      .open({ tabId: sender.tab.id })
+      .then(async () => {
+        // A single-use UI intent; page observations still come from the active tab.
+        await chrome.storage.session.set({
+          radarPanelIntent: {
+            id: crypto.randomUUID(),
+            tabId: sender.tab.id,
+            issuedAt: Date.now(),
+            tab: ["summary", "calculator", "market", "connection"].includes(
+              message.tab,
+            )
+              ? message.tab
+              : "summary",
+            referenceId: /^MLB(?:U)?\d{5,}$/.test(message.referenceId || "")
+              ? message.referenceId
+              : null,
+            selectedIds: Array.isArray(message.selectedIds)
+              ? [
+                  ...new Set(
+                    message.selectedIds.filter(
+                      (id) =>
+                        typeof id === "string" && /^MLB(?:U)?\d{5,}$/.test(id),
+                    ),
+                  ),
+                ].slice(0, 60)
+              : [],
+          },
+        });
+        sendResponse({ ok: true });
+      })
+      .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+  if (message?.type === "RADAR_CONTEXT_GET") {
+    activeContext()
+      .then(sendResponse)
+      .catch(() => sendResponse(null));
+    return true;
+  }
   if (message?.type === "RADAR_FETCH") {
     radarRequest(message)
       .then(sendResponse)
@@ -273,18 +397,46 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message?.type === "RADAR_AUTH_STATUS") {
-    authStatus().then(sendResponse);
+    authStatus()
+      .then(sendResponse)
+      .catch((error) =>
+        sendResponse({
+          authenticated: false,
+          error: error.message || "Falha de conexão.",
+        }),
+      );
     return true;
   }
 
   if (message?.type === "RADAR_AUTH_LOGOUT") {
-    logout().then(sendResponse);
+    logout()
+      .then(sendResponse)
+      .catch(() => sendResponse({ authenticated: false }));
     return true;
   }
 
   if (message?.type === "RADAR_CONTEXT_UPDATE") {
-    chrome.storage.session.set({ radarCurrentContext: message.context || null });
-    sendResponse({ ok: true });
-    return false;
+    if (
+      !sender.tab?.id ||
+      !/^https:\/\/([a-z0-9-]+\.)*mercadolivre\.com\.br\//i.test(
+        sender.url || "",
+      )
+    ) {
+      sendResponse({ ok: false });
+      return false;
+    }
+    chrome.storage.session
+      .set({
+        ["radarContext:" + sender.tab.id]: {
+          ...message.context,
+          tabId: sender.tab.id,
+        },
+      })
+      .then(() => sendResponse({ ok: true }));
+    return true;
   }
+});
+
+chrome.tabs.onRemoved.addListener((id) => {
+  void chrome.storage.session.remove("radarContext:" + id);
 });

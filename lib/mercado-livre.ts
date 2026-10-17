@@ -1,6 +1,8 @@
+import { getWorkspaceId } from "@/lib/workspace-auth";
 import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { decryptSecret, encryptSecret } from "@/lib/security";
+import { parseShippingDimensions } from "@/lib/shipping-package";
 
 const API = "https://api.mercadolibre.com";
 
@@ -305,6 +307,7 @@ async function refreshAccessToken(refreshToken: string) {
 }
 
 export async function saveMlAccount(input: {
+  workspaceId: string;
   userId: string;
   nickname?: string;
   accessToken: string;
@@ -312,8 +315,12 @@ export async function saveMlAccount(input: {
   expiresIn: number;
   scope?: string;
 }) {
+  const otherAccount = await prisma.mercadoLivreAccount.findFirst({ where: { workspaceId: input.workspaceId, mercadoLivreUserId: { not: input.userId } } });
+  if (otherAccount) throw new Error("O piloto permite uma conta do Mercado Livre por operação. Reconecte a conta já vinculada.");
+  const existing = await prisma.mercadoLivreAccount.findUnique({ where: { mercadoLivreUserId: input.userId } });
+  if (existing && existing.workspaceId !== input.workspaceId) throw new Error("Esta conta já está vinculada a outro cliente.");
   return prisma.mercadoLivreAccount.upsert({
-    where: { mercadoLivreUserId: input.userId },
+    where: { mercadoLivreUserId: input.userId, workspaceId: input.workspaceId },
     update: {
       nickname: input.nickname,
       accessTokenEncrypted: encryptSecret(input.accessToken),
@@ -322,6 +329,7 @@ export async function saveMlAccount(input: {
       scopes: input.scope,
     },
     create: {
+      workspaceId: input.workspaceId,
       mercadoLivreUserId: input.userId,
       nickname: input.nickname,
       accessTokenEncrypted: encryptSecret(input.accessToken),
@@ -333,6 +341,7 @@ export async function saveMlAccount(input: {
 }
 
 type MlAccountRecord = {
+  workspaceId: string;
   id: string;
   mercadoLivreUserId: string;
   nickname: string | null;
@@ -359,58 +368,38 @@ const refreshLocks = new Map<
 >();
 
 async function refreshAccountSession(stale: MlAccountRecord) {
-  // Outra requisição/processo pode ter renovado entre a leitura e a trava.
-  const current =
-    (await prisma.mercadoLivreAccount.findUnique({ where: { id: stale.id } })) ??
-    stale;
-
-  if (hasFreshToken(current)) {
-    return {
-      account: current,
-      accessToken: decryptSecret(current.accessTokenEncrypted),
-    };
-  }
-
-  let refreshed: Awaited<ReturnType<typeof refreshAccessToken>>;
-
-  try {
-    refreshed = await refreshAccessToken(
-      decryptSecret(current.refreshTokenEncrypted),
-    );
-  } catch (error) {
-    // Se outro processo (ex.: cron) rotacionou o token enquanto tentávamos,
-    // o banco já tem um token válido: usamos ele em vez de derrubar a sessão.
-    const latest = await prisma.mercadoLivreAccount.findUnique({
-      where: { id: current.id },
-    });
-
-    if (
-      latest &&
-      latest.refreshTokenEncrypted !== current.refreshTokenEncrypted &&
-      hasFreshToken(latest)
-    ) {
-      return {
-        account: latest,
-        accessToken: decryptSecret(latest.accessTokenEncrypted),
-      };
-    }
-
-    throw error;
-  }
-
-  const updated = await prisma.mercadoLivreAccount.update({
-    where: { id: current.id },
-    data: {
-      accessTokenEncrypted: encryptSecret(refreshed.access_token),
-      refreshTokenEncrypted: refreshed.refresh_token
-        ? encryptSecret(refreshed.refresh_token)
-        : current.refreshTokenEncrypted,
-      tokenExpiresAt: new Date(Date.now() + refreshed.expires_in * 1000),
-      scopes: refreshed.scope ?? current.scopes,
+  // Row lock serializes refresh across routes, workers and replicas. A process
+  // promise alone cannot protect ML's single-use refresh token.
+  return prisma.$transaction(
+    async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "MercadoLivreAccount" WHERE "id" = ${stale.id} FOR UPDATE`;
+      const current = await tx.mercadoLivreAccount.findUnique({
+        where: { id: stale.id },
+      });
+      if (!current) throw new Error("Conta Mercado Livre não encontrada.");
+      if (hasFreshToken(current))
+        return {
+          account: current,
+          accessToken: decryptSecret(current.accessTokenEncrypted),
+        };
+      const refreshed = await refreshAccessToken(
+        decryptSecret(current.refreshTokenEncrypted),
+      );
+      const updated = await tx.mercadoLivreAccount.update({
+        where: { id: current.id },
+        data: {
+          accessTokenEncrypted: encryptSecret(refreshed.access_token),
+          refreshTokenEncrypted: refreshed.refresh_token
+            ? encryptSecret(refreshed.refresh_token)
+            : current.refreshTokenEncrypted,
+          tokenExpiresAt: new Date(Date.now() + refreshed.expires_in * 1000),
+          scopes: refreshed.scope ?? current.scopes,
+        },
+      });
+      return { account: updated, accessToken: refreshed.access_token };
     },
-  });
-
-  return { account: updated, accessToken: refreshed.access_token };
+    { maxWait: 20_000, timeout: 20_000 },
+  );
 }
 
 async function buildMlSession(account: MlAccountRecord) {
@@ -431,17 +420,13 @@ async function buildMlSession(account: MlAccountRecord) {
   return task;
 }
 
-export async function getMlSession() {
-  // Painel web (single-tenant): se ADMIN_ML_ACCOUNT_ID estiver definido, usa
-  // exatamente essa conta. Sem ele mantém o comportamento anterior (conta mais
-  // recente), o que é arriscado quando há contas de extensão no mesmo banco.
-  const pinned = process.env.ADMIN_ML_ACCOUNT_ID?.trim();
+export async function getWorkspaceMlAccount(workspaceId: string) {
+  const pinned = workspaceId === "default" ? process.env.ADMIN_ML_ACCOUNT_ID?.trim() : undefined;
+  return prisma.mercadoLivreAccount.findFirst({ where: { workspaceId, ...(pinned ? { id: pinned } : {}) }, orderBy: { createdAt: "asc" } });
+}
 
-  const account = pinned
-    ? await prisma.mercadoLivreAccount.findUnique({ where: { id: pinned } })
-    : await prisma.mercadoLivreAccount.findFirst({
-        orderBy: { updatedAt: "desc" },
-      });
+export async function getMlSession() {
+  const account = await getWorkspaceMlAccount(await getWorkspaceId());
 
   if (!account) {
     throw new Error("Conta do Mercado Livre ainda não conectada.");
@@ -455,7 +440,7 @@ export async function getMlSessionForAccount(accountId: string) {
     where: { id: accountId },
   });
 
-  if (!account) {
+  if (!account || !(await prisma.radarWorkspace.findUnique({ where: { id: account.workspaceId } }))?.active) {
     throw new Error("Conta do Mercado Livre vinculada à extensão não encontrada.");
   }
 
@@ -489,11 +474,29 @@ export async function getListingPriceQuote(input: {
     throw new Error("Mercado Livre não retornou tarifa para essa combinação.");
   }
 
-  const saleFeeAmount = Number(quote.sale_fee_amount ?? 0);
+  const saleFeeAmount = Number(quote.sale_fee_amount);
+  if (
+    quote.sale_fee_amount == null ||
+    !Number.isFinite(saleFeeAmount) ||
+    saleFeeAmount < 0
+  )
+    throw new Error("Tarifa indisponível para este anúncio.");
   const fixedFee = Number(quote.sale_fee_details?.fixed_fee ?? 0);
-  const variableFee = Math.max(0, saleFeeAmount - fixedFee);
+  if (!Number.isFinite(fixedFee) || fixedFee < 0 || fixedFee > saleFeeAmount)
+    throw new Error(
+      "Detalhe de tarifa inválido; confirme no simulador oficial.",
+    );
+  const variableFee = saleFeeAmount - fixedFee;
+  const declaredPercent = Number(quote.sale_fee_details?.percentage_fee);
   const commissionPercent =
-    input.price > 0 ? (variableFee / input.price) * 100 : 0;
+    Number.isFinite(declaredPercent) &&
+    declaredPercent >= 0 &&
+    declaredPercent <= 100 &&
+    Math.abs((input.price * declaredPercent) / 100 - variableFee) <= 0.011
+      ? declaredPercent
+      : input.price > 0
+        ? (variableFee / input.price) * 100
+        : 0;
 
   return {
     raw,
@@ -514,9 +517,9 @@ export async function getShippingQuote(input: {
   lengthCm: number;
   logisticType?: string;
   shippingMode?: string;
+  freeShipping?: boolean;
 }) {
-  const dimensions =
-    `${Math.round(input.heightCm)}x${Math.round(input.widthCm)}x${Math.round(input.lengthCm)},${Math.round(input.weightGrams)}`;
+  const dimensions = `${Math.round(input.heightCm)}x${Math.round(input.widthCm)}x${Math.round(input.lengthCm)},${Math.round(input.weightGrams)}`;
 
   const query = new URLSearchParams({
     dimensions,
@@ -526,7 +529,7 @@ export async function getShippingQuote(input: {
     mode: input.shippingMode ?? "me2",
     condition: "new",
     logistic_type: input.logisticType ?? "drop_off",
-    free_shipping: "True",
+    free_shipping: input.freeShipping === false ? "False" : "True",
   });
 
   const raw = await jsonFetch<any>(
@@ -535,13 +538,20 @@ export async function getShippingQuote(input: {
   );
 
   const coverage = raw?.coverage?.all_country;
-  if (!coverage) {
+  if (
+    !coverage ||
+    !["number", "string"].includes(typeof coverage.list_cost) ||
+    String(coverage.list_cost).trim() === "" ||
+    !Number.isFinite(Number(coverage.list_cost)) ||
+    Number(coverage.list_cost) < 0 ||
+    (coverage.currency_id && coverage.currency_id !== "BRL")
+  ) {
     throw new Error("Mercado Livre não retornou cotação de frete.");
   }
 
   return {
     raw,
-    shippingCost: Number(coverage.list_cost ?? 0),
+    shippingCost: Number(coverage.list_cost),
     billableWeight: Number(coverage.billable_weight ?? input.weightGrams),
     discountRate: Number(coverage.discount?.rate ?? 0),
     promotedAmount: Number(coverage.discount?.promoted_amount ?? 0),
@@ -754,6 +764,7 @@ export type SellerItemDetail = {
   freeShipping: boolean;
   logisticType: string | null;
   shippingMode: string | null;
+  shippingPackage: ReturnType<typeof parseShippingDimensions>;
   sellerSku: string | null;
   raw: unknown;
 };
@@ -774,7 +785,12 @@ type MultigetEntry = {
   status_code?: number;
   body?: Record<string, any> & {
     id?: string;
-    shipping?: { free_shipping?: boolean; logistic_type?: string; mode?: string };
+    shipping?: {
+      free_shipping?: boolean;
+      logistic_type?: string;
+      mode?: string;
+      dimensions?: unknown;
+    };
     attributes?: Array<{ id?: string; value_name?: string }>;
   };
 };
@@ -807,6 +823,7 @@ function toSellerItemDetail(entry: MultigetEntry): SellerItemDetail | null {
     freeShipping: Boolean(body.shipping?.free_shipping),
     logisticType: body.shipping?.logistic_type ?? null,
     shippingMode: body.shipping?.mode ?? null,
+    shippingPackage: parseShippingDimensions(body.shipping?.dimensions),
     sellerSku,
     raw: entry,
   };
@@ -1107,6 +1124,7 @@ export async function getShipmentCosts(input: {
     },
   );
 
+  if (!raw.senders?.length || raw.senders.some((s) => s.cost == null || !Number.isFinite(Number(s.cost)))) throw new Error("Custo de frete realizado ainda indisponível.");
   const sellerCost = (raw.senders ?? []).reduce(
     (sum, sender) => sum + Number(sender.cost ?? 0),
     0,
@@ -1120,6 +1138,17 @@ export async function getShipmentCosts(input: {
   };
 }
 
+
+export async function getShipmentOrderIds(input: { accessToken: string; shipmentId: string; sellerUserId: string }) {
+  const rows = await jsonFetch<Array<{ order_id?: string | number; sender_id?: string | number }>>(
+    `${API}/shipments/${input.shipmentId}/items`,
+    { headers: { Authorization: `Bearer ${input.accessToken}`, "x-format-new": "true" } },
+  );
+  if (!Array.isArray(rows) || !rows.length || rows.some((row) => row.order_id == null || (row.sender_id != null && String(row.sender_id) !== input.sellerUserId))) {
+    throw new Error("Pedidos do envio ainda não disponíveis para rateio.");
+  }
+  return [...new Set(rows.map((row) => String(row.order_id)))];
+}
 
 export async function getOrderShipment(input: {
   accessToken: string;
@@ -1229,6 +1258,14 @@ export async function getCatalogProductOffers(input: {
   productId: string;
   limit?: number;
 }): Promise<CatalogOffer[]> {
+  return (await getCatalogProductOffersSnapshot(input)).offers;
+}
+
+export async function getCatalogProductOffersSnapshot(input: {
+  accessToken: string;
+  productId: string;
+  limit?: number;
+}) {
   const params = new URLSearchParams({ limit: String(input.limit ?? 20) });
 
   const raw = await jsonFetch<any>(
@@ -1238,7 +1275,7 @@ export async function getCatalogProductOffers(input: {
 
   const list: any[] = Array.isArray(raw) ? raw : (raw?.results ?? []);
 
-  return list
+  const offers = list
     .map((entry) => {
       const itemId = String(entry?.item_id ?? entry?.id ?? "").toUpperCase();
       return {
@@ -1249,10 +1286,69 @@ export async function getCatalogProductOffers(input: {
         freeShipping: Boolean(entry?.shipping?.free_shipping),
         logisticType: entry?.shipping?.logistic_type ?? null,
         officialStoreId:
-          entry?.official_store_id == null ? null : String(entry.official_store_id),
+          entry?.official_store_id == null
+            ? null
+            : String(entry.official_store_id),
       } satisfies CatalogOffer;
     })
-    .filter((offer) => /^MLB\d+$/.test(offer.itemId) && offer.price > 0);
+    .filter(
+      (offer) =>
+        /^MLB\d+$/.test(offer.itemId) &&
+        Number.isFinite(offer.price) &&
+        offer.price > 0,
+    );
+  const reported = raw?.paging?.total;
+  return {
+    offers: [...new Map(offers.map((offer) => [offer.itemId, offer])).values()],
+    total:
+      typeof reported === "number" &&
+      Number.isInteger(reported) &&
+      reported >= offers.length
+        ? reported
+        : null,
+  };
+}
+
+export async function getItemVisitWindow(input: {
+  accessToken: string;
+  itemId: string;
+  ending: string;
+}) {
+  const params = new URLSearchParams({
+    last: "30",
+    unit: "day",
+    ending: input.ending,
+  });
+  const raw = await jsonFetch<any>(
+    `${API}/items/${input.itemId}/visits/time_window?${params}`,
+    {
+      headers: { Authorization: `Bearer ${input.accessToken}` },
+    },
+  );
+  const from = Date.parse(raw.date_from),
+    to = Date.parse(raw.date_to);
+  const days = (to - from) / 86400000;
+  if (
+    raw.item_id !== input.itemId ||
+    !Number.isFinite(days) ||
+    days < 1 ||
+    days > 31 ||
+    Math.abs(to - Date.parse(input.ending)) > 36 * 3600000 ||
+    typeof raw.total_visits !== "number" ||
+    !Number.isInteger(raw.total_visits) ||
+    raw.total_visits < 0
+  )
+    throw new Error(
+      "A API não retornou visitas com referência e período válidos.",
+    );
+  return {
+    itemId: input.itemId,
+    total: raw.total_visits as number,
+    from: raw.date_from as string,
+    to: raw.date_to as string,
+    days,
+    perDay: raw.total_visits / days,
+  };
 }
 
 
@@ -1324,13 +1420,20 @@ export async function getExistingItemShippingQuote(input: {
   );
 
   const coverage = raw?.coverage?.all_country;
-  if (!coverage) {
+  if (
+    !coverage ||
+    !["number", "string"].includes(typeof coverage.list_cost) ||
+    String(coverage.list_cost).trim() === "" ||
+    !Number.isFinite(Number(coverage.list_cost)) ||
+    Number(coverage.list_cost) < 0 ||
+    (coverage.currency_id && coverage.currency_id !== "BRL")
+  ) {
     throw new Error("Mercado Livre não retornou o custo de envio do anúncio.");
   }
 
   return {
     raw,
-    shippingCost: Number(coverage.list_cost ?? 0),
+    shippingCost: Number(coverage.list_cost),
     billableWeight: Number(coverage.billable_weight ?? 0),
     discountRate: Number(coverage.discount?.rate ?? 0),
     promotedAmount: Number(coverage.discount?.promoted_amount ?? 0),

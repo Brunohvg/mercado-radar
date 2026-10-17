@@ -69,6 +69,7 @@
 /* ---------------------------------------------------------------- */
 
 .primary,
+.clean-primary,
 .rd-btn,
 .secondary,
 .clean-secondary,
@@ -91,12 +92,14 @@
 }
 
 .primary,
+.clean-primary,
 .rd-btn {
   background: var(--brand);
   color: #fff;
 }
 
 .primary:hover:not(:disabled),
+.clean-primary:hover:not(:disabled),
 .rd-btn:hover:not(:disabled) {
   background: var(--brand-600);
   color: #fff;
@@ -119,6 +122,7 @@
 }
 
 .primary:disabled,
+.clean-primary:disabled,
 .rd-btn:disabled,
 .secondary:disabled,
 .clean-secondary:disabled {

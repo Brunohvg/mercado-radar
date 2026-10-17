@@ -1,3 +1,4 @@
+import { getWorkspaceSettings } from "@/lib/workspace-settings";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
@@ -18,6 +19,7 @@ const schema = z.object({
   heightCm: z.coerce.number().positive().max(300),
   widthCm: z.coerce.number().positive().max(300),
   lengthCm: z.coerce.number().positive().max(300),
+  taxPercent: z.coerce.number().min(0).max(50).optional(),
   operatingCost: z.coerce.number().min(0).default(0),
   targetMarginPercent: z.coerce.number().min(0).max(80).default(20),
   targetRoiPercent: z.coerce.number().min(0).max(500).default(30),
@@ -44,6 +46,9 @@ export async function POST(request: Request) {
 
     const input = parsed.data;
     const session = await getMlSession();
+    const settings = await getWorkspaceSettings(session.account.workspaceId);
+    if (input.taxPercent == null && settings.taxPercent == null) return NextResponse.json({ error: "Confirme seu imposto em Metas e configurações." }, { status: 422 });
+    const taxPercent = input.taxPercent ?? Number(settings.taxPercent);
     const netUnitCost =
       input.supplierPrice * (1 - input.discountPercent / 100);
     const purchaseCost = netUnitCost * input.kitQuantity;
@@ -84,7 +89,8 @@ export async function POST(request: Request) {
         commissionPercent: fee.commissionPercent,
         fixedFee: fee.fixedFee,
         shippingCost: shipping.shippingCost,
-        operatingCost: input.operatingCost,
+        taxPercent,
+      operatingCost: input.operatingCost,
         targetMarginPercent: input.targetMarginPercent,
         targetRoiPercent: input.targetRoiPercent,
       });
@@ -113,7 +119,7 @@ export async function POST(request: Request) {
         });
       }
 
-      const nextByFormula = Number.isFinite(analysis.minimumSuggestedPrice)
+      const nextByFormula = analysis.minimumSuggestedPrice != null && Number.isFinite(analysis.minimumSuggestedPrice)
         ? analysis.minimumSuggestedPrice
         : candidate * 1.25;
       const nextByStep = candidate + Math.max(2, candidate * 0.08);

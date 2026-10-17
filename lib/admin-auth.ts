@@ -83,7 +83,6 @@ export async function verifyAdminCredentials(email: string, password: string) {
 /* ---------- limite de tentativas (memória do processo) ---------- */
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_PER_IP = 5;
-const MAX_GLOBAL = 30;
 
 const failures = new Map<string, { count: number; resetAt: number }>();
 
@@ -98,16 +97,15 @@ function bump(key: string, now: number) {
 
 export function loginBlocked(ip: string, now = Date.now()) {
   const byIp = failures.get(ip);
-  const global = failures.get("*");
-  return (
-    (byIp && byIp.resetAt > now && byIp.count >= MAX_PER_IP) ||
-    (global && global.resetAt > now && global.count >= MAX_GLOBAL)
-  );
+  return Boolean(byIp && byIp.resetAt > now && byIp.count >= MAX_PER_IP);
 }
 
 export function registerLoginFailure(ip: string, now = Date.now()) {
   bump(ip, now);
-  bump("*", now);
+  if (failures.size > 10000) {
+    for (const [key, value] of failures) if (value.resetAt <= now) failures.delete(key);
+    if (failures.size > 10000) failures.delete(failures.keys().next().value!);
+  }
 }
 
 export function clearLoginFailures(ip: string) {

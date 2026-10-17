@@ -1,3 +1,4 @@
+import { getUserSession } from "@/lib/workspace-auth";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -44,6 +45,12 @@ export async function GET(request: Request) {
     );
   }
 
+  const user = await getUserSession();
+  if (!user) {
+    const login = new URL("/login", getPublicOrigin(request));
+    login.searchParams.set("next", url.pathname + url.search);
+    return NextResponse.redirect(login);
+  }
   const clientId = process.env.MERCADO_LIVRE_CLIENT_ID;
   if (!clientId) {
     return NextResponse.json(
@@ -70,6 +77,7 @@ export async function GET(request: Request) {
     maxAge: 10 * 60,
   };
 
+  store.set("ml_oauth_workspace", user.workspaceId, cookieOptions);
   store.set("ml_oauth_state", mlState, cookieOptions);
   store.set("ml_pkce_verifier", mlVerifier, cookieOptions);
   store.set("radar_extension_flow", "1", cookieOptions);
@@ -95,6 +103,7 @@ export async function GET(request: Request) {
     "https://auth.mercadolivre.com.br/authorization",
   );
   authorizationUrl.searchParams.set("response_type", "code");
+  authorizationUrl.searchParams.set("scope", "read offline_access");
   authorizationUrl.searchParams.set("client_id", clientId);
   authorizationUrl.searchParams.set("redirect_uri", redirectUri);
   authorizationUrl.searchParams.set("state", mlState);

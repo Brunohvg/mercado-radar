@@ -10,10 +10,12 @@ const EXTENSION_FILES = [
   "selectors.js",
   "content.js",
   "ui/tokens.css",
-  "ui/content.css",
   "ui/sidepanel.css",
   "sidepanel.html",
   "sidepanel.js",
+  "panel-model.js",
+  "market-model.js",
+  "product-analysis.js",
   "icons/icon16.png",
   "icons/icon32.png",
   "icons/icon48.png",
@@ -35,17 +37,14 @@ export async function GET() {
     );
 
     const entries = files
-      .map(
-        ({ name, data }) =>
-          "  " + psString(name) + " = " + psString(data),
-      )
+      .map(({ name, data }) => "  " + psString(name) + " = " + psString(data))
       .join("\r\n");
 
     const script = [
       '$ErrorActionPreference = "Stop"',
       "",
       '$installDir = Join-Path $env:LOCALAPPDATA "MercadoRadar\\ExtensionDev"',
-      'New-Item -ItemType Directory -Force -Path $installDir | Out-Null',
+      "New-Item -ItemType Directory -Force -Path $installDir | Out-Null",
       "",
       "$files = @{",
       entries,
@@ -60,24 +59,24 @@ export async function GET() {
       "",
       'Write-Host ""',
       'Write-Host "Mercado Radar preparado em:" -ForegroundColor Green',
-      'Write-Host $installDir -ForegroundColor Cyan',
+      "Write-Host $installDir -ForegroundColor Cyan",
       'Write-Host ""',
       "",
-      'Start-Process explorer.exe -ArgumentList $installDir',
+      "Start-Process explorer.exe -ArgumentList $installDir",
       "",
-      '$chromeCandidates = @(',
+      "$chromeCandidates = @(",
       '  "$env:ProgramFiles\\Google\\Chrome\\Application\\chrome.exe",',
       '  "${env:ProgramFiles(x86)}\\Google\\Chrome\\Application\\chrome.exe",',
       '  "$env:LOCALAPPDATA\\Google\\Chrome\\Application\\chrome.exe"',
       ")",
       "",
-      '$chrome = $chromeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1',
-      'if ($chrome) {',
+      "$chrome = $chromeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1",
+      "if ($chrome) {",
       '  Start-Process $chrome "chrome://extensions/"',
-      '}',
+      "}",
       "",
       "Add-Type -AssemblyName PresentationFramework",
-      '$nl = [Environment]::NewLine',
+      "$nl = [Environment]::NewLine",
       '$message = "Arquivos instalados em:" + $nl + $installDir + $nl + $nl + "Agora no Chrome:" + $nl + "1. Ative Modo do desenvolvedor." + $nl + "2. Clique em Carregar sem compactacao." + $nl + "3. Selecione a pasta ExtensionDev que acabou de abrir." + $nl + $nl + "O Chrome exige estes cliques por seguranca enquanto a extensao nao estiver publicada na Chrome Web Store."',
       '[System.Windows.MessageBox]::Show($message, "Mercado Radar - Instalacao") | Out-Null',
       "",

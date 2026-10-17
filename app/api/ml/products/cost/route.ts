@@ -1,3 +1,4 @@
+import { recalculateOrder } from "@/lib/recalculate-order";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -9,89 +10,6 @@ const schema = z.object({
   supplierPrice: z.number().positive(),
   discountPercent: z.number().min(0).max(100).default(0),
 });
-
-async function recalculateOrder(orderId: string) {
-  const order = await prisma.mercadoLivreOrder.findUnique({
-    where: { id: orderId },
-    include: { items: true },
-  });
-  if (!order) return;
-
-  const missingProductCost = order.items.some((item) => item.unitCost == null);
-  const realizedFee =
-    order.marketplaceFeeTotal == null ? null : Number(order.marketplaceFeeTotal);
-  const realizedShipping =
-    order.shippingCost == null ? null : Number(order.shippingCost);
-
-  const totalProductCost = missingProductCost
-    ? null
-    : order.items.reduce(
-        (sum, item) => sum + Number(item.unitCost ?? 0) * item.quantity,
-        0,
-      );
-
-  const settings = await prisma.appSettings.findUnique({
-    where: { id: "default" },
-    select: { operatingCostDefault: true },
-  });
-  const operatingCost = Number(settings?.operatingCostDefault ?? 0);
-  const totalAmount = Number(order.totalAmount);
-
-  const profitReady =
-    totalProductCost != null &&
-    realizedFee != null &&
-    realizedShipping != null;
-
-  const profit = profitReady
-    ? totalAmount -
-      realizedFee -
-      realizedShipping -
-      totalProductCost -
-      operatingCost
-    : null;
-
-  const marginPercent =
-    profit != null && totalAmount > 0 ? (profit / totalAmount) * 100 : null;
-
-  if (profitReady && profit != null) {
-    const revenueTotal = order.items.reduce(
-      (sum, item) => sum + Number(item.unitPrice) * item.quantity,
-      0,
-    );
-
-    for (const item of order.items) {
-      const revenue = Number(item.unitPrice) * item.quantity;
-      const share = revenueTotal > 0 ? revenue / revenueTotal : 0;
-      const itemCost = Number(item.unitCost ?? 0) * item.quantity;
-      const itemProfit =
-        revenue -
-        realizedFee * share -
-        realizedShipping * share -
-        operatingCost * share -
-        itemCost;
-
-      await prisma.mercadoLivreOrderItem.update({
-        where: { id: item.id },
-        data: { profit: itemProfit },
-      });
-    }
-  }
-
-  await prisma.mercadoLivreOrder.update({
-    where: { id: order.id },
-    data: {
-      profit,
-      marginPercent,
-      profitabilityStatus: missingProductCost
-        ? "AWAITING_PRODUCT_COST"
-        : realizedShipping == null
-          ? "AWAITING_SHIPPING_COST"
-          : realizedFee == null
-            ? "AWAITING_FEE"
-            : "REALIZED",
-    },
-  });
-}
 
 export async function PATCH(request: Request) {
   try {
@@ -134,19 +52,19 @@ export async function PATCH(request: Request) {
     });
 
     const affectedItems = await prisma.mercadoLivreOrderItem.findMany({
-      where: { mlItemId: product.mlItemId },
+      where: { mlItemId: product.mlItemId, unitCost: null, order: { sellerUserId: session.account.mercadoLivreUserId } },
       select: { id: true, orderId: true },
     });
 
     if (affectedItems.length > 0) {
       await prisma.mercadoLivreOrderItem.updateMany({
-        where: { mlItemId: product.mlItemId },
+        where: { mlItemId: product.mlItemId, unitCost: null, order: { sellerUserId: session.account.mercadoLivreUserId } },
         data: { unitCost: netUnitCost },
       });
 
       const orderIds = [...new Set(affectedItems.map((item) => item.orderId))];
       for (const orderId of orderIds) {
-        await recalculateOrder(orderId);
+        await recalculateOrder(orderId, session.account.workspaceId, session.account.mercadoLivreUserId);
       }
     }
 

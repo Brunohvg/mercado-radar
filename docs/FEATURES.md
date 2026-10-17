@@ -1,5 +1,7 @@
 # Mercado Radar — Catálogo de Features Inteligentes
 
+> Atualização de 16/10/2026: a extensão 0.7.0 usa painel lateral isolado, comparação por amostra revisada e monitoramento por leitura. As capacidades atuais e limitações estão no [guia da extensão](../extension/README.md) e no [mapa de APIs por cliente](MERCADO_LIVRE_API_MAP.md). Indicadores privados de concorrentes não são garantidos.
+
 Este documento é a fonte de verdade funcional do produto. Toda feature nova deve ser registrada aqui antes de entrar em desenvolvimento.
 
 ## Visão do produto
@@ -20,6 +22,7 @@ A inteligência do sistema vem de dados reais, regras determinísticas e histór
 ## F0 — Fundação do produto
 
 ### Infraestrutura e segurança
+
 Status: **implementado / em validação**
 
 - Next.js + TypeScript.
@@ -35,6 +38,7 @@ Status: **implementado / em validação**
 - CI com typecheck + build.
 
 ### Design System
+
 Status: **implementado e contínuo**
 
 - visual dark premium;
@@ -54,6 +58,7 @@ Status: **implementado**
 Objetivo: calcular a viabilidade financeira de forma determinística.
 
 Entradas:
+
 - custo/tabela do fornecedor;
 - desconto;
 - quantidade;
@@ -66,6 +71,7 @@ Entradas:
 - meta de ROI.
 
 Saídas:
+
 - custo líquido;
 - custo total do kit;
 - valor recebido;
@@ -78,6 +84,7 @@ Saídas:
 - classificação financeira.
 
 Regras:
+
 - nenhuma tarifa ou frete é inventado;
 - quando API real estiver disponível, ela prevalece sobre estimativa manual;
 - fórmulas financeiras devem ter testes de regressão.
@@ -91,6 +98,7 @@ Status: **implementado / validar com casos reais**
 Objetivo: sugerir o menor preço saudável para a conta conectada.
 
 Fluxo:
+
 1. custo líquido;
 2. categoria;
 3. tarifa real;
@@ -101,6 +109,7 @@ Fluxo:
 8. arredondamento comercial em `,90`.
 
 Saída:
+
 - preço sugerido;
 - lucro esperado;
 - margem;
@@ -121,6 +130,7 @@ Status: **implementado / validar**
 Regra de produto: **tarifas do Mercado Livre nunca são campos manuais no fluxo principal**. Comissão, tarifa fixa e frete são consultados automaticamente pela API da conta conectada. A interface apenas exibe a origem e os valores retornados.
 
 Compara:
+
 - comissão;
 - tarifa fixa;
 - frete;
@@ -137,6 +147,7 @@ Status: **MVP implementado; evolução planejada**
 Compara 1 / 2 / 3 / 5 / 10 unidades.
 
 Evolução:
+
 - recalcular frete por kit;
 - recalcular preço de mercado por kit;
 - detectar quando o produto só fecha em kit;
@@ -151,6 +162,7 @@ Status: **implementado / validação real pendente**
 Objetivo: verificar se o preço financeiramente necessário cabe no mercado.
 
 Recursos atuais:
+
 - pesquisa de anúncios comparáveis;
 - filtro por categoria;
 - similaridade textual;
@@ -170,6 +182,7 @@ Recursos atuais:
 ### Fit Score
 
 O score atual combina:
+
 - saúde financeira;
 - posição de preço;
 - qualidade da evidência.
@@ -193,6 +206,7 @@ Status: **implementado / aguardando validação real**
 Objetivo: transformar os anúncios da conta conectada em uma visão operacional.
 
 MVP atual:
+
 - [x] listar anúncios da conta;
 - [x] usar `/users/{user_id}/items/search`;
 - [x] consultar detalhes via `/items/bulk`;
@@ -221,6 +235,7 @@ Status: **em desenvolvimento — MVP de leitura ativado**
 Objetivo: responder **o que realmente está dando dinheiro depois que vendeu**.
 
 ### Sincronização
+
 - [x] importar pedidos existentes sob demanda;
 - [ ] processar `orders_v2` automaticamente;
 - buscar dados completos da venda;
@@ -229,6 +244,7 @@ Objetivo: responder **o que realmente está dando dinheiro depois que vendeu**.
 - reprocessar com segurança.
 
 ### Lucro realizado
+
 - [x] preço efetivamente vendido;
 - [x] tarifa realizada quando disponível;
 - [x] custo real de envio por `/shipments/{id}/costs`;
@@ -240,6 +256,7 @@ Objetivo: responder **o que realmente está dando dinheiro depois que vendeu**.
 - [ ] previsto × realizado.
 
 ### Dashboard
+
 - hoje;
 - 7 dias;
 - 30 dias;
@@ -253,6 +270,7 @@ Objetivo: responder **o que realmente está dando dinheiro depois que vendeu**.
 - produtos com margem ruim.
 
 ### Profit Waterfall
+
 Visual:
 
 ```text
@@ -273,6 +291,7 @@ Status: **planejado após Sales Intelligence**
 Objetivo: ajudar a comprar a quantidade certa, não apenas decidir o produto.
 
 Recursos:
+
 - estoque atual;
 - vendas por período;
 - velocidade de saída;
@@ -294,6 +313,7 @@ Status: **planejado**
 Objetivo: acompanhar margem e posição de preço ao longo do tempo.
 
 Recursos:
+
 - histórico do próprio preço;
 - histórico da mediana de mercado;
 - impacto de alteração de preço;
@@ -313,6 +333,7 @@ Status: **planejado**
 Objetivo: transformar análises isoladas em uma fila de oportunidades.
 
 Cada candidato poderá mostrar:
+
 - Fit Score;
 - margem;
 - ROI;
@@ -324,6 +345,7 @@ Cada candidato poderá mostrar:
 - status da decisão.
 
 Filtros:
+
 - bom para testar;
 - somente kit;
 - precisa negociar custo;
@@ -340,6 +362,7 @@ Status: **planejado**
 Objetivo: separar a lógica do Radar de qualquer fornecedor específico.
 
 Recursos:
+
 - múltiplos fornecedores;
 - tabela de preço;
 - desconto por fornecedor;
@@ -362,6 +385,7 @@ Status: **planejado; custo zero no MVP**
 A IA deve ser opcional e desacoplada.
 
 Usos permitidos:
+
 - normalizar título;
 - extrair marca/modelo/quantidade;
 - sugerir termos de busca;
@@ -372,6 +396,7 @@ Usos permitidos:
 - gerar uma explicação de próxima ação.
 
 A IA nunca pode inventar como fato:
+
 - custo;
 - desconto;
 - peso;
@@ -400,6 +425,7 @@ Se a IA falhar, o Radar continua operacional.
 Status: **planejado**
 
 Alertas úteis:
+
 - venda com margem abaixo da meta;
 - produto ficou negativo após mudança de frete;
 - estoque baixo;
@@ -419,6 +445,7 @@ Status: **parcialmente iniciado com MarketSnapshot**
 Objetivo: aprender com a própria operação sem transformar correlação em promessa.
 
 Histórico:
+
 - análises;
 - preços;
 - custos;
@@ -429,6 +456,7 @@ Histórico:
 - decisões tomadas.
 
 Usos futuros:
+
 - comparar análise prevista × resultado realizado;
 - calibrar heurísticas;
 - identificar faixas de margem que funcionam melhor;
@@ -444,6 +472,7 @@ Status: **futuro**
 Somente depois da ferramenta funcionar bem para a operação real.
 
 Pré-requisitos:
+
 - isolamento por tenant;
 - múltiplas contas ML;
 - autenticação de usuários;
@@ -474,7 +503,6 @@ Não antecipar complexidade SaaS antes do core provar valor.
 
 A ordem pode mudar somente quando uma dependência técnica ou dado real justificar a mudança.
 
-
 ---
 
 ## F4A — Smart Product Discovery
@@ -484,6 +512,7 @@ Status: **implementado / aguardando validação real**
 Objetivo: reduzir ao mínimo a digitação no analisador.
 
 Recursos:
+
 - [x] busca por nome;
 - [x] busca por EAN/GTIN/código de barras;
 - [x] consulta ao catálogo do Mercado Livre;
@@ -506,6 +535,7 @@ Status: **implementado / aguardando validação real**
 Objetivo: descobrir candidatos antes de procurar manualmente produtos.
 
 Recursos:
+
 - [x] tendências semanais do Mercado Livre;
 - [x] categoria automática;
 - [x] mediana de preço;
@@ -519,7 +549,6 @@ Recursos:
 - [ ] filtros por categoria e capital disponível.
 
 O Radar não deve chamar tendência de busca de "mais vendido". Ranking de mais vendidos é uma evidência separada.
-
 
 ---
 
@@ -547,3 +576,7 @@ Status: **implementado / aguardando validação em dispositivos**
 - [x] UPC-E;
 - [x] Code 128;
 - [x] fallback para digitação quando o navegador não oferece detector.
+
+## Preparação comercial — 15/10/2026
+
+Implementado / aguardando validação em homologação: workspaces, acessos de clientes, perfil financeiro, central de decisões, cobertura financeira, reposição por prazo/segurança, exportação e correções de apuração. Escopo, fontes, testes e gates: [COMMERCIAL_READINESS.md](COMMERCIAL_READINESS.md).

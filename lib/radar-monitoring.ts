@@ -4,6 +4,7 @@ import {
   getItemsCurrentPrices,
   getItemsVisitTotals,
   getMlSession,
+  getMlSessionForAccount,
 } from "@/lib/mercado-livre";
 import { calculateRadarOpportunityScore } from "@/lib/radar-score";
 
@@ -119,13 +120,18 @@ function createChangeAlerts(input: {
   return alerts;
 }
 
-export async function refreshRadarWatchlist(input?: { limit?: number }) {
-  const session = await getMlSession();
+export async function refreshRadarWatchlist(input?: {
+  limit?: number;
+  accountId?: string;
+}) {
+  const session = input?.accountId
+    ? await getMlSessionForAccount(input.accountId)
+    : await getMlSession();
   const sellerUserId = session.account.mercadoLivreUserId;
   const limit = Math.min(Math.max(input?.limit ?? 100, 1), 200);
 
   const watchItems = await prisma.radarWatchItem.findMany({
-    where: { sellerUserId, active: true },
+    where: { sellerUserId, active: true, trackingMode: "API" },
     orderBy: { updatedAt: "desc" },
     take: limit,
   });
@@ -152,15 +158,15 @@ export async function refreshRadarWatchlist(input?: { limit?: number }) {
       getItemsBulk({
         accessToken: session.accessToken,
         itemIds,
-      }),
+      }).catch(() => []),
       getItemsCurrentPrices({
         accessToken: session.accessToken,
         itemIds,
-      }).catch(() => ({} as Record<string, number | null>)),
+      }).catch(() => ({}) as Record<string, number | null>),
       getItemsVisitTotals({
         accessToken: session.accessToken,
         itemIds,
-      }).catch(() => ({} as Record<string, number>)),
+      }).catch(() => ({}) as Record<string, number>),
     ]);
 
     const detailById = new Map(details.map((item) => [item.id, item]));
@@ -170,8 +176,7 @@ export async function refreshRadarWatchlist(input?: { limit?: number }) {
       if (!item) continue;
 
       const currentPrice =
-        prices[item.id] ??
-        (item.currentPrice > 0 ? item.currentPrice : null);
+        prices[item.id] ?? (item.currentPrice > 0 ? item.currentPrice : null);
       const itemVisits = visits[item.id] ?? null;
 
       const intelligence = calculateRadarOpportunityScore({

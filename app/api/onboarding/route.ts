@@ -1,3 +1,4 @@
+import { getWorkspaceId } from "@/lib/workspace-auth";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -9,11 +10,14 @@ export const dynamic = "force-dynamic";
  */
 export async function GET() {
   try {
+    const workspaceId = await getWorkspaceId();
+    const sellers = await prisma.mercadoLivreAccount.findMany({ where: { workspaceId }, select: { id: true, mercadoLivreUserId: true } });
+    const sellerUserId = { in: sellers.map((s) => s.mercadoLivreUserId) };
     const [accounts, extensions, products, withCost] = await Promise.all([
-      prisma.mercadoLivreAccount.count(),
-      prisma.radarExtensionAccess.count({ where: { revokedAt: null } }),
-      prisma.mercadoLivreProduct.count(),
-      prisma.mercadoLivreProduct.count({ where: { supplierPrice: { not: null } } }),
+      prisma.mercadoLivreAccount.count({ where: { workspaceId } }),
+      prisma.radarExtensionAccess.count({ where: { account: { workspaceId }, revokedAt: null, expiresAt: { gt: new Date() } } }),
+      prisma.mercadoLivreProduct.count({ where: { sellerUserId } }),
+      prisma.mercadoLivreProduct.count({ where: { sellerUserId, supplierPrice: { not: null } } }),
     ]);
 
     return NextResponse.json({

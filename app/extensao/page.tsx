@@ -11,21 +11,26 @@ export default function ExtensionPage() {
               <p className="page-kicker">Configuração</p>
               <h1>Extensão Radar</h1>
               <p>
-                Inteligência do Radar diretamente nas buscas e anúncios do Mercado Livre.
+                Abra um produto e veja a análise automática de demanda, tarifas,
+                preços e margem, com a origem de cada dado.
               </p>
             </div>
-            <span className="status-chip attention extension-install-beta">Versão beta</span>
+            <span className="status-chip attention extension-install-beta">
+              Beta 0.11.0
+            </span>
           </header>
 
           <section className="clean-panel extension-install-hero">
             <div className="extension-install-copy">
-              <span className="extension-install-kicker">Instalação no Windows</span>
+              <span className="extension-install-kicker">
+                Instalação no Windows
+              </span>
               <h2>Instale em poucos cliques, sem baixar código</h2>
               <p>
-                O instalador prepara a versão atual da extensão em uma pasta fixa
-                do Windows e abre o Chrome na tela correta. Enquanto a extensão
-                não estiver na Chrome Web Store, o Chrome exige apenas a confirmação
-                final em modo de desenvolvedor.
+                O instalador prepara a versão atual da extensão em uma pasta
+                fixa do Windows e abre o Chrome na tela correta. Enquanto a
+                extensão não estiver na Chrome Web Store, o Chrome exige apenas
+                a confirmação final em modo de desenvolvedor.
               </p>
 
               <div className="extension-install-actions">
@@ -37,19 +42,17 @@ export default function ExtensionPage() {
                   Instalar extensão no Windows
                 </a>
 
-                <a
+                <span
                   className="secondary extension-install-secondary"
-                  href="https://chrome.google.com/webstore"
-                  target="_blank"
-                  rel="noreferrer"
+                  aria-disabled="true"
                 >
-                  Chrome Web Store (em breve)
-                </a>
+                  Chrome Web Store · publicação pendente
+                </span>
               </div>
 
               <small>
-                Não instala programas externos, não grava token do Mercado Livre e
-                não precisa de acesso administrativo ao Windows.
+                Não instala programas externos, não grava token do Mercado Livre
+                e não precisa de acesso administrativo ao Windows.
               </small>
             </div>
 
@@ -57,20 +60,26 @@ export default function ExtensionPage() {
               <li>
                 <span aria-hidden="true">1</span>
                 <strong>Dê dois cliques no instalador</strong>
-                <small>Execute o MercadoRadar-Instalar.cmd baixado. Ele prepara a pasta correta sozinho.</small>
+                <small>
+                  Execute o MercadoRadar-Instalar.cmd baixado. Ele prepara a
+                  pasta correta sozinho.
+                </small>
               </li>
               <li>
                 <span aria-hidden="true">2</span>
                 <strong>O Chrome será aberto</strong>
-                <small>Na tela de extensões, deixe o Modo do desenvolvedor ativado (canto superior direito).</small>
+                <small>
+                  Na tela de extensões, deixe o Modo do desenvolvedor ativado
+                  (canto superior direito).
+                </small>
               </li>
               <li>
                 <span aria-hidden="true">3</span>
                 <strong>Carregue a pasta gerada</strong>
                 <small>
-                  Clique em “Carregar sem compactação” e selecione somente a pasta{" "}
-                  <code>%LOCALAPPDATA%\MercadoRadar\ExtensionDev</code>. Não
-                  selecione a pasta Downloads nem o instalador.
+                  Clique em “Carregar sem compactação” e selecione somente a
+                  pasta <code>%LOCALAPPDATA%\MercadoRadar\ExtensionDev</code>.
+                  Não selecione a pasta Downloads nem o instalador.
                 </small>
               </li>
             </ol>
@@ -85,24 +94,33 @@ export default function ExtensionPage() {
             </div>
             <div className="clean-mini-grid">
               <div>
-                <span>Busca enriquecida</span>
+                <span>Leitura da página</span>
                 <strong>Ativa</strong>
-                <small>score, demanda, vendas e faturamento</small>
+                <small>
+                  preço, texto de vendidos e avaliações, quando exibidos
+                </small>
               </div>
               <div>
-                <span>Filtros Radar</span>
+                <span>Comparação de preços</span>
                 <strong>Ativos</strong>
-                <small>oportunidade, demanda, margem e histórico</small>
+                <small>
+                  marque anúncios na busca e leve a amostra revisada ao painel
+                </small>
               </div>
               <div>
-                <span>Painel lateral</span>
+                <span>Ferramentas contextuais</span>
                 <strong>Ativo</strong>
-                <small>métricas, Buy Box, mercado e rentabilidade</small>
+                <small>
+                  indicadores nos cards e análise automática no produto e painel
+                </small>
               </div>
               <div>
                 <span>Atualização</span>
                 <strong>Manual</strong>
-                <small>rode novamente o instalador para receber a versão atual</small>
+                <small>
+                  atualize os arquivos, recarregue a extensão no Chrome e a aba
+                  do Mercado Livre
+                </small>
               </div>
             </div>
           </section>

@@ -1,4 +1,4 @@
-# Mercado Radar — extensão 0.10.1
+# Mercado Radar — extensão 0.11.0
 
 Chrome 116+. Manifest V3. Backend da branch `feature/radar-commercial-readiness-v1`, protocolo 2.
 
@@ -8,7 +8,7 @@ Chrome 116+. Manifest V3. Backend da branch `feature/radar-commercial-readiness-
 2. Baixar os arquivos desta mesma branch. O instalador em `/extensao` só entrega a versão do backend que estiver implantada.
 3. Em `chrome://extensions`, carregar a pasta `extension` sem compactação. Para atualizar, substituir os arquivos da pasta que o Chrome usa e clicar em **Recarregar**.
 4. **Recarregar também todas as abas abertas do Mercado Livre** para retirar scripts e interfaces da versão anterior.
-5. Confirmar **0.10.1** na tela de extensões e no cabeçalho do painel lateral.
+5. Confirmar **0.11.0** na tela de extensões e no cabeçalho do painel lateral.
 6. Entrar na sua conta Radar. Cada cliente autoriza seu próprio vendedor ML. Não usa chave global de API.
 
 A aplicação web e a extensão são atualizadas separadamente: apenas fazer deploy no Coolify não substitui os arquivos carregados no Chrome. O painel avisa se o backend ainda usa o protocolo anterior.
@@ -16,7 +16,7 @@ A aplicação web e a extensão são atualizadas separadamente: apenas fazer dep
 ## Como funciona
 
 - A busca recebe uma barra acima dos resultados e um bloco compacto com dois indicadores após o título de cada card reconhecido, antes do preço. A foto fica livre de botões. Apenas a altura dos contêineres é ajustada para reservar espaço; largura, colunas, conteúdo, filtros e ordem nativos são preservados. Ocultar a análise remove esses ajustes.
-- No produto, a conclusão aparece automaticamente junto ao preço. A análise completa fica aberta logo após o bloco principal, quando há âncora segura. A grade própria se adapta à largura; não cria colunas do ML nem cobre seus controles. Layouts sem âncora ampla mostram o conteúdo dentro do bloco isolado.
+- No produto, há um único painel isolado junto ao preço: potencial, demanda com origem, receita de referência, repasse e custo de compra. Não duplica o resumo em um segundo painel largo. Dados ausentes, tarifas e candidatos ficam em detalhes. Frete/imposto pendentes só pedem confirmação após informar o custo; valores disponíveis continuam automáticos.
 - O painel lateral também abre com a análise, tarifas de Clássico/Premium e repasse automáticos. Dados brutos ficam recolhidos. Visitas, vendas por período, ofertas e participação Full informam acesso e cobertura; a calculadora concentra as entradas da sua operação.
 - O botão **R** abre um menu com análise, lucro, pesquisa, monitoramentos e conta. **Ocultar análise na página** remove os elementos contextuais; o menu permite restaurar. O ícone da extensão continua abrindo o painel nativo.
 - A camada `selectors.js` lê o DOM; `content.js` envia contexto por aba; `sidepanel.js` apresenta as ferramentas; `background.js` guarda a sessão Radar e fala com o backend.
@@ -28,9 +28,11 @@ A aplicação web e a extensão são atualizadas separadamente: apenas fazer dep
 
 **Análise automática do produto:** conclusão e demanda perto do preço; tarifas de Clássico e Premium, repasse, vendas por dia quando há base, posição frente aos candidatos e calculadora já apresentados. Custos cadastrados só são aplicados em anúncio próprio, por vínculo exato de anúncio ou SKU do mesmo workspace. Não há associação de custo por título parecido. Informar custo/frete/imposto recalcula automaticamente, sem botão para iniciar a análise.
 
-**Demanda e oportunidade:** baixa <0,7 un./dia; média de 0,7 a <3; alta de 3 a <10; excelente a partir de 10. Requer pedidos próprios em janela datada ou evolução de contador exato. Média desde a criação oficial é identificada como histórica. Sem janela, mostra o acumulado público quando disponível, sem classificar giro recente. “Boa oportunidade” exige demanda recente alta e resultado financeiro GOOD; margem baixa e prejuízo recebem conclusões distintas, incluindo “Não compensa neste custo”; demanda baixa informa pouco giro. Essas avaliações explicam a base, não garantem vendas. Não se reproduzem inferências antigas de visitas/receita ou demanda por avaliações.
+**Demanda, potencial e lucro:** ritmo medido usa as mesmas faixas anteriores: baixa <0,7 un./dia; média de 0,7 a <3; alta de 3 a <10; excelente ≥10. Sem período, triagem histórica por volume: até 99 inicial/baixa, 100–499 média, 500–4.999 alta, 5.000+ excelente. `+N` indica faixa mínima. Não é previsão de vendas nem modelo calibrado por categoria. O potencial público distingue **Bom potencial**, **Potencial forte**, **Potencial moderado**, **Em formação**, **Pouco giro** ou **Dados parciais**. Motivo e origem estão disponíveis. Nota baixa com avaliações suficientes sinaliza qualidade. Nenhum desses sinais comprova lucro. “Boa oportunidade” financeira exige demanda recente alta e resultado GOOD; custos ruins e prejuízo prevalecem sobre o potencial público.
 
-**Indicadores na busca:** quando há janela medida, mostra demanda e receita estimada/dia (ritmo × preço atual). Sem período, aproveita o acumulado público: `100+ vendas` como sinal de demanda e `≥ R$ 1.788,00` para 100+ vendidos a R$ 17,88. A legenda **fat. de referência** e a base visível `100+ vendidos × preço atual` identificam a projeção do volume acumulado ao preço de hoje. Não representa faturamento histórico recebido nem comprova demanda recente. Mantém o limite inferior sem inventar teto; avaliações nunca viram vendas. Funciona localmente mesmo sem sessão; histórico permanece restrito ao cliente autenticado. Ausência de preço e ausência de vendidos recebem explicações diferentes. O rodapé resume a leitura da oportunidade (por exemplo, **Vale simular**); não classifica lucro sem custos. Catálogo e idade exigem referência/API confirmada.
+**Indicadores na busca:** demanda histórica/medida e receita de referência aparecem com destaque. Sem período, `100+` a R$ 17,88 produz projeção bruta mínima de R$ 1.788 ao preço atual, abreviada para **≥ R$ 1,7 mil** (arredondamento para baixo). A quantidade continua visível; o detalhe informa acumulado × preço atual. Não é faturamento recebido. Receita est./dia só usa ritmo medido e preço atual. Avaliações nunca viram vendas. O cálculo público funciona sem sessão; histórico exige o workspace autenticado. O rodapé mostra o potencial e sua justificativa, em vez de repetir “Vale simular” para todos.
+
+**Tela Mercado no sistema:** cards ou tabela, filtros por demanda/potencial/Full/catálogo/origem, várias ordenações e comparação lado a lado de até quatro produtos. As colunas principais permanecem visíveis, com ausência explícita. A comparação mostra fatos individuais e não mistura kits para gerar médias. O painel inicial oferece pesquisa direta de produtos.
 
 **Preço preliminar automático:** mínimo de três candidatos de IDs distintos, excluindo a referência. A seleção automática recebe rótulo de amostra preliminar sem revisão; o fluxo Comparar continua permitindo conferir equivalência antes de uma comparação revisada. Repasse antes de compra/imposto/operação não é chamado de lucro.
 
@@ -56,10 +58,13 @@ A aplicação web e a extensão são atualizadas separadamente: apenas fazer dep
 - Manifest de desenvolvimento permite também `http://localhost` e `http://127.0.0.1`; porta pode ser configurada em **Servidor da extensão**. Trocar de ambiente exige novo login e não reutiliza tokens de outro servidor.
 - `npm run typecheck`, `npm test`, `npm run build`.
 - `npm run test:integration`: requer PostgreSQL isolado e `RADAR_TEST_DATABASE=1`.
+- `npm run test:market`: testa os componentes web reais com React, CSS do app e APIs sintéticas; Next Link é substituído por âncora no harness. Autenticação e isolamento continuam nos testes HTTP.
 - `npm run test:extension`: requer Chromium do Playwright (`npx playwright install chromium`). Em ambiente com navegador próprio, usar `RADAR_CHROMIUM_PATH`.
 - `node scripts/build-extension.mjs`: gera `dist/extension-prod`, com manifest sem localhost. Não publica na Chrome Web Store.
 
-## Migração desta versão
+## Banco
+
+A revisão 0.11.0 não acrescenta migration. A instalação precisa das migrations anteriores:
 
 `202610161300_extension_observation_sources` identifica a origem dos acompanhamentos e se vendidos são conhecidos ou apenas um limite inferior. Dados anteriores permanecem marcados como API. Aplicar com `npm run db:deploy` no processo de deploy.
 
@@ -69,7 +74,7 @@ A aplicação web e a extensão são atualizadas separadamente: apenas fazer dep
 2. Anúncio MLBU de outro vendedor: leitura correta, sem dados de recomendação, monitoramento por visita e simulação manual possível.
 3. Catálogo sem oferta selecionada: não tratar o ID do produto como anúncio.
 4. Busca: conferir o bloco abaixo do título, fotos livres, preço e entrega dentro do card. Marcar **Comparar** em três kits equivalentes, conferir a mediana na barra e abrir a seleção no painel. Abrir o produto pelo link nativo e conferir a análise automática. Testar filtros e ordenação da lista do Radar.
-5. Produto com custo próprio: abrir sem clicar e conferir lucro/demanda/tarifas. Produto de terceiro sem histórico: nenhuma demanda ou lucro inventado. Alterar custo e conferir reclassificação.
+5. Produto com custo próprio: abrir sem clicar e conferir lucro/demanda/tarifas. Produto de terceiro sem histórico: triagem histórica com rótulo, sem ritmo recente ou lucro inventado. Alterar custo e conferir reclassificação.
 6. Trocar de aba e de conta Radar: não reutilizar dados privados ou resultados antigos.
 7. Confirmar que galeria, botões de compra, coluna de oferta e largura do ML permanecem funcionais. Rolar a busca, testar grade/lista, zoom, abas e ocultar/restaurar a interface contextual.
 8. O menu de ferramentas oferece apenas funções existentes; não inclui botões sem implementação.

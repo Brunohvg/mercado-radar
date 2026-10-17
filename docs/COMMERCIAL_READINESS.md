@@ -197,3 +197,15 @@ Homologação manual: atualizar backend e extensão 0.10.1, recarregar abas ML, 
 A conclusão usa os mesmos critérios financeiros e de demanda: boa oportunidade exige margem/metas atendidas e demanda recente alta; pouco giro, meta não atingida e prejuízo ficam distintos. Sem custos, o acumulado gera “Vale simular”, sem declarar viabilidade. O resultado da calculadora considera lucro/margem após Ads quando esse cenário estiver ativo. A posição de preço aparece junto do resultado somente com pelo menos três anúncios selecionados de outras referências, usando o preço que está sendo simulado. O resumo próximo ao preço evita duplicar os quatro indicadores já presentes na análise completa.
 
 Validação local da 0.10.1: 54 testes de regras/controller/autenticação, 26 cenários de navegador sem erros, typecheck, build e empacotamento. Inclui cálculo público sem sessão, atualização pelo preço da página, referência acumulada com limite inferior, critérios de decisão após Ads, entrada única com custo próprio/imposto salvo/frete da API, ausência versus zero, comparação selecionada e preservação do layout. Desconto de frete foi acrescentado ao contrato de teste HTTP para verificar custo líquido e lucro sem segunda dedução.
+
+## Mercado e experiência 0.11.0 — 16/10/2026
+
+Correção da regressão em `/mercado`: referência bruta restaurada com nome e fonte corretos; demanda e receita não somem por falta de histórico diário. Modelo público compartilhado entre web e extensão, separando volume histórico, ritmo medido e conclusão financeira. Faixas históricas são regras de triagem transparentes, ainda sem calibração por categoria ou validação preditiva.
+
+Web: cards/tabela, filtros, ordenação e comparação factual de até quatro produtos; resumo mostra anúncios na amostra, potencial favorável, ritmo recente e Full. Home ganhou pesquisa direta. Capital sem custos conhecidos permanece a apurar. Busca oficial usa a mesma classificação, respeita zero, separa catálogo/oferta e não divide vendas de catálogo pela idade do vencedor. Requisições antigas não sobrescrevem nova busca.
+
+Extensão: um painel no produto, com destaque para leitura de mercado e repasse. Dados ausentes, candidatos e origem ficam em detalhes; custo é a entrada principal. Removido painel largo duplicado. Cards mostram potencial distinto e referências monetárias compactas; mínimos não são arredondados para cima. Instalador e manifests incluem o novo asset gerado.
+
+Sem mudança de schema, OAuth, permissões, CSP, versões de dependências ou fórmula financeira. `measurementDays` é um campo opcional adicional da pesquisa para identificar a janela do ritmo medido. Nenhum merge ou deploy nesta etapa. Antes de tratar como produto comercial validado: homologar layouts reais ML, tarifas/frete por cliente, grants, métricas de três produtos e decisão com custos completos.
+
+Validação local: 62 testes de regras/controladores/contratos, 26 cenários de navegador da extensão e 8 da web sem erros de navegador; typecheck, build e empacotamento passaram. Capturas conferidas para desktop e celular. Fixtures são sintéticas; autenticação e isolamento são verificados na suíte HTTP com PostgreSQL no CI.

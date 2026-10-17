@@ -1,3 +1,4 @@
+import { opportunitySalesEvidence } from "@/lib/opportunity-evidence";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
@@ -195,8 +196,9 @@ export async function POST(request: Request) {
 
         // Plano B documentado: sem buy_box_winner, usa a oferta mais barata
         // listada em GET /products/{id}/items.
-        let fallback: Awaited<ReturnType<typeof getCatalogProductOffers>>[number] | null =
-          null;
+        let fallback:
+          | Awaited<ReturnType<typeof getCatalogProductOffers>>[number]
+          | null = null;
         if (!/^MLB\d+$/i.test(String(detail?.buy_box_winner?.item_id ?? ""))) {
           const offers = await getCatalogProductOffers({
             accessToken: session.accessToken,
@@ -235,9 +237,9 @@ export async function POST(request: Request) {
               ? null
               : String(usingFallback ? fallback?.sellerId : winner?.seller_id),
           categoryId: winner?.category_id ?? categoryId,
-          soldQuantity: Number(
-            winner?.sold_quantity ?? detail?.sold_quantity ?? 0,
-          ),
+          winnerItemId: winnerId,
+          winnerSoldQuantity: winner?.sold_quantity ?? null,
+          catalogSoldQuantity: detail?.sold_quantity ?? null,
           freeShipping: usingFallback
             ? Boolean(fallback?.freeShipping)
             : Boolean(winner?.shipping?.free_shipping),
@@ -246,11 +248,8 @@ export async function POST(request: Request) {
             : (winner?.shipping?.logistic_type ?? null),
         };
       })
-      .filter(
-        (
-          candidate,
-        ): candidate is NonNullable<typeof candidate> =>
-          Boolean(candidate),
+      .filter((candidate): candidate is NonNullable<typeof candidate> =>
+        Boolean(candidate),
       );
 
     if (!winnerCandidates.length) {
@@ -279,7 +278,7 @@ export async function POST(request: Request) {
       getItemsVisitTotals({
         accessToken: session.accessToken,
         itemIds,
-      }).catch(() => ({} as Record<string, number>)),
+      }).catch(() => ({}) as Record<string, number>),
     ]);
 
     const detailById = new Map(details.map((item) => [item.id, item]));
@@ -288,9 +287,7 @@ export async function POST(request: Request) {
       .map((candidate, index) => {
         const item = detailById.get(candidate.itemId);
         const price =
-          candidate.price > 0
-            ? candidate.price
-            : item?.currentPrice ?? 0;
+          candidate.price > 0 ? candidate.price : (item?.currentPrice ?? 0);
 
         return {
           ...candidate,
@@ -301,11 +298,11 @@ export async function POST(request: Request) {
           similarity: candidate.product.similarity,
         };
       })
-      .filter((candidate) => candidate.price > 0);
+      .filter(
+        (candidate) => Number.isFinite(candidate.price) && candidate.price > 0,
+      );
 
-    const prices = candidates
-      .map((item) => item.price)
-      .sort((a, b) => a - b);
+    const prices = candidates.map((item) => item.price).sort((a, b) => a - b);
 
     const minimum = round2(prices[0] ?? null);
     const p25 = round2(percentile(prices, 0.25));
@@ -355,10 +352,17 @@ export async function POST(request: Request) {
     // anúncios, quando existir. Falha do banco nunca derruba a busca.
     const measuredById = new Map<
       string,
-      { salesPerDay: number; visitsPerDay: number | null }
+      {
+        salesPerDay: number;
+        visitsPerDay: number | null;
+        windowDays: number | null;
+      }
     >();
     try {
-      const insights = await getMarketInsights(session.account.workspaceId, candidates.map((c) => c.itemId));
+      const insights = await getMarketInsights(
+        session.account.workspaceId,
+        candidates.map((c) => c.itemId),
+      );
       for (const insight of insights) {
         const e = insight.estimate;
         if (
@@ -368,6 +372,7 @@ export async function POST(request: Request) {
           measuredById.set(insight.id, {
             salesPerDay: e.salesPerDay.value,
             visitsPerDay: e.visitsPerDay.value,
+            windowDays: e.windowDays,
           });
         }
       }
@@ -378,25 +383,30 @@ export async function POST(request: Request) {
     const opportunities = candidates
       .map((candidate) => {
         const item = candidate.item;
+        const sales = opportunitySalesEvidence({
+          itemSoldQuantity: item?.soldQuantity,
+          itemDateCreated: item?.dateCreated,
+          chosenItemId: candidate.itemId,
+          winnerItemId: candidate.winnerItemId,
+          winnerSoldQuantity: candidate.winnerSoldQuantity,
+          catalogSoldQuantity: candidate.catalogSoldQuantity,
+        });
         const intelligence = calculateSearchOpportunityScore({
           price: candidate.price,
           medianPrice: median,
           searchPosition: candidate.searchPosition,
-          soldQuantity:
-            item?.soldQuantity && item.soldQuantity > 0
-              ? item.soldQuantity
-              : candidate.soldQuantity,
+          soldQuantity: sales.quantity,
           visits: candidate.visits,
-          dateCreated: item?.dateCreated ?? null,
-          freeShipping:
-            candidate.freeShipping || Boolean(item?.freeShipping),
-          logisticType:
-            item?.logisticType ?? candidate.logisticType,
+          dateCreated: sales.dateCreated,
+          freeShipping: candidate.freeShipping || Boolean(item?.freeShipping),
+          logisticType: item?.logisticType ?? candidate.logisticType,
           catalogProductId: candidate.product.id,
           listingTypeId: item?.listingTypeId ?? null,
           similarity: candidate.similarity,
-          measuredSalesPerDay: measuredById.get(candidate.itemId)?.salesPerDay ?? null,
-          measuredVisitsPerDay: measuredById.get(candidate.itemId)?.visitsPerDay ?? null,
+          measuredSalesPerDay:
+            measuredById.get(candidate.itemId)?.salesPerDay ?? null,
+          measuredVisitsPerDay:
+            measuredById.get(candidate.itemId)?.visitsPerDay ?? null,
         });
 
         const gapToMedian =
@@ -409,24 +419,18 @@ export async function POST(request: Request) {
           title: candidate.title,
           price: round2(candidate.price),
           thumbnail: item?.thumbnail ?? null,
-          permalink:
-            item?.permalink ?? candidate.detail?.permalink ?? null,
+          permalink: item?.permalink ?? candidate.detail?.permalink ?? null,
           categoryId: candidate.categoryId ?? item?.categoryId ?? null,
           sellerId: candidate.sellerId ?? item?.sellerId ?? null,
           listingTypeId: item?.listingTypeId ?? null,
-          freeShipping:
-            candidate.freeShipping || Boolean(item?.freeShipping),
-          logisticType:
-            item?.logisticType ?? candidate.logisticType,
+          freeShipping: candidate.freeShipping || Boolean(item?.freeShipping),
+          logisticType: item?.logisticType ?? candidate.logisticType,
           shippingMode: item?.shippingMode ?? null,
           catalogProductId: candidate.product.id,
           userProductId: item?.userProductId ?? null,
           searchPosition: candidate.searchPosition,
           similarityPercent: Math.round(candidate.similarity * 100),
-          soldQuantity:
-            item?.soldQuantity && item.soldQuantity > 0
-              ? item.soldQuantity
-              : candidate.soldQuantity,
+          soldQuantity: sales.quantity,
           visits: candidate.visits,
           dateCreated: item?.dateCreated ?? null,
           gapToMedian,
@@ -434,6 +438,8 @@ export async function POST(request: Request) {
           demandLabel: intelligence.demandLabel,
           scorePartial: intelligence.partial,
           rhythm: intelligence.rhythm,
+          measurementDays:
+            measuredById.get(candidate.itemId)?.windowDays ?? null,
           evidence: intelligence.evidence,
           salesPerDay: intelligence.salesPerDay,
           salesPerMonth: intelligence.salesPerMonth,
@@ -446,14 +452,8 @@ export async function POST(request: Request) {
           sources: {
             discovery: "PRODUCTS_SEARCH",
             price: "CATALOG_BUY_BOX_WINNER",
-            soldQuantity:
-              candidate.soldQuantity > 0
-                ? "CATALOG_PRODUCT"
-                : item?.soldQuantity
-                  ? "ITEMS_BULK"
-                  : "UNAVAILABLE",
-            visits:
-              candidate.visits != null ? "VISITS_API" : "UNAVAILABLE",
+            soldQuantity: sales.source,
+            visits: candidate.visits != null ? "VISITS_API" : "UNAVAILABLE",
           },
         };
       })
@@ -540,7 +540,7 @@ export async function POST(request: Request) {
         exact:
           "A descoberta usa o buscador oficial de produtos do Mercado Livre. Preço e vendedor vêm da oferta vencedora do catálogo; sem ela, da oferta mais barata listada. Detalhes adicionais vêm da consulta em lote de anúncios.",
         estimated:
-          "Vendas/mês e faturamento/mês continuam sendo estimativas baseadas nos sinais disponíveis e são identificadas como estimativas na interface.",
+          "Ritmo medido usa leituras do mesmo anúncio em período conhecido. Média histórica exige vendas e idade da mesma oferta. Total do catálogo não é dividido pela idade do anúncio vencedor. Receita projetada usa o preço atual; não é valor recebido.",
         score:
           "O score combina demanda, vendas acumuladas, relevância do produto, posição de preço, logística e confiança dos dados. Sem nenhuma venda conhecida a nota é parcial e limitada a 60.",
       },

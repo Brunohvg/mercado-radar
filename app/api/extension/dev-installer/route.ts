@@ -14,6 +14,7 @@ const EXTENSION_FILES = [
   "sidepanel.html",
   "sidepanel.js",
   "panel-model.js",
+  "market-model.js",
   "product-analysis.js",
   "icons/icon16.png",
   "icons/icon32.png",

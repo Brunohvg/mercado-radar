@@ -245,6 +245,9 @@ try {
     path: new URL("panel-model.js", extension).pathname,
   });
   await host.addScriptTag({
+    path: new URL("market-model.js", extension).pathname,
+  });
+  await host.addScriptTag({
     path: new URL("product-analysis.js", extension).pathname,
   });
   await host.addScriptTag({ path: new URL("content.js", extension).pathname });
@@ -273,7 +276,7 @@ try {
       assert.equal(observation.listingTypeHint, null);
       assert.equal(observation.categoryId, null);
       assert.equal(observation.soldLower, 25);
-      assert.equal(await host.locator("[data-radar-owned]").count(), 3);
+      assert.equal(await host.locator("[data-radar-owned]").count(), 2);
       await host.locator("#native-buy").click();
       assert.equal(
         await host.locator("#native-buy").getAttribute("data-clicked"),
@@ -292,7 +295,7 @@ try {
       await host.waitForFunction(() =>
         window.__messages.some((m) => m.context?.items?.[0]?.price === 19.9),
       );
-      assert.equal(await host.locator("[data-radar-owned]").count(), 3);
+      assert.equal(await host.locator("[data-radar-owned]").count(), 2);
       const own = await host
         .locator('[data-radar-owned="launcher"]')
         .evaluate((el) =>
@@ -306,7 +309,7 @@ try {
   await check(
     "product analysis, both commissions and candidate prices load without clicks",
     async () => {
-      const product = host.locator('[data-radar-owned="product-analysis"]');
+      const product = host.locator('[data-radar-owned="product"]');
       await product
         .locator(".auto-types button")
         .first()
@@ -321,10 +324,10 @@ try {
         .locator(".auto-receipt > strong")
         .filter({ hasText: "13,51" })
         .waitFor();
-      assert.match(await product.locator(".auto-badge").innerText(), /vendas/);
+      assert.match(await product.locator(".auto-badge").innerText(), /Baixa/);
       assert.match(
         await product.locator(".auto-grid").first().innerText(),
-        /-33,67%/,
+        /receita de referência/i,
       );
       const calls = await host.evaluate(() => __messages);
       assert.equal(
@@ -368,7 +371,7 @@ try {
           "local",
         );
       });
-      const product = host.locator('[data-radar-owned="product-analysis"]');
+      const product = host.locator('[data-radar-owned="product"]');
       await product
         .locator(".auto-receipt > small")
         .filter({ hasText: "frete estimado" })
@@ -389,7 +392,7 @@ try {
   await check(
     "saved own costs show opportunity and profit automatically; edits can reveal a loss",
     async () => {
-      const product = host.locator('[data-radar-owned="product-analysis"]');
+      const product = host.locator('[data-radar-owned="product"]');
       await host.evaluate(() => {
         __hostQa.own = true;
         __hostQa.rate = 4;
@@ -407,10 +410,7 @@ try {
         await product.locator(".auto-verdict strong").innerText(),
         /Boa oportunidade/,
       );
-      assert.equal(
-        await product.locator(".auto-badge").innerText(),
-        "Alta demanda",
-      );
+      assert.equal(await product.locator(".auto-badge").innerText(), "Alta");
       assert.equal(await product.locator("#radar-auto-cost").inputValue(), "5");
       await product.locator(".auto-types button").last().click();
       await product.locator("#radar-auto-shipping").fill("0");
@@ -429,7 +429,7 @@ try {
       );
       assert.equal(
         await host
-          .locator('[data-radar-owned="product"] .auto-summary h2')
+          .locator('[data-radar-owned="product"] .auto-verdict strong')
           .innerText(),
         "Não compensa neste custo",
       );
@@ -454,7 +454,7 @@ try {
     async () => {
       const product = host.locator('[data-radar-owned="product"]');
       await host
-        .locator('[data-radar-owned="product-analysis"]')
+        .locator('[data-radar-owned="product"]')
         .getByRole("button", { name: "Calculadora completa ↗", exact: true })
         .click();
       assert.equal(
@@ -598,6 +598,7 @@ try {
   for (const name of [
     "selectors.js",
     "panel-model.js",
+    "market-model.js",
     "product-analysis.js",
     "content.js",
   ])
@@ -649,7 +650,7 @@ try {
       );
       assert.equal(
         await first.locator(".intel-number").innerText(),
-        "R$ 71,60",
+        "R$ 71,60",
       );
       assert.equal(
         await first.locator(".intel-cell small").last().innerText(),
@@ -666,7 +667,7 @@ try {
         [
           "Alta",
           "Baixa",
-          "100+ vendas",
+          "Média",
           "Excelente",
           "Média",
           "Média",
@@ -677,19 +678,19 @@ try {
       const unknown = searchPage.locator('[data-radar-owned="card"]').nth(2);
       assert.equal(
         await unknown.locator(".intel-number").innerText(),
-        "≥ R$\u00a02.190,00",
+        "≥ R$ 2,1 mil",
       );
       assert.equal(
         await unknown.locator(".intel-cell small").last().innerText(),
-        "fat. de referência",
+        "receita de referência",
       );
       assert.match(
         await unknown.locator(".intel-basis").innerText(),
-        /100\+ vendidos × preço atual/,
+        /100\+ vendidos/,
       );
       assert.equal(
         await unknown.locator(".intel-opportunity").innerText(),
-        "Vale simular",
+        "Potencial moderado",
       );
       assert.equal(
         await searchPage
@@ -889,9 +890,7 @@ try {
       const pills = searchPage.locator('[data-radar-owned="card"] .intel-pill');
       const publicSignals = await pills.allTextContents();
       assert.ok(
-        publicSignals.every((text) =>
-          ["Não informado", "100+ vendas"].includes(text),
-        ),
+        publicSignals.every((text) => ["A confirmar", "Média"].includes(text)),
       );
       await searchPage.evaluate(() => __hostQa.releaseObservations());
       await searchPage.waitForTimeout(650);
@@ -913,7 +912,7 @@ try {
         .filter({ has: searchPage.locator('a[href$="MLBU5074600642"]') });
       await card
         .locator(".intel-number")
-        .filter({ hasText: "2.190,00" })
+        .filter({ hasText: "2,1 mil" })
         .waitFor();
       const calls = await searchPage.evaluate(
         () => __messages.filter((m) => m.type === "RADAR_FETCH").length,
@@ -926,16 +925,13 @@ try {
         .evaluate((el) => (el.textContent = "00"));
       await card
         .locator(".intel-number")
-        .filter({ hasText: "3.000,00" })
+        .filter({ hasText: "3 mil" })
         .waitFor();
-      assert.equal(
-        await card.locator(".intel-pill").innerText(),
-        "100+ vendas",
-      );
+      assert.equal(await card.locator(".intel-pill").innerText(), "Média");
       assert.equal(
         await searchPage
           .locator('[data-radar-owned="card"] .intel-number')
-          .filter({ hasText: "Vendas ausentes" })
+          .filter({ hasText: /^—$/ })
           .count(),
         6,
       );
@@ -1719,11 +1715,11 @@ try {
 } catch (error) {
   console.error("BROWSER_FAILURE", error);
   for (const p of browser.contexts().flatMap((c) => c.pages())) {
-    if (await p.locator('[data-radar-owned="product-analysis"]').count()) {
+    if (await p.locator('[data-radar-owned="product"]').count()) {
       console.error(
         "PRODUCT_DEBUG",
         await p
-          .locator('[data-radar-owned="product-analysis"] .auto-analysis')
+          .locator('[data-radar-owned="product"] .auto-analysis')
           .innerText(),
         await p.evaluate(() =>
           __messages

@@ -13,59 +13,8 @@
       ? value.toLocaleString("pt-BR", { maximumFractionDigits: 2 })
       : "—";
   const pct = (value) => num(value) + "%";
-  function demand(insight) {
-    const e = insight?.estimate,
-      rate = e?.salesPerDay?.value;
-    const dated =
-      ["OFICIAL", "HISTORICO"].includes(e?.method) &&
-      numeric(e?.windowDays) &&
-      e.windowDays >= 1;
-    const lifetime =
-      e?.method === "VIDA" &&
-      numeric(e?.ageDays?.value) &&
-      e.ageDays.value >= 1 &&
-      e.ageDays.source === "API" &&
-      e.sold?.exact;
-    if (
-      !numeric(rate) ||
-      rate < 0 ||
-      (!dated && !lifetime) ||
-      (e.method === "OFICIAL" && !insight.isOwn)
-    )
-      return {
-        level: null,
-        title: "Demanda a confirmar",
-        tone: "neutral",
-        rate: null,
-        basis:
-          "Vendidos acumulados e avaliações não informam vendas por período.",
-      };
-    const level =
-      rate >= 10
-        ? "EXCELENTE"
-        : rate >= 3
-          ? "ALTA"
-          : rate >= 0.7
-            ? "MEDIA"
-            : "BAIXA";
-    const title = {
-      EXCELENTE: "Demanda excelente",
-      ALTA: "Alta demanda",
-      MEDIA: "Demanda média",
-      BAIXA: "Baixa demanda",
-    }[level];
-    return {
-      level,
-      title: lifetime ? title + " · histórica" : title,
-      tone: level === "BAIXA" ? "warn" : level === "MEDIA" ? "neutral" : "good",
-      rate,
-      basis: lifetime
-        ? "Média desde a criação oficial; não mede a demanda recente."
-        : e.method === "OFICIAL"
-          ? "Pedidos da sua conta · últimos " + num(e.windowDays) + " dias."
-          : "Contador exato entre leituras · " + num(e.windowDays) + " dias.",
-    };
-  }
+  const P = globalThis.RadarMarketModel;
+  const demand = P.measuredDemand;
   function opportunity(insight, result) {
     const d = demand(insight);
     if (
@@ -128,76 +77,45 @@
   }
   function cardMetrics(observation, insight) {
     const obs = observation || {},
-      d = demand(insight?.id === obs.id ? insight : null),
-      sold =
-        Number.isSafeInteger(obs.soldLower) && obs.soldLower >= 0
-          ? obs.soldLower
-          : null,
-      price = numeric(obs.price) && obs.price > 0 ? obs.price : null,
-      countLabel =
-        sold == null ? null : num(sold) + (obs.soldHasPlus ? "+" : ""),
-      recent = d.rate != null && insight.estimate.method !== "VIDA";
-    const signal = d.level
-      ? {
-          text: {
-            EXCELENTE: "Excelente",
-            ALTA: "Alta",
-            MEDIA: "Média",
-            BAIXA: "Baixa",
-          }[d.level],
-          label:
-            insight.estimate.method === "VIDA"
-              ? "demanda histórica"
-              : "demanda medida",
-          tone:
-            { EXCELENTE: "excellent", ALTA: "high", MEDIA: "medium" }[
-              d.level
-            ] || "",
-          detail: d.basis,
-        }
-      : sold != null
-        ? {
-            text: countLabel + " vendas",
-            label: "sinal de demanda",
-            tone: sold > 0 ? "observed" : "",
-            detail:
-              "Vendas acumuladas exibidas na página. Sem período, esse total não classifica o ritmo de vendas atual.",
-          }
-        : {
-            text: obs.bestSellerLabel ? "Mais vendido" : "Não informado",
-            label: obs.bestSellerLabel ? "selo da página" : "vendas na página",
-            tone: obs.bestSellerLabel ? "observed" : "",
-            detail:
-              obs.bestSellerLabel ||
-              "A página não exibe quantidade vendida. Avaliações não são contadas como vendas.",
-          };
-    if (recent && price != null && Number.isFinite(d.rate * price))
+      a = P.assessMarket(obs, insight),
+      d = a.demand;
+    const signal = {
+      text: d.text,
+      label: d.label + (d.lowerBound ? " · mínima" : ""),
+      tone:
+        {
+          EXCELENTE: "excellent",
+          ALTA: "high",
+          MEDIA: "medium",
+          BAIXA: "initial",
+        }[d.level] || "",
+      detail: d.basis,
+    };
+    if (
+      a.recent &&
+      numeric(obs.price) &&
+      obs.price > 0 &&
+      Number.isFinite(d.rate * obs.price)
+    ) {
       return {
         signal,
-        amount: brl(d.rate * price),
+        amount: P.compactMoney(d.rate * obs.price),
         label: "receita est./dia",
         kind: "daily",
-        basis: "Ritmo medido × preço atual",
+        basis: a.soldText,
         detail:
           d.basis +
-          " Ritmo medido × preço atual. Estimativa bruta; não é faturamento recebido.",
+          " Ritmo medido × preço atual. Estimativa bruta, não faturamento recebido.",
       };
-    // This is a public reference at today's price, never historical revenue.
-    const totalCents =
-      sold != null && price != null ? Math.round(price * 100) * sold : null;
-    if (totalCents != null && Number.isSafeInteger(totalCents))
+    }
+    if (a.reference)
       return {
         signal,
-        amount: (obs.soldHasPlus ? "≥ " : "") + brl(totalCents / 100),
-        label: "fat. de referência",
+        amount: a.reference.text,
+        label: a.reference.label,
         kind: "reference",
-        basis: countLabel + " vendidos × preço atual",
-        detail:
-          "Base pública: " +
-          countLabel +
-          " vendidos × " +
-          brl(price) +
-          " hoje. Projeção bruta do acumulado ao preço atual; o valor das vendas passadas e o período não são conhecidos. Não informa lucro.",
+        basis: a.soldText,
+        detail: a.reference.basis + ". " + a.reference.detail,
       };
     if (d.rate != null)
       return {
@@ -205,19 +123,17 @@
         amount: num(d.rate) + " un./dia",
         label: "média histórica",
         kind: "rate",
-        basis: "Média desde a criação",
+        basis: a.soldText,
         detail: d.basis,
       };
     return {
       signal,
-      amount: sold == null ? "Vendas ausentes" : "Preço ausente",
-      label: "fat. de referência",
+      amount: "—",
+      label: "receita de referência",
       kind: "missing",
-      basis: "Preço × quantidade vendida",
+      basis: a.soldText,
       detail:
-        sold == null
-          ? "Falta a quantidade vendida na página para calcular a referência bruta."
-          : "Falta o preço atual na página para calcular a referência bruta.",
+        "Falta preço ou quantidade vendida para calcular a referência bruta.",
     };
   }
   function decision(observation, insight, result, advertising) {
@@ -309,26 +225,7 @@
             : "A margem está calculada; o giro recente ainda exige confirmação."),
       };
     }
-    const d = demand(insight);
-    if (d.level) return opportunity(insight, null);
-    if (
-      Number.isSafeInteger(observation?.soldLower) &&
-      observation.soldLower > 0
-    )
-      return {
-        title: "Vale simular seu custo",
-        tone: "neutral",
-        reason:
-          num(observation.soldLower) +
-          (observation.soldHasPlus ? "+" : "") +
-          " vendidos no total. Informe seu custo para avaliar o lucro; o giro recente não está confirmado.",
-      };
-    return {
-      title: "Confirme vendas e custos",
-      tone: "neutral",
-      reason:
-        "A página não comprova o giro recente. Informe seu custo para avaliar a margem neste preço.",
-    };
+    return P.assessMarket(observation || {}, insight).potential;
   }
   function receipt(quote, price) {
     const f = quote?.fees;
@@ -798,23 +695,19 @@
     };
     const style = $("style");
     style.textContent = `
-      .auto-analysis{padding-top:12px;min-width:0}.auto-verdict{padding:11px 12px;border-radius:9px;background:#f1f5f1;border:1px solid #e0e8e0}.auto-verdict.good{background:#edf7ef;border-color:#cfe5d3}.auto-verdict.bad{background:#fff0eb;border-color:#f0d4ca}.auto-verdict.warn{background:#fff8e8;border-color:#eddfb9}.auto-verdict strong{display:block;font-size:15px;letter-spacing:-.3px}.auto-verdict p{margin-top:4px;font-size:10px}.auto-badge{display:inline-block;border-radius:5px;padding:3px 5px;margin-top:8px;font-size:10px;background:#edf2ee;color:#47654f}.auto-badge.good{background:#e1f1e4;color:#12603b}.auto-badge.warn{background:#fff0cf;color:#845916}.auto-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.auto-metric{padding:9px;background:#f7f9f7;border-radius:8px;min-width:0}.auto-metric small{display:block;font-size:9px}.auto-metric strong{font-size:16px;display:block;overflow-wrap:anywhere}.auto-source{font-size:9px;margin-top:7px;color:#708273;line-height:1.5}.auto-receipt{border-top:1px solid #e0e9df;margin-top:12px;padding-top:12px}.auto-receipt>small{display:block}.auto-receipt>strong{display:block;font-size:24px;letter-spacing:-.6px;margin-top:2px}.auto-types{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:7px}.auto-types button{padding:6px;min-height:31px;font-size:10px}.auto-types button[aria-pressed=true]{background:#e5f2e8;border-color:#82b293;color:#125a39}.auto-analysis details{border-top:1px solid #e1e9e1;margin-top:10px;padding-top:8px}.auto-analysis summary{font-size:10px;color:#5d7764;cursor:pointer}.auto-breakdown{margin:8px 0 0;font-size:10px}.auto-breakdown div{display:flex;justify-content:space-between;gap:8px;padding:4px 0}.auto-breakdown dt{color:#60796a}.auto-breakdown dd{margin:0;font-variant-numeric:tabular-nums}.auto-calc{margin-top:12px;padding-top:11px;border-top:1px solid #dfe9df}.auto-calc label{display:block;font-size:10px;color:#40624d;font-weight:600;margin-bottom:5px}.auto-calc input{box-sizing:border-box;width:100%;min-width:0;min-height:35px;border:1px solid #c4d7c8;border-radius:7px;padding:7px 9px;color:#183e2b;background:white;font:13px system-ui}.auto-calc input[aria-invalid=true]{border-color:#b94832}.auto-calc .auto-grid{margin-top:9px}.auto-result{background:#eaf5ec;border:1px solid #cde1d1;border-radius:9px;padding:10px;margin-top:10px}.auto-result.bad{background:#fff0eb;border-color:#f0d4ca}.auto-result strong{display:block;font-size:22px}.auto-result small{display:block}.auto-result p{font-size:10px;margin-top:4px}.auto-helper{margin-top:8px;font-size:10px}.auto-connection button{width:100%;margin-top:8px}.auto-candidate{padding:5px 0;border-bottom:1px solid #edf1ec;font-size:10px}.auto-candidate b{display:block;margin-top:2px}.auto-calc .auto-operating{margin-top:9px}.auto-readout{font-size:10px;margin-top:9px;color:#607a68}.auto-update{display:flex;justify-content:space-between;gap:5px;margin-top:8px;align-items:center}.auto-update button{padding:3px;font-size:9px;min-height:22px;border:0;background:transparent;color:#58705c}.auto-update small{font-size:9px}.auto-inputs[hidden],.auto-analysis [hidden]{display:none!important}
-    `;
-    style.textContent += `
-      @container (min-width:660px){.auto-analysis{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:26px;padding-top:16px}.auto-overview{grid-column:1;grid-row:1}.auto-receipt{grid-column:1;grid-row:2}.auto-calc{grid-column:2;grid-row:1/span 2;margin-top:0;padding-top:0;border-top:0}.auto-analysis>details,.auto-connection,.auto-update,.auto-analysis>button{grid-column:1/-1}.auto-analysis>button{justify-self:end;width:auto}.auto-verdict strong{font-size:20px}.auto-verdict p,.auto-helper{font-size:12px}.auto-metric strong{font-size:20px}.auto-source,.auto-readout{font-size:11px}.auto-calc label{font-size:12px}.auto-calc input{min-height:40px}.auto-result strong{font-size:28px}.auto-result p{font-size:12px}.auto-result{padding:14px}.auto-types button{font-size:12px;min-height:36px}.auto-analysis summary{font-size:12px}.auto-breakdown,.auto-candidate{font-size:12px}}
+      .auto-analysis{padding-top:12px;min-width:0}.auto-verdict{padding:11px 12px;border-radius:9px;background:#f1f5f1;border:1px solid #e0e8e0}.auto-verdict.good{background:#edf7ef;border-color:#cfe5d3}.auto-verdict.bad{background:#fff0eb;border-color:#f0d4ca}.auto-verdict.warn{background:#fff8e8;border-color:#eddfb9}.auto-verdict strong{display:block;font-size:15px;letter-spacing:-.3px}.auto-verdict p{margin-top:4px;font-size:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.auto-badge{display:inline-block;border-radius:5px;padding:3px 5px;font-size:14px;background:#edf2ee;color:#47654f}.auto-badge.good{background:#e1f1e4;color:#12603b}.auto-badge.warn{background:#fff0cf;color:#845916}.auto-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.auto-metric{padding:8px;background:#f7f9f7;border-radius:8px;min-width:0}.auto-metric small{display:block;font-size:9px}.auto-metric strong{font-size:15px;display:block;overflow-wrap:anywhere}.auto-metric .auto-badge{font-size:14px;padding:0;background:transparent}.auto-source{font-size:9px;margin-top:7px;color:#708273;line-height:1.5}.auto-receipt{border-top:1px solid #e0e9df;margin-top:12px;padding-top:12px}.auto-receipt>small{display:block}.auto-receipt>strong{display:block;font-size:24px;letter-spacing:-.6px;margin-top:2px}.auto-types{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:7px}.auto-types button{padding:6px;min-height:31px;font-size:10px}.auto-types button[aria-pressed=true]{background:#e5f2e8;border-color:#82b293;color:#125a39}.auto-analysis details{border-top:1px solid #e1e9e1;margin-top:10px;padding-top:8px}.auto-analysis summary{font-size:10px;color:#5d7764;cursor:pointer}.auto-breakdown{margin:8px 0 0;font-size:10px}.auto-breakdown div{display:flex;justify-content:space-between;gap:8px;padding:4px 0}.auto-breakdown dt{color:#60796a}.auto-breakdown dd{margin:0;font-variant-numeric:tabular-nums}.auto-calc{margin-top:12px;padding-top:11px;border-top:1px solid #dfe9df}.auto-calc label{display:block;font-size:10px;color:#40624d;font-weight:600;margin-bottom:5px}.auto-calc input{box-sizing:border-box;width:100%;min-width:0;min-height:35px;border:1px solid #c4d7c8;border-radius:7px;padding:7px 9px;color:#183e2b;background:white;font:13px system-ui}.auto-calc input[aria-invalid=true]{border-color:#b94832}.auto-calc .auto-grid{margin-top:9px}.auto-result{background:#eaf5ec;border:1px solid #cde1d1;border-radius:9px;padding:10px;margin-top:10px}.auto-result.bad{background:#fff0eb;border-color:#f0d4ca}.auto-result strong{display:block;font-size:22px}.auto-result small{display:block}.auto-result p{font-size:10px;margin-top:4px}.auto-helper{margin-top:8px;font-size:10px}.auto-connection button{width:100%;margin-top:8px}.auto-candidate{padding:5px 0;border-bottom:1px solid #edf1ec;font-size:10px}.auto-candidate b{display:block;margin-top:2px}.auto-calc .auto-operating{margin-top:9px}.auto-readout{font-size:10px;margin-top:9px;color:#607a68}.auto-update{display:flex;justify-content:space-between;gap:5px;margin-top:8px;align-items:center}.auto-update button{padding:3px;font-size:9px;min-height:22px;border:0;background:transparent;color:#58705c}.auto-update small{font-size:9px}.auto-update .auto-more{font-size:10px;border:0;min-height:26px;padding:3px 0;background:transparent}.auto-inputs[hidden],.auto-analysis [hidden]{display:none!important}
     `;
     const container = $("div", null, "auto-analysis"),
       verdict = $("div", null, "auto-verdict"),
       verdictTitle = $("strong"),
-      reason = $("p"),
-      badge = $("span", null, "auto-badge");
+      reason = $("p");
     verdict.append(verdictTitle, reason);
     const overview = $("section", null, "auto-overview");
-    overview.append(verdict, badge);
+    overview.append(verdict);
     container.append(overview);
     const grid = $("div", null, "auto-grid"),
       metrics = [];
-    for (const label of ["Preço na página", "Preço vs. candidatos"]) {
+    for (const label of ["Demanda histórica", "Receita de referência"]) {
       const box = $("div", null, "auto-metric"),
         value = $("strong", "—");
       box.append($("small", label), value);
@@ -823,7 +716,14 @@
     }
     const source = $("p", "", "auto-source"),
       publicLine = $("p", "", "auto-readout");
-    overview.append(grid, source, publicLine);
+    overview.append(grid, publicLine);
+    const evidence = $("details"),
+      missingFacts = $("dl", null, "auto-breakdown");
+    evidence.append(
+      $("summary", "Detalhes de mercado e tarifas"),
+      source,
+      missingFacts,
+    );
     const marketGrid = $("div", null, "auto-grid");
     overview.append(marketGrid);
     const payout = $("div", null, "auto-receipt"),
@@ -845,7 +745,8 @@
       feeDetails = $("details"),
       breakdown = $("dl", null, "auto-breakdown");
     feeDetails.append($("summary", "Tarifas e origem da cotação"), breakdown);
-    payout.append(payoutLabel, payoutValue, types, quoteNote, feeDetails);
+    feeDetails.append(quoteNote);
+    payout.append(payoutLabel, payoutValue, types);
     container.append(payout);
     const form = $("form", null, "auto-calc"),
       fields = {},
@@ -920,7 +821,8 @@
       ),
       candidateList,
     );
-    container.append(marketDetails);
+    evidence.append(feeDetails, marketDetails);
+    container.append(evidence);
     const connection = $("div", null, "auto-connection"),
       connectButton = $("button", "Conectar minha conta");
     connectButton.type = "button";
@@ -935,8 +837,10 @@
     const more = $("button", "Calculadora completa ↗");
     more.type = "button";
     more.addEventListener("click", advanced);
-    update.append(status, retry);
-    container.append(update, more);
+    more.className = "auto-more";
+    evidence.append(status);
+    update.append(more, retry);
+    container.append(update);
     root.append(style, container);
     function syncInput(input, value) {
       if (input.getRootNode().activeElement !== input && input.value !== value)
@@ -953,22 +857,22 @@
         verdict.className = "auto-verdict " + o.tone;
         verdictTitle.textContent = o.title;
         reason.textContent = o.reason;
-        badge.className = "auto-badge " + d.tone;
-        badge.textContent = d.level
-          ? d.title
-          : cardMetrics(s.obs, s.insight).signal.text;
-        metrics[0].textContent = brl(s.obs.price);
-        metrics[1].textContent =
-          s.sample?.gap == null
-            ? "Sem amostra"
-            : (s.sample.gap > 0 ? "+" : "") + pct(s.sample.gap);
+        reason.title = o.reason;
+        const reading = P.assessMarket(s.obs, s.insight),
+          card = cardMetrics(s.obs, s.insight);
+        metrics[0].className =
+          "auto-badge " +
+          (reading.demand.level === "BAIXA" ? "warn" : reading.potential.tone);
+        metrics[0].textContent = reading.demand.text;
+        metrics[0].parentElement.querySelector("small").textContent =
+          reading.demand.label + (reading.demand.lowerBound ? " · mínima" : "");
+        metrics[0].title = reading.demand.basis;
+        metrics[1].textContent = card.amount;
+        metrics[1].parentElement.querySelector("small").textContent =
+          card.label;
+        metrics[1].title = card.detail;
         source.textContent =
-          d.basis +
-          (s.sample
-            ? " Preço comparado com " +
-              s.sample.count +
-              " candidatos, ainda sem revisão."
-            : "");
+          reading.demand.basis + " " + (reading.reference?.detail || "");
         publicLine.textContent = [
           s.obs.soldLabel ||
             (s.obs.soldLower == null
@@ -983,12 +887,28 @@
           .filter(Boolean)
           .join(" · ");
         marketGrid.replaceChildren();
-        for (const fact of marketMetrics(s)) {
-          const box = $("div", null, "auto-metric");
-          box.title = fact.detail;
-          box.append($("small", fact.label), $("strong", fact.value));
-          marketGrid.append(box);
+        missingFacts.replaceChildren();
+        // Available traffic/catalog facts are useful. Missing grants belong in
+        // the source disclosure, rather than four large empty tiles.
+        for (const [index, fact] of marketMetrics(s).entries()) {
+          const unknown = [
+            "Sem acesso",
+            "Sem período",
+            "Não disponível",
+          ].includes(fact.value);
+          if (unknown) {
+            const row = $("div");
+            row.title = fact.detail;
+            row.append($("dt", fact.label), $("dd", fact.value));
+            missingFacts.append(row);
+          } else if (index !== 1) {
+            const box = $("div", null, "auto-metric");
+            box.title = fact.detail;
+            box.append($("small", fact.label), $("strong", fact.value));
+            marketGrid.append(box);
+          }
         }
+        marketGrid.hidden = !marketGrid.childElementCount;
         payoutLabel.textContent = received?.label || "Repasse após tarifas";
         payoutValue.textContent = received
           ? brl(received.value)
@@ -1053,7 +973,9 @@
         costSource.textContent = s.costSource;
         fieldWraps.shipping.hidden = received?.shippingApplied === true;
         fieldWraps.tax.hidden = s.taxConfigured;
-        missing.hidden = fieldWraps.shipping.hidden && fieldWraps.tax.hidden;
+        missing.hidden =
+          (fieldWraps.shipping.hidden && fieldWraps.tax.hidden) ||
+          M.money(s.fields.cost) == null;
         helper.textContent = s.calculating
           ? "Calculando automaticamente…"
           : s.error ||
@@ -1073,6 +995,9 @@
                 ]
                   .filter(Boolean)
                   .join(" "));
+        helper.hidden =
+          !s.error && !s.calculating && M.money(s.fields.cost) == null;
+        payout.hidden = s.status === "connection";
         resultBox.hidden = !s.result;
         resultBox.className =
           "auto-result" + (s.result?.verdict === "BAD" ? " bad" : "");
@@ -1116,66 +1041,6 @@
       },
     };
   }
-  function mountSummary(root, controller, { adjust }) {
-    const make = (tag, cls) => {
-      const e = document.createElement(tag);
-      if (cls) e.className = cls;
-      return e;
-    };
-    const style = make("style");
-    style.textContent =
-      ".auto-summary{padding-top:11px}.auto-summary h2{font-size:15px;line-height:1.4}.auto-summary h2.good{color:#146e46}.auto-summary h2.bad{color:#a14430}.auto-summary h2.warn{color:#916a21}.auto-summary p{font-size:10px;margin-top:5px}.auto-summary .mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.auto-summary .mini-grid:has(>div[hidden]){grid-template-columns:1fr}.auto-summary .mini-grid div{padding:8px;background:#f4f8f4;border-radius:8px;min-width:0}.auto-summary small{display:block;font-size:9px}.auto-summary strong{display:block;font-size:18px;overflow-wrap:anywhere}.auto-summary button{font-size:10px;padding:3px;min-height:25px;margin-top:6px;border:0;background:transparent}";
-    const wrap = make("div", "auto-summary"),
-      title = make("h2"),
-      evidence = make("p"),
-      grid = make("div", "mini-grid"),
-      values = [],
-      labels = [];
-    for (let i = 0; i < 2; i++) {
-      const box = make("div"),
-        label = make("small"),
-        value = make("strong");
-      labels.push(label);
-      values.push(value);
-      box.append(label, value);
-      grid.append(box);
-    }
-    const edit = make("button");
-    edit.type = "button";
-    edit.textContent = "Ver análise e ajustar custo ↓";
-    edit.addEventListener("click", adjust);
-    wrap.append(title, evidence, grid, edit);
-    root.append(style, wrap);
-    return {
-      render(s) {
-        const d = demand(s.insight),
-          o = decision(s.obs, s.insight, s.result),
-          received = receipt(s.quotes[s.listingType], s.obs?.price);
-        title.textContent = o.title;
-        title.className = o.tone;
-        evidence.textContent = d.level
-          ? d.title + " · " + num(d.rate) + " un./dia"
-          : cardMetrics(s.obs, s.insight).signal.text + " · sinal público";
-        labels[0].textContent = s.result
-          ? "Lucro por venda"
-          : received?.shippingEstimated
-            ? "Com frete estimado"
-            : received?.shippingKnown
-              ? "Repasse após frete"
-              : "Após tarifas · antes do frete";
-        values[0].textContent = brl(s.result?.profit ?? received?.value);
-        labels[1].textContent = s.result
-          ? "Margem simulada"
-          : "Preço vs. candidatos";
-        values[1].textContent = s.result
-          ? pct(s.result.marginPercent)
-          : s.sample?.gap == null
-            ? "Sem amostra"
-            : (s.sample.gap > 0 ? "+" : "") + pct(s.sample.gap);
-        labels[1].parentElement.hidden = !s.result && !s.sample;
-      },
-    };
-  }
   globalThis.RadarProductAnalysis = {
     marketMetrics,
     cardMetrics,
@@ -1185,6 +1050,5 @@
     receipt,
     createController,
     mount,
-    mountSummary,
   };
 })();

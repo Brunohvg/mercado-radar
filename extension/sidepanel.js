@@ -83,19 +83,30 @@
       o = A.decision(obs, s.insight, s.result),
       quote = s.quotes[s.listingType],
       payout = A.receipt(quote, obs.price);
-    $("autoDemand").textContent = d.title;
-    $("autoDemand").title = d.basis;
+    const reading = globalThis.RadarMarketModel.assessMarket(obs, s.insight),
+      card = A.cardMetrics(obs, s.insight);
+    $("autoDemand").textContent =
+      reading.demand.text + " · " + reading.demand.label;
+    $("autoDemand").title = reading.demand.basis;
     $("autoVerdict").textContent = o.title;
     $("autoVerdict").className = "analysis-verdict " + o.tone;
     $("autoMetrics").replaceChildren(
-      ...A.marketMetrics(s).map((fact) => {
-        const box = metric(fact.label, fact.value);
-        box.title = fact.detail;
-        return box;
-      }),
+      metric(card.label, card.amount, reading.soldText),
+      ...A.marketMetrics(s)
+        .filter(
+          (fact) =>
+            !["Sem acesso", "Sem período", "Não disponível"].includes(
+              fact.value,
+            ),
+        )
+        .map((fact) => {
+          const box = metric(fact.label, fact.value);
+          box.title = fact.detail;
+          return box;
+        }),
     );
     $("autoEvidence").textContent =
-      d.basis +
+      reading.demand.basis +
       (s.analytics?.catalog?.visitsSample
         ? " Visitas: soma das ofertas medidas; cobertura pode ser parcial."
         : "");

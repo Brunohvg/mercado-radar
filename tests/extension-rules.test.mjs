@@ -31,12 +31,44 @@ const S = sandbox.RadarSelectors,
   M = sandbox.RadarPanelModel;
 vm.runInContext(
   await readFile(
+    new URL("../extension/market-model.js", import.meta.url),
+    "utf8",
+  ),
+  sandbox,
+);
+vm.runInContext(
+  await readFile(
     new URL("../extension/product-analysis.js", import.meta.url),
     "utf8",
   ),
   sandbox,
 );
 const A = sandbox.RadarProductAnalysis;
+test("instalador inclui os scripts executados pelo manifest e pelo painel", async () => {
+  const installer = await readFile(
+    new URL("../app/api/extension/dev-installer/route.ts", import.meta.url),
+    "utf8",
+  );
+  const manifest = JSON.parse(
+    await readFile(
+      new URL("../extension/manifest.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  const panel = await readFile(
+    new URL("../extension/sidepanel.html", import.meta.url),
+    "utf8",
+  );
+  const scripts = [
+    ...manifest.content_scripts.flatMap((entry) => entry.js),
+    ...[...panel.matchAll(/<script src="([^"]+)"/g)].map((match) => match[1]),
+  ];
+  for (const file of scripts)
+    assert.ok(
+      installer.includes(JSON.stringify(file)),
+      `${file} ausente do instalador`,
+    );
+});
 const measured = (rate, method = "HISTORICO", isOwn = false) => ({
   isOwn,
   estimate: { method, windowDays: 30, salesPerDay: { value: rate } },
@@ -79,16 +111,16 @@ test("card aproveita o acumulado e o preço da página sem inventar faturamento 
     soldHasPlus: true,
   };
   const card = A.cardMetrics(obs, null);
-  assert.equal(card.signal.text, "100+ vendas");
-  assert.equal(card.label, "fat. de referência");
-  assert.equal(card.amount, "≥ R$\u00a01.788,00");
+  assert.equal(card.signal.text, "Média");
+  assert.equal(card.label, "receita de referência");
+  assert.equal(card.amount, "≥ R$ 1,7 mil");
   assert.match(card.detail, /vendas passadas e o período não são conhecidos/);
   assert.equal(A.demand(null).level, null);
   const changedPrice = A.cardMetrics({ ...obs, price: 20 }, null);
-  assert.equal(changedPrice.amount, "≥ R$\u00a02.000,00");
+  assert.equal(changedPrice.amount, "≥ R$ 2 mil");
   assert.equal(
     A.cardMetrics({ ...obs, soldHasPlus: false }, null).amount,
-    "R$\u00a01.788,00",
+    "R$ 1,8 mil",
   );
 });
 test("conclusão exige custos para viabilidade e considera perda após Ads", () => {
@@ -100,7 +132,7 @@ test("conclusão exige custos para viabilidade e considera perda após Ads", () 
     purchaseCost: 40,
     operatingCost: 0,
   };
-  assert.equal(A.decision(obs, null, null).title, "Vale simular seu custo");
+  assert.equal(A.decision(obs, null, null).title, "Potencial moderado");
   assert.equal(
     A.decision(obs, null, good).title,
     "Margem boa · confirme o giro",
@@ -124,13 +156,10 @@ test("conclusão exige custos para viabilidade e considera perda após Ads", () 
 test("card diferencia zero explícito, dado ausente e avaliações sem quantidade vendida", () => {
   const obs = { id: "MLB1234567890", price: 17.88, reviews: 100 };
   assert.equal(A.cardMetrics(obs, null).kind, "missing");
-  assert.equal(
-    A.cardMetrics({ ...obs, soldLower: 0 }, null).amount,
-    "R$\u00a00,00",
-  );
+  assert.equal(A.cardMetrics({ ...obs, soldLower: 0 }, null).amount, "R$ 0,00");
   assert.equal(
     A.cardMetrics({ ...obs, price: null, soldLower: 100 }, null).amount,
-    "Preço ausente",
+    "—",
   );
   for (const soldLower of [NaN, Infinity, -1, "100", 1.5])
     assert.equal(A.cardMetrics({ ...obs, soldLower }, null).kind, "missing");
@@ -146,7 +175,7 @@ test("ritmo de uma referência não preenche outra e projeção diária acompanh
     soldHasPlus: true,
   };
   const insight = { ...measured(4), id: obs.id, price: 10 };
-  assert.equal(A.cardMetrics(obs, insight).amount, "R$\u00a080,00");
+  assert.equal(A.cardMetrics(obs, insight).amount, "R$ 80,00");
   assert.equal(A.cardMetrics(obs, insight).kind, "daily");
   assert.equal(
     A.cardMetrics(obs, { ...insight, id: "MLB9999999999" }).kind,

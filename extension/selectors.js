@@ -788,11 +788,30 @@
   }
 
   function contextualProductAnchor() {
-    for (const selector of [".ui-pdp-price", ".ui-pdp-header"]) {
-      const element = document.querySelector(selector);
+    const price = document.querySelector(".ui-pdp-price");
+    let element = price;
+    // The price may sit inside a horizontal row. Insert after its small wrapper,
+    // never after the whole buy box, gallery or a native purchase control.
+    for (
+      let depth = 0;
+      element && depth < 3;
+      depth++, element = element.parentElement
+    ) {
+      if (
+        element.matches(
+          "main, aside, form, a, button, .ui-pdp-container--column-right",
+        ) ||
+        element.querySelector(
+          "h1, .ui-pdp-gallery, .ui-pdp-actions, button[type=submit]",
+        )
+      )
+        break;
       if (verticalParent(element)) return { element, position: "afterend" };
     }
-    return null;
+    const header = document.querySelector(".ui-pdp-header");
+    return verticalParent(header)
+      ? { element: header, position: "afterend" }
+      : null;
   }
 
   function contextualSearchAnchor() {

@@ -271,6 +271,46 @@
   grid-column: 1/-1;
   color: var(--ink-500);
 }
+.radar-discover {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px 28px;
+  align-items: center;
+  padding: 22px;
+}
+.radar-discover h2 {
+  font-size: 20px;
+  margin: 5px 0 7px;
+  letter-spacing: -0.4px;
+}
+.radar-discover p:not(.page-kicker) {
+  font-size: 12px;
+  color: var(--ink-500);
+  margin: 0;
+}
+.radar-discover form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.radar-discover input {
+  min-width: 230px;
+  flex: 1;
+}
+.radar-discover > a {
+  font-size: 12px;
+  color: var(--brand-700);
+  grid-column: 1/-1;
+}
+@media (max-width: 1050px) {
+  .radar-discover {
+    grid-template-columns: 1fr;
+  }
+  .radar-discover input {
+    min-width: 180px;
+  }
+}
 @media (max-width: 1200px) {
   .radar-decision-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

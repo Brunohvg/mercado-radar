@@ -170,6 +170,37 @@ export function ExecutiveDashboard() {
           </button>
         </div>
       </header>
+      <section
+        className="radar-discover clean-panel"
+        aria-label="Pesquisar uma oportunidade"
+      >
+        <div>
+          <p className="page-kicker">Sua próxima oportunidade</p>
+          <h2>O que você está pensando em vender?</h2>
+          <p>
+            Pesquise produtos, compare ofertas e confira o custo antes de
+            investir.
+          </p>
+        </div>
+        <form action="/oportunidades" method="GET">
+          <label className="sr-only" htmlFor="dashboard-product-search">
+            Produto para pesquisar
+          </label>
+          <input
+            id="dashboard-product-search"
+            type="search"
+            name="q"
+            minLength={2}
+            maxLength={120}
+            required
+            placeholder="Ex.: kit ferramentas, prensa manual…"
+          />
+          <button className="clean-primary" type="submit">
+            Pesquisar produtos →
+          </button>
+        </form>
+        <Link href="/mercado">Comparar meus anúncios pesquisados →</Link>
+      </section>
       {error && (
         <div className="error" role="alert">
           {error} <button onClick={() => void load()}>Tentar novamente</button>
@@ -266,7 +297,11 @@ export function ExecutiveDashboard() {
             </article>
             <article className="clean-kpi-card">
               <span>Capital conhecido em estoque</span>
-              <strong>{money.format(inventoryCapital)}</strong>
+              <strong>
+                {decisions.some((d) => d.inventoryCapital != null)
+                  ? money.format(inventoryCapital)
+                  : "A apurar"}
+              </strong>
               <small>
                 {decisions.filter((d) => d.inventoryCapital != null).length} de{" "}
                 {decisions.length} produtos com custo

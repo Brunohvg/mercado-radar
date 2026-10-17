@@ -62,6 +62,9 @@ jobs:
       - name: Extension layout and interaction regression
         run: npm run test:extension
 
+      - name: Market dashboard layout and interaction regression
+        run: npm run test:market
+
       - name: Production extension package
         run: node scripts/build-extension.mjs
 

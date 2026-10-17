@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { assessMarket, compactMoney } from "@/lib/market-assessment";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type Range = { value: number | null; low: number | null; high: number | null };
@@ -100,60 +101,30 @@ const TIER: Record<Tier, { label: string; hint: string }> = {
 };
 
 const SORTS = {
-  revenue: "Maior faturamento",
-  sales: "Mais vendas por dia",
-  score: "Melhor score",
+  potential: "Potencial de mercado",
+  sold: "Mais vendidos no total",
+  revenue: "Maior receita de referência",
+  sales: "Maior ritmo medido",
   recent: "Visto recentemente",
   priceAsc: "Menor preço",
   priceDesc: "Maior preço",
 } as const;
-
 type SortKey = keyof typeof SORTS;
 type Scope = "all" | "own" | "market";
-type Switches = {
-  measured: boolean;
-  catalog: boolean;
-  full: boolean;
-  freeShipping: boolean;
-};
-
+function assessment(item: Insight) {
+  return assessMarket(item, item);
+}
 function tierOf(item: Insight): Tier {
-  const m = item.estimate.method;
-  if (m === "OFICIAL" || m === "HISTORICO") return "MEDIDO";
-  if (m === "VIDA") return "ESTIMADO";
-  return "ACUMULADO";
+  const a = assessment(item);
+  return a.measured.level
+    ? item.estimate.method === "VIDA"
+      ? "ESTIMADO"
+      : "MEDIDO"
+    : "ACUMULADO";
 }
-
-/* faturamento acumulado = piso de vendidos × preço (não é por dia) */
-function accumulated(_item: Insight): number | null {
-  return null; // Current price times a public counter is not historic revenue.
+function accumulated(item: Insight): number | null {
+  return assessment(item).reference?.value ?? null;
 }
-
-const DEMAND_TEXT: Record<NonNullable<Insight["demand"]>, string> = {
-  EXCELENTE: "Excelente",
-  ALTA: "Alta",
-  MEDIA: "Média",
-  BAIXA: "Baixa",
-};
-
-const SWITCHES: Array<{
-  key: keyof Switches;
-  label: string;
-  test: (i: Insight) => boolean;
-}> = [
-  {
-    key: "measured",
-    label: "Com ritmo medido",
-    test: (i) => tierOf(i) === "MEDIDO",
-  },
-  {
-    key: "catalog",
-    label: "Catálogo",
-    test: (i) => Boolean(i.catalogProductId),
-  },
-  { key: "full", label: "Full", test: (i) => i.fulfillment },
-  { key: "freeShipping", label: "Frete grátis", test: (i) => i.freeShipping },
-];
 
 const brl = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -197,16 +168,6 @@ function relative(iso: string) {
   if (hours < 24) return `há ${hours} h`;
   const days = Math.round(hours / 24);
   return days === 1 ? "ontem" : `há ${days} dias`;
-}
-
-function Signal({ level }: { level: number }) {
-  return (
-    <span className="signal" data-level={level} aria-hidden="true">
-      <i />
-      <i />
-      <i />
-    </span>
-  );
 }
 
 /* Gráfico de uma série (sem eixo duplo): linha fina + pontos com tooltip nativo. */
@@ -326,96 +287,118 @@ function SeriesChart({
   );
 }
 
-function passes(item: Insight, scope: Scope, sw: Switches) {
-  if (scope === "own" && !item.isOwn) return false;
-  if (scope === "market" && item.isOwn) return false;
-  for (const def of SWITCHES) {
-    if (sw[def.key] && !def.test(item)) return false;
-  }
-  return true;
+function DemandReading({ item }: { item: Insight }) {
+  const { demand: d, soldText } = assessment(item);
+  return (
+    <span className="market-reading" title={d.basis}>
+      <b className={"market-pill is-" + (d.level?.toLowerCase() ?? "none")}>
+        {d.text}
+      </b>
+      <small>
+        {d.label}
+        {d.lowerBound ? " · mínima" : ""}
+      </small>
+      <small>{d.rate != null ? `${n(d.rate)} un./dia` : soldText}</small>
+    </span>
+  );
 }
-
-function sortRows(items: Insight[], sort: SortKey) {
-  const copy = [...items];
-  const rate = (i: Insight) => (tierOf(i) === "ACUMULADO" ? 0 : 1);
-  switch (sort) {
-    case "sales":
-      return copy.sort(
-        (a, b) =>
-          rate(b) - rate(a) ||
-          (b.estimate.salesPerDay.value ?? -1) -
-            (a.estimate.salesPerDay.value ?? -1) ||
-          (b.score ?? -1) - (a.score ?? -1),
-      );
-    case "score":
-      return copy.sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
-    case "recent":
-      return copy.sort(
-        (a, b) =>
-          new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime(),
-      );
-    case "priceAsc":
-      return copy.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
-    case "priceDesc":
-      return copy.sort((a, b) => (b.price ?? -1) - (a.price ?? -1));
-    default:
-      // faturamento por dia primeiro; quem só tem acumulado vem depois, pelo acumulado
-      return copy.sort(
-        (a, b) =>
-          rate(b) - rate(a) ||
-          (rate(a)
-            ? (b.estimate.revenuePerDay.value ?? -1) -
-              (a.estimate.revenuePerDay.value ?? -1)
-            : (accumulated(b) ?? -1) - (accumulated(a) ?? -1)),
-      );
-  }
+function PotentialReading({ item }: { item: Insight }) {
+  const p = assessment(item).potential;
+  return (
+    <span className={"market-potential is-" + p.tone} title={p.reason}>
+      {p.title}
+    </span>
+  );
 }
-
-function ConfidenceCell({ item }: { item: Insight }) {
-  const level = item.estimate.confidence;
-  const tier = tierOf(item);
+function RevenueReading({ item }: { item: Insight }) {
+  const a = assessment(item);
   return (
     <span
-      className="market-conf"
-      title={`${TIER[tier].hint} ${CONFIDENCE[level]}.`}
+      className="market-reading"
+      title={
+        a.reference
+          ? a.reference.basis + ". " + a.reference.detail
+          : "Falta preço ou quantidade vendida."
+      }
     >
-      <Signal level={level} />
-      <span>
-        {tier === "ACUMULADO"
-          ? "Só acumulado"
-          : CONFIDENCE[level].replace("Confiança ", "")}
-        {tier !== "ACUMULADO" && (
-          <small>{TIER[tier].label.toLowerCase()}</small>
-        )}
-      </span>
+      <b>{a.reference?.text ?? "—"}</b>
+      <small>receita de referência</small>
+      {a.recent && a.demand.rate != null && item.price != null && (
+        <small>{compactMoney(a.demand.rate * item.price)} est./dia</small>
+      )}
     </span>
+  );
+}
+function ProductIdentity({ item }: { item: Insight }) {
+  return (
+    <div className="market-identity">
+      <div className="market-thumb">
+        {item.thumbnail ? (
+          <img src={item.thumbnail} alt="" loading="lazy" />
+        ) : (
+          <span aria-hidden="true">◎</span>
+        )}
+      </div>
+      <div>
+        <h3>{item.title}</h3>
+        <small>
+          {item.id}
+          {item.sellerName ? ` · ${item.sellerName}` : ""}
+        </small>
+        <div className="market-tags">
+          {item.isOwn && <span>Meu anúncio</span>}
+          {item.fulfillment && <span className="is-full">Full</span>}
+          {item.catalogProductId && <span>Catálogo</span>}
+          {item.freeShipping && <span>Frete grátis</span>}
+        </div>
+      </div>
+    </div>
   );
 }
 
 export function MarketIntelligence() {
   const [data, setData] = useState<ListPayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true),
+    [error, setError] = useState("");
   const [query, setQuery] = useState("");
-
-  // O menu da extensão abre /mercado?q=termo.
+  const [scope, setScope] = useState<Scope>("all");
+  const [sort, setSort] = useState<SortKey>("potential");
+  const [view, setView] = useState<"cards" | "table">("cards");
+  const [potential, setPotential] = useState("all"),
+    [demandFilter, setDemandFilter] = useState("all");
+  const [full, setFull] = useState(false),
+    [catalog, setCatalog] = useState(false),
+    [measured, setMeasured] = useState(false);
+  const [compared, setCompared] = useState<Insight[]>([]),
+    [compareOpen, setCompareOpen] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [detail, setDetail] = useState<Detail | null>(null),
+    [detailError, setDetailError] = useState("");
+  const loadSeq = useRef(0);
+  const detailRegion = useRef<HTMLElement>(null),
+    compareRegion = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (selected) {
+      detailRegion.current?.focus({ preventScroll: true });
+      detailRegion.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }, [selected]);
+  useEffect(() => {
+    if (compareOpen)
+      compareRegion.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+  }, [compareOpen]);
   useEffect(() => {
     const initial = new URLSearchParams(window.location.search).get("q");
     if (initial?.trim()) setQuery(initial.trim().slice(0, 120));
+    const saved = window.localStorage.getItem("radar-market-view");
+    if (saved === "cards" || saved === "table") setView(saved);
   }, []);
-  const [scope, setScope] = useState<Scope>("all");
-  const [sw, setSw] = useState<Switches>({
-    measured: false,
-    catalog: false,
-    full: false,
-    freeShipping: false,
-  });
-  const [sort, setSort] = useState<SortKey>("revenue");
-  const [selected, setSelected] = useState<string | null>(null);
-  const [detail, setDetail] = useState<Detail | null>(null);
-  const [detailError, setDetailError] = useState("");
-
-  const loadSeq = useRef(0);
   const load = useCallback(async () => {
     const seq = ++loadSeq.current;
     setLoading(true);
@@ -429,32 +412,39 @@ export function MarketIntelligence() {
       const body = await response.json();
       if (!response.ok)
         throw new Error(body.error ?? "Falha ao carregar o mercado.");
-      if (seq === loadSeq.current) setData(body);
+      if (seq === loadSeq.current) {
+        setData(body);
+        // Refresh selected facts when the same product is returned, preserving
+        // selections outside the current search instead of silently replacing them.
+        setCompared((previous) =>
+          previous.map(
+            (i) => body.items.find((fresh: Insight) => fresh.id === i.id) ?? i,
+          ),
+        );
+      }
     } catch (caught) {
-      if (seq !== loadSeq.current) return;
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "Falha ao carregar o mercado.",
-      );
+      if (seq === loadSeq.current)
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "Falha ao carregar o mercado.",
+        );
     } finally {
       if (seq === loadSeq.current) setLoading(false);
     }
   }, [query]);
-
   useEffect(() => {
     const timer = setTimeout(() => void load(), query ? 300 : 0);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      loadSeq.current++;
+    };
   }, [load, query]);
-
   useEffect(() => {
-    if (!selected) {
-      setDetail(null);
-      return;
-    }
-    let active = true;
     setDetail(null);
     setDetailError("");
+    if (!selected) return;
+    let active = true;
     fetch(`/api/market/items/${selected}`, { cache: "no-store" })
       .then(async (response) => {
         const body = await response.json();
@@ -474,442 +464,573 @@ export function MarketIntelligence() {
       active = false;
     };
   }, [selected]);
-
   const all = useMemo(() => data?.items ?? [], [data]);
-  const rows = useMemo(
-    () =>
-      sortRows(
-        all.filter((i) => passes(i, scope, sw)),
-        sort,
-      ),
-    [all, scope, sw, sort],
-  );
-
-  const scopeCount = (value: Scope) =>
-    all.filter((i) => passes(i, value, sw)).length;
-  const switchCount = (key: keyof Switches) =>
-    all.filter((i) => passes(i, scope, { ...sw, [key]: true })).length;
-  const activeSwitches = Object.values(sw).filter(Boolean).length;
-
-  const measured = all.filter((i) => tierOf(i) === "MEDIDO").length;
-  const estimated = all.filter((i) => tierOf(i) === "ESTIMADO").length;
-  const noRhythm = all.filter((i) => tierOf(i) === "ACUMULADO").length;
-  const total = data ? data.summary.marketItems + data.summary.ownItems : 0;
-
-  // colunas sem nenhum dado nas linhas visíveis somem
-  const cols = {
-    sales: rows.some((i) => i.estimate.salesPerDay.value != null),
-    revenue: rows.some(
-      (i) => i.estimate.revenuePerDay.value != null || accumulated(i) != null,
-    ),
-    demand: rows.some((i) => i.demand != null),
-  };
-
-  function resetFilters() {
-    setSw({
-      measured: false,
-      catalog: false,
-      full: false,
-      freeShipping: false,
+  const rows = useMemo(() => {
+    const result = all.filter((i) => {
+      const a = assessment(i);
+      return (
+        (scope !== "own" || i.isOwn) &&
+        (scope !== "market" || !i.isOwn) &&
+        (!full || i.fulfillment) &&
+        (!catalog || i.catalogProductId) &&
+        (!measured || a.recent) &&
+        (potential === "all" || a.potential.key === potential) &&
+        (demandFilter === "all" || a.demand.level === demandFilter)
+      );
     });
+    const numberOf = (i: Insight) => {
+      const a = assessment(i);
+      switch (sort) {
+        case "sold":
+          return a.sold ?? -1;
+        case "revenue":
+          return a.reference?.value ?? -1;
+        case "sales":
+          return a.recent ? (a.demand.rate ?? -1) : -1;
+        case "recent":
+          return new Date(i.lastSeenAt).getTime();
+        case "priceAsc":
+          return i.price != null ? -i.price : -Infinity;
+        case "priceDesc":
+          return i.price ?? -1;
+        default:
+          return a.potential.rank;
+      }
+    };
+    return result.sort(
+      (a, b) =>
+        numberOf(b) - numberOf(a) ||
+        (assessment(b).sold ?? -1) - (assessment(a).sold ?? -1) ||
+        a.id.localeCompare(b.id),
+    );
+  }, [all, scope, sort, full, catalog, measured, potential, demandFilter]);
+  const activeCount =
+    Number(full) +
+    Number(catalog) +
+    Number(measured) +
+    Number(potential !== "all") +
+    Number(demandFilter !== "all") +
+    Number(scope !== "all");
+  const favorable = all.filter(
+    (i) => assessment(i).potential.key === "favorable",
+  ).length;
+  function resetFilters() {
     setScope("all");
-    setQuery("");
+    setFull(false);
+    setCatalog(false);
+    setMeasured(false);
+    setPotential("all");
+    setDemandFilter("all");
   }
-
+  function toggleCompare(item: Insight) {
+    setCompared((current) =>
+      current.some((i) => i.id === item.id)
+        ? current.filter((i) => i.id !== item.id)
+        : current.length < 4
+          ? [...current, item]
+          : current,
+    );
+  }
+  function choose(item: Insight) {
+    const checked = compared.some((i) => i.id === item.id);
+    return (
+      <label className="market-choose">
+        <input
+          type="checkbox"
+          checked={checked}
+          disabled={!checked && compared.length >= 4}
+          onChange={() => toggleCompare(item)}
+          aria-label={`Comparar ${item.title}`}
+        />
+        Comparar
+      </label>
+    );
+  }
   return (
-    <section className="market-page">
-      <header className="page-header">
+    <section className="market-page" aria-busy={loading}>
+      <header className="page-header clean-page-header">
         <div>
-          <p className="page-kicker">Inteligência</p>
-          <h1>Mercado</h1>
+          <p className="page-kicker">Inteligência de mercado</p>
+          <h1>Encontre seu próximo produto</h1>
           <p>
-            Vendas e faturamento por dia dos anúncios que você abriu no Mercado
-            Livre, de qualquer vendedor. Cada nova visita a um anúncio deixa a
-            medição mais precisa.
+            Compare demanda, preço e potencial dos anúncios que você pesquisou.
           </p>
         </div>
         <div className="page-header-actions">
-          <Link className="secondary" href="/extensao">
-            Instalar extensão
+          <Link className="clean-secondary" href="/extensao">
+            Usar extensão
+          </Link>
+          <Link
+            className="clean-primary"
+            href={
+              query.trim()
+                ? `/oportunidades?q=${encodeURIComponent(query.trim())}`
+                : "/oportunidades"
+            }
+          >
+            Pesquisar novos produtos →
           </Link>
         </div>
       </header>
-
-      {data && (
-        <section className="market-strip" aria-label="Resumo da medição">
-          <div className="market-strip__cell">
-            <span>Itens monitorados</span>
-            <strong className="num">{n(total, 0)}</strong>
-            <small>
-              {all.length < total
-                ? `mostrando os ${n(all.length, 0)} mais recentes`
-                : "todos na lista"}
-            </small>
+      <div className="market-strip" aria-label="Resumo dos anúncios na amostra">
+        {[
+          ["Anúncios na amostra", all.length, "leituras salvas no Radar"],
+          [
+            "Potencial favorável",
+            favorable,
+            "volume histórico ou ritmo medido",
+          ],
+          [
+            "Com ritmo recente",
+            all.filter((i) => assessment(i).recent).length,
+            "com período conhecido",
+          ],
+          [
+            "Ofertas Full",
+            all.filter((i) => i.fulfillment).length,
+            "na amostra carregada",
+          ],
+        ].map(([label, value, sub]) => (
+          <div className="market-strip__cell" key={label}>
+            <span>{label}</span>
+            <strong>{loading && !data ? "—" : value}</strong>
+            <small>{sub}</small>
           </div>
-          <div className="market-strip__cell">
-            <span>Com ritmo medido</span>
-            <strong className="num">{n(measured, 0)}</strong>
-            <small>pedidos ou variação de contador exato</small>
-          </div>
-          <div className="market-strip__cell">
-            <span>Em estimativa</span>
-            <strong className="num">{n(estimated, 0)}</strong>
-            <small>média histórica; não é previsão</small>
-          </div>
-          <div className="market-strip__cell">
-            <span>Sua conta</span>
-            <strong className="num">{n(data.summary.ownItems, 0)}</strong>
-            <small>sincronize pedidos para medir a sua operação</small>
-          </div>
-        </section>
-      )}
-
+        ))}
+      </div>
       {error && (
         <div className="error" role="alert">
-          {error}
+          {error} <button onClick={() => void load()}>Tentar novamente</button>
         </div>
       )}
-
+      {compared.length > 0 && (
+        <section
+          ref={compareRegion}
+          className={
+            "market-compare" +
+            (compareOpen && compared.length >= 2 ? " is-open" : "")
+          }
+          aria-label="Comparação de produtos"
+        >
+          <div className="market-compare-head">
+            <div>
+              <strong>{compared.length} de 4 produtos selecionados</strong>
+              <p>
+                Compare lado a lado. Confira quantidade, marca e condição antes
+                de tratar os produtos como equivalentes.
+              </p>
+            </div>
+            <div className="market-compare-actions">
+              <button
+                disabled={compared.length < 2}
+                onClick={() => setCompareOpen((v) => !v)}
+              >
+                {compareOpen ? "Recolher comparação" : "Comparar lado a lado"}
+              </button>
+              <button
+                className="market-link"
+                onClick={() => {
+                  setCompared([]);
+                  setCompareOpen(false);
+                }}
+              >
+                Limpar
+              </button>
+            </div>
+          </div>
+          {compareOpen && compared.length >= 2 && (
+            <div className="market-table-scroll">
+              <table className="market-comparison-table">
+                <thead>
+                  <tr>
+                    <th>Indicador</th>
+                    {compared.map((item) => (
+                      <th key={item.id}>
+                        {item.title}
+                        <button
+                          className="market-link"
+                          onClick={() => toggleCompare(item)}
+                          aria-label={`Remover ${item.title}`}
+                        >
+                          Remover
+                        </button>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th>Preço</th>
+                    {compared.map((i) => (
+                      <td key={i.id}>
+                        {i.price == null ? "—" : brl.format(i.price)}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th>Potencial de mercado</th>
+                    {compared.map((i) => (
+                      <td key={i.id}>
+                        <PotentialReading item={i} />
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th>Demanda e origem</th>
+                    {compared.map((i) => (
+                      <td key={i.id}>
+                        <DemandReading item={i} />
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th>Receita de referência</th>
+                    {compared.map((i) => (
+                      <td key={i.id}>
+                        <RevenueReading item={i} />
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th>Avaliação</th>
+                    {compared.map((i) => (
+                      <td key={i.id}>
+                        {i.rating != null ? `${n(i.rating)} / 5` : "—"}
+                        {i.reviews != null && (
+                          <small>{n(i.reviews, 0)} avaliações</small>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th>Logística</th>
+                    {compared.map((i) => (
+                      <td key={i.id}>
+                        {[
+                          i.fulfillment ? "Full" : null,
+                          i.freeShipping ? "Frete grátis" : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ") || "Não informada"}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th>Última leitura</th>
+                    {compared.map((i) => (
+                      <td key={i.id}>
+                        {relative(i.lastSeenAt)}
+                        {i.permalink && (
+                          <a
+                            href={i.permalink}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Abrir anúncio ↗
+                          </a>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
       <section
-        className="clean-panel market-list"
+        className="market-workspace clean-panel"
         aria-label="Anúncios observados"
       >
         <div className="market-toolbar">
-          <div className="market-search">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path d="m20 20-3.5-3.5" />
-            </svg>
+          <label className="market-search">
+            <span>Buscar nos anúncios salvos</span>
             <input
               type="search"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Buscar por título ou código MLB"
-              aria-label="Buscar anúncio observado"
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Produto ou código MLB"
             />
-          </div>
-
-          <div
-            className="market-seg"
-            role="radiogroup"
-            aria-label="De quem são os anúncios"
-          >
-            {(
-              [
-                ["all", "Todos"],
-                ["own", "Meus"],
-                ["market", "Mercado"],
-              ] as const
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                role="radio"
-                aria-checked={scope === value}
-                className={scope === value ? "is-on" : undefined}
-                onClick={() => setScope(value)}
-              >
-                {label} <em>{scopeCount(value)}</em>
-              </button>
-            ))}
-          </div>
-
+          </label>
           <label className="market-sort">
-            <span>Ordenar</span>
+            <span>Ordenar por</span>
             <select
+              aria-label="Ordenar por"
               value={sort}
-              onChange={(event) => setSort(event.target.value as SortKey)}
+              onChange={(e) => setSort(e.target.value as SortKey)}
             >
-              {Object.entries(SORTS).map(([value, label]) => (
-                <option key={value} value={value}>
+              {Object.entries(SORTS).map(([key, label]) => (
+                <option value={key} key={key}>
                   {label}
                 </option>
               ))}
             </select>
           </label>
-        </div>
-
-        <div className="market-switches" role="group" aria-label="Filtros">
-          {SWITCHES.map(({ key, label }) => {
-            const on = sw[key];
-            const count = switchCount(key);
-            return (
+          <div className="market-seg" aria-label="Visualização">
+            {(
+              [
+                ["cards", "Cards"],
+                ["table", "Tabela"],
+              ] as const
+            ).map(([key, label]) => (
               <button
                 key={key}
                 type="button"
-                role="switch"
-                aria-checked={on}
-                disabled={!on && count === 0}
-                className="market-switch"
-                onClick={() => setSw((cur) => ({ ...cur, [key]: !cur[key] }))}
+                aria-pressed={view === key}
+                onClick={() => {
+                  setView(key);
+                  window.localStorage.setItem("radar-market-view", key);
+                }}
               >
-                <i aria-hidden="true" />
                 {label}
-                <em>{count}</em>
               </button>
-            );
-          })}
-          {(activeSwitches > 0 || scope !== "all" || query) && (
-            <button
-              type="button"
-              className="market-clear"
-              onClick={resetFilters}
+            ))}
+          </div>
+        </div>
+        <div className="market-filterbar">
+          <label>
+            <span>Potencial</span>
+            <select
+              aria-label="Filtrar por potencial"
+              value={potential}
+              onChange={(e) => setPotential(e.target.value)}
             >
-              Limpar filtros
+              <option value="all">Todos os potenciais</option>
+              <option value="favorable">Favorável</option>
+              <option value="moderate">Moderado</option>
+              <option value="caution">Exige atenção</option>
+              <option value="initial">Em formação</option>
+              <option value="unknown">Dados parciais</option>
+            </select>
+          </label>
+          <label>
+            <span>Demanda</span>
+            <select
+              aria-label="Filtrar por demanda"
+              value={demandFilter}
+              onChange={(e) => setDemandFilter(e.target.value)}
+            >
+              <option value="all">Todas as faixas</option>
+              <option value="EXCELENTE">Excelente</option>
+              <option value="ALTA">Alta</option>
+              <option value="MEDIA">Média</option>
+              <option value="BAIXA">Baixa</option>
+            </select>
+          </label>
+          <label>
+            <span>Vendedor</span>
+            <select
+              aria-label="Filtrar por vendedor"
+              value={scope}
+              onChange={(e) => setScope(e.target.value as Scope)}
+            >
+              <option value="all">Todos</option>
+              <option value="market">Outros vendedores</option>
+              <option value="own">Meus anúncios</option>
+            </select>
+          </label>
+          <div className="market-chips">
+            {[
+              ["Full", full, setFull],
+              ["Catálogo", catalog, setCatalog],
+              ["Ritmo recente", measured, setMeasured],
+            ].map(([label, on, set]) => (
+              <button
+                key={label as string}
+                type="button"
+                aria-pressed={on as boolean}
+                onClick={() => (set as (v: boolean) => void)(!on)}
+              >
+                {label as string}
+              </button>
+            ))}
+          </div>
+          {activeCount > 0 && (
+            <button className="market-clear" onClick={resetFilters}>
+              Limpar filtros ({activeCount})
             </button>
           )}
-          <span className="market-count" aria-live="polite">
-            {rows.length} {rows.length === 1 ? "anúncio" : "anúncios"}
-          </span>
         </div>
-
-        {loading && !data ? (
-          <div className="clean-loading market-inset">
-            Carregando anúncios observados…
-          </div>
-        ) : all.length === 0 ? (
-          <div className="module-empty market-inset">
-            <strong>
-              {query
-                ? "Nenhum anúncio com esse termo"
-                : "Nenhum anúncio observado ainda"}
-            </strong>
+        <div className="market-resultline">
+          <span aria-live="polite">
+            {loading
+              ? "Atualizando anúncios…"
+              : `${rows.length} de ${all.length} anúncios`}
+            {data &&
+            data.summary.marketItems + data.summary.ownItems > all.length
+              ? " · amostra de até 200 resultados"
+              : ""}
+          </span>
+          <details>
+            <summary>Como ler os indicadores</summary>
             <p>
-              {query
-                ? "Tente outro termo."
-                : "Com a extensão instalada, navegue por buscas e anúncios no Mercado Livre. Cada página que você abrir aparece aqui com vendas e faturamento por dia."}
+              <b>Histórica</b>: triagem pelo total de vendidos, sem previsão de
+              giro. <b>Medida</b>: vendas em um período conhecido.{" "}
+              <b>Receita de referência</b>: total público × preço atual, sem
+              afirmar quanto o vendedor recebeu. Potencial de mercado não
+              comprova lucro.
             </p>
-            {!query && (
-              <Link className="primary" href="/extensao">
-                Instalar a extensão
+          </details>
+        </div>
+        {!loading && rows.length === 0 ? (
+          <div className="market-empty">
+            <h2>
+              {all.length
+                ? "Nenhum anúncio com esses filtros"
+                : "Comece por um produto que você quer vender"}
+            </h2>
+            <p>
+              {all.length
+                ? "Ajuste os filtros para ampliar a comparação."
+                : "Pesquise novos produtos ou abra anúncios no Mercado Livre com a extensão. Suas leituras ficam organizadas aqui."}
+            </p>
+            {all.length ? (
+              <button onClick={resetFilters}>Limpar filtros</button>
+            ) : (
+              <Link
+                className="clean-primary"
+                href={
+                  query
+                    ? `/oportunidades?q=${encodeURIComponent(query)}`
+                    : "/oportunidades"
+                }
+              >
+                Pesquisar produtos
               </Link>
             )}
           </div>
-        ) : (
-          <>
-            {noRhythm > 0 && (
-              <p className="market-note" role="note">
-                <strong>
-                  {noRhythm}{" "}
-                  {noRhythm === 1
-                    ? "anúncio ainda sem ritmo"
-                    : "anúncios ainda sem ritmo"}
-                  .
-                </strong>{" "}
-                Abra {noRhythm === 1 ? "o anúncio" : "os anúncios"} de novo em
-                outro dia e o Radar mede as vendas por dia. Até lá, mostramos só
-                o acumulado (vendidos × preço), que não é por dia.
-              </p>
-            )}
-
-            {rows.length === 0 ? (
-              <div className="module-empty market-inset">
-                <strong>Nenhum anúncio com esses filtros</strong>
-                <p>Desligue algum filtro para ver mais anúncios.</p>
-                <button
-                  type="button"
-                  className="secondary inline"
-                  onClick={resetFilters}
-                >
-                  Limpar filtros
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="market-colhead" aria-hidden="true">
-                  <span className="market-colhead__thumb" />
-                  <span className="market-colhead__main">Anúncio</span>
-                  <span className="market-cell--price">Preço</span>
-                  {cols.demand && (
-                    <span className="market-cell--demand">Demanda</span>
-                  )}
-                  {cols.revenue && (
-                    <span className="market-colhead__cell">
-                      Faturamento ~/dia
-                    </span>
-                  )}
-                  {cols.sales && (
-                    <span className="market-colhead__cell">Vendas ~/dia</span>
-                  )}
-                  <span className="market-cell--conf">Confiança</span>
-                  <span className="market-colhead__chev" />
+        ) : view === "cards" ? (
+          <div className="market-card-grid">
+            {rows.map((item) => (
+              <article
+                className="market-product"
+                key={item.id}
+                data-market-id={item.id}
+              >
+                <div className="market-product-top">
+                  <PotentialReading item={item} />
+                  {choose(item)}
                 </div>
-                <ol className="market-rows">
-                  {rows.map((item) => {
-                    const e = item.estimate;
-                    const tier = tierOf(item);
-                    const open = selected === item.id;
-                    const acc = accumulated(item);
-                    const rev = e.revenuePerDay.value;
-                    const sales = e.salesPerDay.value;
-                    return (
-                      <li
-                        key={item.id}
-                        className={"market-row" + (open ? " is-open" : "")}
+                <ProductIdentity item={item} />
+                <div className="market-product-metrics">
+                  <div>
+                    <small>Preço de venda</small>
+                    <strong>
+                      {item.price == null ? "—" : brl.format(item.price)}
+                    </strong>
+                  </div>
+                  <DemandReading item={item} />
+                  <RevenueReading item={item} />
+                </div>
+                <p className="market-product-reason">
+                  {assessment(item).potential.reason}
+                </p>
+                <footer>
+                  <small>Leitura {relative(item.lastSeenAt)}</small>
+                  <button
+                    type="button"
+                    className="market-link"
+                    onClick={() => setSelected(item.id)}
+                  >
+                    Ver análise →
+                  </button>
+                </footer>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="market-table-scroll">
+            <table className="market-table">
+              <thead>
+                <tr>
+                  <th>Comparar</th>
+                  <th>Produto</th>
+                  <th>Potencial</th>
+                  <th>Demanda</th>
+                  <th>Preço</th>
+                  <th>Receita de referência</th>
+                  <th>Análise</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((item) => (
+                  <tr key={item.id} data-market-id={item.id}>
+                    <td>{choose(item)}</td>
+                    <td>
+                      <ProductIdentity item={item} />
+                    </td>
+                    <td>
+                      <PotentialReading item={item} />
+                    </td>
+                    <td>
+                      <DemandReading item={item} />
+                    </td>
+                    <td>{item.price == null ? "—" : brl.format(item.price)}</td>
+                    <td>
+                      <RevenueReading item={item} />
+                    </td>
+                    <td>
+                      <button
+                        className="market-link"
+                        onClick={() => setSelected(item.id)}
                       >
-                        <button
-                          type="button"
-                          className="market-row__head"
-                          aria-expanded={open}
-                          aria-controls={"detail-" + item.id}
-                          onClick={() => setSelected(open ? null : item.id)}
-                        >
-                          <span className="market-thumb">
-                            {item.thumbnail ? (
-                              <img src={item.thumbnail} alt="" loading="lazy" />
-                            ) : (
-                              <b aria-hidden="true">MR</b>
-                            )}
-                          </span>
-                          <span className="market-main">
-                            <strong>{item.title}</strong>
-                            <span className="market-meta">
-                              <span>
-                                {item.isOwn
-                                  ? "Seu anúncio"
-                                  : (item.sellerName ?? item.id)}
-                              </span>
-                              {item.catalogProductId && <em>Catálogo</em>}
-                              {item.fulfillment && (
-                                <em className="is-full">Full</em>
-                              )}
-                              {item.freeShipping && <em>Frete grátis</em>}
-                              <small>visto {relative(item.lastSeenAt)}</small>
-                            </span>
-                          </span>
-                          <span className="market-cells">
-                            <span
-                              className="market-cell market-cell--price"
-                              data-label="Preço"
-                            >
-                              <b className="num">
-                                {item.price == null
-                                  ? "sem preço"
-                                  : brl.format(item.price)}
-                              </b>
-                            </span>
-                            {cols.demand && (
-                              <span
-                                className="market-cell market-cell--demand"
-                                data-label="Demanda"
-                              >
-                                {item.demand ? (
-                                  <span
-                                    className={
-                                      "market-pill is-" +
-                                      item.demand.toLowerCase()
-                                    }
-                                  >
-                                    {DEMAND_TEXT[item.demand]}
-                                  </span>
-                                ) : null}
-                              </span>
-                            )}
-                            {cols.revenue && (
-                              <span
-                                className="market-cell"
-                                data-label="Faturamento por dia"
-                              >
-                                {rev != null ? (
-                                  <>
-                                    <b className="num">~{money(rev)}</b>
-                                    <small>
-                                      {span(e.revenuePerDay, money) ??
-                                        "por dia"}
-                                    </small>
-                                  </>
-                                ) : acc != null ? (
-                                  <>
-                                    <b className="num is-acc">{money(acc)}</b>
-                                    <small>acumulado</small>
-                                  </>
-                                ) : (
-                                  <small className="market-none">
-                                    sem ritmo
-                                  </small>
-                                )}
-                              </span>
-                            )}
-                            {cols.sales && (
-                              <span
-                                className="market-cell"
-                                data-label="Vendas por dia"
-                              >
-                                {sales != null ? (
-                                  <>
-                                    <b className="num">~{n(sales)}</b>
-                                    <small>
-                                      {span(e.salesPerDay, (v) => n(v)) ??
-                                        "por dia"}
-                                    </small>
-                                  </>
-                                ) : (
-                                  <small className="market-none">
-                                    sem ritmo
-                                  </small>
-                                )}
-                              </span>
-                            )}
-                            <span
-                              className="market-cell market-cell--conf"
-                              data-label="Confiança"
-                            >
-                              <ConfidenceCell item={item} />
-                            </span>
-                          </span>
-                          <span className="market-chev" aria-hidden="true" />
-                        </button>
-
-                        {open && (
-                          <div
-                            className="market-detail"
-                            id={"detail-" + item.id}
-                          >
-                            {detailError && (
-                              <div className="error">{detailError}</div>
-                            )}
-                            {!detail && !detailError && (
-                              <div className="clean-loading">
-                                Carregando histórico…
-                              </div>
-                            )}
-                            {detail && detail.insight.id === item.id && (
-                              <DetailBody detail={detail} tier={tier} />
-                            )}
-                          </div>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ol>
-              </>
-            )}
-          </>
+                        Ver análise
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
-
-      {data && (
-        <p className="market-footnote">
-          Os números de outros vendedores são estimativas: a API do Mercado
-          Livre só libera vendas e visitas exatas dos seus próprios anúncios. O
-          Radar mede o ritmo pela diferença entre leituras da página (avaliações
-          e faixa de vendidos) e mostra a faixa provável. O til (~) marca todo
-          número estimado.
-        </p>
+      {selected && (
+        <section
+          ref={detailRegion}
+          tabIndex={-1}
+          className="market-detail clean-panel"
+          aria-label="Análise do produto selecionado"
+        >
+          <div className="market-detail-heading">
+            <h2>
+              {detail?.insight.title ??
+                all.find((i) => i.id === selected)?.title ??
+                selected}
+            </h2>
+            <button
+              onClick={() => {
+                setSelected(null);
+                document
+                  .querySelector<HTMLButtonElement>(
+                    `[data-market-id="${CSS.escape(selected)}"] .market-link`,
+                  )
+                  ?.focus();
+              }}
+              aria-label="Fechar análise"
+            >
+              Fechar ×
+            </button>
+          </div>
+          {detailError ? (
+            <p className="error" role="alert">
+              {detailError}
+            </p>
+          ) : detail ? (
+            <>
+              <p className="market-detail-conclusion">
+                <PotentialReading item={detail.insight} />{" "}
+                {assessment(detail.insight).potential.reason}
+              </p>
+              <DetailBody detail={detail} tier={tierOf(detail.insight)} />
+            </>
+          ) : (
+            <p role="status">Carregando histórico…</p>
+          )}
+        </section>
       )}
     </section>
   );
 }
-
 function DetailBody({ detail, tier }: { detail: Detail; tier: Tier }) {
   const { insight, series } = detail;
   const e = insight.estimate;
@@ -949,16 +1070,16 @@ function DetailBody({ detail, tier }: { detail: Detail; tier: Tier }) {
     },
     e.revenuePerDay.value != null
       ? {
-          label: "Faturamento por dia",
+          label: "Receita estimada por dia",
           value: "~" + money(e.revenuePerDay.value),
           sub: span(e.revenuePerDay, money),
           tip: "Vendas por dia × preço atual.",
         }
       : acc != null && {
-          label: "Faturamento acumulado",
-          value: money(acc),
-          sub: "piso de vendidos × preço",
-          tip: "Não é por dia: é o mínimo de vendidos que a página mostra vezes o preço.",
+          label: "Receita de referência",
+          value: assessment(insight).reference!.text,
+          sub: assessment(insight).reference!.basis,
+          tip: assessment(insight).reference!.detail,
         },
     e.visitsPerDay.value != null && {
       label: "Visitas por dia",
@@ -1014,9 +1135,7 @@ function DetailBody({ detail, tier }: { detail: Detail; tier: Tier }) {
             <div>
               <dt>Vendidos no total</dt>
               <dd>
-                {e.sold.exact
-                  ? n(e.sold.lower, 0)
-                  : `${n(e.sold.lower, 0)} a ${n(e.sold.upper, 0)}`}
+                {e.sold.exact ? n(e.sold.lower, 0) : `${n(e.sold.lower, 0)}+`}
               </dd>
             </div>
           )}
@@ -1029,18 +1148,15 @@ function DetailBody({ detail, tier }: { detail: Detail; tier: Tier }) {
               </dd>
             </div>
           )}
-          {e.ageDays.value != null && (
+          {e.ageDays.value != null && e.ageDays.source === "API" && (
             <div>
               <dt>Idade do anúncio</dt>
-              <dd>
-                {n(e.ageDays.value, 0)} dias
-                {e.ageDays.source === "ID_ESTIMADO" ? " (estimada)" : ""}
-              </dd>
+              <dd>{n(e.ageDays.value, 0)} dias</dd>
             </div>
           )}
-          {e.visitsPerDay.value != null && (
+          {e.conversion.source === "OFICIAL" && (
             <div>
-              <dt>Conversão usada</dt>
+              <dt>Conversão da sua conta</dt>
               <dd>{n(e.conversion.value * 100)}%</dd>
             </div>
           )}

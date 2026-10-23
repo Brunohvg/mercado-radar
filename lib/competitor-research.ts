@@ -44,6 +44,7 @@ function fromApi(
     brand: attr("BRAND"),
     model: attr("MODEL"),
     color: attr("COLOR"),
+    material: attr("MATERIAL"),
     quantity: quantity.quantity,
     quantitySource: quantity.source,
     unitPrice: unitPrice(price, quantity.quantity),

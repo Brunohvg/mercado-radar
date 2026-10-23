@@ -44,6 +44,39 @@ test("concorrentes: normaliza kits e pacotes sem confundir modelo nº54 ou medid
     null,
   );
 });
+test("concorrentes: títulos públicos Baxmann distinguem peças de acessórios e materiais", () => {
+  for (const [title, quantity] of [
+    ["Ilhós Nº 54 Pacote Com 1000 Peças Alumínio Baxmann", 1000],
+    ["Kit 2000 Ilhós No54 Baxmann 1000 Dourado 1000 Branco", 2000],
+    ["Ilhós 54 Aluminio Color - De 100, 200 Ou 500", null],
+    ["Ilhós 54 Ferro Cores - 1 Milheiro (1000 Peças)", 1000],
+    ["Ilhós 54 Aluminio Com 100 Unid", 100],
+  ])
+    assert.equal(kitQuantity(title).quantity, quantity, title);
+  const base = {
+    ...reference,
+    title: "Ilhós 54 Alumínio Baxmann 1000 unidades",
+    quantity: 1000,
+    brand: "Baxmann",
+    model: "54",
+    color: "Branco",
+  };
+  for (const title of [
+    "Ilhós 54 Ferro Baxmann 1000 unidades",
+    "Ilhós 54 Alumínio Baxmann com arruelas 1000 unidades",
+  ]) {
+    const compared = classifyCompetitor(base, {
+      ...base,
+      id: "MLB777000099",
+      title,
+    });
+    assert.equal(compared.comparable, false);
+    assert.match(
+      compared.reasons.join(" "),
+      /Material ou acessórios diferentes/,
+    );
+  }
+});
 test("concorrentes: preço unitário mantém precisão em pacotes grandes e não completa ausências", () => {
   assert.equal(unitPrice(19.98, 2), 9.99);
   assert.equal(unitPrice(59.99, 2000), 0.03);

@@ -17,6 +17,7 @@ export type Competitor = {
   brand: string | null;
   model: string | null;
   color: string | null;
+  material?: string | null;
   quantity: number | null;
   quantitySource: "ATTRIBUTE" | "TITLE" | null;
   unitPrice: number | null;
@@ -155,7 +156,7 @@ export function kitQuantity(
   const t = normalized(title.replace(/(\d)\.(?=\d{3}(?:\D|$))/g, "$1"));
   const counts = new Set<number>();
   const patterns = [
-    /(?:^|\b)(\d+)\s*(?:unidades?|und|un|pecas?|pcs|canetas?)\b/g,
+    /(?:^|\b)(\d+)\s*(?:unidades?|unids?|unds?|un|pecas?|pcs|canetas?|refis|refil)\b/g,
     /\b(?:kit|pacote|caixa|pack|combo)\s*(?:com|c|de)?\s*(\d+)\b/g,
   ];
   for (const re of patterns)
@@ -196,7 +197,7 @@ export function classifyCompetitor(
   const sameQuantity =
     reference.quantity != null && reference.quantity === candidate.quantity;
   const reasons: string[] = [];
-  const conflict = ["brand", "model", "color"] as const;
+  const conflict = ["brand", "model", "color", "material"] as const;
   for (const key of conflict)
     if (
       reference[key] &&
@@ -204,8 +205,26 @@ export function classifyCompetitor(
       normalized(reference[key]) !== normalized(candidate[key])
     )
       reasons.push(
-        `${key === "brand" ? "Marca" : key === "model" ? "Modelo" : "Cor/variação"} diferente.`,
+        `${key === "brand" ? "Marca" : key === "model" ? "Modelo" : key === "material" ? "Material" : "Cor/variação"} diferente.`,
       );
+  const refText = normalized(reference.title),
+    candidateText = normalized(candidate.title);
+  for (const group of [
+    "aluminio ferro aco plastico latao",
+    "matriz arruela arruelas correntinha correntinhas alicate refil refis",
+  ]) {
+    const terms = group.split(" ");
+    const refSpecs = terms
+      .filter((t) => new RegExp(`\\b${t}\\b`).test(refText))
+      .sort();
+    const candidateSpecs = terms
+      .filter((t) => new RegExp(`\\b${t}\\b`).test(candidateText))
+      .sort();
+    if (JSON.stringify(refSpecs) !== JSON.stringify(candidateSpecs))
+      reasons.push(
+        "Material ou acessórios diferentes no título; confirme a composição.",
+      );
+  }
   if (
     reference.categoryId &&
     candidate.categoryId &&

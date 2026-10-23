@@ -35,6 +35,22 @@ model RadarWorkspace {
   marketItems       MarketItem[]
   usage             RadarWorkspaceUsage[]
   settings          AppSettings?
+  researchDrafts    RadarResearchDraft[]
+}
+
+/// Opt-in intelligence inputs, never an accounting record or published listing.
+model RadarResearchDraft {
+  id          String @id @default(cuid())
+  workspaceId String
+  accountId   String?
+  kind        String
+  name        String
+  payload     Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  workspace   RadarWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, accountId, updatedAt])
 }
 
 model RadarUser {

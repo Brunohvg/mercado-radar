@@ -4,6 +4,7 @@ if (process.env.RADAR_TEST_DATABASE !== "1")
 const original = globalThis.fetch;
 const prefix = process.env.RADAR_TEST_FIXTURE_PREFIX;
 let refreshCount = 0;
+const researchCalls = new Map();
 globalThis.fetch = async (input, init) => {
   const url = new URL(
     typeof input === "string" ? input : (input.url ?? String(input)),
@@ -43,6 +44,66 @@ globalThis.fetch = async (input, init) => {
       JSON.stringify({ error: "forbidden", message: "fixture restricted" }),
       { status: 403, headers: { "content-type": "application/json" } },
     );
+  const researchItem = (id) => {
+    const index = Number(id.slice(-3));
+    const quantity = [2, 4, 6, 8][index % 4];
+    return {
+      id,
+      title: `Kit ${quantity} Canetas Fantasminha Montovani Azul`,
+      price: quantity * 8.99,
+      currency_id: "BRL",
+      category_id: "MLB1234",
+      seller_id: "competitor-" + index,
+      attributes: [
+        { id: "BRAND", value_name: "Montovani" },
+        { id: "MODEL", value_name: "Fantasminha" },
+        { id: "COLOR", value_name: "Azul" },
+        { id: "UNITS_PER_PACK", value_name: String(quantity) },
+      ],
+      shipping: {
+        free_shipping: true,
+        logistic_type: index % 2 ? "fulfillment" : "drop_off",
+      },
+      ...(index === 0 ? { sold_quantity: 0 } : {}),
+      permalink: `https://produto.mercadolivre.com.br/${id}`,
+      listing_type_id: "gold_special",
+    };
+  };
+  if (url.pathname === "/sites/MLB/search") {
+    const q = url.searchParams.get("q") ?? "";
+    if (
+      ![
+        "Caneta Fantasminha Montovani",
+        "Caneta",
+        "Kit 2 Canetas Fantasminha Montovani Azul",
+      ].includes(q) &&
+      !q.startsWith("qa-research-")
+    )
+      return denied();
+    const attempt = (researchCalls.get(q) ?? 0) + 1;
+    researchCalls.set(q, attempt);
+    if (q.includes("401") || q.includes("403"))
+      return new Response(JSON.stringify({ message: "fixture restriction" }), {
+        status: q.includes("401") ? 401 : 403,
+      });
+    if (q.includes("timeout") && attempt === 1)
+      throw new DOMException("Fixture timeout", "TimeoutError");
+    if ((q.includes("429") || q.includes("500")) && attempt < 3)
+      return new Response("{}", {
+        status: q.includes("429") ? 429 : 500,
+        headers: { "Retry-After": "0" },
+      });
+    const offset = Number(url.searchParams.get("offset") ?? 0),
+      limit = Number(url.searchParams.get("limit") ?? 20);
+    return json({
+      results: Array.from(
+        { length: Math.max(0, Math.min(limit, 27 - offset)) },
+        (_, n) =>
+          researchItem("MLB777000" + String(offset + n).padStart(3, "0")),
+      ),
+      paging: { total: 27 },
+    });
+  }
   if (url.pathname === "/oauth/token") {
     refreshCount++;
     return json({
@@ -59,27 +120,29 @@ globalThis.fetch = async (input, init) => {
   if (url.pathname === "/items" || url.pathname === "/items/bulk")
     return json(
       (url.searchParams.get("ids") || "").split(",").map((id) =>
-        [item, "MLB999000002"].includes(id)
-          ? {
-              code: 200,
-              body: {
-                id,
-                title: "Kit ilhós",
-                price: 100,
-                category_id: "MLB1234",
-                seller_id: id === item ? seller : "foreign-seller",
-                seller_custom_field: id === item ? undefined : "SAME-SKU",
-                listing_type_id: "gold_special",
-                sold_quantity: 205,
-                available_quantity: 20,
-                shipping: {
-                  free_shipping: id !== item,
-                  logistic_type: "drop_off",
-                  dimensions: id === item ? null : "10x15x20,500",
+        /^MLB777000\d{3}$/.test(id)
+          ? { id, status_code: 200, body: researchItem(id) }
+          : [item, "MLB999000002"].includes(id)
+            ? {
+                code: 200,
+                body: {
+                  id,
+                  title: "Kit ilhós",
+                  price: 100,
+                  category_id: "MLB1234",
+                  seller_id: id === item ? seller : "foreign-seller",
+                  seller_custom_field: id === item ? undefined : "SAME-SKU",
+                  listing_type_id: "gold_special",
+                  sold_quantity: 205,
+                  available_quantity: 20,
+                  shipping: {
+                    free_shipping: id !== item,
+                    logistic_type: "drop_off",
+                    dimensions: id === item ? null : "10x15x20,500",
+                  },
                 },
-              },
-            }
-          : { code: 403, body: { id } },
+              }
+            : { code: 403, body: { id } },
       ),
     );
   if (url.pathname === "/sites/MLB/listing_prices") {

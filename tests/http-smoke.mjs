@@ -39,6 +39,7 @@ const child = spawn(
     env: {
       ...process.env,
       RADAR_TEST_FIXTURE_PREFIX: prefix,
+      RADAR_INTELLIGENCE_ENABLED: "1",
       MERCADO_LIVRE_CLIENT_ID: "radar-test-app",
       MERCADO_LIVRE_CLIENT_SECRET: "radar-test-secret",
       ADMIN_EMAIL: "operator@radar.test",
@@ -341,6 +342,187 @@ try {
       assert.equal(a.status, 200, a.text);
       assert.equal(a.json.items[0].title, "Observação privada A");
       assert.equal(b.json.items[0].title, "Observação privada B");
+    },
+  );
+  await check(
+    "intelligence endpoints require a session and reject arbitrary URL imports",
+    async () => {
+      assert.equal(
+        (await req("/api/intelligence/competitors?q=Caneta")).status,
+        401,
+      );
+      assert.equal((await req("/api/intelligence/drafts")).status, 401);
+      for (const q of [
+        "https://127.0.0.1/MLB777000000",
+        "https://mercadolivre.com.br.evil.test/MLB777000000",
+      ])
+        assert.equal(
+          (
+            await req(
+              "/api/intelligence/competitors?q=" + encodeURIComponent(q),
+              cookieA,
+            )
+          ).status,
+          400,
+        );
+    },
+  );
+  await check(
+    "competitor API supports bulk status_code, pagination and absent versus zero sold",
+    async () => {
+      const first = await req(
+        "/api/intelligence/competitors?q=Caneta",
+        cookieA,
+      );
+      assert.equal(first.status, 200, first.text);
+      assert.equal(first.json.items.length, 20);
+      assert.equal(first.json.paging.nextOffset, 20);
+      assert.equal(first.json.paging.total, 27);
+      assert.equal(first.json.items[0].sold, 0);
+      assert.equal(first.json.items[1].sold, null);
+      assert.equal(first.json.items[0].unitPrice, 8.99);
+      assert.equal(first.json.items[0].brand, "Montovani");
+      const next = await req(
+        "/api/intelligence/competitors?q=Caneta&offset=20",
+        cookieA,
+      );
+      assert.equal(next.json.items.length, 7);
+      assert.equal(next.json.paging.hasMore, false);
+      assert.equal(
+        first.json.items.some((i) => i.id === next.json.items[0].id),
+        false,
+      );
+      assert.equal(JSON.stringify(first.json).includes("accessToken"), false);
+      assert.equal(JSON.stringify(first.json).includes("supplierPrice"), false);
+    },
+  );
+  await check(
+    "competitor API retries transient failures and preserves permission diagnostics",
+    async () => {
+      for (const suffix of ["429", "500", "timeout"]) {
+        const r = await req(
+          "/api/intelligence/competitors?q=qa-research-" + suffix,
+          cookieA,
+        );
+        assert.equal(r.status, 200, r.text);
+        assert.equal(r.json.items.length, 20, suffix);
+        assert.equal(r.json.apiSucceeded, true);
+      }
+      for (const [suffix, code] of [
+        ["401", "UNAUTHORIZED"],
+        ["403", "FORBIDDEN"],
+      ]) {
+        const r = await req(
+          "/api/intelligence/competitors?q=qa-research-" + suffix,
+          cookieA,
+        );
+        assert.equal(r.json.apiSucceeded, false);
+        assert.equal(
+          r.json.notices.some((n) => n.code === code),
+          true,
+        );
+      }
+    },
+  );
+  await check(
+    "saved competitor research and manual classifications cannot cross workspaces or accounts",
+    async () => {
+      const payload = {
+        query: "Caneta",
+        categoryId: "",
+        referenceId: "MLB777000000",
+        selectedIds: ["MLB777000000", "MLB777000001"],
+        overrides: [{ id: "MLB777000001", level: "SIMILAR" }],
+      };
+      const saved = await req("/api/intelligence/drafts", cookieA, "POST", {
+        kind: "RESEARCH",
+        name: "Pesquisa privada A",
+        payload,
+      });
+      assert.equal(saved.status, 201, saved.text);
+      assert.equal(
+        (await req("/api/intelligence/drafts", cookieB)).json.drafts.length,
+        0,
+      );
+      assert.equal(
+        (
+          await req("/api/intelligence/drafts", cookieB, "POST", {
+            id: saved.json.id,
+            kind: "RESEARCH",
+            name: "Ataque",
+            payload,
+          })
+        ).status,
+        404,
+      );
+      assert.equal(
+        (
+          await req(
+            "/api/intelligence/drafts?id=" + saved.json.id,
+            cookieB,
+            "DELETE",
+          )
+        ).status,
+        404,
+      );
+      const own = (await req("/api/intelligence/drafts", cookieA)).json.drafts;
+      assert.deepEqual(own[0].payload, payload);
+      await db.query(
+        'UPDATE "RadarResearchDraft" SET "accountId"=$1 WHERE id=$2',
+        [accounts[1], saved.json.id],
+      );
+      assert.equal(
+        (await req("/api/intelligence/drafts", cookieA)).json.drafts.length,
+        0,
+      );
+      await db.query(
+        'UPDATE "RadarResearchDraft" SET "accountId"=$1 WHERE id=$2',
+        [accounts[0], saved.json.id],
+      );
+      assert.equal(
+        (
+          await req(
+            "/api/intelligence/drafts?id=" + saved.json.id,
+            cookieA,
+            "DELETE",
+          )
+        ).status,
+        200,
+      );
+    },
+  );
+  await check(
+    "monitoring a saved observation preserves its date and cannot read a foreign workspace",
+    async () => {
+      const at = new Date(Date.now() - 86400000 * 3);
+      await db.query(
+        'UPDATE "MarketItem" SET "lastSeenAt"=$1,"lastPrice"=42,"lastSoldLower"=100 WHERE "workspaceId"=$2 AND id=$3',
+        [at, userA.workspaceId, "MLB999000100"],
+      );
+      const r = await req(
+        "/api/intelligence/competitors/watch",
+        cookieA,
+        "POST",
+        { itemId: "MLB999000100" },
+      );
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.trackingMode, "PAGE");
+      const stored = (
+        await db.query(
+          'SELECT w."lastCheckedAt",s."capturedAt" FROM "RadarWatchItem" w JOIN "RadarWatchSnapshot" s ON s."watchItemId"=w.id WHERE w."sellerUserId"=$1 AND w."mlItemId"=$2',
+          [prefix + "100", "MLB999000100"],
+        )
+      ).rows[0];
+      assert.equal(new Date(stored.lastCheckedAt).getTime(), at.getTime());
+      assert.equal(new Date(stored.capturedAt).getTime(), at.getTime());
+      assert.equal(
+        (
+          await req("/api/intelligence/competitors/watch", cookieB, "POST", {
+            itemId: "MLB777000000",
+          })
+        ).status,
+        404,
+      );
     },
   );
   await check("analysis history and deletion respect ownership", async () => {

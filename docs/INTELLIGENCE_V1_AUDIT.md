@@ -54,3 +54,17 @@ Validar unidades, kit versus modelo, cores, estoque, custos nulos/zero, piso, ar
 - [Custos por vender](https://developers.mercadolivre.com.br/pt_br/guia-para-veiculos/comissao-por-vender): tarifa total já inclui tarifa fixa; não somar duas vezes. Consultar com o contexto da venda.
 
 Documentação consultada por trechos oficiais indexados. Grants de uma conta real e números de produtos reais ainda não foram homologados.
+
+## Fase 1 — implementado, aguardando homologação real
+
+Rota `/concorrentes`, APIs `/api/intelligence/competitors`, `/api/intelligence/competitors/watch` e `/api/intelligence/drafts`. A flag desligada responde 404 nas APIs autenticadas novas. O status de integração ganhou apenas um campo opcional para controlar a navegação. Contratos existentes continuam compatíveis.
+
+Entradas aceitam nome, SKU cadastrado na própria operação, anúncio MLB e links completos autorizados; URLs não são abertas pelo servidor. Busca paginada limitada a 200 resultados da API e 60 observações locais; amostra não equivale a censo de concorrentes. Bulk em lotes de 20; enriquecimento restrito preserva os campos públicos da busca. Não são solicitados custos privados, visitas ou pedidos de concorrentes.
+
+Quantidade vem de atributo explícito ou heurística identificada do título. Não se assume uma unidade por padrão; nº54 e 165m não são quantidades de peças. Correspondências apresentam razões e aceitam revisão do vendedor. A revisão não modifica os fatos coletados. A comparação mantém até quatro anúncios, inclusive quando filtros escondem um selecionado. Rascunhos guardam entradas, seleção e revisão; ao reabrir, a busca é refeita, sem apresentar a antiga seleção como dado atual.
+
+Monitoramento de uma observação salva conserva seu horário original e o modo por visita; não substitui acompanhamento API existente nem sobrescreve uma leitura mais recente. API indisponível e resultado vazio são estados distintos. Campos ausentes aparecem como não disponíveis.
+
+Validação local: 66 testes de regras (incluindo quatro novos cenários de unidades, URLs e correspondência), 11 cenários web, typecheck/build. Capturas `competitors-1366`, `competitors-680` e `competitors-390` inspecionadas; sem overflow. Novos testes HTTP e migração foram incluídos para o CI com PostgreSQL. A indisponibilidade local de execução PostgreSQL como usuário não root não foi tratada como teste aprovado. A suíte de extensão permanece com 26 cenários; seus scripts e estilos não foram editados.
+
+Pendências reais: conferir permissões de busca/grants e dados dos produtos Montovani e Baxmann em uma conta do cliente; validar as demais telas da matriz em sessão real. Falta de reputação, marca/modelo, frete ou quantidade na fonte não será preenchida com estimativas silenciosas.

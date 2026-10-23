@@ -2,6 +2,7 @@ import { getWorkspaceMlAccount } from "@/lib/mercado-livre";
 import { getWorkspaceId } from "@/lib/workspace-auth";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { intelligenceEnabled } from "@/lib/intelligence-access";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export async function GET() {
 
     return NextResponse.json({
       configured,
+      intelligenceEnabled: intelligenceEnabled(),
       connected: Boolean(account),
       nickname: account?.nickname ?? null,
       userId: account?.mercadoLivreUserId ?? null,

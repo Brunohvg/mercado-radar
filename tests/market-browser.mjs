@@ -48,12 +48,15 @@ const dashboard = bundleFile(
 const opportunities = bundleFile(
   resolve(root, "components/opportunity-radar.tsx"),
 );
+const competitors = bundleFile(
+  resolve(root, "components/competitor-radar.tsx"),
+);
 modules.set(
   "next-link-test",
   `module.exports = function Link(props) {return require(${JSON.stringify(react)}).createElement("a",props,props.children);};`,
 );
 const js = `(() => {const process={env:{NODE_ENV:"production"}}, modules={${[...modules].map(([id, code]) => `${JSON.stringify(id)}:function(module,exports,require){\n${code}\n}`).join(",\n")}}, cache={}; function require(id){if(cache[id])return cache[id].exports;const m=cache[id]={exports:{}};modules[id](m,m.exports,require);return m.exports;}
-const React=require(${JSON.stringify(react)}), Client=require(${JSON.stringify(dom)});const Component=location.pathname==="/dashboard"?require(${JSON.stringify(dashboard)}).ExecutiveDashboard:location.pathname==="/opportunities"?require(${JSON.stringify(opportunities)}).OpportunityRadar:require(${JSON.stringify(market)}).MarketIntelligence;
+const React=require(${JSON.stringify(react)}), Client=require(${JSON.stringify(dom)});const Component=location.pathname==="/competitors"?require(${JSON.stringify(competitors)}).CompetitorRadar:location.pathname==="/dashboard"?require(${JSON.stringify(dashboard)}).ExecutiveDashboard:location.pathname==="/opportunities"?require(${JSON.stringify(opportunities)}).OpportunityRadar:require(${JSON.stringify(market)}).MarketIntelligence;
 Client.createRoot(document.getElementById("app")).render(React.createElement(Component));})();`;
 const server = createServer((request, response) => {
   const path = new URL(request.url, "http://localhost").pathname;
@@ -500,6 +503,196 @@ try {
       }
     },
   );
+  const competitionItems = [2, 4, 6, 8, 10].map((quantity, index) => ({
+    id: "MLB777000" + String(index).padStart(3, "0"),
+    title: `Kit ${quantity} Canetas Fantasminha Montovani Azul`,
+    price: quantity * (10 - index),
+    unitPrice: 10 - index,
+    quantity,
+    quantitySource: "ATTRIBUTE",
+    brand: "Montovani",
+    model: "Fantasminha",
+    color: "Azul",
+    categoryId: "MLB1234",
+    catalogProductId: null,
+    thumbnail: null,
+    permalink: null,
+    sellerId: "seller-" + index,
+    sellerName: null,
+    reputation: null,
+    listingType: "gold_special",
+    freeShipping: true,
+    fulfillment: index % 2 === 0,
+    sold: index === 0 ? 0 : null,
+    soldIsLowerBound: false,
+    isOwn: false,
+    source: "ML_API",
+    observedAt: stamp,
+  }));
+  let savedDrafts = [],
+    searches = [];
+  await page.route("**/api/intelligence/drafts**", (route) => {
+    const request = route.request();
+    if (request.method() === "POST")
+      savedDrafts.push({
+        ...request.postDataJSON(),
+        id: "draft-research",
+        updatedAt: stamp,
+      });
+    if (request.method() === "DELETE") savedDrafts = [];
+    return route.fulfill({
+      json:
+        request.method() === "GET"
+          ? { drafts: savedDrafts }
+          : { ok: true, id: "draft-research" },
+    });
+  });
+  await page.route("**/api/intelligence/competitors?**", async (route) => {
+    const q = new URL(route.request().url()).searchParams.get("q");
+    searches.push(q);
+    if (q === "antigo") await new Promise((r) => setTimeout(r, 650));
+    await route.fulfill({
+      json: {
+        query: q,
+        referenceId: competitionItems[0].id,
+        items:
+          q === "vazio"
+            ? []
+            : q === "antigo"
+              ? [
+                  {
+                    ...competitionItems[0],
+                    title: "Resposta antiga concorrente",
+                  },
+                ]
+              : competitionItems,
+        notices:
+          q === "restrito"
+            ? [
+                {
+                  code: "FORBIDDEN",
+                  message: "API restrita. Compare as leituras da extensão.",
+                },
+              ]
+            : [],
+        scope: "Amostra sintética de regressão.",
+        paging: { hasMore: false, nextOffset: null, total: 5 },
+      },
+    });
+  });
+  await page.route("**/api/monitoring/watchlist", (route) =>
+    route.fulfill({ json: { ok: true } }),
+  );
+  await check(
+    "competitor search normalizes kits, preserves reviewed selection and saves inputs as draft",
+    async () => {
+      await page.goto(base + "/competitors");
+      await page
+        .getByLabel("Produto, SKU cadastrado, código MLB ou link")
+        .fill("Caneta");
+      await page
+        .getByRole("button", { name: "Pesquisar", exact: true })
+        .click();
+      await page.locator(".intel-offer").first().waitFor();
+      assert.equal(await page.locator(".intel-offer").count(), 5);
+      assert.match(
+        await page.locator(".intel-offer").first().innerText(),
+        /R\$\s*6,00[\s\S]*10 un/,
+      );
+      for (const row of competitionItems.slice(0, 4))
+        await page.getByLabel("Comparar " + row.id, { exact: true }).check();
+      assert.equal(
+        await page
+          .getByLabel("Comparar " + competitionItems[4].id, { exact: true })
+          .isDisabled(),
+        true,
+      );
+      await page
+        .locator(".intel-offer")
+        .filter({
+          has: page.getByLabel("Comparar " + competitionItems[1].id, {
+            exact: true,
+          }),
+        })
+        .locator("summary")
+        .click();
+      await page
+        .getByLabel("Correspondência " + competitionItems[1].id, {
+          exact: true,
+        })
+        .selectOption("EQUIVALENT");
+      await page
+        .getByLabel("Filtrar por correspondência", { exact: true })
+        .selectOption("EQUIVALENT");
+      assert.equal(await page.locator(".intel-offer").count(), 1);
+      assert.equal(
+        await page.locator(".intel-compare-grid article").count(),
+        4,
+      );
+      await page
+        .getByRole("button", { name: "Salvar rascunho", exact: true })
+        .click();
+      await page.getByText(/Rascunho salvo nesta operação/).waitFor();
+      assert.equal(savedDrafts[0].payload.selectedIds.length, 4);
+      assert.equal(savedDrafts[0].payload.overrides[0].level, "EQUIVALENT");
+      await page
+        .getByLabel("Filtrar por correspondência", { exact: true })
+        .selectOption("ALL");
+    },
+  );
+  await check(
+    "competitor UI handles empty and restricted data and remains readable on desktop and mobile",
+    async () => {
+      for (const width of [1366, 680, 390]) {
+        await page.setViewportSize({ width, height: 900 });
+        assert.equal(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+          true,
+        );
+        if (artifacts)
+          await page.screenshot({
+            path: artifacts + `/competitors-${width}.png`,
+            fullPage: true,
+          });
+      }
+      for (const q of ["vazio", "restrito"]) {
+        await page
+          .getByLabel("Produto, SKU cadastrado, código MLB ou link")
+          .fill(q);
+        await page
+          .getByRole("button", { name: "Pesquisar", exact: true })
+          .click();
+        if (q === "vazio")
+          await page
+            .getByRole("heading", {
+              name: "Nenhuma oferta disponível nesta amostra",
+            })
+            .waitFor();
+        else
+          await page
+            .getByText("API restrita. Compare as leituras da extensão.")
+            .waitFor();
+      }
+    },
+  );
+  await check("competitor search discards an outdated response", async () => {
+    await page
+      .getByLabel("Produto, SKU cadastrado, código MLB ou link")
+      .fill("antigo");
+    await page.getByRole("button", { name: "Pesquisar", exact: true }).click();
+    // A restored draft can launch another query while the older request is pending.
+    await page.locator(".intel-drafts summary").click();
+    await page.locator(".intel-draft-list button").first().click();
+    await page.locator(".intel-offer").first().waitFor();
+    await page.waitForTimeout(750);
+    assert.equal(
+      await page.getByText("Resposta antiga concorrente").count(),
+      0,
+    );
+    assert.ok(searches.includes("antigo"));
+  });
   assert.deepEqual(errors, []);
   console.log(`MARKET_BROWSER_OK ${checks} checks; no browser errors`);
 } finally {

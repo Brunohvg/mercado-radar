@@ -34,7 +34,10 @@ function fromApi(
   const attr = (id: string) =>
     attributes.find((a: any) => a.id === id)?.value_name?.slice(0, 160) ?? null;
   const quantity = kitQuantity(String(raw.title ?? raw.id), attributes);
-  const price = availableNumber(raw.price);
+  const price =
+    raw.currency_id && raw.currency_id !== "BRL"
+      ? null
+      : availableNumber(raw.price);
   return {
     id: raw.id,
     title: String(raw.title ?? raw.id),
@@ -45,6 +48,7 @@ function fromApi(
     model: attr("MODEL"),
     color: attr("COLOR"),
     material: attr("MATERIAL"),
+    status: typeof raw.status === "string" ? raw.status : null,
     quantity: quantity.quantity,
     quantitySource: quantity.source,
     unitPrice: unitPrice(price, quantity.quantity),

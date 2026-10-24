@@ -18,6 +18,7 @@ export type Competitor = {
   model: string | null;
   color: string | null;
   material?: string | null;
+  status?: string | null;
   quantity: number | null;
   quantitySource: "ATTRIBUTE" | "TITLE" | null;
   unitPrice: number | null;
@@ -197,6 +198,9 @@ export function classifyCompetitor(
   const sameQuantity =
     reference.quantity != null && reference.quantity === candidate.quantity;
   const reasons: string[] = [];
+  const unavailable = Boolean(
+    candidate.status && !["active", "unknown"].includes(candidate.status),
+  );
   const conflict = ["brand", "model", "color", "material"] as const;
   for (const key of conflict)
     if (
@@ -242,7 +246,16 @@ export function classifyCompetitor(
       level: "SAME",
       reasons: ["Mesmo identificador de anúncio."],
       sameQuantity,
-      comparable: true,
+      comparable: !unavailable,
+    };
+  if (unavailable)
+    return {
+      level: "UNCERTAIN",
+      reasons: [
+        "Anúncio não está ativo para venda. O preço não entra na referência do mercado.",
+      ],
+      sameQuantity,
+      comparable: false,
     };
   const a = identityTokens(reference),
     b = new Set(identityTokens(candidate));

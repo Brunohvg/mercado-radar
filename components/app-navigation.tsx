@@ -341,6 +341,7 @@ export function AppNavigation() {
               <div className="nav-group-items">
                 {[...group.items, ...(group.label === "Inteligência" && intelligenceEnabled ? [
                   { href: "/concorrentes", label: "Concorrentes", icon: "market" as const },
+                  { href: "/kits", label: "Simulador de kits", icon: "products" as const },
                 ] : [])].map((item) => (
                   <Link
                     className={"nav-item " + (isActive(item.href) ? "active" : "")}

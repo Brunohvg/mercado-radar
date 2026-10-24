@@ -86,6 +86,7 @@ jobs:
         run: npm run test:integration
         env:
           RADAR_TEST_DATABASE: "1"
+          RADAR_QA_SCREENSHOTS: "1"
 
       - name: Browser evidence
         if: always()

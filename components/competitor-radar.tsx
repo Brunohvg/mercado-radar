@@ -220,8 +220,8 @@ export function CompetitorRadar() {
             ofertas.
           </p>
         </div>
-        <Link className="secondary" href="/analisar">
-          Simular custos →
+        <Link className="secondary" href={reference && /^MLB\d+$/.test(reference.id) ? "/kits?ref="+reference.id : "/kits"}>
+          Simular kits →
         </Link>
       </header>
       <form className="intel-search" onSubmit={submit}>

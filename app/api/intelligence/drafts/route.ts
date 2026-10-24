@@ -7,16 +7,21 @@ import {
 import { getWorkspaceMlAccount } from "@/lib/mercado-livre";
 import { prisma } from "@/lib/prisma";
 import { draftSchema } from "@/lib/intelligence-validation";
+import { freezeKitDraft } from "@/lib/kit-quotes";
+import { consumeIntelligenceRequest } from "@/lib/intelligence-access";
 
 export const dynamic = "force-dynamic";
 async function context() {
   const user = await intelligenceUser();
   const account = await getWorkspaceMlAccount(user.workspaceId);
-  return { workspaceId: user.workspaceId, accountId: account?.id ?? null };
+  return {
+    where: { workspaceId: user.workspaceId, accountId: account?.id ?? null },
+    limit: user.workspace.dailyRequestLimit,
+  };
 }
 export async function GET() {
   try {
-    const where = await context();
+    const { where } = await context();
     const drafts = await prisma.radarResearchDraft.findMany({
       where,
       orderBy: { updatedAt: "desc" },
@@ -39,7 +44,7 @@ export async function GET() {
 }
 export async function POST(request: Request) {
   try {
-    const where = await context();
+    const { where, limit } = await context();
     const text = await request.text();
     if (text.length > 50000)
       throw new IntelligenceError(
@@ -55,6 +60,25 @@ export async function POST(request: Request) {
         "INVALID_INPUT",
       );
     const { id, ...data } = parsed.data;
+    // Verify ownership before any external quote for an update.
+    if (
+      id &&
+      !(await prisma.radarResearchDraft.findFirst({
+        where: { ...where, id },
+        select: { id: true },
+      }))
+    )
+      throw new IntelligenceError(
+        "Rascunho não encontrado nesta conta.",
+        404,
+        "NOT_FOUND",
+      );
+    if (data.kind === "KIT") {
+      await consumeIntelligenceRequest(where.workspaceId, limit);
+      data.payload = JSON.parse(
+        JSON.stringify(await freezeKitDraft(where.workspaceId, data.payload)),
+      );
+    }
     if (id) {
       const updated = await prisma.radarResearchDraft.updateMany({
         where: { ...where, id },
@@ -93,7 +117,7 @@ export async function POST(request: Request) {
 }
 export async function DELETE(request: Request) {
   try {
-    const where = await context();
+    const { where } = await context();
     const id = new URL(request.url).searchParams.get("id");
     if (!id || id.length > 80)
       throw new IntelligenceError(

@@ -51,12 +51,13 @@ const opportunities = bundleFile(
 const competitors = bundleFile(
   resolve(root, "components/competitor-radar.tsx"),
 );
+const kits = bundleFile(resolve(root, "components/kit-optimizer.tsx"));
 modules.set(
   "next-link-test",
   `module.exports = function Link(props) {return require(${JSON.stringify(react)}).createElement("a",props,props.children);};`,
 );
 const js = `(() => {const process={env:{NODE_ENV:"production"}}, modules={${[...modules].map(([id, code]) => `${JSON.stringify(id)}:function(module,exports,require){\n${code}\n}`).join(",\n")}}, cache={}; function require(id){if(cache[id])return cache[id].exports;const m=cache[id]={exports:{}};modules[id](m,m.exports,require);return m.exports;}
-const React=require(${JSON.stringify(react)}), Client=require(${JSON.stringify(dom)});const Component=location.pathname==="/competitors"?require(${JSON.stringify(competitors)}).CompetitorRadar:location.pathname==="/dashboard"?require(${JSON.stringify(dashboard)}).ExecutiveDashboard:location.pathname==="/opportunities"?require(${JSON.stringify(opportunities)}).OpportunityRadar:require(${JSON.stringify(market)}).MarketIntelligence;
+const React=require(${JSON.stringify(react)}), Client=require(${JSON.stringify(dom)});const Component=location.pathname==="/kits"?require(${JSON.stringify(kits)}).KitOptimizer:location.pathname==="/competitors"?require(${JSON.stringify(competitors)}).CompetitorRadar:location.pathname==="/dashboard"?require(${JSON.stringify(dashboard)}).ExecutiveDashboard:location.pathname==="/opportunities"?require(${JSON.stringify(opportunities)}).OpportunityRadar:require(${JSON.stringify(market)}).MarketIntelligence;
 Client.createRoot(document.getElementById("app")).render(React.createElement(Component));})();`;
 const server = createServer((request, response) => {
   const path = new URL(request.url, "http://localhost").pathname;
@@ -693,6 +694,265 @@ try {
     );
     assert.ok(searches.includes("antigo"));
   });
+  let kitAccount = null,
+    wrongQuoteOwner = false,
+    quoteFailure = false;
+  const quoteRequests = [];
+  await page.route("**/api/intelligence/kits/context", (route) =>
+    route.fulfill({
+      json: {
+        workspaceId: "kit-workspace",
+        accountId: kitAccount,
+        accountName: kitAccount ? "Loja teste" : null,
+        defaults: {
+          taxPercent: 4,
+          operatingCost: 0.8,
+          targetMarginPercent: 20,
+          targetRoiPercent: 30,
+        },
+      },
+    }),
+  );
+  await page.route("**/api/intelligence/kits/quote", async (route) => {
+    const c = route.request().postDataJSON();
+    quoteRequests.push(c);
+    if (quoteFailure)
+      return route.fulfill({
+        status: 503,
+        json: { error: "Cotação indisponível. Tente novamente." },
+      });
+    const rate = c.listingType === "PREMIUM" ? 16.5 : 12;
+    return route.fulfill({
+      json: {
+        context: c,
+        accountId: wrongQuoteOwner ? "another-account" : kitAccount,
+        accountName: "Loja teste",
+        quotedAt: new Date().toISOString(),
+        fee: {
+          commissionPercent: rate,
+          fixedFee: 4,
+          saleFeeAmount:
+            Math.round(((c.salePrice * rate) / 100 + 4) * 100) / 100,
+        },
+        shipping: c.shippingPackage
+          ? { shippingCost: 6.85, discountRate: 0.5 }
+          : null,
+        notices: [],
+      },
+    });
+  });
+  const card = (quantity) => page.locator(`[data-kit-quantity="${quantity}"]`);
+  await check(
+    "kit simulator starts clean, recalculates costs and saves the selected composition",
+    async () => {
+      await page.goto(base + "/kits");
+      await page
+        .getByText("Informe o produto e o custo de compra", { exact: true })
+        .waitFor();
+      assert.equal(await page.locator(".kit-card").count(), 0);
+      await page
+        .getByRole("button", { name: "Carregar exemplo Montovani" })
+        .click();
+      await page
+        .getByLabel("Preço por unidade para simular (R$)", { exact: true })
+        .fill("10");
+      await page
+        .getByLabel("Embalagem por kit (R$)", { exact: true })
+        .fill("1");
+      await page
+        .getByLabel("Frete estimado do vendedor (R$)", { exact: true })
+        .fill("6,85");
+      await page.locator(".kit-cost-settings > summary").click();
+      await page
+        .getByLabel("Consultar automaticamente na minha conta")
+        .uncheck();
+      await page
+        .getByLabel("Comissão manual estimada (%)", { exact: true })
+        .fill("12");
+      await page
+        .getByLabel("Tarifa fixa manual estimada (R$)", { exact: true })
+        .fill("4");
+      await page
+        .getByLabel("Tarifa fixa manual estimada (R$)", { exact: true })
+        .blur();
+      assert.match(
+        await card(8).locator(".kit-financial").innerText(),
+        /18,55/,
+      );
+      assert.match(await card(2).innerText(), /Não compensa neste preço/);
+      await page
+        .getByLabel("Custo de compra por unidade (R$)", { exact: true })
+        .fill("8");
+      assert.match(await card(8).innerText(), /Não compensa neste preço/);
+      await page
+        .getByLabel("Custo de compra por unidade (R$)", { exact: true })
+        .fill("4,50");
+      await card(4)
+        .getByRole("button", { name: "Ver composição e custos" })
+        .click();
+      await page
+        .getByLabel("Composição do kit")
+        .selectOption({ label: "2 Azul + 2 Preta" });
+      await page
+        .getByRole("button", { name: "Salvar rascunho", exact: true })
+        .click();
+      await page.getByText(/Rascunho salvo nesta operação/).waitFor();
+      const saved = savedDrafts.find((d) => d.kind === "KIT");
+      assert.ok(saved.payload.selectedKitId.includes("color0=2"));
+      assert.equal(saved.payload.scenario.unitCost, 4.5);
+      assert.equal(saved.payload.snapshot, undefined);
+      await page.getByLabel("Imposto (%)", { exact: true }).fill("");
+      assert.match(
+        await card(8).locator(".kit-financial").innerText(),
+        /A confirmar/,
+      );
+      await page.getByLabel("Imposto (%)", { exact: true }).fill("4");
+      await page.getByLabel("Imposto (%)", { exact: true }).blur();
+      await page.locator(".kit-cost-settings > summary").click();
+      for (const width of [1366, 680, 390]) {
+        await page.setViewportSize({ width, height: 960 });
+        assert.equal(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+          true,
+        );
+        if (artifacts)
+          await page.screenshot({
+            path: artifacts + `/kits-${width}.png`,
+            fullPage: true,
+          });
+      }
+    },
+  );
+  await check(
+    "kit simulator rejects insufficient and fractional stock and distinguishes an unknown stock",
+    async () => {
+      for (const label of ["Azul", "Preta", "Vermelha", "Rosa"])
+        await page
+          .getByLabel(`Estoque de ${label} (un.)`, { exact: true })
+          .fill("0");
+      await page
+        .getByText("Nenhuma composição disponível neste estoque", {
+          exact: true,
+        })
+        .waitFor();
+      await page
+        .getByLabel("Estoque de Azul (un.)", { exact: true })
+        .fill("1,5");
+      assert.equal(await page.locator(".kit-card").count(), 0);
+      await page.getByLabel("Estoque de Azul (un.)", { exact: true }).fill("");
+      await page.locator(".kit-card").first().waitFor();
+      assert.ok((await card(8).innerText()).includes("A confirmar"));
+    },
+  );
+  await check(
+    "kit automatic quote uses account, package and listing type without double subtracting shipping discounts",
+    async () => {
+      kitAccount = "kit-account-a";
+      await page.goto(base + "/kits");
+      await page
+        .getByText("Cotações na conta Loja teste.", { exact: true })
+        .waitFor();
+      await page
+        .getByRole("button", { name: "Carregar exemplo Montovani" })
+        .click();
+      await page
+        .getByLabel("Preço por unidade para simular (R$)", { exact: true })
+        .fill("10");
+      await page
+        .getByLabel("Embalagem por kit (R$)", { exact: true })
+        .fill("1");
+      await page.locator(".kit-cost-settings > summary").click();
+      await page.getByLabel("Categoria MLB", { exact: true }).fill("MLB1234");
+      for (const [label, value] of [
+        ["Peso de uma unidade (g)", "10"],
+        ["Peso da embalagem (g)", "20"],
+        ["Altura do pacote (cm)", "5"],
+        ["Largura do pacote (cm)", "10"],
+        ["Comprimento do pacote (cm)", "20"],
+      ])
+        await page.getByLabel(label, { exact: true }).fill(value);
+      await page
+        .getByLabel("Comprimento do pacote (cm)", { exact: true })
+        .blur();
+      await page.waitForFunction(() =>
+        document
+          .querySelector('[data-kit-quantity="8"] .kit-financial')
+          .textContent.includes("18,55"),
+      );
+      assert.ok(
+        quoteRequests.some(
+          (c) => c.quantity === 8 && c.shippingPackage?.weightGrams === 100,
+        ),
+      );
+      await page.getByLabel("Modalidade do kit").selectOption("PREMIUM");
+      await page.waitForFunction(() =>
+        document
+          .querySelector('[data-kit-quantity="8"] .kit-financial')
+          .textContent.includes("14,95"),
+      );
+      assert.ok(
+        quoteRequests.some(
+          (c) => c.quantity === 8 && c.listingType === "PREMIUM",
+        ),
+      );
+    },
+  );
+  await check(
+    "kit quote from a different account is rejected and network failures remain retryable",
+    async () => {
+      wrongQuoteOwner = true;
+      await page
+        .getByRole("button", { name: "Atualizar cotações", exact: true })
+        .click();
+      await page.waitForTimeout(900);
+      assert.match(
+        await card(8).locator(".kit-financial").innerText(),
+        /A confirmar/,
+      );
+      wrongQuoteOwner = false;
+      quoteFailure = true;
+      await page
+        .getByRole("button", { name: "Atualizar cotações", exact: true })
+        .click();
+      await page
+        .getByText("Cotação indisponível. Tente novamente.", { exact: true })
+        .waitFor();
+      quoteFailure = false;
+      await page
+        .getByRole("button", { name: "Atualizar cotações", exact: true })
+        .click();
+      await page.waitForFunction(() =>
+        document
+          .querySelector('[data-kit-quantity="8"] .kit-financial')
+          .textContent.includes("14,95"),
+      );
+    },
+  );
+  await check(
+    "changing the connected account removes the preceding private kit scenario",
+    async () => {
+      await page
+        .getByLabel("Custo de compra por unidade (R$)", { exact: true })
+        .focus();
+      kitAccount = "kit-account-b";
+      await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+      await page
+        .getByText(
+          "A conta mudou. Os custos e cotações anteriores foram retirados desta simulação.",
+          { exact: true },
+        )
+        .waitFor();
+      assert.equal(
+        await page
+          .getByLabel("Custo de compra por unidade (R$)", { exact: true })
+          .inputValue(),
+        "",
+      );
+      assert.equal(await page.locator(".kit-card").count(), 0);
+    },
+  );
   assert.deepEqual(errors, []);
   console.log(`MARKET_BROWSER_OK ${checks} checks; no browser errors`);
 } finally {

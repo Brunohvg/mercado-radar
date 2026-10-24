@@ -51,7 +51,8 @@ globalThis.fetch = async (input, init) => {
       id,
       title: `Kit ${quantity} Canetas Fantasminha Montovani Azul`,
       price: quantity * 8.99,
-      currency_id: "BRL",
+      currency_id: index === 26 ? "USD" : "BRL",
+      status: index === 25 ? "paused" : "active",
       category_id: "MLB1234",
       seller_id: "competitor-" + index,
       attributes: [

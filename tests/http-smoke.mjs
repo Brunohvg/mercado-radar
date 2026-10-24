@@ -8,6 +8,10 @@ import {
 } from "node:crypto";
 import { spawn } from "node:child_process";
 import pg from "pg";
+import { loadTs } from "./load-ts.mjs";
+const { defaultKitScenario, generateKitCompositions } = await loadTs(
+  "../lib/kit-optimizer.ts",
+);
 
 if (process.env.RADAR_TEST_DATABASE !== "1")
   throw new Error(
@@ -387,6 +391,14 @@ try {
         cookieA,
       );
       assert.equal(next.json.items.length, 7);
+      assert.equal(
+        next.json.items.find((i) => i.id === "MLB777000026").price,
+        null,
+      );
+      assert.equal(
+        next.json.items.find((i) => i.id === "MLB777000025").status,
+        "paused",
+      );
       assert.equal(next.json.paging.hasMore, false);
       assert.equal(
         first.json.items.some((i) => i.id === next.json.items[0].id),
@@ -523,6 +535,272 @@ try {
         ).status,
         404,
       );
+    },
+  );
+  const kitScenario = {
+    ...defaultKitScenario(),
+    productName: "Caneta Fantasminha Montovani",
+    brand: "Montovani",
+    model: "Fantasminha",
+    categoryId: "MLB1234",
+    unitCost: 4.5,
+    variants: ["Azul", "Preta", "Vermelha", "Rosa"].map((label, i) => ({
+      id: "v" + i,
+      label,
+      stock: 12,
+      unitCost: null,
+    })),
+    packageCost: 1,
+    operatingCost: 0.8,
+    taxPercent: 4,
+    commissionPercent: null,
+    fixedFee: null,
+    shippingCost: null,
+    pricePerUnit: 10,
+    unitWeightGrams: 10,
+    packageWeightGrams: 20,
+    dimensions: { heightCm: 5, widthCm: 10, lengthCm: 20 },
+  };
+  const kitBody = {
+    quantity: 8,
+    salePrice: 80,
+    categoryId: "MLB1234",
+    listingType: "CLASSIC",
+    logisticType: "drop_off",
+    freeShipping: true,
+    shippingPackage: {
+      weightGrams: 100,
+      heightCm: 5,
+      widthCm: 10,
+      lengthCm: 20,
+    },
+  };
+  await check(
+    "kit context and quotes use only the current account and preserve missing costs",
+    async () => {
+      assert.equal((await req("/api/intelligence/kits/context")).status, 401);
+      const a = await req("/api/intelligence/kits/context", cookieA),
+        b = await req("/api/intelligence/kits/context", cookieB);
+      assert.equal(a.json.accountId, accounts[0]);
+      assert.equal(b.json.accountId, accounts[1]);
+      assert.equal(b.json.defaults.taxPercent, null);
+      const qa = await req(
+          "/api/intelligence/kits/quote",
+          cookieA,
+          "POST",
+          kitBody,
+        ),
+        qb = await req(
+          "/api/intelligence/kits/quote",
+          cookieB,
+          "POST",
+          kitBody,
+        );
+      assert.equal(qa.status, 200, qa.text);
+      assert.equal(qb.status, 200, qb.text);
+      assert.equal(qa.json.fee.saleFeeAmount, 13.6);
+      assert.equal(qa.json.fee.fixedFee, 4);
+      assert.equal(qa.json.shipping.shippingCost, 6.85);
+      assert.equal(qb.json.shipping.shippingCost, 9.85);
+      assert.equal(qa.json.accountId, accounts[0]);
+      assert.equal(JSON.stringify(qa.json).includes("accessToken"), false);
+      assert.equal(
+        (
+          await req("/api/intelligence/kits/quote", cookieA, "POST", {
+            ...kitBody,
+            accountId: accounts[1],
+          })
+        ).status,
+        400,
+      );
+      const partial = await req(
+        "/api/intelligence/kits/quote",
+        cookieA,
+        "POST",
+        { ...kitBody, shippingPackage: null },
+      );
+      assert.equal(partial.json.shipping, null);
+      assert.ok(
+        partial.json.notices.some((n) => n.code === "PACKAGE_REQUIRED"),
+      );
+      const restricted = await req(
+        "/api/intelligence/kits/quote",
+        cookieA,
+        "POST",
+        {
+          ...kitBody,
+          shippingPackage: { ...kitBody.shippingPackage, weightGrams: 99999 },
+        },
+      );
+      assert.equal(restricted.json.shipping, null);
+      assert.ok(restricted.json.notices.some((n) => n.code === "FORBIDDEN"));
+    },
+  );
+  await check(
+    "kit quote cache preserves timestamp and re-quotes after price or listing change",
+    async () => {
+      const body = { ...kitBody, salePrice: 83.21 },
+        a = await req("/api/intelligence/kits/quote", cookieA, "POST", body),
+        b = await req("/api/intelligence/kits/quote", cookieA, "POST", body);
+      assert.equal(a.json.quotedAt, b.json.quotedAt);
+      assert.deepEqual(a.json.context, b.json.context);
+      const changed = await req(
+        "/api/intelligence/kits/quote",
+        cookieA,
+        "POST",
+        { ...body, listingType: "PREMIUM" },
+      );
+      assert.equal(changed.json.fee.commissionPercent, 16.5);
+      assert.notEqual(changed.json.fee.saleFeeAmount, a.json.fee.saleFeeAmount);
+    },
+  );
+  await check(
+    "kit drafts freeze server quote and canonical finances without creating an ML listing",
+    async () => {
+      const row = generateKitCompositions(kitScenario).find(
+        (r) => r.label === "2 Azul + 2 Preta + 2 Vermelha + 2 Rosa",
+      );
+      const body = {
+        kind: "KIT",
+        name: "Kit privado A",
+        payload: { scenario: kitScenario, selectedKitId: row.id },
+      };
+      const before = (
+        await db.query('SELECT COUNT(*)::int AS count FROM "ProductAnalysis"')
+      ).rows[0].count;
+      const created = await req(
+        "/api/intelligence/drafts",
+        cookieA,
+        "POST",
+        body,
+      );
+      assert.equal(created.status, 201, created.text);
+      const draft = (
+        await req("/api/intelligence/drafts", cookieA)
+      ).json.drafts.find((d) => d.id === created.json.id);
+      assert.equal(draft.payload.snapshot.financial.profit, 18.55);
+      assert.equal(
+        draft.payload.snapshot.financial.minimumSuggestedPrice,
+        76.02,
+      );
+      assert.equal(draft.payload.snapshot.quote.accountId, accounts[0]);
+      assert.equal(draft.payload.snapshot.feeSource, "ML_API_ESTIMATE");
+      assert.equal(draft.payload.snapshot.shippingSource, "ML_API_ESTIMATE");
+      assert.equal(
+        (await db.query('SELECT COUNT(*)::int AS count FROM "ProductAnalysis"'))
+          .rows[0].count,
+        before,
+      );
+      assert.ok(
+        !(await req("/api/intelligence/drafts", cookieB)).json.drafts.some(
+          (d) => d.id === created.json.id,
+        ),
+      );
+      assert.equal(
+        (
+          await req("/api/intelligence/drafts", cookieB, "POST", {
+            ...body,
+            id: created.json.id,
+          })
+        ).status,
+        404,
+      );
+      assert.equal(
+        (
+          await req("/api/intelligence/drafts", cookieA, "POST", {
+            ...body,
+            payload: { ...body.payload, snapshot: { profit: 999999 } },
+          })
+        ).status,
+        400,
+      );
+      assert.equal(
+        (
+          await req("/api/intelligence/drafts", cookieA, "POST", {
+            ...body,
+            payload: {
+              ...body.payload,
+              scenario: {
+                ...kitScenario,
+                variants: kitScenario.variants.map((v) => ({ ...v, stock: 0 })),
+              },
+            },
+          })
+        ).status,
+        400,
+      );
+      await req(
+        "/api/intelligence/drafts?id=" + created.json.id,
+        cookieA,
+        "DELETE",
+      );
+    },
+  );
+  await check(
+    "turning intelligence off blocks new modules and preserves existing workspace",
+    async () => {
+      const offPort = port + 1,
+        offBase = `http://127.0.0.1:${offPort}`;
+      const disabled = spawn(
+        process.execPath,
+        [
+          "--import",
+          "./tests/ml-fetch-stub.mjs",
+          "node_modules/next/dist/bin/next",
+          "start",
+          "-p",
+          String(offPort),
+          "--hostname",
+          "127.0.0.1",
+        ],
+        {
+          env: {
+            ...process.env,
+            RADAR_INTELLIGENCE_ENABLED: "0",
+            RADAR_TEST_FIXTURE_PREFIX: prefix,
+            APP_ENCRYPTION_KEY:
+              "radar-testing-encryption-key-never-for-production",
+            NEXT_PUBLIC_APP_URL: offBase,
+          },
+          stdio: "ignore",
+        },
+      );
+      try {
+        let ready = false;
+        for (let i = 0; i < 60; i++) {
+          try {
+            if ((await fetch(offBase + "/login")).status === 200) {
+              ready = true;
+              break;
+            }
+          } catch {}
+          await new Promise((r) => setTimeout(r, 200));
+        }
+        assert.equal(ready, true);
+        for (const path of [
+          "/api/intelligence/kits/context",
+          "/api/intelligence/drafts",
+          "/api/intelligence/competitors?q=Caneta",
+          "/kits",
+          "/concorrentes",
+        ])
+          assert.equal(
+            (await fetch(offBase + path, { headers: { cookie: cookieA } }))
+              .status,
+            404,
+            path,
+          );
+        assert.equal(
+          (
+            await fetch(offBase + "/api/workspace", {
+              headers: { cookie: cookieA },
+            })
+          ).status,
+          200,
+        );
+      } finally {
+        disabled.kill("SIGTERM");
+      }
     },
   );
   await check("analysis history and deletion respect ownership", async () => {
@@ -1316,9 +1594,17 @@ try {
       active: true,
     });
     const fresh = await login(emailA);
-    await import(process.env.RADAR_QA_BROWSER_MODULE).then(
-      async ({ runBrowserChecks }) =>
-        runBrowserChecks({ base, cookie: fresh, operatorCookie: operator }),
+    await db.query(
+      'UPDATE "RadarWorkspace" SET "dailyRequestLimit"=500 WHERE id=$1',
+      [userA.workspaceId],
+    );
+    await db.query('DELETE FROM "RadarWorkspaceUsage" WHERE "workspaceId"=$1', [
+      userA.workspaceId,
+    ]);
+    await import(
+      process.env.RADAR_QA_BROWSER_MODULE ?? "./intelligence-app-browser.mjs"
+    ).then(async ({ runBrowserChecks }) =>
+      runBrowserChecks({ base, cookie: fresh, operatorCookie: operator }),
     );
   }
   await check(

@@ -219,6 +219,7 @@ export function AppNavigation() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [intelligenceEnabled, setIntelligenceEnabled] = useState(false);
   const [account, setAccount] = useState<{
     loaded: boolean;
     connected: boolean;
@@ -236,6 +237,7 @@ export function AppNavigation() {
       .then((response) => response.json())
       .then((body) => {
         if (!active) return;
+        setIntelligenceEnabled(body.intelligenceEnabled === true);
         setAccount({
           loaded: true,
           connected: Boolean(body?.connected),
@@ -337,7 +339,10 @@ export function AppNavigation() {
             <div className="nav-group" key={group.label}>
               <span className="nav-group-label">{group.label}</span>
               <div className="nav-group-items">
-                {group.items.map((item) => (
+                {[...group.items, ...(group.label === "Inteligência" && intelligenceEnabled ? [
+                  { href: "/concorrentes", label: "Concorrentes", icon: "market" as const },
+                  { href: "/kits", label: "Simulador de kits", icon: "products" as const },
+                ] : [])].map((item) => (
                   <Link
                     className={"nav-item " + (isActive(item.href) ? "active" : "")}
                     href={item.href}

@@ -31,6 +31,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://radar_test:radar_test@127.0.0.1:5432/radar_test?schema=public
       NEXT_TELEMETRY_DISABLED: "1"
+      RADAR_QA_ARTIFACTS: artifacts/qa
 
     steps:
       - name: Checkout
@@ -85,3 +86,12 @@ jobs:
         run: npm run test:integration
         env:
           RADAR_TEST_DATABASE: "1"
+          RADAR_QA_SCREENSHOTS: "1"
+
+      - name: Browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: radar-browser-evidence
+          path: artifacts/qa
+          if-no-files-found: ignore

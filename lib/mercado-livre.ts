@@ -684,6 +684,21 @@ export async function searchMarketplace(input: {
     }));
 }
 
+/** Search used by the opt-in competitor module. Authenticated only; no public retry. */
+export async function searchCompetitionPage(input: { accessToken: string; query: string; categoryId?: string; offset: number; limit: number }) {
+  const limit = Math.min(20, Math.max(1, input.limit));
+  const offset = Math.min(180, Math.max(0, input.offset));
+  const params = new URLSearchParams({ q: input.query, limit: String(limit), offset: String(offset) });
+  if (input.categoryId) params.set("category", input.categoryId);
+  const raw = await jsonFetch<{ results?: Array<Record<string, any>>; paging?: { total?: number } }>(
+    `${API}/sites/MLB/search?${params}`, { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+  const items = (raw.results ?? []).filter(row => /^MLB\d+$/.test(String(row.id)) && typeof row.title === "string");
+  const reported = raw.paging?.total;
+  const total = typeof reported === "number" && Number.isInteger(reported) && reported >= 0 ? reported : null;
+  return { items, total, hasMore: offset < 180 && items.length === limit && (total == null || offset + limit < total) };
+}
+
 export async function getItemCurrentPrice(input: {
   accessToken: string;
   itemId: string;
@@ -830,14 +845,15 @@ function toSellerItemDetail(entry: MultigetEntry): SellerItemDetail | null {
 }
 
 // Quando o bulk falha por indisponibilidade, usa o legado por 30 min e tenta de novo.
-let bulkRetryAt = 0;
+const bulkRetryAt = new Map<string, number>();
 const BULK_RETRY_MS = 30 * 60 * 1000;
 
 async function fetchMultigetChunk(accessToken: string, chunk: string[]) {
   const params = new URLSearchParams({ ids: chunk.join(",") });
   const init = { headers: { Authorization: `Bearer ${accessToken}` } };
 
-  if (Date.now() >= bulkRetryAt) {
+  const accountKey = createHash("sha256").update(accessToken).digest("hex");
+  if (Date.now() >= (bulkRetryAt.get(accountKey) ?? 0)) {
     try {
       return await jsonFetch<MultigetEntry[]>(
         `${API}/items/bulk?${params.toString()}`,
@@ -849,7 +865,11 @@ async function fetchMultigetChunk(accessToken: string, chunk: string[]) {
         error instanceof MlApiError &&
         [400, 403, 404, 405].includes(error.status)
       ) {
-        bulkRetryAt = Date.now() + BULK_RETRY_MS;
+        if (bulkRetryAt.size >= 500) {
+          for (const [key, until] of bulkRetryAt) if (until <= Date.now()) bulkRetryAt.delete(key);
+          if (bulkRetryAt.size >= 500) bulkRetryAt.delete(bulkRetryAt.keys().next().value!);
+        }
+        bulkRetryAt.set(accountKey, Date.now() + BULK_RETRY_MS);
       } else {
         throw error;
       }

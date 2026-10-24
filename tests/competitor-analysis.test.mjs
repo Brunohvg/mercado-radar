@@ -87,6 +87,17 @@ test("concorrentes: preço unitário mantém precisão em pacotes grandes e não
 });
 test("concorrentes: links só extraem IDs de hosts autorizados e nunca abrem URL arbitrária", () => {
   assert.equal(parseCompetitorQuery("MLB-700000001").id, reference.id);
+  for (const path of [
+    "/kit-ilhos/up/MLBU5254588583?pdp_filters=item_id%3AMLB700000001",
+    "/produto/p/MLB88800001?pdp_filters=item_id:MLB700000001",
+    "/produto?item_id=MLB700000001",
+  ]) {
+    const parsed = parseCompetitorQuery(
+      "https://www.mercadolivre.com.br" + path,
+    );
+    assert.equal(parsed.id, reference.id);
+    assert.equal(parsed.catalog, false);
+  }
   assert.equal(
     parseCompetitorQuery(
       "https://produto.mercadolivre.com.br/MLB-700000001-caneta",

@@ -379,6 +379,16 @@ try {
         cookieA,
       );
       assert.equal(first.status, 200, first.text);
+      const up = await req(
+        "/api/intelligence/competitors?q=" +
+          encodeURIComponent(
+            "https://www.mercadolivre.com.br/kit-caneta/up/MLBU5074600649?pdp_filters=item_id:MLB777000000",
+          ),
+        cookieA,
+      );
+      assert.equal(up.status, 200, up.text);
+      assert.equal(up.json.referenceId, "MLB777000000");
+      assert.ok(up.json.items.some((i) => i.id === "MLB777000000"));
       assert.equal(first.json.items.length, 20);
       assert.equal(first.json.paging.nextOffset, 20);
       assert.equal(first.json.paging.total, 27);

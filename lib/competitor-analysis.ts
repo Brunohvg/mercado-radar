@@ -97,7 +97,13 @@ export function parseCompetitorQuery(value: string) {
     if (!safe)
       throw new Error("Use um link HTTPS completo de mercadolivre.com.br.");
     const u = new URL(safe);
-    candidate = u.searchParams.get("wid") ?? u.pathname;
+    const itemReference =
+      u.searchParams.get("wid") ??
+      u.searchParams.get("item_id") ??
+      u.searchParams
+        .get("pdp_filters")
+        ?.match(/(?:^|\|)item_id:(MLB-?\d{6,20})(?:$|\|)/i)?.[1];
+    candidate = itemReference ?? u.pathname;
     const id = candidate.match(/\b(MLB)-?(\d{6,20})\b/i);
     if (!id)
       throw new Error(
@@ -107,7 +113,7 @@ export function parseCompetitorQuery(value: string) {
     return {
       query: itemId,
       id: itemId,
-      catalog: /\/p\/MLB\d+/i.test(u.pathname) && !u.searchParams.has("wid"),
+      catalog: /\/p\/MLB\d+/i.test(u.pathname) && !itemReference,
     };
   }
   const id = candidate.match(/^MLB-?(\d{6,20})$/i);

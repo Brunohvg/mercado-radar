@@ -49,7 +49,8 @@ export async function runBrowserChecks({ base, cookie }) {
           waitUntil: "domcontentloaded",
         });
         assert.equal(response.status(), 200, path);
-        await page.locator(".content h1").first().waitFor();
+        // Existing Sales uses h2 for its page heading; preserve its presentation.
+        await page.locator(".content h1, .content h2").first().waitFor();
         assert.equal(await page.locator(".sidebar").count(), 1, path);
         assert.doesNotMatch(
           await page.locator("body").innerText(),
@@ -68,6 +69,7 @@ export async function runBrowserChecks({ base, cookie }) {
             fullPage: true,
           });
         checks++;
+        console.log(`PASS app-browser ${path} at ${width}`);
       }
     }
     await page.getByRole("button", { name: "Abrir menu", exact: true }).click();

@@ -259,3 +259,60 @@ test("alteração de custo ou preço bloqueia a compra pelo histórico antigo", 
   assert.equal(r.suggestedReorder, null);
   assert.equal(r.breakEvenRoas, null);
 });
+
+test("caso revenda: arame 4 rolos usa custo informado e tarifa ML total sem duplicar fixa", () => {
+  // Mercadoria R$3,96/rolo e anúncio R$44,90 informados pelo operador.
+  // Frete/tarifa abaixo são CENÁRIO para regressão: validar com API da conta no Coolify.
+  const item = analyze({
+    ...base,
+    productName: "Arame encapado kit 4",
+    supplierPrice: 3.96,
+    discountPercent: 0,
+    kitQuantity: 4,
+    salePrice: 44.9,
+    commissionPercent: 14,
+    fixedFee: 5.5,
+    quotedSaleFeeAmount: 11.8,
+    shippingCost: 12.95,
+    operatingCost: 1,
+    taxPercent: 0,
+  });
+  assert.equal(item.purchaseCost, 15.84);
+  assert.equal(item.commissionAmount, 6.3);
+  assert.equal(item.saleFeeAmount, 11.8);
+  assert.equal(item.amountReceived, 20.15);
+  assert.equal(item.profit, 3.31);
+});
+
+test("caso revenda: Shake Paint Couro 37ml mantém desconto fornecedor separado do custo de venda", () => {
+  // Custo R$7,50 antes de 10%; preço/tarifas/frete fictícios SOMENTE para teste.
+  const item = analyze({
+    ...base,
+    productName: "Shake Paint Couro 37ml",
+    supplierPrice: 7.5,
+    discountPercent: 10,
+    kitQuantity: 1,
+    salePrice: 29.9,
+    commissionPercent: 12,
+    fixedFee: 3.26,
+    quotedSaleFeeAmount: 6.85,
+    shippingCost: 6.85,
+    operatingCost: 1,
+    taxPercent: 0,
+  });
+  assert.equal(item.purchaseCost, 6.75);
+  assert.equal(item.saleFeeAmount, 6.85);
+  assert.equal(item.profit, 8.45);
+});
+
+test("cotação não permite tarifa fixa maior que tarifa total e aceita total zero", () => {
+  assert.throws(() => analyze({ ...base, quotedSaleFeeAmount: 1, fixedFee: 2 }));
+  const noFee = analyze({
+    ...base,
+    quotedSaleFeeAmount: 0,
+    fixedFee: 0,
+    commissionPercent: 0,
+  });
+  assert.equal(noFee.saleFeeAmount, 0);
+  assert.equal(noFee.commissionAmount, 0);
+});

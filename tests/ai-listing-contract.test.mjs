@@ -12,3 +12,12 @@ test("Gemini credentials remain server-side and there is no paid provider fallba
   assert.match(api, /geminiIsConfigured/);
   assert.match(api, /requiresReview: true/);
 });
+
+
+test("Modelo Gemini default atual e thinking level compatível", async () => {
+  const lib = await readFile(new URL("../lib/ai/gemini-listing.ts", import.meta.url), "utf8");
+  const compose = await readFile(new URL("../docker-compose.yml", import.meta.url), "utf8");
+  assert.match(lib, /gemini-3\\.5-flash-lite/);
+  assert.match(lib, /thinkingLevel: "MINIMAL"/);
+  assert.match(compose, /GEMINI_MODEL:-gemini-3\\.5-flash-lite/);
+});

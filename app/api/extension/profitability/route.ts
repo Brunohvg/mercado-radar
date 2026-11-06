@@ -291,6 +291,7 @@ export async function POST(request: Request) {
           ? Math.round(price * fee.commissionPercent) / 100
           : null,
         fixedFee: fee?.fixedFee ?? null,
+        saleFeeAmount: quotedFee?.saleFeeAmount ?? null,
         shippingCost,
         taxPercent,
         taxAmount:
@@ -329,6 +330,7 @@ export async function POST(request: Request) {
       listingType,
       commissionPercent: fee.commissionPercent,
       fixedFee: fee.fixedFee,
+      quotedSaleFeeAmount: parsed.data.manualFees ? undefined : quotedFee?.saleFeeAmount,
       shippingCost,
       operatingCost: parsed.data.operatingCost,
       taxPercent,
@@ -440,6 +442,7 @@ export async function POST(request: Request) {
             strategy,
             simulation: true,
             feeSource,
+            quotedSaleFeeAmount: quotedFee?.saleFeeAmount ?? null,
             shippingSource,
             shippingNote,
             shippingPackage: parcel ?? null,
@@ -481,6 +484,7 @@ export async function POST(request: Request) {
         commissionPercent: fee.commissionPercent,
         commissionAmount: analysis.commissionAmount,
         fixedFee: fee.fixedFee,
+        saleFeeAmount: quotedFee?.saleFeeAmount ?? null,
         shippingCost,
         taxPercent,
         taxAmount: analysis.taxAmount,

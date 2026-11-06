@@ -8,6 +8,7 @@ import { requireUser } from "@/lib/workspace-auth";
 import { getMlSession, getListingPriceQuote, getShippingQuote } from "@/lib/mercado-livre";
 import { getWorkspaceSettings } from "@/lib/workspace-settings";
 import { getPublicOrigin } from "@/lib/public-url";
+import { loadSellerShippingProfile } from "@/lib/ml-seller-shipping";
 import { analyzeProfitability } from "@/lib/profitability";
 import { buildPublicationBody, type PublicationModel } from "@/lib/ml-publication-model";
 import { loadSellerPublicationCapabilities } from "@/lib/ml-publication-capabilities";
@@ -160,16 +161,12 @@ async function prepare(
   if (data.barcode && !attributes.GTIN && !attributes.EAN) attributes.GTIN = data.barcode;
   const missing = required.filter(a => a.id && !attributes[a.id]?.trim());
   if (missing.length) throw new Error("Ficha técnica incompleta: " + missing.slice(0, 8).map(a => a.name || a.id).join(", "));
-  const preferences = await mlJson("https://api.mercadolibre.com/users/" + encodeURIComponent(sellerId) + "/shipping_preferences", token);
-  if (!preferences.response.ok) throw new Error("Não foi possível confirmar a logística da conta vendedora.");
-  const prefs = preferences.payload as { logistics?: Array<{ mode?: string; types?: Array<{ type?: string; status?: string }> }> } | null;
-  const allowedTypes = (prefs?.logistics ?? [])
-    .filter(x => x.mode === "me2")
-    .flatMap(x => x.types ?? [])
-    .filter(x => x.status === "active" || x.status === undefined)
-    .map(x => x.type);
-  if (!allowedTypes.includes(data.logisticType)) {
-    throw new Error("Esta modalidade logística não está confirmada na conta vendedora.");
+  const shippingProfile = await loadSellerShippingProfile(token, sellerId);
+  if (!shippingProfile.choices.some(x => x.type === data.logisticType)) {
+    throw new Error(
+      "A modalidade logística informada não foi confirmada nos dados deste vendedor. " +
+      shippingProfile.notice,
+    );
   }
   const effectiveFreeShipping = data.suggestedPrice >= 79 ? true : data.freeShipping;
   const settings = await getWorkspaceSettings(workspaceId);

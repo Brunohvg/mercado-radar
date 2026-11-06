@@ -135,6 +135,18 @@ async function prepare(
   if (data.barcode && !attributes.GTIN && !attributes.EAN) attributes.GTIN = data.barcode;
   const missing = required.filter(a => a.id && !attributes[a.id]?.trim());
   if (missing.length) throw new Error("Ficha técnica incompleta: " + missing.slice(0, 8).map(a => a.name || a.id).join(", "));
+  const preferences = await mlJson("https://api.mercadolibre.com/users/" + encodeURIComponent(sellerId) + "/shipping_preferences", token);
+  if (!preferences.response.ok) throw new Error("Não foi possível confirmar a logística da conta vendedora.");
+  const prefs = preferences.payload as { logistics?: Array<{ mode?: string; types?: Array<{ type?: string; status?: string }> }> } | null;
+  const allowedTypes = (prefs?.logistics ?? [])
+    .filter(x => x.mode === "me2")
+    .flatMap(x => x.types ?? [])
+    .filter(x => x.status === "active" || x.status === undefined)
+    .map(x => x.type);
+  if (!allowedTypes.includes(data.logisticType)) {
+    throw new Error("Esta modalidade logística não está confirmada na conta vendedora.");
+  }
+  const effectiveFreeShipping = data.suggestedPrice >= 79 ? true : data.freeShipping;
   const settings = await getWorkspaceSettings(workspaceId);
   if (settings.taxPercent == null) throw new Error("Configure o imposto em Metas e configurações.");
   const [fee, shipping] = await Promise.all([
@@ -146,7 +158,7 @@ async function prepare(
       accessToken: token, userId: sellerId, price: data.suggestedPrice,
       listingType: data.listingType, weightGrams: data.weightGrams,
       heightCm: data.heightCm, widthCm: data.widthCm, lengthCm: data.lengthCm,
-      logisticType: data.logisticType, shippingMode: "me2", freeShipping: data.freeShipping,
+      logisticType: data.logisticType, shippingMode: "me2", freeShipping: effectiveFreeShipping,
     }),
   ]);
   const real = analyzeProfitability({
@@ -178,7 +190,7 @@ async function prepare(
     attributes: Object.entries(attributes)
       .filter(([, value]) => value.trim())
       .map(([id, value_name]) => ({ id, value_name })),
-    shipping: { mode: "me2", free_shipping: data.freeShipping },
+    shipping: { mode: "me2", free_shipping: effectiveFreeShipping },
     status: "paused",
   };
   return { body, real };

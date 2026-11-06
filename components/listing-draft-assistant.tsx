@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { ListingDraftManager, type DraftValues } from "@/components/listing-draft-manager";
 
 type Discovery = {
+  catalogStrategy?: { status: string; recommendation: string; reason: string; productId: string | null; productName: string | null; competitionPrice: number | null; restrictions: string[] };
   categorySuggestions?: Array<{ categoryId: string; categoryName: string; source: string }>;
   identification?: {
     name?: string;
@@ -316,6 +317,23 @@ export function ListingDraftAssistant({
             <h3>Resultado da identificação</h3>
             {discovery.notice && <p className="listing-assistant__identity-warning" role="alert">{discovery.notice}</p>}
             {discovery.categoryNotice && <p className="listing-assistant__identity-warning">{discovery.categoryNotice}</p>}
+            {discovery.catalogStrategy && (
+              <div className="listing-assistant__catalog-decision">
+                <strong>Estratégia: catálogo ou anúncio tradicional?</strong>
+                <p className="listing-assistant__helper">
+                  {discovery.catalogStrategy.recommendation === "COMPARE"
+                    ? "Catálogo encontrado — comparar antes de escolher"
+                    : "Decisão pendente — não publicar automaticamente no catálogo"}
+                </p>
+                <p>{discovery.catalogStrategy.reason}</p>
+                {discovery.catalogStrategy.productId && <p><strong>Referência:</strong> {discovery.catalogStrategy.productId} · <strong>Oferta observada:</strong> {money(discovery.catalogStrategy.competitionPrice)}</p>}
+                <details>
+                  <summary>Limitações e cuidados com o catálogo</summary>
+                  <ul>{discovery.catalogStrategy.restrictions.map(x => <li key={x}>{x}</li>)}</ul>
+                </details>
+                <p className="listing-assistant__helper">A publicação por catálogo não é habilitada neste fluxo. Somente a API do Mercado Livre pode confirmar a elegibilidade e a estratégia obrigatória.</p>
+              </div>
+            )}
             {discovery.identification?.verified && discovery.identification.name && (
               <p className="listing-assistant__identity-success"><strong>Produto encontrado:</strong> {discovery.identification.name}</p>
             )}

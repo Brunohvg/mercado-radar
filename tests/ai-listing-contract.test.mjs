@@ -97,7 +97,9 @@ test("existing vendor logs into extension without a second Mercado Livre OAuth",
   assert.ok(route.includes("getWorkspaceMlAccount(user.workspaceId)"));
   assert.ok(route.includes("createExtensionAuthorizationCode"));
   assert.ok(!route.includes("https://auth.mercadolivre.com.br/authorization"));
-  assert.ok(background.includes("ml_account_required"));
+  assert.ok(background.includes('"/extensao/conectar"'));
+  assert.ok(background.includes("finishBrowserLink"));
+  assert.ok(!background.includes("launchWebAuthFlow("));
 });
 
 

@@ -649,7 +649,7 @@ test("stale server override cannot redirect tokens and legacy tokens without ori
 test("vinculação abre aba oficial e nunca chama a janela OAuth do Chrome", async () => {
   const h = await backgroundHarness();
   const response = await h.call({ type: "RADAR_AUTH_LOGIN" });
-  assert.equal(response.pending, true);
+  assert.equal(response.pending, true, JSON.stringify(response));
   const opened = h.opened[0].url;
   const page = new URL(opened);
   assert.equal(page.origin, "https://radar.optarys.com.br");
@@ -662,7 +662,8 @@ test("vinculação abre aba oficial e nunca chama a janela OAuth do Chrome", asy
 
 test("vinculação externa bloqueia origem errada e código não solicitado", async () => {
   const h = await backgroundHarness();
-  await h.call({ type: "RADAR_AUTH_LOGIN" });
+  const login = await h.call({ type: "RADAR_AUTH_LOGIN" });
+  assert.equal(login.pending, true, JSON.stringify(login));
   const p = h.session.radarPendingLink;
   const attempt = { type: "RADAR_BROWSER_LINK", state: p.state, redirectUri: p.redirectUri, code: "Z".repeat(48) };
   const badOrigin = await h.external(attempt, { url: "https://evil.example/extensao/conectar" });

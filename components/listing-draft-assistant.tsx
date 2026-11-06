@@ -510,6 +510,7 @@ export function ListingDraftAssistant({
             description: aiDraft?.description || savedDescription || "",
             confirmedFacts,
             missingFacts: aiDraft?.missingFacts ?? restoredMissingFacts,
+            factsReviewed: false,
             imageUrls: [], stock: 0, attributes: {},
             costPerUnit: positiveNumber(purchaseCost),
             kitQuantity: Number(units) || 1,

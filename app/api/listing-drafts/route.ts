@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/workspace-auth";
-import { getMlSession } from "@/lib/mercado-livre";
 import type { Prisma } from "@/generated/prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +18,7 @@ const dataSchema = z.object({
   description: z.string().trim().max(7500).default(""),
   confirmedFacts: z.string().trim().max(2000).default(""),
   missingFacts: z.array(z.string().max(180)).max(12).default([]),
+  factsReviewed: z.boolean().default(false),
   imageUrls: z.array(z.string().max(1800).refine(v => v.startsWith("https://") || /^\/api\/listing-drafts\/photos\/[a-f0-9-]+\.(?:jpg|png|webp)$/.test(v), "Foto inválida")).max(12).default([]),
   attributes: z.record(z.string().max(100), z.string().trim().max(255)).default({}),
   stock: z.number().int().min(0).max(1000000).default(0),
@@ -53,8 +53,9 @@ function review(data: ListingData) {
       data.heightCm === null || data.widthCm === null || data.lengthCm === null) {
     issues.push("Confirme frete e as medidas reais da embalagem.");
   }
-  const unresolved = data.missingFacts.filter(x => !/^confirmed(Brand|Facts)$/i.test(x.trim()));
-  if (unresolved.length > 0) issues.push("Confira as pendências de conteúdo: " + unresolved.slice(0, 3).join(", "));
+  if (data.missingFacts.length && !data.factsReviewed) {
+    issues.push("Revise e confirme as informações pendentes da IA.");
+  }
   // Category-specific mandatory attributes and ML validation are not implemented.
   // A draft is never described as ready to publish without those checks.
   return issues;
@@ -95,25 +96,8 @@ export async function POST(request: Request) {
   try {
     const data = parsed.data.data;
     const issues = review(data);
-    // A missing remote mandatory-attribute check must never lead to REVIEW status.
-    if (data.categoryId) {
-      try {
-        const session = await getMlSession();
-        const res = await fetch("https://api.mercadolibre.com/categories/" + encodeURIComponent(data.categoryId) + "/attributes", {
-          headers: { Authorization: "Bearer " + session.accessToken },
-          signal: AbortSignal.timeout(12000), cache: "no-store",
-        });
-        if (!res.ok) throw new Error("category unavailable");
-        const attrs: unknown = await res.json();
-        if (!Array.isArray(attrs)) throw new Error("bad attributes");
-        const missing = attrs.filter(a => (a.tags?.required || a.tags?.new_required) &&
-          typeof a.id === "string" && !(a.id === "BRAND" ? (data.attributes.BRAND?.trim() || data.brand.trim()) : data.attributes[a.id]?.trim()));
-        if (data.attributes.BRAND && /^(?:\d+[\d.,]*|r\$\s*\d[\d.,]*)$/i.test(data.attributes.BRAND.trim())) issues.push("Marca inválida: informe a marca do fabricante, não um preço.");
-        for (const attr of missing.slice(0, 15)) issues.push("Atributo obrigatório: " + String(attr.name || attr.id));
-      } catch {
-        issues.push("Não foi possível verificar os atributos obrigatórios da categoria.");
-      }
-    }
+    // Saving must never depend on a remote Mercado Livre response.
+    // Required category attributes are verified at the explicit preflight step.
     const fields = {
       validation: {},
       validatedAt: null,
@@ -139,7 +123,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       draft: publicRow(row),
       issues,
-      message: "Rascunho salvo. Não foi publicado no Mercado Livre.",
+      message: "Rascunho salvo com sucesso. Revise as pendências antes de validar no Mercado Livre.",
     }, { headers: { "cache-control": "no-store" } });
   } catch (error) {
     console.error("[listing-drafts] failed", error instanceof Error ? error.message : "unknown");

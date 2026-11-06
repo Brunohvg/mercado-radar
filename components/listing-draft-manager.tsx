@@ -7,6 +7,7 @@ export type DraftValues = {
   categoryId: string; categoryName: string; catalogProductId: string | null;
   title: string; description: string; confirmedFacts: string;
   missingFacts: string[];
+  factsReviewed: boolean;
   imageUrls: string[]; stock: number;
   attributes: Record<string, string>;
   costPerUnit: number | null; kitQuantity: number;
@@ -37,6 +38,7 @@ export function ListingDraftManager({
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [issues, setIssues] = useState<string[]>([]);
+  const [factsReviewed, setFactsReviewed] = useState(false);
   const [attributes, setAttributes] = useState<Record<string, string>>({});
   const [requiredAttributes, setRequiredAttributes] = useState<Array<{ id: string; name: string; values: Array<{ id: string; name: string }> }>>([]);
   const [categoryStatus, setCategoryStatus] = useState("");
@@ -102,6 +104,7 @@ export function ListingDraftManager({
       setStock(String(saved.data.stock));
       setPhotos((saved.data.imageUrls || []).join("\n"));
       setAttributes(saved.data.attributes ?? {});
+      setFactsReviewed(Boolean(saved.data.factsReviewed));
       setIssues([]);
       setValidated(false);
       setRequiresSave(false);
@@ -158,7 +161,7 @@ export function ListingDraftManager({
         body: JSON.stringify({
           ...(draftId ? { id: draftId } : {}),
           data: {
-            ...data, title: title.trim(), description: description.trim(), attributes,
+            ...data, title: title.trim(), description: description.trim(), attributes, factsReviewed,
             stock: Math.max(0, Math.trunc(Number(stock) || 0)),
             imageUrls,
           },
@@ -283,6 +286,18 @@ export function ListingDraftManager({
           ))}
         </div>
       )}
+      {data.missingFacts.length > 0 && (
+        <div className="listing-draft-workspace__issues">
+          <strong>Pontos que a IA não conseguiu confirmar</strong>
+          <ul>{data.missingFacts.map(x => <li key={x}>{x}</li>)}</ul>
+          <label className="listing-draft-workspace__confirmation">
+            <input type="checkbox" checked={factsReviewed} onChange={e => {
+              setFactsReviewed(e.target.checked); setRequiresSave(true); setValidated(false);
+            }} />
+            <span>Revisei estes pontos e corrigi a descrição sem inventar características.</span>
+          </label>
+        </div>
+      )}
       {message && <p className="listing-draft-workspace__message" role="status">{message}</p>}
       {issues.length > 0 && (
         <div className="listing-draft-workspace__issues">
@@ -293,7 +308,7 @@ export function ListingDraftManager({
       <button type="button" className="primary listing-assistant__button" disabled={pending || uploading || Boolean(publishedId)} onClick={() => void save()}>
         {pending ? "Salvando…" : draftId ? "Salvar alterações do rascunho" : "Salvar rascunho"}
       </button>
-      {!publishedId && draftId && issues.length === 0 && !requiresSave && (
+      {!publishedId && draftId && !requiresSave && (
         <div className="listing-draft-workspace__publication">
           <strong>Etapa final — Mercado Livre</strong>
           <p className="listing-assistant__helper">A pré-validação consulta regras reais do Mercado Livre e verifica novamente tarifas e frete.</p>

@@ -18,6 +18,8 @@ const schema = z.object({
 });
 const itemData = z.object({
   name: z.string().min(3), title: z.string().min(5), description: z.string().min(60),
+  factsReviewed: z.boolean().default(false),
+  missingFacts: z.array(z.string()).default([]),
   categoryId: z.string().regex(/^MLB\d{3,12}$/),
   catalogProductId: z.string().trim().max(50).nullable().optional(),
   brand: z.string().optional(), barcode: z.string().nullable().optional(),
@@ -121,7 +123,10 @@ async function prepare(
       throw new Error("Referência de catálogo aponta para produto pai. Escolha um produto filho específico.");
     }
   }
-    const attrs = await mlJson("https://api.mercadolibre.com/categories/" + data.categoryId + "/attributes", token);
+    if (data.missingFacts.length && !data.factsReviewed) {
+    throw new Error("Revise e confirme as pendências da IA antes da pré-validação.");
+  }
+  const attrs = await mlJson("https://api.mercadolibre.com/categories/" + data.categoryId + "/attributes", token);
   if (!attrs.response.ok || !Array.isArray(attrs.payload)) throw new Error("Não foi possível verificar os atributos exigidos.");
   const required = (attrs.payload as Array<{ id?: string; name?: string; tags?: { required?: boolean; new_required?: boolean } }>)
     .filter(a => a.tags?.required || a.tags?.new_required);
@@ -209,9 +214,7 @@ export async function POST(request: Request) {
   const hash = contentHash(data.data, sellerId);
   try {
     if (parsed.data.action === "validate") {
-      if (row.status !== "REVIEW" && row.status !== "VALIDATED") {
-        return responseError("Salve o anúncio e corrija as pendências antes de validar.", 422);
-      }
+      // A saved draft may remain DRAFT until the official preflight is complete.
       if (data.data.sku) {
         const duplicate = await prisma.mercadoLivreProduct.findFirst({
           where: { sellerUserId: sellerId, sku: data.data.sku, status: { in: ["active", "paused"] } },
@@ -225,7 +228,7 @@ export async function POST(request: Request) {
       }
       const result: Validation = { hash, pictures: built.body.pictures, checkedAt: new Date().toISOString() };
       const updated = await prisma.listingDraft.updateMany({
-        where: { id: row.id, workspaceId: user.workspaceId, status: { in: ["REVIEW", "VALIDATED"] } },
+        where: { id: row.id, workspaceId: user.workspaceId, status: { in: ["DRAFT", "REVIEW", "VALIDATED"] } },
         data: { validation: result, validatedAt: new Date(), status: "VALIDATED" },
       });
       if (!updated.count) return responseError("O rascunho mudou durante a validação. Revise novamente.", 409);

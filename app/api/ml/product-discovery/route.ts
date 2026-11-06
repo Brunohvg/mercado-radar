@@ -162,6 +162,29 @@ export async function POST(request: Request) {
       }),
     );
 
+    const catalogStrategy = (() => {
+      if (!catalogBest || !catalogDetails) return {
+        status: "UNCONFIRMED" as const,
+        recommendation: "REVIEW" as const,
+        reason: "Nenhum produto exato e verificável do catálogo foi confirmado. O Radar não pode afirmar que há elegibilidade.",
+      };
+      if (!barcode) return {
+        status: "MATCH_UNCONFIRMED" as const,
+        recommendation: "REVIEW" as const,
+        reason: "Há referência de catálogo por nome, mas falta confirmar EAN, apresentação, volume e demais características.",
+      };
+      if (catalogBest.status !== "active" || catalogDetails.status !== "active") return {
+        status: "NOT_ACTIVE" as const,
+        recommendation: "REVIEW" as const,
+        reason: "O produto localizado não consta como ativo para associação direta ao catálogo.",
+      };
+      return {
+        status: "MATCH_FOUND" as const,
+        recommendation: "COMPARE" as const,
+        reason: "EAN localizado em produto ativo. Confirme que a embalagem é idêntica. A elegibilidade da sua conta e eventual obrigatoriedade de catálogo ainda precisam ser validadas na API.",
+      };
+    })();
+
     const catalogPeerPrices = catalogPeerDetails
       .map((entry) => Number(entry?.price ?? 0))
       .filter((value) => Number.isFinite(value) && value > 0);
@@ -342,6 +365,18 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       categorySuggestions,
+      catalogStrategy: {
+        ...catalogStrategy,
+        productId: catalogBest?.id ?? null,
+        productName: catalogDetails?.name ?? catalogBest?.name ?? null,
+        competitionPrice: catalogPeerPrices.length ? median(catalogPeerPrices) : null,
+        restrictions: [
+          "A ficha técnica da página de catálogo é definida pelo Mercado Livre.",
+          "O produto anunciado deve coincidir exatamente com o ID de catálogo.",
+          "Kits ou quantidades diferentes exigem produto de catálogo correspondente; não use o EAN do frasco unitário para um kit.",
+          "O Radar não altera o modo de publicação automaticamente.",
+        ],
+      },
       categoryNotice: categorySuggestions.length > 1
         ? "O Mercado Livre retornou categorias diferentes. A referência do catálogo tem prioridade, mas confira os atributos antes de publicar."
         : null,

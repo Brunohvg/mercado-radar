@@ -3,6 +3,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 
 type Discovery = {
+  categorySuggestions?: Array<{ categoryId: string; categoryName: string; source: string }>;
   identification?: {
     name?: string;
     categoryId?: string | null;
@@ -93,6 +94,7 @@ export function ListingDraftAssistant({
   const [discount, setDiscount] = useState("0");
   const [categoryId, setCategoryId] = useState("");
   const [categoryName, setCategoryName] = useState("");
+  const [manualCategory, setManualCategory] = useState(false);
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
   const [width, setWidth] = useState("");
@@ -150,11 +152,13 @@ export function ListingDraftAssistant({
     setAiDraft(null);
     setCategoryId("");
     setCategoryName("");
+    setManualCategory(false);
     try {
       const data = await postJson<Discovery>("/api/ml/product-discovery", { query: name.trim() });
       setDiscovery(data);
       setCategoryId(data.identification?.categoryId ?? "");
       setCategoryName(data.identification?.categoryName ?? "");
+      setManualCategory(!data.identification?.categoryId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível identificar o produto.");
     } finally {
@@ -248,10 +252,33 @@ export function ListingDraftAssistant({
         {discovery && (
           <div className="listing-assistant__discovery" role="status">
             <h3>Resultado da identificação</h3>
-            <p>Categoria sugerida: <strong>{categoryName || "Não identificada"}</strong> {categoryId && "(" + categoryId + ")"}. Revise a categoria antes de seguir.</p>
+            <p>Categoria prevista pelo Mercado Livre. Confirme ou selecione outra antes da precificação.</p>
+            {(discovery.categorySuggestions?.length ?? 0) > 0 && (
+              <label className="field listing-assistant__field">
+                <span>Escolha a categoria correta</span>
+                <select value={manualCategory ? "manual" : categoryId} onChange={(event) => {
+                  const id = event.target.value;
+                  setPrice(null);
+                  if (id === "manual") {
+                    setManualCategory(true);
+                    setCategoryId("");
+                    setCategoryName("");
+                  } else {
+                    const selected = discovery.categorySuggestions?.find((option) => option.categoryId === id);
+                    setManualCategory(false);
+                    setCategoryId(id);
+                    setCategoryName(selected?.categoryName ?? "");
+                  }
+                }}>
+                  <option value="">Selecione</option>
+                  {discovery.categorySuggestions?.map((item) => <option key={item.categoryId} value={item.categoryId}>{item.categoryName} ({item.categoryId})</option>)}
+                  <option value="manual">Informar outro ID</option>
+                </select>
+              </label>
+            )}
             <p>Comparáveis encontrados: {discovery.market?.comparableCount ?? "indisponível"}. Mediana de preços observados: <strong>{money(discovery.market?.medianPrice)}</strong>. Comparabilidade e período precisam de validação; isso não representa vendas garantidas.</p>
             {discovery.dimensions && <p>Foram observadas medidas de referência no catálogo, mas não serão copiadas automaticamente. Confirme o peso e as dimensões da sua embalagem.</p>}
-            {!categoryId && label("Categoria do Mercado Livre (ID confirmado)", categoryId, setCategoryId, "Ex.: MLB1234")}
+            {manualCategory && label("ID de categoria confirmada", categoryId, (v) => { setCategoryId(v); setCategoryName(""); }, "Ex.: MLB1234")}
           </div>
         )}
       </section>

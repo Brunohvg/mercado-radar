@@ -14,6 +14,8 @@ const schema = z.object({
   discountPercent: z.coerce.number().min(0).max(95).default(0),
   kitQuantity: z.coerce.number().int().min(1).max(1000).default(1),
   listingType: z.enum(["CLASSIC", "PREMIUM"]),
+  logisticType: z.enum(["drop_off", "cross_docking", "xd_drop_off", "fulfillment", "self_service"]).default("drop_off"),
+  freeShipping: z.boolean().default(true),
   categoryId: z.string().min(3).max(40),
   weightGrams: z.coerce.number().int().positive().max(100000),
   heightCm: z.coerce.number().positive().max(300),
@@ -66,6 +68,8 @@ export async function POST(request: Request) {
           price: candidate,
           categoryId: input.categoryId,
           listingType: input.listingType,
+          logisticType: input.logisticType,
+          shippingMode: "me2",
         }),
         getShippingQuote({
           accessToken: session.accessToken,
@@ -76,6 +80,9 @@ export async function POST(request: Request) {
           heightCm: input.heightCm,
           widthCm: input.widthCm,
           lengthCm: input.lengthCm,
+          logisticType: input.logisticType,
+          shippingMode: "me2",
+          freeShipping: input.freeShipping,
         }),
       ]);
 
@@ -88,9 +95,10 @@ export async function POST(request: Request) {
         listingType: input.listingType as ListingType,
         commissionPercent: fee.commissionPercent,
         fixedFee: fee.fixedFee,
+        quotedSaleFeeAmount: fee.saleFeeAmount,
         shippingCost: shipping.shippingCost,
         taxPercent,
-      operatingCost: input.operatingCost,
+        operatingCost: input.operatingCost,
         targetMarginPercent: input.targetMarginPercent,
         targetRoiPercent: input.targetRoiPercent,
       });
@@ -101,6 +109,8 @@ export async function POST(request: Request) {
         fixedFee: fee.fixedFee,
         shippingCost: shipping.shippingCost,
         saleFeeAmount: fee.saleFeeAmount,
+        logisticType: input.logisticType,
+        freeShipping: input.freeShipping,
         billableWeight: shipping.billableWeight,
         shippingDiscountRate: shipping.discountRate,
       };

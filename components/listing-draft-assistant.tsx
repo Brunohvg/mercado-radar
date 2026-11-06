@@ -549,6 +549,8 @@ export function ListingDraftAssistant({
             barcode: /^\d{8,14}$/.test(name.trim()) ? name.trim() : null,
             brand, sku, categoryId, categoryName,
             catalogProductId: discovery?.identification?.catalogProductId ?? null,
+            publicationChannel: "TRADITIONAL",
+            catalogExactMatchConfirmed: false,
             title: aiDraft?.title || savedTitle || draftTitle,
             description: aiDraft?.description || savedDescription || "",
             confirmedFacts,

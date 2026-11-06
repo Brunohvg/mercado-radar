@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 export type DraftValues = {
   name: string; barcode: string | null; brand: string; sku: string;
   categoryId: string; categoryName: string; catalogProductId: string | null;
+  publicationChannel: "TRADITIONAL" | "CATALOG";
+  catalogExactMatchConfirmed: boolean;
   title: string; description: string; confirmedFacts: string;
   missingFacts: string[];
   factsReviewed: boolean;
@@ -39,6 +41,8 @@ export function ListingDraftManager({
   const [message, setMessage] = useState("");
   const [issues, setIssues] = useState<string[]>([]);
   const [factsReviewed, setFactsReviewed] = useState(false);
+  const [channel, setChannel] = useState<"TRADITIONAL" | "CATALOG">("TRADITIONAL");
+  const [catalogMatchConfirmed, setCatalogMatchConfirmed] = useState(false);
   const [attributes, setAttributes] = useState<Record<string, string>>({});
   const [requiredAttributes, setRequiredAttributes] = useState<Array<{ id: string; name: string; values: Array<{ id: string; name: string }> }>>([]);
   const [categoryStatus, setCategoryStatus] = useState("");
@@ -105,6 +109,8 @@ export function ListingDraftManager({
       setPhotos((saved.data.imageUrls || []).join("\n"));
       setAttributes(saved.data.attributes ?? {});
       setFactsReviewed(Boolean(saved.data.factsReviewed));
+      setChannel(saved.data.publicationChannel === "CATALOG" ? "CATALOG" : "TRADITIONAL");
+      setCatalogMatchConfirmed(Boolean(saved.data.catalogExactMatchConfirmed));
       setIssues([]);
       setValidated(false);
       setRequiresSave(false);
@@ -162,6 +168,7 @@ export function ListingDraftManager({
           ...(draftId ? { id: draftId } : {}),
           data: {
             ...data, title: title.trim(), description: description.trim(), attributes, factsReviewed,
+            publicationChannel: channel, catalogExactMatchConfirmed: catalogMatchConfirmed,
             stock: Math.max(0, Math.trunc(Number(stock) || 0)),
             imageUrls,
           },
@@ -237,6 +244,31 @@ export function ListingDraftManager({
           ))}
         </select>
       </label>
+      <div className="listing-draft-workspace__attributes">
+        <label className="field listing-assistant__field">
+          <span>Tipo de anúncio</span>
+          <select value={channel} onChange={e => {
+            setChannel(e.target.value === "CATALOG" ? "CATALOG" : "TRADITIONAL");
+            setCatalogMatchConfirmed(false);
+            setRequiresSave(true); setValidated(false);
+          }}>
+            <option value="TRADITIONAL">Tradicional — conteúdo próprio</option>
+            <option value="CATALOG">Catálogo — ficha compartilhada</option>
+          </select>
+        </label>
+        {channel === "CATALOG" && <>
+          <p className="listing-assistant__helper">
+            O catálogo exige o mesmo produto, marca, tamanho e apresentação. Encontrar um EAN não garante elegibilidade de publicação.
+            O Radar ainda não libera publicação em catálogo; você pode salvar a preferência.
+          </p>
+          <label className="listing-draft-workspace__confirmation">
+            <input type="checkbox" checked={catalogMatchConfirmed}
+              disabled={!data.catalogProductId}
+              onChange={e => { setCatalogMatchConfirmed(e.target.checked); setRequiresSave(true); setValidated(false); }} />
+            <span>Confirmei que o produto e sua embalagem são idênticos à ficha de catálogo encontrada.</span>
+          </label>
+        </>}
+      </div>
       <label className="field listing-assistant__field">
         <span>Título comercial (editável)</span>
         <input maxLength={120} value={title} onChange={e => { setTitle(e.target.value); setValidated(false); setRequiresSave(true); }} />

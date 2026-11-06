@@ -14,6 +14,8 @@ const dataSchema = z.object({
   categoryId: z.string().trim().max(40).default(""),
   categoryName: z.string().trim().max(180).default(""),
   catalogProductId: z.string().trim().max(50).nullable().optional(),
+  publicationChannel: z.enum(["TRADITIONAL", "CATALOG"]).default("TRADITIONAL"),
+  catalogExactMatchConfirmed: z.boolean().default(false),
   title: z.string().trim().max(120).default(""),
   description: z.string().trim().max(7500).default(""),
   confirmedFacts: z.string().trim().max(2000).default(""),
@@ -53,6 +55,7 @@ function review(data: ListingData) {
       data.heightCm === null || data.widthCm === null || data.lengthCm === null) {
     issues.push("Confirme frete e as medidas reais da embalagem.");
   }
+  if (data.publicationChannel === "CATALOG" && !data.catalogExactMatchConfirmed) issues.push("Confirme a correspondência exata com a ficha de catálogo.");
   if (data.missingFacts.length && !data.factsReviewed) {
     issues.push("Revise e confirme as informações pendentes da IA.");
   }

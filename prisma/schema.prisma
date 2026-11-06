@@ -35,6 +35,7 @@ model RadarWorkspace {
   marketItems       MarketItem[]
   usage             RadarWorkspaceUsage[]
   settings          AppSettings?
+  listingDrafts     ListingDraft[]
 }
 
 model RadarUser {
@@ -47,6 +48,7 @@ model RadarUser {
   createdAt    DateTime @default(now())
   workspace    RadarWorkspace @relation(fields: [workspaceId], references: [id])
   sessions     RadarUserSession[]
+  listingDrafts ListingDraft[]
   @@index([workspaceId])
 }
 
@@ -501,4 +503,24 @@ model MarketItemSnapshot {
 
   @@index([itemId, observedAt])
   @@index([observedAt])
+}
+
+model ListingDraft {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  ownerId       String
+  status        String   @default("DRAFT")
+  name          String
+  barcode       String?
+  sku           String?
+  categoryId    String?
+  content       Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  workspace     RadarWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner         RadarUser @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, updatedAt])
+  @@index([workspaceId, status])
+  @@index([ownerId, updatedAt])
 }

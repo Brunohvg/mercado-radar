@@ -539,22 +539,23 @@
       state.auth = result;
       $("authTitle").textContent = result?.authenticated
         ? result.account?.nickname || "Conectado"
-        : "Radar desconectado";
+        : "Modo público · sem login";
       $("authDot").classList.toggle("online", Boolean(result?.authenticated));
-      $("connectionCard").open = !result?.authenticated;
+      // Guest mode is immediately usable; account linking is opt-in.
+      $("connectionCard").open = false;
       $("loginButton").textContent = result?.authenticated
         ? "Reconectar conta"
-        : "Entrar no Mercado Radar";
+        : "Conectar conta para recursos privados";
       $("logoutButton").hidden = !result?.authenticated;
       $("authSubtitle").textContent = result?.authenticated
         ? "Conta individual · " +
           (result.access?.plan || "piloto") +
           ". Cada cliente mantém seus dados separados."
-        : "Entre na sua conta Radar e autorize o seu vendedor do Mercado Livre.";
+        : "A análise pública e a simulação manual funcionam sem login. Conecte sua conta apenas para tarifas/frete oficiais, histórico e recursos do vendedor.";
       $("authStatus").textContent = result?.error || "";
       const compatibility = $("publishingCompatibility");
       if (!result?.authenticated) {
-        compatibility.textContent = "Modelo de publicação: conecte o Radar para consultar.";
+        compatibility.textContent = "Publicação e cotações da sua conta exigem autorização. A leitura pública permanece disponível.";
       } else if (result.extensionProtocol === 2) {
         compatibility.textContent = "Verificando compatibilidade com a API de publicação…";
         const checked = await request("/api/extension/publication-capabilities");
@@ -585,7 +586,7 @@
     if (!state.auth?.authenticated) {
       notice(
         "globalStatus",
-        "Entre no Mercado Radar na conexão abaixo para usar esta função.",
+        "Esta função exige sua conta do Radar. A análise pública e a simulação com valores manuais continuam disponíveis.",
         "warn",
       );
       return false;
@@ -993,7 +994,27 @@
     );
   }
   async function calculate(quoteOnly = false) {
-    if (state.calcBusy || !usable()) return;
+    if (state.calcBusy) return;
+    const guest = !state.auth?.authenticated;
+    if (!guest && !usable()) return;
+    if (guest && quoteOnly) {
+      $("calcOptions").open = true;
+      $("advancedDetails").open = true;
+      notice("calcStatus",
+        "A cotação oficial requer a conta do vendedor. Sem login, informe comissão, tarifa fixa e frete conferidos para simular localmente.",
+        "warn");
+      return;
+    }
+    if (guest && !$("manualFees").checked) {
+      $("manualFees").checked = true;
+      $("manualFeeFields").hidden = false;
+      $("calcOptions").open = true;
+      $("advancedDetails").open = true;
+      notice("calcStatus",
+        "Modo público: informe comissão e tarifa fixa verificadas. O frete também precisa ser informado, mesmo quando for zero.",
+        "warn");
+      return;
+    }
     clearTimeout(state.automaticTimer);
     let payload;
     try {
@@ -1017,11 +1038,17 @@
     state.result = null;
     $("calcResult").hidden = true;
     try {
-      const response = await request(
-        "/api/extension/profitability",
-        "POST",
-        payload,
-      );
+      let response;
+      try {
+        response = guest
+          ? { ok: true, body: M.manualProfitability(payload) }
+          : await request("/api/extension/profitability", "POST", payload);
+      } catch (error) {
+        notice("calcStatus",
+          error instanceof Error ? error.message : "Valores manuais inválidos.",
+          "error");
+        return;
+      }
       if (revision !== state.revision || calcRevision !== state.calcRevision)
         return;
       if (!response?.ok) {
@@ -1161,7 +1188,7 @@
           ? " Inclui o cenário médio de Ads informado."
           : " Não inclui Ads.") +
         " Não inclui devoluções, tributos adicionais ou custos que você não informou.";
-      $("saveSimulation").hidden = r.minimumSuggestedPrice == null;
+      $("saveSimulation").hidden = guest || r.minimumSuggestedPrice == null;
       notice("calcStatus", "");
     } finally {
       if (revision === state.revision) {
@@ -1459,6 +1486,12 @@
     $("adsFields").hidden = !$("adsEnabled").checked;
   });
   $("estimatePackage").addEventListener("click", () => {
+    if (!usableQuietly()) {
+      $("packageStatus").textContent =
+        "Cotação pela API exige uma conta de vendedor conectada. Use as medidas como referência e informe o custo do frete verificado no campo manual; não assumimos R$ 0.";
+      $("shippingField").hidden = false;
+      return;
+    }
     state.edited.add("packageWeight");
     if (M.money($("shippingCost").value) != null) {
       $("shippingCost").value = "";

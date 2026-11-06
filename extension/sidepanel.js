@@ -131,8 +131,8 @@
         ? quote.shippingNote
         : "Frete do vendedor a confirmar. O repasse acima ainda não desconta frete.";
     $("autoNote").textContent =
-      s.status === "connection"
-        ? "Entre na sua conta Radar para consultar tarifas e histórico."
+      s.status === "public"
+        ? "Análise pública disponível. Conta opcional para tarifas oficiais e histórico."
         : (quote?.categorySource === "PREDICTED"
             ? "Categoria sugerida pelo título. "
             : "") +
@@ -1181,7 +1181,9 @@
         (r.minimumSuggestedPrice == null
           ? "meta inviável com estas taxas"
           : brl(r.minimumSuggestedPrice)) +
-        ". Taxas e frete podem mudar ao alterar o preço; consulte novamente.";
+        (guest
+          ? ". Cenário local com valores informados: revise as taxas e o frete antes de vender."
+          : ". Taxas e frete podem mudar ao alterar o preço; consulte novamente.");
       $("calcCaveat").textContent =
         (body.note || "") +
         (ads

@@ -17,6 +17,7 @@ type FormState = {
   listingType: ListingType;
   commissionPercent: string;
   fixedFee: string;
+  quotedSaleFeeAmount: string;
   shippingCost: string;
   operatingCost: string;
   taxPercent: string;
@@ -165,6 +166,7 @@ const initial: FormState = {
   listingType: "CLASSIC",
   commissionPercent: "0",
   fixedFee: "0",
+  quotedSaleFeeAmount: "",
   shippingCost: "0",
   operatingCost: "0",
   taxPercent: "0",
@@ -239,6 +241,7 @@ function toInput(form: FormState, override?: Partial<{
   listingType: ListingType;
   commissionPercent: number;
   fixedFee: number;
+  quotedSaleFeeAmount: number;
   shippingCost: number;
   kitQuantity: number;
   salePrice: number;
@@ -253,6 +256,10 @@ function toInput(form: FormState, override?: Partial<{
     commissionPercent:
       override?.commissionPercent ?? number(form.commissionPercent),
     fixedFee: override?.fixedFee ?? number(form.fixedFee),
+    quotedSaleFeeAmount: override?.quotedSaleFeeAmount ??
+      (override?.salePrice == null && override?.kitQuantity == null &&
+      override?.listingType == null && form.quotedSaleFeeAmount !== ""
+        ? number(form.quotedSaleFeeAmount) : undefined),
     shippingCost: override?.shippingCost ?? number(form.shippingCost),
     taxPercent: number(form.taxPercent),
     operatingCost: number(form.operatingCost),
@@ -316,6 +323,7 @@ export function ProductAnalyzer() {
         commissionPercent: "0",
         fixedFee: "0",
         shippingCost: "0",
+        quotedSaleFeeAmount: "",
       }));
       setDiscovery(null);
       setAnalysis(null);
@@ -553,7 +561,10 @@ export function ProductAnalyzer() {
   }, [form, hasCoreInputs]);
 
   function field<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm((current) => ({ ...current, [key]: value }));
+    // A cotação total da API é válida somente para a combinação original.
+    // Qualquer alteração exige nova cotação antes de chamá-la de oficial.
+    setForm((current) => ({ ...current, [key]: value, quotedSaleFeeAmount: "" }));
+    setAnalysis(null);
   }
 
   async function runAnalysis(nextForm = form) {
@@ -676,6 +687,7 @@ export function ProductAnalyzer() {
           quote: {
             commissionPercent: number;
             fixedFee: number;
+            saleFeeAmount: number;
             shippingCost: number;
           };
           analysis: ProfitabilityResult;
@@ -710,6 +722,7 @@ export function ProductAnalyzer() {
             pricePayload.quote.commissionPercent,
           ).toFixed(2),
           fixedFee: Number(pricePayload.quote.fixedFee).toFixed(2),
+          quotedSaleFeeAmount: Number(pricePayload.quote.saleFeeAmount).toFixed(2),
           shippingCost: Number(pricePayload.quote.shippingCost).toFixed(2),
         };
         setAnalysis(pricePayload.analysis);
@@ -719,6 +732,7 @@ export function ProductAnalyzer() {
           ...next,
           commissionPercent: quote.commissionPercent.toFixed(2),
           fixedFee: quote.fixedFee.toFixed(2),
+          quotedSaleFeeAmount: quote.saleFeeAmount.toFixed(2),
           shippingCost: quote.shippingCost.toFixed(2),
         };
         await runAnalysis(next);
@@ -905,6 +919,7 @@ export function ProductAnalyzer() {
         salePrice: Number(payload.suggestedPrice).toFixed(2),
         commissionPercent: Number(payload.quote.commissionPercent).toFixed(2),
         fixedFee: Number(payload.quote.fixedFee).toFixed(2),
+        quotedSaleFeeAmount: Number(payload.quote.saleFeeAmount).toFixed(2),
         shippingCost: Number(payload.quote.shippingCost).toFixed(2),
       };
 
@@ -978,6 +993,7 @@ export function ProductAnalyzer() {
         ...form,
         commissionPercent: quote.commissionPercent.toFixed(2),
         fixedFee: quote.fixedFee.toFixed(2),
+        quotedSaleFeeAmount: quote.saleFeeAmount.toFixed(2),
         shippingCost: quote.shippingCost.toFixed(2),
       };
 
@@ -1015,6 +1031,7 @@ export function ProductAnalyzer() {
             listingType: quote.listingType,
             commissionPercent: quote.commissionPercent,
             fixedFee: quote.fixedFee,
+            quotedSaleFeeAmount: quote.saleFeeAmount,
             shippingCost: quote.shippingCost,
           }),
         ),
@@ -1041,6 +1058,7 @@ export function ProductAnalyzer() {
       listingType: item.listingType,
       commissionPercent: item.commissionPercent.toFixed(2),
       fixedFee: item.fixedFee.toFixed(2),
+      quotedSaleFeeAmount: item.saleFeeAmount.toFixed(2),
       shippingCost: item.shippingCost.toFixed(2),
     };
 

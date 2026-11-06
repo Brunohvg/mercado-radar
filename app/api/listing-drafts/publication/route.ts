@@ -9,7 +9,8 @@ import { getMlSession, getListingPriceQuote, getShippingQuote } from "@/lib/merc
 import { getWorkspaceSettings } from "@/lib/workspace-settings";
 import { getPublicOrigin } from "@/lib/public-url";
 import { analyzeProfitability } from "@/lib/profitability";
-import { buildPublicationBody, sellerPublicationModel, type PublicationModel } from "@/lib/ml-publication-model";
+import { buildPublicationBody, type PublicationModel } from "@/lib/ml-publication-model";
+import { loadSellerPublicationCapabilities } from "@/lib/ml-publication-capabilities";
 
 export const dynamic = "force-dynamic";
 const IMAGE_ROOT = process.env.RADAR_UPLOAD_DIR || "/app/uploads";
@@ -248,17 +249,18 @@ export async function POST(request: Request) {
   if (!session.account.scopes?.split(/\s+/).includes("write")) {
     return responseError("A conta vendedora está conectada sem permissão de escrita. Habilite Publicação e sincronização com leitura/escrita no DevCenter e reconecte o vendedor.", 403);
   }
-  // Use the current seller's official migration flag, never a developer setting.
-  const sellerResponse = await mlJson("https://api.mercadolibre.com/users/" + encodeURIComponent(sellerId), session.accessToken);
-  if (!sellerResponse.response.ok || !sellerResponse.payload) {
-    return responseError("Não foi possível consultar o modelo de publicação deste vendedor.", 502);
-  }
+  // Same seller-specific capability check for the web app and extension.
   let model: PublicationModel;
   try {
-    const seller = sellerResponse.payload as { tags?: unknown };
-    model = sellerPublicationModel(seller.tags);
+    const capabilities = await loadSellerPublicationCapabilities(
+      session.accessToken, sellerId, session.account.scopes,
+    );
+    if (!capabilities.grantVerified) {
+      return responseError("Esta conta não autorizou escrita. Reconecte-a em Integrações.", 403);
+    }
+    model = capabilities.model;
   } catch {
-    return responseError("O Mercado Livre não confirmou se este vendedor utiliza User Products. Publicação bloqueada por segurança.", 502);
+    return responseError("Não foi possível verificar o modelo de publicação na conta do vendedor. Nenhum anúncio foi enviado.", 502);
   }
   const hash = contentHash(data.data, sellerId);
   try {

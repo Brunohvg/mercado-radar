@@ -26,6 +26,14 @@ type Discovery = {
   } | null;
 };
 
+type AiDraft = {
+  title: string;
+  description: string;
+  missingFacts: string[];
+  provider: "gemini";
+  requiresReview: true;
+};
+
 type PriceResponse = {
   suggestedPrice?: number;
   analysis?: { profit: number; marginPercent: number; roiPercent: number };
@@ -93,6 +101,9 @@ export function ListingDraftAssistant({
   fromExtension?: boolean;
 }) {
   const [name, setName] = useState(initialName);
+  const [confirmedFacts, setConfirmedFacts] = useState("");
+  const [aiDraft, setAiDraft] = useState<AiDraft | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
   const [brand, setBrand] = useState("");
   const [sku, setSku] = useState("");
   const [units, setUnits] = useState("1");
@@ -120,6 +131,29 @@ export function ListingDraftAssistant({
       : base).slice(0, 120);
   }, [name, brand]);
 
+  async function generateAiDraft() {
+    if (name.trim().length < 3) {
+      setError("Informe o nome do produto antes de gerar o texto.");
+      return;
+    }
+    setError("");
+    setAiDraft(null);
+    setAiLoading(true);
+    try {
+      const result = await postJson<AiDraft>("/api/ai/listing-draft", {
+        name: name.trim(),
+        brand: brand.trim(),
+        category: categoryName,
+        confirmedFacts: confirmedFacts.trim(),
+      });
+      setAiDraft(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível gerar o anúncio com IA.");
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
   async function identify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (name.trim().length < 3) {
@@ -130,6 +164,7 @@ export function ListingDraftAssistant({
     setError("");
     setDiscovery(null);
     setPrice(null);
+    setAiDraft(null);
     setCategoryId("");
     setCategoryName("");
     try {
@@ -206,9 +241,9 @@ export function ListingDraftAssistant({
       <section className="card" style={{ padding: 18 }}>
         <h2 style={{ marginTop: 0 }}>1. Qual produto você quer vender?</h2>
         <form onSubmit={identify} style={{ display: "grid", gap: 12 }}>
-          {label("Nome ou EAN do produto", name, setName, "Ex.: tinta pinta couro Shake Paint 37 ml", true)}
+          {label("Nome ou EAN do produto", name, (v) => { setName(v); setAiDraft(null); }, "Ex.: tinta pinta couro Shake Paint 37 ml", true)}
           <div style={gridStyle}>
-            {label("Marca confirmada (opcional)", brand, setBrand, "Ex.: Acrilex")}
+            {label("Marca confirmada (opcional)", brand, (v) => { setBrand(v); setAiDraft(null); }, "Ex.: Acrilex")}
             {label("SKU interno (opcional)", sku, setSku, "Seu código de estoque")}
           </div>
           <button type="submit" style={buttonStyle} disabled={loading !== null}>
@@ -257,13 +292,34 @@ export function ListingDraftAssistant({
       {error && <p role="alert" style={{ color: "var(--danger, #d05043)" }}>{error}</p>}
       <section className="card" style={{ padding: 18 }}>
         <h2 style={{ marginTop: 0 }}>3. Rascunho para revisão</h2>
-        <p><strong>Título preliminar:</strong> {draftTitle || "Aguardando produto"}</p>
+        <label style={{ ...fieldStyle, marginBottom: 12 }}>
+          <span>Características confirmadas do produto (opcional)</span>
+          <textarea
+            style={{ ...inputStyle, minHeight: 90, resize: "vertical" }}
+            maxLength={1500}
+            value={confirmedFacts}
+            onChange={(e) => { setConfirmedFacts(e.target.value); setAiDraft(null); }}
+            placeholder="Ex.: embalagem original com 37 ml, cor preta, produto novo. Informe somente fatos verificados."
+          />
+        </label>
+        <button type="button" style={buttonStyle} disabled={aiLoading || loading !== null || name.trim().length < 3} onClick={generateAiDraft}>
+          {aiLoading ? "Gerando título e descrição…" : "Gerar título e descrição com Gemini"}
+        </button>
+        <p><strong>Título para revisão:</strong> {aiDraft?.title || draftTitle || "Aguardando produto"}</p>
+        {aiDraft && (
+          <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+            <strong>Descrição sugerida pela IA (revise antes de usar)</strong>
+            <div style={{ whiteSpace: "pre-wrap", padding: 12, border: "1px solid #a6b8b0", borderRadius: 9 }}>{aiDraft.description}</div>
+            {aiDraft.missingFacts.length > 0 && <p><strong>Informações a confirmar:</strong> {aiDraft.missingFacts.join("; ")}</p>}
+            <p>O Gemini produz apenas texto. Nenhuma imagem é gerada e nada é publicado no Mercado Livre.</p>
+          </div>
+        )}
         <p><strong>Categoria:</strong> {categoryName || categoryId || "Aguardando identificação"}</p>
         <p><strong>SKU:</strong> {sku.trim() || "Não informado"}</p>
         <p><strong>Preço saudável sugerido:</strong> {money(price?.suggestedPrice)}</p>
         {price?.analysis && <p>Lucro estimado: <strong>{money(price.analysis.profit)}</strong> · Margem: {price.analysis.marginPercent.toFixed(2)}% · ROI: {price.analysis.roiPercent.toFixed(2)}%.</p>}
         <p>Imagens reais do produto, atributos obrigatórios, descrição final, estoque e validação de publicação ainda precisam ser concluídos. Não há publicação nem alteração de anúncio nesta versão.</p>
-        <p style={{ opacity: .75, fontSize: 13 }}>Esta é a etapa inicial, sem IA generativa conectada. Os cálculos utilizam o motor financeiro e as APIs do Radar; não são criados números por IA.</p>
+        <p style={{ opacity: .75, fontSize: 13 }}>A IA pode sugerir título e descrição quando o Gemini estiver habilitado no servidor. Ela não calcula preços. Os valores são apurados pelo motor financeiro e APIs do Radar, sempre sujeitos à conferência.</p>
       </section>
     </div>
   );

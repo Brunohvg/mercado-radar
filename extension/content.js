@@ -25,6 +25,7 @@
     productKey = "",
     searchKey = "";
   let sessionRevision = 0;
+  let launcherSide = "right";
   const hostReset =
     "all:initial!important;font:13px/1.45 system-ui,-apple-system,sans-serif!important;color:#173c33!important;text-align:left!important;direction:ltr!important;";
   const brl = (n) =>
@@ -642,6 +643,27 @@
     document.createTextNode("Conta e configurações"),
   );
   links.append(settings);
+  function setLauncherSide(side, persist = false) {
+    launcherSide = side === "left" ? "left" : "right";
+    launcher.host.style.setProperty("right", launcherSide === "right" ? "20px" : "auto", "important");
+    launcher.host.style.setProperty("left", launcherSide === "left" ? "20px" : "auto", "important");
+    menu.style.right = launcherSide === "right" ? "0" : "auto";
+    menu.style.left = launcherSide === "left" ? "0" : "auto";
+    launcherNotice.style.right = launcherSide === "right" ? "0" : "auto";
+    launcherNotice.style.left = launcherSide === "left" ? "0" : "auto";
+    positionButton.textContent = launcherSide === "right"
+      ? "Mover botão do Radar para esquerda" : "Mover botão do Radar para direita";
+    if (persist) void chrome.storage.sync.set({ radarLauncherSide: launcherSide });
+  }
+  const positionButton = button(
+    "Mover botão do Radar para esquerda",
+    () => {
+      setLauncherSide(launcherSide === "right" ? "left" : "right", true);
+      menu.hidden = true;
+      launcherButton.setAttribute("aria-expanded", "false");
+    },
+    "link",
+  );
   const visibilityButton = button(
     "Ocultar análise na página",
     () => void setEnabled(!enabled),
@@ -650,6 +672,7 @@
   menu.append(
     links,
     visibilityButton,
+    positionButton,
     el("div", "Mercado Radar · 0.11.0", "version"),
   );
   const launcherNotice = el("div", "", "notice");
@@ -722,6 +745,9 @@
       productKey = "";
       refreshUi(context());
     }
+    if (area === "sync" && changes.radarLauncherSide) {
+      setLauncherSide(changes.radarLauncherSide.newValue);
+    }
     if (area === "sync" && changes.radarInlineEnabled) {
       enabled = changes.radarInlineEnabled.newValue !== false;
       refreshUi(context());
@@ -729,9 +755,10 @@
   });
   (async () => {
     const p = await chrome.storage.sync
-      .get(["radarInlineEnabled", "radarApiBase"])
+      .get(["radarInlineEnabled", "radarLauncherSide", "radarApiBase"])
       .catch(() => ({}));
     enabled = p.radarInlineEnabled !== false;
+    setLauncherSide(p.radarLauncherSide);
     try {
       const base = new URL(p.radarApiBase || "https://radar.optarys.com.br");
       if (

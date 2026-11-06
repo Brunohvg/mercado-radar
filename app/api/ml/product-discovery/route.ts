@@ -152,7 +152,7 @@ export async function POST(request: Request) {
     }).catch(() => []);
 
     // Mostra alternativas reais ao vendedor: a primeira previsão não é confirmação.
-    const categorySuggestions = predicted.map((item) => ({
+    const categorySuggestions: Array<{ categoryId: string; categoryName: string; source: "PREDICTED" | "CATALOG" }> = predicted.map((item) => ({
       categoryId: item.categoryId,
       categoryName: item.categoryName,
       source: "PREDICTED" as const,

@@ -54,6 +54,12 @@ type PriceResponse = {
     saleFeeAmount: number; operatingCost: number; amountReceived: number;
   };
   quote?: { commissionPercent: number; fixedFee: number; saleFeeAmount: number; shippingCost: number; logisticType: string; freeShipping: boolean };
+  comparison?: {
+    price: number;
+    selected: { listingType: string; saleFeeAmount: number; shippingCost: number; profit: number };
+    alternative: { listingType: string; saleFeeAmount: number; shippingCost: number; profit: number };
+    cheaperPlan: string; observation: string;
+  } | null;
   error?: string;
 };
 
@@ -475,6 +481,23 @@ export function ListingDraftAssistant({
             </div>
             <p>Mercadoria {money(price.analysis.purchaseCost)} · Tarifa total ML {money(price.quote?.saleFeeAmount)} (inclui tarifa fixa {money(price.quote?.fixedFee)}) · Frete {money(price.quote?.shippingCost)} · Imposto {money(price.analysis.taxAmount)} · Operação {money(price.analysis.operatingCost)}.</p>
             <p>Cotação estimada para {price.quote?.logisticType || "logística informada"}, frete grátis {price.quote?.freeShipping ? "sim" : "não"}. O valor efetivo depende da venda e das regras da sua conta.</p>
+            {price.quote?.freeShipping && freeShipping === "false" && (
+              <p className="listing-assistant__identity-warning">O frete grátis foi aplicado automaticamente porque o preço sugerido atingiu a faixa de obrigação. A cotação é estimada, conforme regras e elegibilidade.</p>
+            )}
+            {price.comparison ? (
+              <div className="listing-assistant__compare">
+                <strong>Clássico × Premium, mesmo preço {money(price.comparison.price)}</strong>
+                {[price.comparison.selected, price.comparison.alternative].map(x => (
+                  <p key={x.listingType}>
+                    <b>{x.listingType === "CLASSIC" ? "Clássico" : "Premium"}:</b>
+                    {" "}tarifa {money(x.saleFeeAmount)} · frete {money(x.shippingCost)} ·
+                    lucro {money(x.profit)}
+                  </p>
+                ))}
+                <small>{price.comparison.observation}</small>
+              </div>
+            ) : <p className="listing-assistant__helper">A comparação entre modalidades não ficou disponível na API; não foi estimada.</p>}
+            <p className="listing-assistant__helper">Tarifa: API de listing prices. Frete: cotação por vendedor, já com descontos informados pela API. Valor realizado somente após a venda.</p>
           </div>
         )}
         <ListingDraftManager

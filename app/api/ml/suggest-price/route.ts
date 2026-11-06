@@ -62,6 +62,10 @@ export async function POST(request: Request) {
     let lastQuote = null;
 
     for (let attempt = 1; attempt <= 12; attempt += 1) {
+      // New products in eligible ME2 shipping must honor mandatory free
+      // shipping above the Brazilian threshold. The real seller quote still
+      // determines the cost; no discount is invented locally.
+      const effectiveFreeShipping = candidate >= 79 ? true : input.freeShipping;
       const [fee, shipping] = await Promise.all([
         getListingPriceQuote({
           accessToken: session.accessToken,
@@ -82,7 +86,7 @@ export async function POST(request: Request) {
           lengthCm: input.lengthCm,
           logisticType: input.logisticType,
           shippingMode: "me2",
-          freeShipping: input.freeShipping,
+          freeShipping: effectiveFreeShipping,
         }),
       ]);
 
@@ -110,7 +114,13 @@ export async function POST(request: Request) {
         shippingCost: shipping.shippingCost,
         saleFeeAmount: fee.saleFeeAmount,
         logisticType: input.logisticType,
-        freeShipping: input.freeShipping,
+        freeShipping: effectiveFreeShipping,
+        feeSource: "ML_SELLER_LISTING_PRICES",
+        shippingSource: "ML_SELLER_SHIPPING_OPTIONS_FREE",
+        shippingCostKind: "ESTIMATE_NET_AFTER_DISCOUNT",
+        shippingDiscountAmount: shipping.promotedAmount,
+        mandatoryFreeShippingApplied: candidate >= 79 && !input.freeShipping,
+        sellerUserId: session.account.mercadoLivreUserId,
         billableWeight: shipping.billableWeight,
         shippingDiscountRate: shipping.discountRate,
       };
@@ -120,9 +130,54 @@ export async function POST(request: Request) {
         analysis.marginPercent >= input.targetMarginPercent &&
         analysis.roiPercent >= input.targetRoiPercent
       ) {
+        // Compare the two plans at exactly the same listing price, never
+        // compare each plan's independently suggested minimum price.
+        const otherType = input.listingType === "CLASSIC" ? "PREMIUM" : "CLASSIC";
+        let comparison = null;
+        try {
+          const [otherFee, otherShipping] = await Promise.all([
+            getListingPriceQuote({
+              accessToken: session.accessToken, price: candidate, categoryId: input.categoryId,
+              listingType: otherType, logisticType: input.logisticType, shippingMode: "me2",
+            }),
+            getShippingQuote({
+              accessToken: session.accessToken, userId: session.account.mercadoLivreUserId,
+              price: candidate, listingType: otherType, weightGrams: input.weightGrams,
+              heightCm: input.heightCm, widthCm: input.widthCm, lengthCm: input.lengthCm,
+              logisticType: input.logisticType, shippingMode: "me2",
+              freeShipping: effectiveFreeShipping,
+            }),
+          ]);
+          const alternate = analyzeProfitability({
+            productName: input.productName, supplierPrice: input.supplierPrice,
+            discountPercent: input.discountPercent, kitQuantity: input.kitQuantity,
+            salePrice: candidate, listingType: otherType,
+            commissionPercent: otherFee.commissionPercent, fixedFee: otherFee.fixedFee,
+            quotedSaleFeeAmount: otherFee.saleFeeAmount,
+            shippingCost: otherShipping.shippingCost, taxPercent,
+            operatingCost: input.operatingCost,
+            targetMarginPercent: input.targetMarginPercent,
+            targetRoiPercent: input.targetRoiPercent,
+          });
+          comparison = {
+            price: candidate,
+            selected: {
+              listingType: input.listingType, saleFeeAmount: fee.saleFeeAmount,
+              shippingCost: shipping.shippingCost, profit: analysis.profit,
+            },
+            alternative: {
+              listingType: otherType, saleFeeAmount: otherFee.saleFeeAmount,
+              shippingCost: otherShipping.shippingCost, profit: alternate.profit,
+            },
+            cheaperPlan: analysis.profit >= alternate.profit ? input.listingType : otherType,
+            observation: "Comparação no mesmo preço; diferenças de frete ou benefícios podem alterar o resultado.",
+          };
+        } catch {
+          // The primary quote is useful even if another plan is unavailable.
+        }
         return NextResponse.json({
           suggestedPrice: candidate,
-          analysis,
+          analysis, comparison,
           quote: lastQuote,
           attempts: attempt,
           method: "mercado_livre_cost_search",

@@ -36,8 +36,12 @@ type AiDraft = {
 
 type PriceResponse = {
   suggestedPrice?: number;
-  analysis?: { profit: number; marginPercent: number; roiPercent: number };
-  quote?: { commissionPercent: number; fixedFee: number; shippingCost: number };
+  analysis?: {
+    profit: number; marginPercent: number; roiPercent: number;
+    purchaseCost: number; taxAmount: number; commissionAmount: number;
+    saleFeeAmount: number; operatingCost: number; amountReceived: number;
+  };
+  quote?: { commissionPercent: number; fixedFee: number; saleFeeAmount: number; shippingCost: number; logisticType: string; freeShipping: boolean };
   error?: string;
 };
 
@@ -117,6 +121,8 @@ export function ListingDraftAssistant({
   const [width, setWidth] = useState("");
   const [length, setLength] = useState("");
   const [listingType, setListingType] = useState<"CLASSIC" | "PREMIUM">("CLASSIC");
+  const [logisticType, setLogisticType] = useState("drop_off");
+  const [freeShipping, setFreeShipping] = useState<"" | "true" | "false">("");
   const [discovery, setDiscovery] = useState<Discovery | null>(null);
   const [price, setPrice] = useState<PriceResponse | null>(null);
   const [loading, setLoading] = useState<"discover" | "price" | null>(null);
@@ -190,10 +196,10 @@ export function ListingDraftAssistant({
     const heightCm = positiveNumber(height);
     const widthCm = positiveNumber(width);
     const lengthCm = positiveNumber(length);
-    if (!categoryId || !cost || !kitQuantity || !Number.isInteger(kitQuantity) ||
+    if (!categoryId || !cost || !kitQuantity || freeShipping === "" || !Number.isInteger(kitQuantity) ||
       operating === null || discountPercent === null ||
       weightGrams === null || heightCm === null || widthCm === null || lengthCm === null) {
-      setError("Confirme categoria, custo unitário, quantidade, custo operacional e medidas reais da embalagem. Não vamos inventar dados para calcular frete.");
+      setError("Confirme categoria, custo, quantidade, opção de frete grátis, custo operacional e medidas reais da embalagem. Não vamos inventar dados.");
       return;
     }
     setLoading("price");
@@ -206,6 +212,8 @@ export function ListingDraftAssistant({
         discountPercent,
         categoryId,
         listingType,
+        logisticType,
+        freeShipping: freeShipping === "true",
         weightGrams,
         heightCm,
         widthCm,
@@ -274,6 +282,22 @@ export function ListingDraftAssistant({
               <option value="PREMIUM">Premium</option>
             </select>
           </label>
+          <label style={fieldStyle}>Sua logística
+            <select style={inputStyle} value={logisticType} onChange={(e) => { setLogisticType(e.target.value); setPrice(null); }}>
+              <option value="drop_off">Agência / Drop-off</option>
+              <option value="cross_docking">Coleta / Cross-docking</option>
+              <option value="xd_drop_off">Mercado Envios Places</option>
+              <option value="fulfillment">Full</option>
+              <option value="self_service">Flex</option>
+            </select>
+          </label>
+          <label style={fieldStyle}>O anúncio oferece frete grátis?
+            <select style={inputStyle} value={freeShipping} onChange={(e) => { setFreeShipping(e.target.value as "" | "true" | "false"); setPrice(null); }}>
+              <option value="">Escolha para cotar</option>
+              <option value="true">Sim</option>
+              <option value="false">Não</option>
+            </select>
+          </label>
         </div>
         <details style={{ marginTop: 16 }} open>
           <summary style={{ cursor: "pointer", fontWeight: 600 }}>Embalagem para cotação de frete</summary>
@@ -317,7 +341,13 @@ export function ListingDraftAssistant({
         <p><strong>Categoria:</strong> {categoryName || categoryId || "Aguardando identificação"}</p>
         <p><strong>SKU:</strong> {sku.trim() || "Não informado"}</p>
         <p><strong>Preço saudável sugerido:</strong> {money(price?.suggestedPrice)}</p>
-        {price?.analysis && <p>Lucro estimado: <strong>{money(price.analysis.profit)}</strong> · Margem: {price.analysis.marginPercent.toFixed(2)}% · ROI: {price.analysis.roiPercent.toFixed(2)}%.</p>}
+        {price?.analysis && (
+          <div style={{ display: "grid", gap: 6 }}>
+            <p><strong>Lucro estimado:</strong> {money(price.analysis.profit)} · Margem: {price.analysis.marginPercent.toFixed(2)}% · ROI: {price.analysis.roiPercent.toFixed(2)}%.</p>
+            <p><strong>Custos na cotação:</strong> mercadoria {money(price.analysis.purchaseCost)} · tarifa total ML {money(price.quote?.saleFeeAmount)} (já inclui tarifa fixa {money(price.quote?.fixedFee)}) · frete do vendedor {money(price.quote?.shippingCost)} · imposto {money(price.analysis.taxAmount)} · operação {money(price.analysis.operatingCost)}.</p>
+            <p style={{ opacity: 0.8, fontSize: 13 }}>Cotação estimada para {price.quote?.logisticType || "logística informada"}, frete grátis {price.quote?.freeShipping ? "sim" : "não"}. O valor efetivo depende da venda, promoções e regras da conta.</p>
+          </div>
+        )}
         <p>Imagens reais do produto, atributos obrigatórios, descrição final, estoque e validação de publicação ainda precisam ser concluídos. Não há publicação nem alteração de anúncio nesta versão.</p>
         <p style={{ opacity: .75, fontSize: 13 }}>A IA pode sugerir título e descrição quando o Gemini estiver habilitado no servidor. Ela não calcula preços. Os valores são apurados pelo motor financeiro e APIs do Radar, sempre sujeitos à conferência.</p>
       </section>

@@ -27,7 +27,7 @@ export async function GET(request: Request) {
       const source = await readFile(path.join(base, name));
       let bytes = source;
       if (!production && name === "manifest.json") {
-        const manifest = JSON.parse(source.toString("utf8")) as { host_permissions?: string[] };
+        const manifest = JSON.parse(source.toString("utf8")) as { host_permissions?: string[]; externally_connectable?: { matches: string[] } };
         manifest.host_permissions = (manifest.host_permissions || []).map(host =>
           host === "https://radar.optarys.com.br/*" ? origin + "/*" : host
         );

@@ -9,6 +9,7 @@ type Discovery = {
     categoryId?: string | null;
     categoryName?: string | null;
     source?: string;
+    catalogProductId?: string | null;
     verified?: boolean;
     requiresProductName?: boolean;
   };
@@ -37,6 +38,8 @@ type AiDraft = {
   missingFacts: string[];
   provider: "gemini";
   requiresReview: true;
+  verifiedFactsCount?: number;
+  verifiedSource?: string | null;
 };
 
 type PriceResponse = {
@@ -174,6 +177,7 @@ export function ListingDraftAssistant({
         brand: brand.trim(),
         category: categoryName,
         confirmedFacts: confirmedFacts.trim(),
+        catalogProductId: discovery?.identification?.catalogProductId || undefined,
       });
       setAiDraft(result);
     } catch (err) {
@@ -423,7 +427,7 @@ export function ListingDraftAssistant({
             <span className="listing-assistant__preview-label">Descrição sugerida pela IA</span>
             <div className="listing-assistant__copy">{aiDraft.description}</div>
             {aiDraft.missingFacts.length > 0 && <p className="listing-assistant__facts"><strong>Informações a confirmar:</strong> {aiDraft.missingFacts.join("; ")}</p>}
-            <p className="listing-assistant__note">O Gemini produz apenas texto. Nenhuma imagem é gerada e nada é publicado no Mercado Livre.</p>
+            <p className="listing-assistant__note">{aiDraft.verifiedSource ? `Conteúdo baseado em ${aiDraft.verifiedFactsCount ?? 0} atributos consultados no catálogo do Mercado Livre e dados informados. Revise antes de usar.` : "Nenhuma ficha técnica verificada foi encontrada. O texto contém apenas informações fornecidas e precisa de revisão."} Nenhuma imagem é gerada nem anúncio publicado.</p>
           </div>
         )}
         <div className="listing-assistant__meta">

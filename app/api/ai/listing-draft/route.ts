@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/workspace-auth";
+import { getCatalogProductDetails, getMlSession } from "@/lib/mercado-livre";
 import { generateListingCopy, geminiIsConfigured, geminiConfiguration, GeminiRequestError } from "@/lib/ai/gemini-listing";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,7 @@ const inputSchema = z.object({
   brand: z.string().trim().max(90).optional(),
   category: z.string().trim().max(180).optional(),
   confirmedFacts: z.string().trim().max(1500).optional(),
+  catalogProductId: z.string().trim().max(50).optional(),
 });
 
 export async function POST(request: Request) {
@@ -36,11 +38,40 @@ export async function POST(request: Request) {
     }, { status: 422 });
   }
   try {
-    const copy = await generateListingCopy(input.data);
+    const supplied = input.data;
+    let verifiedFacts: string[] = [];
+    let verifiedName: string | undefined;
+    if (supplied.catalogProductId) {
+      // Re-fetch product attributes server-side. Ignore client-provided technical claims.
+      try {
+        const session = await getMlSession();
+        const details = await getCatalogProductDetails({
+          accessToken: session.accessToken,
+          productId: supplied.catalogProductId,
+        });
+        if (details.id === supplied.catalogProductId && details.name) {
+          verifiedName = details.name.slice(0, 180);
+          verifiedFacts = (details.attributes ?? [])
+            .filter((a) => a.name && a.value_name &&
+              !/identificador|código interno|sku|ean|gtin/i.test(a.name))
+            .slice(0, 18)
+            .map(a => String(a.name).slice(0, 65) + ": " + String(a.value_name).slice(0, 120));
+        }
+      } catch {
+        // Catalog may be temporarily unavailable. Never present guessed facts.
+      }
+    }
+    const copy = await generateListingCopy({
+      ...supplied,
+      name: verifiedName ?? supplied.name,
+      verifiedFacts,
+    });
     return NextResponse.json({
       provider: "gemini",
       source: "AI_SUGGESTION",
       requiresReview: true,
+      verifiedFactsCount: verifiedFacts.length,
+      verifiedSource: verifiedName ? "MERCADO_LIVRE_CATALOG" : null,
       ...copy,
     }, { headers: { "cache-control": "no-store" } });
   } catch (error) {

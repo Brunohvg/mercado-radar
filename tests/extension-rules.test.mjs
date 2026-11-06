@@ -609,6 +609,7 @@ test("native panel opening stays in the user gesture and page messages are origi
 test("transient auth failure does not delete a refresh token", async () => {
   const h = await backgroundHarness();
   Object.assign(h.local, {
+    radarAuthOrigin: "https://radar.optarys.com.br",
     radarRefreshToken: "refresh-still-valid",
     radarAccessTokenExpiresAt: 0,
   });

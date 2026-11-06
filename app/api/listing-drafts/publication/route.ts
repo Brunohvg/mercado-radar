@@ -9,6 +9,7 @@ import { getMlSession, getListingPriceQuote, getShippingQuote } from "@/lib/merc
 import { getWorkspaceSettings } from "@/lib/workspace-settings";
 import { getPublicOrigin } from "@/lib/public-url";
 import { analyzeProfitability } from "@/lib/profitability";
+import { buildPublicationBody, sellerPublicationModel, type PublicationModel } from "@/lib/ml-publication-model";
 
 export const dynamic = "force-dynamic";
 const IMAGE_ROOT = process.env.RADAR_UPLOAD_DIR || "/app/uploads";
@@ -23,6 +24,8 @@ const itemData = z.object({
   missingFacts: z.array(z.string()).default([]),
   categoryId: z.string().regex(/^MLB\d{3,12}$/),
   catalogProductId: z.string().trim().max(50).nullable().optional(),
+  publicationChannel: z.enum(["TRADITIONAL", "CATALOG"]).default("TRADITIONAL"),
+  catalogExactMatchConfirmed: z.boolean().default(false),
   brand: z.string().optional(), barcode: z.string().nullable().optional(),
   sku: z.string().optional(), attributes: z.record(z.string(), z.string()).default({}),
   imageUrls: z.array(z.string()).min(1).max(12),
@@ -96,6 +99,7 @@ async function pictureRefs(urls: string[], workspaceId: string, token: string): 
 async function prepare(
   data: Listing, token: string, sellerId: string, workspaceId: string,
   existingPictures?: Picture[],
+  model: PublicationModel = "LEGACY",
 ) {
   const cat = await mlJson("https://api.mercadolibre.com/categories/" + data.categoryId, token);
   const category = cat.payload as {
@@ -111,18 +115,31 @@ async function prepare(
   if (data.imageUrls.length > (settingsOfCategory.max_pictures_per_item || 12)) {
     throw new Error("A categoria permite menos fotos. Remova as excedentes.");
   }
-  // This endpoint builds traditional /items, not catalog listings.
-  // Never silently publish a required/exclusive catalog product as traditional.
+  if (data.publicationChannel === "CATALOG" && (!data.catalogProductId || !data.catalogExactMatchConfirmed)) {
+    throw new Error("Catálogo requer confirmação de correspondência exata com produto e embalagem.");
+  }
   if (data.catalogProductId) {
-    const result = await mlJson("https://api.mercadolibre.com/products/" + encodeURIComponent(data.catalogProductId), token);
-    if (!result.response.ok || !result.payload) throw new Error("Não foi possível verificar as regras do produto de catálogo.");
-    const catalog = result.payload as { status?: string; children_ids?: string[]; settings?: { listing_strategy?: string; exclusive?: boolean } };
-    if (catalog.settings?.exclusive === true || ["catalog_required", "catalog_only"].includes(catalog.settings?.listing_strategy ?? "")) {
-      throw new Error("Este produto exige catálogo. A publicação tradicional está bloqueada até existir um fluxo de catálogo específico.");
+    const catalogResult = await mlJson("https://api.mercadolibre.com/products/" + encodeURIComponent(data.catalogProductId), token);
+    if (!catalogResult.response.ok || !catalogResult.payload) throw new Error("Não foi possível validar a referência de catálogo.");
+    const catalog = catalogResult.payload as {
+      status?: string; category_id?: string; children_ids?: string[];
+      settings?: { listing_strategy?: string; exclusive?: boolean };
+    };
+    if (catalog.category_id && catalog.category_id !== data.categoryId)
+      throw new Error("A categoria selecionada difere da categoria do produto de catálogo.");
+    if (catalog.children_ids?.length)
+      throw new Error("Referência de produto pai. Selecione a variação exata do catálogo.");
+    if (data.publicationChannel === "CATALOG" && catalog.status !== "active")
+      throw new Error("O produto de catálogo não está ativo.");
+    if (data.publicationChannel === "TRADITIONAL" &&
+      (catalog.settings?.exclusive === true || ["catalog_required", "catalog_only"].includes(catalog.settings?.listing_strategy ?? ""))) {
+      throw new Error("Este produto exige catálogo. A publicação tradicional está bloqueada.");
     }
-    if (catalog.children_ids?.length) {
-      throw new Error("Referência de catálogo aponta para produto pai. Escolha um produto filho específico.");
-    }
+  }
+  // Catalog association requires a separate account-level eligibility and
+  // product matching flow. Fail closed instead of guessing catalog payloads.
+  if (data.publicationChannel === "CATALOG") {
+    throw new Error("Publicação em catálogo depende da elegibilidade oficial do vendedor e do produto. Fluxo ainda não habilitado.");
   }
     if (data.missingFacts.length && !data.factsReviewed) {
     throw new Error("Revise e confirme as pendências da IA antes da pré-validação.");
@@ -178,22 +195,22 @@ async function prepare(
   }
 
   const pictures = existingPictures ?? await pictureRefs(data.imageUrls, workspaceId, token);
-  const body = {
-    family_name: data.title,
-    category_id: data.categoryId,
+  const body = buildPublicationBody({
+    model,
+    channel: "TRADITIONAL",
+    title: data.title,
+    categoryId: data.categoryId,
     price: data.suggestedPrice,
-    currency_id: "BRL",
-    available_quantity: data.stock,
-    buying_mode: "buy_it_now",
-    listing_type_id: data.listingType === "PREMIUM" ? "gold_pro" : "gold_special",
-    condition: "new",
+    stock: data.stock,
+    listingType: data.listingType,
     pictures,
     attributes: Object.entries(attributes)
       .filter(([, value]) => value.trim())
       .map(([id, value_name]) => ({ id, value_name })),
-    shipping: { mode: "me2", free_shipping: effectiveFreeShipping },
-    status: "paused",
-  };
+    freeShipping: effectiveFreeShipping,
+    catalogProductId: null,
+    catalogExactMatchConfirmed: false,
+  });
   return { body, real };
 }
 export async function POST(request: Request) {
@@ -231,6 +248,18 @@ export async function POST(request: Request) {
   if (!session.account.scopes?.split(/\s+/).includes("write")) {
     return responseError("A conta vendedora está conectada sem permissão de escrita. Habilite Publicação e sincronização com leitura/escrita no DevCenter e reconecte o vendedor.", 403);
   }
+  // Use the current seller's official migration flag, never a developer setting.
+  const sellerResponse = await mlJson("https://api.mercadolibre.com/users/" + encodeURIComponent(sellerId), session.accessToken);
+  if (!sellerResponse.response.ok || !sellerResponse.payload) {
+    return responseError("Não foi possível consultar o modelo de publicação deste vendedor.", 502);
+  }
+  let model: PublicationModel;
+  try {
+    const seller = sellerResponse.payload as { tags?: unknown };
+    model = sellerPublicationModel(seller.tags);
+  } catch {
+    return responseError("O Mercado Livre não confirmou se este vendedor utiliza User Products. Publicação bloqueada por segurança.", 502);
+  }
   const hash = contentHash(data.data, sellerId);
   try {
     if (parsed.data.action === "validate") {
@@ -241,7 +270,7 @@ export async function POST(request: Request) {
         });
         if (duplicate) return responseError("Já existe um anúncio com este SKU na conta vinculada.", 409);
       }
-      const built = await prepare(data.data, session.accessToken, sellerId, user.workspaceId);
+      const built = await prepare(data.data, session.accessToken, sellerId, user.workspaceId, undefined, model);
       const validation = await mlJson("https://api.mercadolibre.com/items/validate", session.accessToken, "POST", built.body);
       if (!validation.response.ok) {
         return responseError("O Mercado Livre pediu ajustes antes de publicar.", 422, safeCauses(validation.payload));
@@ -257,6 +286,7 @@ export async function POST(request: Request) {
         message: "O Mercado Livre aceitou a pré-validação. Você pode criar o anúncio pausado quando habilitar a publicação.",
         reviewedPrice: data.data.suggestedPrice,
         reviewedProfit: built.real.profit,
+        publicationModel: model,
       });
     }
 
@@ -275,7 +305,7 @@ export async function POST(request: Request) {
     // No automatic retry after reaching the external API: a timeout may have created an item.
     let response;
     try {
-      const prepared = await prepare(data.data, session.accessToken, sellerId, user.workspaceId, last.pictures);
+      const prepared = await prepare(data.data, session.accessToken, sellerId, user.workspaceId, last.pictures, model);
       response = await mlJson("https://api.mercadolibre.com/items", session.accessToken, "POST", prepared.body);
     } catch (error) {
       console.error("[listing-publish] indeterminate external result", error instanceof Error ? error.message : "unknown");

@@ -228,6 +228,9 @@ export async function POST(request: Request) {
   const session = await getMlSession();
   if (session.account.workspaceId !== user.workspaceId) return responseError("Conta Mercado Livre incompatível.", 403);
   const sellerId = session.account.mercadoLivreUserId;
+  if (!session.account.scopes?.split(/\s+/).includes("write")) {
+    return responseError("A conta vendedora está conectada sem permissão de escrita. Habilite Publicação e sincronização com leitura/escrita no DevCenter e reconecte o vendedor.", 403);
+  }
   const hash = contentHash(data.data, sellerId);
   try {
     if (parsed.data.action === "validate") {

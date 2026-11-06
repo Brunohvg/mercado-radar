@@ -25,6 +25,9 @@ type MlStatus = {
   nickname?: string | null;
   userId?: string | null;
   tokenExpiresAt?: string | null;
+  scopes?: string[];
+  publishingScopeAuthorized?: boolean;
+  publishingScopeNotice?: string | null;
   databaseAvailable?: boolean;
 };
 
@@ -139,7 +142,17 @@ export function MercadoLivreIntegration() {
           </div>
         </div>
 
-        {error && <div className="error">{error}</div>}
+        {status?.connected && (
+          <div className="integration-note" role="status">
+            <strong>Permissão para cadastrar anúncios:</strong>{" "}
+            {status.publishingScopeAuthorized ? "Escopo de escrita autorizado." : "Escopo de escrita ausente ou não confirmado."}
+            {!status.publishingScopeAuthorized && <p>
+              {status.publishingScopeNotice || "Habilite Publicação e sincronização (leitura e escrita) no DevCenter e reconecte este vendedor."}
+            </p>}
+            <small>Mesmo com escrita autorizada, a publicação precisa atender às políticas e regras do vendedor e da categoria.</small>
+          </div>
+        )}
+        {error && <div className="error">{error}</div>
 
         {status && !status.configured && (
           <div className="integration-note">

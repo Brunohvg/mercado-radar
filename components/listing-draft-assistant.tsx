@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent, type CSSProperties } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 
 type Discovery = {
   identification?: {
@@ -49,29 +49,6 @@ const money = (n: number | null | undefined) =>
   typeof n === "number" && Number.isFinite(n)
     ? n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
     : "—";
-
-const inputStyle: CSSProperties = {
-  width: "100%",
-  minHeight: 42,
-  padding: "9px 12px",
-  border: "1px solid var(--border, #8c9f9a)",
-  borderRadius: 9,
-  background: "var(--surface, transparent)",
-  color: "inherit",
-};
-
-const fieldStyle: CSSProperties = { display: "grid", gap: 5, minWidth: 0 };
-const gridStyle: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
-  gap: 12,
-};
-const buttonStyle: CSSProperties = {
-  minHeight: 42,
-  borderRadius: 9,
-  padding: "8px 16px",
-  cursor: "pointer",
-};
 
 function positiveNumber(input: string) {
   const n = Number(input.trim().replace(",", "."));
@@ -228,39 +205,49 @@ export function ListingDraftAssistant({
   }
 
   const label = (text: string, value: string, onChange: (v: string) => void, placeholder = "", required = false) =>
-    <label style={fieldStyle}>
+    <label className="field listing-assistant__field">
       <span>{text}</span>
-      <input style={inputStyle} value={value} onChange={(event) => { onChange(event.target.value); setPrice(null); }} placeholder={placeholder} required={required} />
+      <input value={value} onChange={(event) => { onChange(event.target.value); setPrice(null); }} placeholder={placeholder} required={required} />
     </label>;
 
   return (
-    <div style={{ maxWidth: 1050, display: "grid", gap: 18, paddingBottom: 30 }}>
-      <header>
-        <p style={{ opacity: .7, marginBottom: 4 }}>Mercado Radar / Operação</p>
-        <h1 style={{ margin: "0 0 6px" }}>Assistente de anúncios</h1>
-        <p>Comece com qualquer produto permitido pelo Mercado Livre. Primeiro identificamos, depois precificamos e preparamos o rascunho para revisão.</p>
+    <div className="listing-assistant">
+      <header className="listing-assistant__header">
+        <p className="page-kicker">Operação / Novo anúncio</p>
+        <h1>Assistente de anúncios</h1>
+        <p>Do produto à decisão de venda. Identifique oportunidades, confira os custos da sua operação e revise o texto gerado com IA, sem publicar nada automaticamente.</p>
       </header>
+      <div className="listing-assistant__steps" aria-label="Etapas do assistente">
+        <span><b>01</b> Produto</span>
+        <span><b>02</b> Precificação</span>
+        <span><b>03</b> Revisão</span>
+      </div>
       {fromExtension && (
-        <div className="card" style={{ padding: 15 }}>
-          <strong>Produto enviado pela extensão</strong>
-          <p style={{ margin: "4px 0 0" }}>Use a leitura como ponto de partida; confirme marca, variação, quantidade e embalagem. {/^MLB(?:U)?\d{5,}$/.test(initialReference) ? "Referência observada: " + initialReference : ""}</p>
+        <div className="listing-assistant__origin">
+          <div><strong>Produto enviado pela extensão</strong>
+          <p>Use a leitura como ponto de partida; confirme marca, variação, quantidade e embalagem. {/^MLB(?:U)?\d{5,}$/.test(initialReference) ? "Referência observada: " + initialReference : ""}</p></div>
         </div>
       )}
-      <section className="card" style={{ padding: 18 }}>
-        <h2 style={{ marginTop: 0 }}>1. Qual produto você quer vender?</h2>
-        <form onSubmit={identify} style={{ display: "grid", gap: 12 }}>
+      <div className="listing-assistant__layout">
+        <div className="listing-assistant__main">
+      <section className="panel listing-assistant__section">
+        <div className="listing-assistant__section-heading">
+          <span className="listing-assistant__step-number">01</span>
+          <div><h2>Identificar produto</h2><p>Encontre a categoria e uma referência de mercado.</p></div>
+        </div>
+        <form onSubmit={identify} className="listing-assistant__form">
           {label("Nome ou EAN do produto", name, (v) => { setName(v); setAiDraft(null); }, "Ex.: tinta pinta couro Shake Paint 37 ml", true)}
-          <div style={gridStyle}>
+          <div className="listing-assistant__grid">
             {label("Marca confirmada (opcional)", brand, (v) => { setBrand(v); setAiDraft(null); }, "Ex.: Acrilex")}
             {label("SKU interno (opcional)", sku, setSku, "Seu código de estoque")}
           </div>
-          <button type="submit" style={buttonStyle} disabled={loading !== null}>
+          <button type="submit" className="primary listing-assistant__button" disabled={loading !== null}>
             {loading === "discover" ? "Consultando catálogo e mercado…" : "Identificar produto e categoria"}
           </button>
         </form>
         {discovery && (
-          <div style={{ marginTop: 16 }}>
-            <h3 style={{ marginBottom: 7 }}>Resultado da identificação</h3>
+          <div className="listing-assistant__discovery" role="status">
+            <h3>Resultado da identificação</h3>
             <p>Categoria sugerida: <strong>{categoryName || "Não identificada"}</strong> {categoryId && "(" + categoryId + ")"}. Revise a categoria antes de seguir.</p>
             <p>Comparáveis encontrados: {discovery.market?.comparableCount ?? "indisponível"}. Mediana de preços observados: <strong>{money(discovery.market?.medianPrice)}</strong>. Comparabilidade e período precisam de validação; isso não representa vendas garantidas.</p>
             {discovery.dimensions && <p>Foram observadas medidas de referência no catálogo, mas não serão copiadas automaticamente. Confirme o peso e as dimensões da sua embalagem.</p>}
@@ -268,22 +255,24 @@ export function ListingDraftAssistant({
           </div>
         )}
       </section>
-      <section className="card" style={{ padding: 18 }}>
-        <h2 style={{ marginTop: 0 }}>2. Confirme seus custos</h2>
-        <p>Dados financeiros e dimensões reais são necessários para calcular uma margem confiável.</p>
-        <div style={gridStyle}>
+      <section className="panel listing-assistant__section">
+        <div className="listing-assistant__section-heading">
+          <span className="listing-assistant__step-number">02</span>
+          <div><h2>Custos e frete</h2><p>Use valores reais para calcular o preço e a margem.</p></div>
+        </div>
+        <div className="listing-assistant__grid">
           {label("Custo de compra por unidade (R$)", purchaseCost, setPurchaseCost, "Ex.: 7,50")}
           {label("Unidades por kit", units, setUnits)}
           {label("Desconto do fornecedor (%)", discount, setDiscount)}
           {label("Custo operacional por venda (R$)", operatingCost, setOperatingCost, "Informe inclusive 0")}
-          <label style={fieldStyle}>Modalidade
-            <select style={inputStyle} value={listingType} onChange={e => { setListingType(e.target.value as "CLASSIC" | "PREMIUM"); setPrice(null); }}>
+          <label className="field listing-assistant__field">Modalidade
+            <select value={listingType} onChange={e => { setListingType(e.target.value as "CLASSIC" | "PREMIUM"); setPrice(null); }}>
               <option value="CLASSIC">Clássico</option>
               <option value="PREMIUM">Premium</option>
             </select>
           </label>
-          <label style={fieldStyle}>Sua logística
-            <select style={inputStyle} value={logisticType} onChange={(e) => { setLogisticType(e.target.value); setPrice(null); }}>
+          <label className="field listing-assistant__field">Sua logística
+            <select value={logisticType} onChange={(e) => { setLogisticType(e.target.value); setPrice(null); }}>
               <option value="drop_off">Agência / Drop-off</option>
               <option value="cross_docking">Coleta / Cross-docking</option>
               <option value="xd_drop_off">Mercado Envios Places</option>
@@ -291,66 +280,83 @@ export function ListingDraftAssistant({
               <option value="self_service">Flex</option>
             </select>
           </label>
-          <label style={fieldStyle}>O anúncio oferece frete grátis?
-            <select style={inputStyle} value={freeShipping} onChange={(e) => { setFreeShipping(e.target.value as "" | "true" | "false"); setPrice(null); }}>
+          <label className="field listing-assistant__field">O anúncio oferece frete grátis?
+            <select value={freeShipping} onChange={(e) => { setFreeShipping(e.target.value as "" | "true" | "false"); setPrice(null); }}>
               <option value="">Escolha para cotar</option>
               <option value="true">Sim</option>
               <option value="false">Não</option>
             </select>
           </label>
         </div>
-        <details style={{ marginTop: 16 }} open>
-          <summary style={{ cursor: "pointer", fontWeight: 600 }}>Embalagem para cotação de frete</summary>
-          <div style={{ ...gridStyle, marginTop: 12 }}>
+        <details className="listing-assistant__package" open>
+          <summary>Embalagem para cotação de frete</summary>
+          <div className="listing-assistant__grid">
             {label("Peso em gramas", weight, setWeight)}
             {label("Altura em cm", height, setHeight)}
             {label("Largura em cm", width, setWidth)}
             {label("Comprimento em cm", length, setLength)}
           </div>
         </details>
-        <button type="button" onClick={simulatePrice} style={{ ...buttonStyle, marginTop: 14 }} disabled={loading !== null || !discovery}>
+        <button type="button" onClick={simulatePrice} className="primary listing-assistant__button" disabled={loading !== null || !discovery}>
           {loading === "price" ? "Cotando tarifas e frete…" : "Calcular preço e lucro"}
         </button>
-        {!discovery && <p>Identifique o produto na primeira etapa para liberar a cotação.</p>}
+        {!discovery && <p className="listing-assistant__helper">Identifique o produto na primeira etapa para liberar a cotação.</p>}
       </section>
-      {error && <p role="alert" style={{ color: "var(--danger, #d05043)" }}>{error}</p>}
-      <section className="card" style={{ padding: 18 }}>
-        <h2 style={{ marginTop: 0 }}>3. Rascunho para revisão</h2>
-        <label style={{ ...fieldStyle, marginBottom: 12 }}>
+        </div>
+        <aside className="listing-assistant__aside" aria-label="Prévia do anúncio">
+      {error && <p role="alert" className="listing-assistant__error">{error}</p>}
+      <section className="panel listing-assistant__section">
+        <div className="listing-assistant__section-heading">
+          <span className="listing-assistant__step-number">03</span>
+          <div><h2>Prévia para revisão</h2><p>Confira o anúncio antes de qualquer publicação.</p></div>
+        </div>
+        <label className="field listing-assistant__field">
           <span>Características confirmadas do produto (opcional)</span>
           <textarea
-            style={{ ...inputStyle, minHeight: 90, resize: "vertical" }}
             maxLength={1500}
             value={confirmedFacts}
             onChange={(e) => { setConfirmedFacts(e.target.value); setAiDraft(null); }}
             placeholder="Ex.: embalagem original com 37 ml, cor preta, produto novo. Informe somente fatos verificados."
           />
         </label>
-        <button type="button" style={buttonStyle} disabled={aiLoading || loading !== null || name.trim().length < 3} onClick={generateAiDraft}>
+        <button type="button" className="secondary listing-assistant__button" disabled={aiLoading || loading !== null || name.trim().length < 3} onClick={generateAiDraft}>
           {aiLoading ? "Gerando título e descrição…" : "Gerar título e descrição com Gemini"}
         </button>
-        <p><strong>Título para revisão:</strong> {aiDraft?.title || draftTitle || "Aguardando produto"}</p>
+        <div className="listing-assistant__draft">
+          <span className="listing-assistant__preview-label">Título para revisão</span>
+          <div className="listing-assistant__preview-title">{aiDraft?.title || draftTitle || "Aguardando produto"}</div>
         {aiDraft && (
-          <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
-            <strong>Descrição sugerida pela IA (revise antes de usar)</strong>
-            <div style={{ whiteSpace: "pre-wrap", padding: 12, border: "1px solid #a6b8b0", borderRadius: 9 }}>{aiDraft.description}</div>
-            {aiDraft.missingFacts.length > 0 && <p><strong>Informações a confirmar:</strong> {aiDraft.missingFacts.join("; ")}</p>}
-            <p>O Gemini produz apenas texto. Nenhuma imagem é gerada e nada é publicado no Mercado Livre.</p>
+          <div className="listing-assistant__stack">
+            <span className="listing-assistant__preview-label">Descrição sugerida pela IA</span>
+            <div className="listing-assistant__copy">{aiDraft.description}</div>
+            {aiDraft.missingFacts.length > 0 && <p className="listing-assistant__facts"><strong>Informações a confirmar:</strong> {aiDraft.missingFacts.join("; ")}</p>}
+            <p className="listing-assistant__note">O Gemini produz apenas texto. Nenhuma imagem é gerada e nada é publicado no Mercado Livre.</p>
           </div>
         )}
-        <p><strong>Categoria:</strong> {categoryName || categoryId || "Aguardando identificação"}</p>
-        <p><strong>SKU:</strong> {sku.trim() || "Não informado"}</p>
-        <p><strong>Preço saudável sugerido:</strong> {money(price?.suggestedPrice)}</p>
+        <div className="listing-assistant__meta">
+          <div><span>Categoria</span><strong>{categoryName || categoryId || "Aguardando identificação"}</strong></div>
+          <div><span>SKU</span><strong>{sku.trim() || "Não informado"}</strong></div>
+          <div><span>Preço sugerido</span><strong>{money(price?.suggestedPrice)}</strong></div>
+        </div>
         {price?.analysis && (
-          <div style={{ display: "grid", gap: 6 }}>
-            <p><strong>Lucro estimado:</strong> {money(price.analysis.profit)} · Margem: {price.analysis.marginPercent.toFixed(2)}% · ROI: {price.analysis.roiPercent.toFixed(2)}%.</p>
-            <p><strong>Custos na cotação:</strong> mercadoria {money(price.analysis.purchaseCost)} · tarifa total ML {money(price.quote?.saleFeeAmount)} (já inclui tarifa fixa {money(price.quote?.fixedFee)}) · frete do vendedor {money(price.quote?.shippingCost)} · imposto {money(price.analysis.taxAmount)} · operação {money(price.analysis.operatingCost)}.</p>
-            <p style={{ opacity: 0.8, fontSize: 13 }}>Cotação estimada para {price.quote?.logisticType || "logística informada"}, frete grátis {price.quote?.freeShipping ? "sim" : "não"}. O valor efetivo depende da venda, promoções e regras da conta.</p>
+          <div className="listing-assistant__finance">
+            <div className="listing-assistant__finance-head">
+              <div><span>Lucro estimado</span><strong>{money(price.analysis.profit)}</strong></div>
+              <div><span>Margem</span><strong>{price.analysis.marginPercent.toFixed(2)}%</strong></div>
+              <div><span>ROI</span><strong>{price.analysis.roiPercent.toFixed(2)}%</strong></div>
+            </div>
+            <p>Mercadoria {money(price.analysis.purchaseCost)} · Tarifa total ML {money(price.quote?.saleFeeAmount)} (inclui tarifa fixa {money(price.quote?.fixedFee)}) · Frete {money(price.quote?.shippingCost)} · Imposto {money(price.analysis.taxAmount)} · Operação {money(price.analysis.operatingCost)}.</p>
+            <p>Cotação estimada para {price.quote?.logisticType || "logística informada"}, frete grátis {price.quote?.freeShipping ? "sim" : "não"}. O valor efetivo depende da venda e das regras da sua conta.</p>
           </div>
         )}
-        <p>Imagens reais do produto, atributos obrigatórios, descrição final, estoque e validação de publicação ainda precisam ser concluídos. Não há publicação nem alteração de anúncio nesta versão.</p>
-        <p style={{ opacity: .75, fontSize: 13 }}>A IA pode sugerir título e descrição quando o Gemini estiver habilitado no servidor. Ela não calcula preços. Os valores são apurados pelo motor financeiro e APIs do Radar, sempre sujeitos à conferência.</p>
+        <div className="listing-assistant__disclaimer listing-assistant__stack">
+          <p className="listing-assistant__note"><strong>Etapa de preparação:</strong> imagens reais, atributos obrigatórios, estoque e validação de publicação ainda precisam ser concluídos. Nenhum anúncio é publicado ou alterado nesta versão.</p>
+          <p className="listing-assistant__note">A IA sugere texto; preço e custos vêm do motor financeiro e das APIs do Radar, sujeitos à conferência.</p>
+        </div>
+        </div>
       </section>
+        </aside>
+      </div>
     </div>
   );
 }

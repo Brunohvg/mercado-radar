@@ -11,8 +11,8 @@ export default function ExtensionPage() {
               <p className="page-kicker">Configuração</p>
               <h1>Extensão Radar</h1>
               <p>
-                Abra um produto e veja a análise automática de demanda, tarifas,
-                preços e margem, com a origem de cada dado.
+                Abra um produto e analise demanda e preços sem login. Para margem,
+                use custos manuais; cotações oficiais exigem uma conta conectada.
               </p>
             </div>
             <span className="status-chip attention extension-install-beta">
@@ -105,7 +105,7 @@ export default function ExtensionPage() {
                 <span>Leitura da página</span>
                 <strong>Ativa</strong>
                 <small>
-                  preço, texto de vendidos e avaliações, quando exibidos
+                  sem login: preço, texto de vendidos e avaliações, quando exibidos
                 </small>
               </div>
               <div>
@@ -119,7 +119,7 @@ export default function ExtensionPage() {
                 <span>Ferramentas contextuais</span>
                 <strong>Ativo</strong>
                 <small>
-                  indicadores nos cards e análise automática no produto e painel
+                  indicadores públicos sem login e calculadora manual no painel
                 </small>
               </div>
               <div>

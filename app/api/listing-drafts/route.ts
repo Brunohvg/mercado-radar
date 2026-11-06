@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/workspace-auth";
+import { getMlSession } from "@/lib/mercado-livre";
 import type { Prisma } from "@/generated/prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ const dataSchema = z.object({
   confirmedFacts: z.string().trim().max(2000).default(""),
   missingFacts: z.array(z.string().max(180)).max(12).default([]),
   imageUrls: z.array(z.string().max(1800).refine(v => v.startsWith("https://") || /^\/api\/listing-drafts\/photos\/[a-f0-9-]+\.(?:jpg|png|webp)$/.test(v), "Foto inválida")).max(12).default([]),
+  attributes: z.record(z.string().max(100), z.string().trim().max(255)).default({}),
   stock: z.number().int().min(0).max(1000000).default(0),
   costPerUnit: z.number().nonnegative().finite().nullable().default(null),
   kitQuantity: z.number().int().min(1).max(1000).default(1),
@@ -92,6 +94,24 @@ export async function POST(request: Request) {
   try {
     const data = parsed.data.data;
     const issues = review(data);
+    // A missing remote mandatory-attribute check must never lead to REVIEW status.
+    if (data.categoryId) {
+      try {
+        const session = await getMlSession();
+        const res = await fetch("https://api.mercadolibre.com/categories/" + encodeURIComponent(data.categoryId) + "/attributes", {
+          headers: { Authorization: "Bearer " + session.accessToken },
+          signal: AbortSignal.timeout(12000), cache: "no-store",
+        });
+        if (!res.ok) throw new Error("category unavailable");
+        const attrs: unknown = await res.json();
+        if (!Array.isArray(attrs)) throw new Error("bad attributes");
+        const missing = attrs.filter(a => (a.tags?.required || a.tags?.new_required) &&
+          typeof a.id === "string" && !data.attributes[a.id]?.trim());
+        for (const attr of missing.slice(0, 15)) issues.push("Atributo obrigatório: " + String(attr.name || attr.id));
+      } catch {
+        issues.push("Não foi possível verificar os atributos obrigatórios da categoria.");
+      }
+    }
     const fields = {
       name: data.name, barcode: data.barcode ?? null,
       sku: data.sku || null, categoryId: data.categoryId || null,

@@ -8,6 +8,7 @@ export type DraftValues = {
   title: string; description: string; confirmedFacts: string;
   missingFacts: string[];
   imageUrls: string[]; stock: number;
+  attributes: Record<string, string>;
   costPerUnit: number | null; kitQuantity: number;
   discountPercent: number; operatingCost: number;
   listingType: "CLASSIC" | "PREMIUM";
@@ -36,9 +37,32 @@ export function ListingDraftManager({
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [issues, setIssues] = useState<string[]>([]);
+  const [attributes, setAttributes] = useState<Record<string, string>>({});
+  const [requiredAttributes, setRequiredAttributes] = useState<Array<{ id: string; name: string; values: Array<{ id: string; name: string }> }>>([]);
+  const [categoryStatus, setCategoryStatus] = useState("");
 
   useEffect(() => { setTitle(data.title); }, [data.title]);
   useEffect(() => { setDescription(data.description); }, [data.description]);
+  useEffect(() => {
+    if (!data.categoryId) { setRequiredAttributes([]); return; }
+    let active = true;
+    setCategoryStatus("Consultando ficha técnica do Mercado Livre…");
+    fetch("/api/ml/category-attributes?categoryId=" + encodeURIComponent(data.categoryId), { cache: "no-store" })
+      .then(async response => {
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Não foi possível consultar atributos.");
+        return result;
+      })
+      .then(result => { if (active) {
+        setRequiredAttributes(result.required ?? []);
+        setCategoryStatus((result.required?.length ?? 0) + " atributo(s) exigido(s) pela categoria.");
+      } })
+      .catch(error => { if (active) {
+        setRequiredAttributes([]);
+        setCategoryStatus(error instanceof Error ? error.message : "Ficha técnica indisponível.");
+      } });
+    return () => { active = false; };
+  }, [data.categoryId]);
 
   async function refresh() {
     try {
@@ -62,6 +86,7 @@ export function ListingDraftManager({
       setDescription(saved.data.description);
       setStock(String(saved.data.stock));
       setPhotos((saved.data.imageUrls || []).join("\n"));
+      setAttributes(saved.data.attributes ?? {});
       setIssues([]);
       onRestore(saved.data);
       setMessage("Rascunho recuperado. Calcule novamente as tarifas antes de publicar.");
@@ -112,7 +137,7 @@ export function ListingDraftManager({
         body: JSON.stringify({
           ...(draftId ? { id: draftId } : {}),
           data: {
-            ...data, title: title.trim(), description: description.trim(),
+            ...data, title: title.trim(), description: description.trim(), attributes,
             stock: Math.max(0, Math.trunc(Number(stock) || 0)),
             imageUrls,
           },
@@ -184,6 +209,25 @@ export function ListingDraftManager({
         )}
       </div>}
       </label>
+      {data.categoryId && (
+        <div className="listing-draft-workspace__attributes">
+          <strong>Ficha técnica da categoria</strong>
+          <p className="listing-assistant__helper">{categoryStatus || "Consultando requisitos…"}</p>
+          {requiredAttributes.map(attr => (
+            <label key={attr.id} className="field listing-assistant__field">
+              <span>{attr.name} (obrigatório)</span>
+              {attr.values.length > 0 && attr.values.length < 40 ? (
+                <select value={attributes[attr.id] ?? ""} onChange={e => setAttributes(prev => ({ ...prev, [attr.id]: e.target.value }))}>
+                  <option value="">Selecione ou informe abaixo</option>
+                  {attr.values.map(v => <option key={v.id || v.name} value={v.name}>{v.name}</option>)}
+                </select>
+              ) : (
+                <input value={attributes[attr.id] ?? ""} maxLength={255} onChange={e => setAttributes(prev => ({ ...prev, [attr.id]: e.target.value }))} placeholder="Valor confirmado do produto" />
+              )}
+            </label>
+          ))}
+        </div>
+      )}
       {message && <p className="listing-draft-workspace__message" role="status">{message}</p>}
       {issues.length > 0 && (
         <div className="listing-draft-workspace__issues">

@@ -118,6 +118,8 @@ export function ListingDraftAssistant({
   const [aiTestStatus, setAiTestStatus] = useState("");
   const [aiTesting, setAiTesting] = useState(false);
   const [restoredMissingFacts, setRestoredMissingFacts] = useState<string[]>([]);
+  const [savedTitle, setSavedTitle] = useState("");
+  const [savedDescription, setSavedDescription] = useState("");
   const shippingDetails = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
@@ -182,6 +184,8 @@ export function ListingDraftAssistant({
         catalogProductId: discovery?.identification?.catalogProductId || undefined,
       });
       setAiDraft(result);
+      setSavedTitle(result.title);
+      setSavedDescription(result.description);
       setRestoredMissingFacts(result.missingFacts);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível gerar o anúncio com IA.");
@@ -295,7 +299,7 @@ export function ListingDraftAssistant({
           <div><h2>Identificar produto</h2><p>Encontre a categoria e uma referência de mercado.</p></div>
         </div>
         <form onSubmit={identify} className="listing-assistant__form">
-          {label("Nome ou EAN do produto", name, (v) => { setName(v); setAiDraft(null); setDiscovery(null); setCategoryId(""); setCategoryName(""); setPrice(null); }, "Ex.: tinta pinta couro Shake Paint 37 ml", true)}
+          {label("Nome ou EAN do produto", name, (v) => { setName(v); setAiDraft(null); setSavedTitle(""); setSavedDescription(""); setRestoredMissingFacts([]); setDiscovery(null); setCategoryId(""); setCategoryName(""); setPrice(null); }, "Ex.: tinta pinta couro Shake Paint 37 ml", true)}
           <div className="listing-assistant__grid">
             {label("Marca confirmada (opcional)", brand, (v) => { setBrand(v); setAiDraft(null); }, "Ex.: Acrilex")}
             {label("SKU interno (opcional)", sku, setSku, "Seu código de estoque")}
@@ -424,7 +428,7 @@ export function ListingDraftAssistant({
         <div className="listing-assistant__draft">
           {unresolvedBarcode && <p className="listing-assistant__identity-warning">Antes da IA, confirme o nome do produto. Código de barras e categoria não bastam para descrever o item.</p>}
           <span className="listing-assistant__preview-label">Título para revisão</span>
-          <div className="listing-assistant__preview-title">{aiDraft?.title || draftTitle || "Aguardando produto"}</div>
+          <div className="listing-assistant__preview-title">{aiDraft?.title || savedTitle || draftTitle || "Aguardando produto"}</div>
         {aiDraft && (
           <div className="listing-assistant__stack">
             <span className="listing-assistant__preview-label">Descrição sugerida pela IA</span>
@@ -455,8 +459,8 @@ export function ListingDraftAssistant({
             barcode: /^\d{8,14}$/.test(name.trim()) ? name.trim() : null,
             brand, sku, categoryId, categoryName,
             catalogProductId: discovery?.identification?.catalogProductId ?? null,
-            title: aiDraft?.title || draftTitle,
-            description: aiDraft?.description || "",
+            title: aiDraft?.title || savedTitle || draftTitle,
+            description: aiDraft?.description || savedDescription || "",
             confirmedFacts,
             missingFacts: aiDraft?.missingFacts ?? restoredMissingFacts,
             imageUrls: [], stock: 0,
@@ -499,6 +503,8 @@ export function ListingDraftAssistant({
             }});
             setPrice(null);
             setAiDraft(null);
+            setSavedTitle(data.title);
+            setSavedDescription(data.description);
             setRestoredMissingFacts(data.missingFacts);
             setError("");
           }}

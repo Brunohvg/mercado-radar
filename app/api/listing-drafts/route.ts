@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 const dataSchema = z.object({
   name: z.string().trim().min(3).max(180),
-  barcode: z.string().regex(/^\\d{8,14}$/).nullable().optional(),
+  barcode: z.string().regex(/^\d{8,14}$/).nullable().optional(),
   brand: z.string().trim().max(90).default(""),
   sku: z.string().trim().max(100).default(""),
   categoryId: z.string().trim().max(40).default(""),
@@ -40,7 +40,7 @@ type ListingData = z.infer<typeof dataSchema>;
 
 function review(data: ListingData) {
   const issues: string[] = [];
-  if (!data.title || /^\\d{8,14}$/.test(data.title)) issues.push("Confirme o título comercial do produto.");
+  if (!data.title || /^\d{8,14}$/.test(data.title)) issues.push("Confirme o título comercial do produto.");
   if (data.description.length < 60) issues.push("Complete a descrição técnica com dados confirmados.");
   if (!data.categoryId) issues.push("Confirme a categoria do Mercado Livre.");
   if (data.imageUrls.length === 0) issues.push("Adicione ao menos uma foto própria do produto.");

@@ -120,10 +120,12 @@ export function ListingDraftAssistant({
   const [manualCategory, setManualCategory] = useState(false);
   const [weight, setWeight] = useState("");
   const [dimensionEvidence, setDimensionEvidence] = useState<{
-    source: "SIMILAR_LISTINGS";
+    source: "SIMILAR_LISTINGS" | "AI_ESTIMATE";
     confidence: "HIGH" | "MEDIUM" | "LOW";
     sampleSize: number;
   } | null>(null);
+  const [estimateStatus, setEstimateStatus] = useState("");
+  const identificationSerial = useRef(0);
   const [height, setHeight] = useState("");
   const [width, setWidth] = useState("");
   const [length, setLength] = useState("");
@@ -256,6 +258,9 @@ export function ListingDraftAssistant({
       setError("Descreva o produto com pelo menos 3 caracteres.");
       return;
     }
+    const serial = ++identificationSerial.current;
+    setEstimateStatus("");
+    setDimensionEvidence(null);
     setLoading("discover");
     setError("");
     setDiscovery(null);
@@ -287,6 +292,35 @@ export function ListingDraftAssistant({
         });
       } else {
         setDimensionEvidence(null);
+        // Only when comparable listings provide no complete package; the
+        // Gemini result is an estimate for simulation, not a product fact.
+        if (aiConfig?.configured && !data.identification?.requiresProductName) {
+          setEstimateStatus("Estimando embalagem com IA…");
+          void postJson<{
+            weightGrams: number | null; heightCm: number | null; widthCm: number | null;
+            lengthCm: number | null; explanation: string; source: "AI_ESTIMATE";
+          }>("/api/ai/packaging-estimate", {
+            name: data.identification?.name || name.trim(),
+            brand: data.identification?.brand || brand.trim(),
+            category: data.identification?.categoryName || "",
+            catalogProductId: data.identification?.catalogProductId || undefined,
+          }).then(estimate => {
+            if (serial !== identificationSerial.current) return;
+            if (estimate.weightGrams && estimate.heightCm && estimate.widthCm && estimate.lengthCm) {
+              setWeight(value => value.trim() ? value : String(estimate.weightGrams));
+              setHeight(value => value.trim() ? value : String(estimate.heightCm));
+              setWidth(value => value.trim() ? value : String(estimate.widthCm));
+              setLength(value => value.trim() ? value : String(estimate.lengthCm));
+              setDimensionEvidence({ source: "AI_ESTIMATE", confidence: "LOW", sampleSize: 0 });
+              setEstimateStatus(estimate.explanation);
+            } else {
+              setEstimateStatus("A IA não encontrou evidências suficientes para estimar medidas. Informe as dimensões reais.");
+            }
+          }).catch(() => {
+            if (serial === identificationSerial.current)
+              setEstimateStatus("Estimativa IA indisponível. Informe as medidas reais para a cotação.");
+          });
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível identificar o produto.");
@@ -519,13 +553,16 @@ export function ListingDraftAssistant({
           </p>
           <h3 className="listing-assistant__subheading">Medidas da embalagem para frete</h3>
           {dimensionEvidence && <p className="listing-assistant__identity-warning" role="status">
-            Medidas pré-preenchidas a partir de {dimensionEvidence.sampleSize} anúncio(s) semelhante(s).
-            Confiança {dimensionEvidence.confidence === "HIGH" ? "alta" :
+            {dimensionEvidence.source === "AI_ESTIMATE"
+              ? "Peso e dimensões sugeridos pela IA, sem medição ou confirmação do fabricante."
+              : `Medidas pré-preenchidas a partir de ${dimensionEvidence.sampleSize} anúncio(s) semelhante(s).`}
+            {" "}Confiança {dimensionEvidence.confidence === "HIGH" ? "alta" :
               dimensionEvidence.confidence === "MEDIUM" ? "média" : "baixa"}.
             São estimativas para simulação; confirme peso e embalagem reais antes de publicar.
           </p>}
+          {estimateStatus && <p className="listing-assistant__helper" role="status">{estimateStatus}</p>}
           <div className="listing-assistant__grid">
-            {label("Peso real, em gramas", weight, setWeight)}
+            {label("Peso embalado (g) — confirme", weight, setWeight)}
             {label("Altura em cm", height, setHeight)}
             {label("Largura em cm", width, setWidth)}
             {label("Comprimento em cm", length, setLength)}
@@ -653,6 +690,8 @@ export function ListingDraftAssistant({
             setUnits(String(data.kitQuantity));
             setDiscount(String(data.discountPercent));
             setOperatingCost(String(data.operatingCost));
+            identificationSerial.current += 1;
+            setEstimateStatus("");
             setDimensionEvidence(null);
             setWeight(data.weightGrams == null ? "" : String(data.weightGrams));
             setHeight(data.heightCm == null ? "" : String(data.heightCm));

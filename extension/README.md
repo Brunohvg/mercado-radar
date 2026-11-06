@@ -1,6 +1,16 @@
-# Mercado Radar — extensão 0.12.0
+# Mercado Radar — extensão 0.12.4
 
-Chrome 116+. Manifest V3. Backend da branch `feature/radar-commercial-readiness-v1`, protocolo 2.
+Chrome 116+. Manifest V3. Branch de homologação `feature/ai-listing-assistant-v1`, protocolo 2 para funções privadas.
+
+## Novidade 0.12.4 — modo público sem login obrigatório
+
+- Ao abrir a busca ou um anúncio do Mercado Livre, a leitura da página, demanda pública e receita de referência funcionam imediatamente, sem sessão Radar. A tela **Conta e conexão** permanece recolhida.
+- A calculadora do painel lateral pode operar **localmente**, sem login, após informar o custo, imposto, comissão, tarifa fixa e frete manualmente. **Zero de frete também precisa ser informado**: ausência de valor nunca vira frete grátis. O cenário é marcado como **manual**, nunca como cotação oficial.
+- Sem login, consultas de comissão/frete à conta do vendedor, histórico, monitoramentos, dados privados e publicação não são disponibilizados; vincular a conta permanece opcional para ampliar os recursos.
+- Em conta conectada, continuam os fluxos oficiais já existentes. A estimativa de **embalagem por IA** fica no assistente web, usando dados do produto e comparáveis disponíveis; o vendedor precisa confirmar as medidas reais para pré-validação/publicação. A IA não substitui uma cotação oficial do Mercado Livre.
+- O pacote Chrome precisa ser recarregado manualmente após implantar o backend no Coolify: deploy da aplicação **não atualiza automaticamente** a extensão instalada.
+
+**Teste rápido:** instale a 0.12.4, recarregue as abas do Mercado Livre, abra um produto sem login e verifique a análise pública. Entre em **Lucro**, informe seus custos e abra **Kit, operação, metas e tarifas manuais** para comissão e tarifa fixa; informe o frete (inclusive zero, se confirmado), e confira o cálculo. Faça a conexão somente para comparar com a cotação na sua conta real.
 
 ## Integração com o assistente de anúncios
 

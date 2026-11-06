@@ -18,7 +18,7 @@ const dataSchema = z.object({
   description: z.string().trim().max(7500).default(""),
   confirmedFacts: z.string().trim().max(2000).default(""),
   missingFacts: z.array(z.string().max(180)).max(12).default([]),
-  imageUrls: z.array(z.string().url().startsWith("https://").max(1800)).max(12).default([]),
+  imageUrls: z.array(z.string().max(1800).refine(v => v.startsWith("https://") || /^\/api\/listing-drafts\/photos\/[a-f0-9-]+\.(?:jpg|png|webp)$/.test(v), "Foto inválida")).max(12).default([]),
   stock: z.number().int().min(0).max(1000000).default(0),
   costPerUnit: z.number().nonnegative().finite().nullable().default(null),
   kitQuantity: z.number().int().min(1).max(1000).default(1),

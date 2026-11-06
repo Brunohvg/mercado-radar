@@ -46,9 +46,13 @@ services:
       RADAR_AI_PROVIDER: ${RADAR_AI_PROVIDER:-none}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
+      RADAR_UPLOAD_DIR: /app/uploads
       SERVICE_URL_APP_3000: /
+    volumes:
+      - radar-uploads:/app/uploads
     expose:
       - "3000"
 
 volumes:
   postgres-data:
+  radar-uploads:

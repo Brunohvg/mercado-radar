@@ -471,7 +471,8 @@ export async function getListingPriceQuote(input: {
 
   const candidates = Array.isArray(raw) ? raw : [raw];
   const expected = listingTypeId(input.listingType);
-  const quote = candidates.find((row) => row?.listing_type_id === expected);
+  const quote = candidates.find((row) => row?.listing_type_id === expected) ??
+    (candidates.length === 1 && !candidates[0]?.listing_type_id ? candidates[0] : null);
   if (!quote) {
     throw new Error("A API não retornou uma tarifa para " + expected + ". Não foi possível calcular essa modalidade.");
   }

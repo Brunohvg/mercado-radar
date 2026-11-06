@@ -1596,7 +1596,7 @@
     try {
       const r = await chrome.runtime.sendMessage({ type: "RADAR_AUTH_LOGIN" });
       if (!r?.authenticated) {
-        $("authStatus").textContent = r?.error || "Login não concluído.";
+        $("authStatus").textContent = r?.message || r?.error || "Login não concluído.";
         return;
       }
       await authStatus();

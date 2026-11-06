@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Mercado Radar",
-  "version": "0.12.2",
+  "version": "0.12.3",
   "description": "Análise na busca e no produto, comparação de anúncios e calculadora de lucro com origem dos dados.",
   "permissions": [
     "storage",
@@ -54,5 +54,10 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  "minimum_chrome_version": "116"
+  "minimum_chrome_version": "116",
+  "externally_connectable": {
+    "matches": [
+      "https://radar.optarys.com.br/*"
+    ]
+  }
 }

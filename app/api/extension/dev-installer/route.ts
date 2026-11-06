@@ -54,6 +54,7 @@ export async function GET(request: Request) {
           manifest.host_permissions = manifest.host_permissions.map((host) =>
             host === "https://radar.optarys.com.br/*" ? origin + "/*" : host,
           );
+          manifest.externally_connectable = { matches: [origin + "/*"] };
           data = Buffer.from(JSON.stringify(manifest, null, 2) + "\n");
         } else if (
           !isProduction &&

@@ -1076,6 +1076,14 @@ export function ProductAnalyzer() {
             Preço, frete, comissão e margem em uma conta só. Comissão, tarifa e
             frete vêm da sua conta conectada do Mercado Livre.
           </p>
+          <p>
+            <a
+              className="table-action"
+              href={"/assistente-anuncios" + (form.productName.trim() ? "?produto=" + encodeURIComponent(form.productName.trim()) : "")}
+            >
+              Preparar anúncio com Gemini ↗
+            </a>
+          </p>
         </div>
       </header>
 

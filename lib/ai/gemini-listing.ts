@@ -20,10 +20,10 @@ export class GeminiRequestError extends Error {
 }
 
 export function getGeminiModel() {
-  const model = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash-lite";
-  if (!/^gemini-2\.5-flash(?:-lite)?$/.test(model)) {
+  const model = process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash-lite";
+  if (!/^(?:gemini-3\.5-flash-lite|gemini-2\.5-flash(?:-lite)?)$/.test(model)) {
     throw new GeminiRequestError(
-      "Modelo Gemini não permitido. Use gemini-2.5-flash-lite ou gemini-2.5-flash.",
+      "Modelo Gemini não permitido. Use gemini-3.5-flash-lite, gemini-2.5-flash-lite ou gemini-2.5-flash.",
       503,
       "INVALID_MODEL",
     );
@@ -38,7 +38,7 @@ export function geminiIsConfigured() {
 
 export function geminiConfiguration() {
   const provider = process.env.RADAR_AI_PROVIDER?.trim().toLowerCase() || "none";
-  let model = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash-lite";
+  let model = process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash-lite";
   const keyPresent = Boolean(process.env.GEMINI_API_KEY?.trim());
   let message = "Gemini configurado; conexão ainda não testada.";
   let configured = provider === "gemini" && keyPresent;
@@ -176,10 +176,11 @@ export async function generateListingCopy(input: {
           }) }],
         }],
         generationConfig: {
-          temperature: 0.15,
           maxOutputTokens: 1800,
           responseMimeType: "application/json",
-          thinkingConfig: { thinkingBudget: 0 },
+          thinkingConfig: model.startsWith("gemini-3")
+            ? { thinkingLevel: "MINIMAL" }
+            : { thinkingBudget: 0 },
         },
       }),
     },

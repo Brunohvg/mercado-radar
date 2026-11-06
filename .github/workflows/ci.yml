@@ -85,3 +85,11 @@ jobs:
         run: npm run test:integration
         env:
           RADAR_TEST_DATABASE: "1"
+
+      - name: Upload tested Chrome extension
+        uses: actions/upload-artifact@v4
+        with:
+          name: mercado-radar-extension-0.12.4
+          path: dist/extension-prod/
+          if-no-files-found: error
+          retention-days: 14

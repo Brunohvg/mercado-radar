@@ -550,6 +550,22 @@
           ". Cada cliente mantém seus dados separados."
         : "Entre na sua conta Radar e autorize o seu vendedor do Mercado Livre.";
       $("authStatus").textContent = result?.error || "";
+      const compatibility = $("publishingCompatibility");
+      if (!result?.authenticated) {
+        compatibility.textContent = "Modelo de publicação: conecte o Radar para consultar.";
+      } else if (result.extensionProtocol === 2) {
+        compatibility.textContent = "Verificando compatibilidade com a API de publicação…";
+        const checked = await request("/api/extension/publication-capabilities");
+        if (checked.ok) {
+          const c = checked.body;
+          compatibility.textContent =
+            "Modelo do vendedor: " + (c.model === "USER_PRODUCTS" ? "User Products" : "Tradicional") +
+            ". Escrita: " + (c.canRequestPublishing ? "autorizada" : "não autorizada") +
+            ". Catálogo exige confirmação por produto.";
+        } else {
+          compatibility.textContent = "Modelo de publicação indisponível. Confira a integração no painel Radar.";
+        }
+      }
       if (result?.authenticated && result.extensionProtocol !== 2)
         notice(
           "globalStatus",

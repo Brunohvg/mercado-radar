@@ -1,4 +1,4 @@
-# Mercado Radar — extensão 0.11.0
+# Mercado Radar — extensão 0.12.0
 
 Chrome 116+. Manifest V3. Backend da branch `feature/radar-commercial-readiness-v1`, protocolo 2.
 
@@ -8,7 +8,7 @@ Na versão de desenvolvimento desta branch, o painel lateral inclui **Preparar a
 
 O botão flutuante **R** pode ser movido entre a direita e a esquerda através de **Mover botão do Radar** no menu. A preferência é salva no Chrome. **Ocultar análise na página** mantém o modo pouco intrusivo.
 
-O manifest continua `0.11.0` nesta branch enquanto os testes de homologação são realizados. Ao distribuir, atualizar a versão e testar layout real. A extensão não se atualiza sozinha após deploy do Coolify.
+O manifest marca esta versão beta de homologação como `0.12.0`. Teste o layout real antes de distribuir. A extensão não se atualiza sozinha após deploy do Coolify.
 
 ## Instalar ou atualizar
 
@@ -16,7 +16,7 @@ O manifest continua `0.11.0` nesta branch enquanto os testes de homologação s�
 2. Baixar os arquivos desta mesma branch. O instalador em `/extensao` só entrega a versão do backend que estiver implantada.
 3. Em `chrome://extensions`, carregar a pasta `extension` sem compactação. Para atualizar, substituir os arquivos da pasta que o Chrome usa e clicar em **Recarregar**.
 4. **Recarregar também todas as abas abertas do Mercado Livre** para retirar scripts e interfaces da versão anterior.
-5. Confirmar **0.11.0** na tela de extensões e no cabeçalho do painel lateral.
+5. Confirmar **0.12.0** na tela de extensões e no cabeçalho do painel lateral.
 6. Entrar na sua conta Radar. Cada cliente autoriza seu próprio vendedor ML. Não usa chave global de API.
 
 A aplicação web e a extensão são atualizadas separadamente: apenas fazer deploy no Coolify não substitui os arquivos carregados no Chrome. O painel avisa se o backend ainda usa o protocolo anterior.
@@ -72,7 +72,7 @@ A aplicação web e a extensão são atualizadas separadamente: apenas fazer dep
 
 ## Banco
 
-A revisão 0.11.0 não acrescenta migration. A instalação precisa das migrations anteriores:
+A revisão 0.12.0 não acrescenta migration. A instalação precisa das migrations anteriores:
 
 `202610161300_extension_observation_sources` identifica a origem dos acompanhamentos e se vendidos são conhecidos ou apenas um limite inferior. Dados anteriores permanecem marcados como API. Aplicar com `npm run db:deploy` no processo de deploy.
 

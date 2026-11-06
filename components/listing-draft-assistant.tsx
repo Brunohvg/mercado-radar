@@ -119,6 +119,11 @@ export function ListingDraftAssistant({
   const [categoryName, setCategoryName] = useState("");
   const [manualCategory, setManualCategory] = useState(false);
   const [weight, setWeight] = useState("");
+  const [dimensionEvidence, setDimensionEvidence] = useState<{
+    source: "SIMILAR_LISTINGS";
+    confidence: "HIGH" | "MEDIUM" | "LOW";
+    sampleSize: number;
+  } | null>(null);
   const [height, setHeight] = useState("");
   const [width, setWidth] = useState("");
   const [length, setLength] = useState("");
@@ -266,6 +271,23 @@ export function ListingDraftAssistant({
       setCategoryId(data.identification?.categoryId ?? "");
       setCategoryName(data.identification?.categoryName ?? "");
       setManualCategory(!data.identification?.categoryId);
+      // The discovery API already calculates medians from comparable listings.
+      // Prefill only missing values; never overwrite the seller's manual inputs.
+      // This is simulation evidence, not verified package measurements.
+      const inferred = data.dimensions;
+      if (inferred?.weightGrams && inferred?.heightCm && inferred?.widthCm && inferred?.lengthCm) {
+        setWeight(current => current.trim() ? current : String(inferred.weightGrams));
+        setHeight(current => current.trim() ? current : String(inferred.heightCm));
+        setWidth(current => current.trim() ? current : String(inferred.widthCm));
+        setLength(current => current.trim() ? current : String(inferred.lengthCm));
+        setDimensionEvidence({
+          source: "SIMILAR_LISTINGS",
+          confidence: inferred.confidence === "HIGH" || inferred.confidence === "MEDIUM" ? inferred.confidence : "LOW",
+          sampleSize: inferred.sampleSize ?? 1,
+        });
+      } else {
+        setDimensionEvidence(null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível identificar o produto.");
     } finally {
@@ -496,6 +518,12 @@ export function ListingDraftAssistant({
             um cenário manual de lucro; esse valor não é uma tarifa oficial.
           </p>
           <h3 className="listing-assistant__subheading">Medidas da embalagem para frete</h3>
+          {dimensionEvidence && <p className="listing-assistant__identity-warning" role="status">
+            Medidas pré-preenchidas a partir de {dimensionEvidence.sampleSize} anúncio(s) semelhante(s).
+            Confiança {dimensionEvidence.confidence === "HIGH" ? "alta" :
+              dimensionEvidence.confidence === "MEDIUM" ? "média" : "baixa"}.
+            São estimativas para simulação; confirme peso e embalagem reais antes de publicar.
+          </p>}
           <div className="listing-assistant__grid">
             {label("Peso real, em gramas", weight, setWeight)}
             {label("Altura em cm", height, setHeight)}
@@ -625,6 +653,7 @@ export function ListingDraftAssistant({
             setUnits(String(data.kitQuantity));
             setDiscount(String(data.discountPercent));
             setOperatingCost(String(data.operatingCost));
+            setDimensionEvidence(null);
             setWeight(data.weightGrams == null ? "" : String(data.weightGrams));
             setHeight(data.heightCm == null ? "" : String(data.heightCm));
             setWidth(data.widthCm == null ? "" : String(data.widthCm));

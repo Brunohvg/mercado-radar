@@ -6,6 +6,8 @@ import {
   getExistingItemShippingQuote,
   getItemCurrentPrice,
   getItemsBulk,
+  getUserProductDetails,
+  getItemsByUserProduct,
   getListingPriceQuote,
   getShippingQuote,
   predictCategory,
@@ -108,13 +110,32 @@ export async function POST(request: Request) {
   try {
     const session = extensionSession.ml;
     const itemId = parsed.data.itemId.toUpperCase();
-    const details =
-      /^MLB\d+$/.test(itemId) && !parsed.data.manualFees
-        ? await getItemsBulk({
+    let listingItemId: string | null = /^MLB\d+$/.test(itemId) ? itemId : null;
+    // MLBU is a User Product, not a listing: resolve only seller-owned
+    // products with exactly one MLB offer, otherwise keep public fallback.
+    if (/^MLBU\d+$/.test(itemId) && !parsed.data.manualFees) {
+      try {
+        const product = await getUserProductDetails({
+          accessToken: session.accessToken, userProductId: itemId,
+        });
+        if (String(product.user_id ?? "") === session.account.mercadoLivreUserId) {
+          const ids = await getItemsByUserProduct({
             accessToken: session.accessToken,
-            itemIds: [itemId],
-          }).catch(() => [])
-        : [];
+            userId: session.account.mercadoLivreUserId,
+            userProductId: itemId,
+          });
+          if (ids.length === 1 && /^MLB\d+$/.test(ids[0])) listingItemId = ids[0];
+        }
+      } catch {
+        // Seller or ML may restrict this resource.
+      }
+    }
+    const details = listingItemId && !parsed.data.manualFees
+      ? await getItemsBulk({
+          accessToken: session.accessToken,
+          itemIds: [listingItemId],
+        }).catch(() => [])
+      : [];
     const apiItem = details[0] ?? null;
     const isOwnItem =
       apiItem?.sellerId != null &&
@@ -153,7 +174,7 @@ export async function POST(request: Request) {
       (isOwnItem
         ? await getItemCurrentPrice({
             accessToken: session.accessToken,
-            itemId,
+            itemId: listingItemId!,
           }).catch(() => null)
         : null) ??
       item.currentPrice;
@@ -222,7 +243,7 @@ export async function POST(request: Request) {
             ? getExistingItemShippingQuote({
                 accessToken: session.accessToken,
                 userId: session.account.mercadoLivreUserId,
-                itemId,
+                itemId: listingItemId!,
                 price,
                 listingType,
                 freeShipping: item.freeShipping,

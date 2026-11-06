@@ -45,7 +45,7 @@ export async function GET(request: Request) {
       "set -euo pipefail",
       "",
       'if ! command -v base64 >/dev/null 2>&1; then echo "Instale o utilitário base64 (coreutils)." >&2; exit 1; fi',
-      'install_root="\${XDG_DATA_HOME:-$HOME/.local/share}/MercadoRadar"',
+      'install_root="${XDG_DATA_HOME:-$HOME/.local/share}/MercadoRadar"',
       'install_dir="$install_root/' + folder + '"',
       'mkdir -p "$install_dir"',
       "",

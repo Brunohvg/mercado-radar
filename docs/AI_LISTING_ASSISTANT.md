@@ -21,6 +21,25 @@ Qualquer produto permitido no Mercado Livre (não apenas ilhós ou tintas) pode 
 - Rotas reaproveitadas: `/api/ml/product-discovery` e `/api/ml/suggest-price`. Se retornarem acesso restrito ou dados faltantes, mostrar erro explícito.
 - A extensão carregada no Chrome é atualizada separadamente do backend; atualizar arquivos, recarregar extensão e abas do ML.
 
+## Gemini e imagens
+
+**Configurado nesta branch:** `POST /api/ai/listing-draft` autenticado, com Gemini e chave apenas no servidor.
+A tela `/assistente-anuncios` tem botão **Gerar título e descrição com Gemini**, campo de fatos confirmados e prévia revisável. Sem chave ou cota, a análise determinística continua funcionando normalmente.
+
+Para homologação no Coolify: `RADAR_AI_PROVIDER=gemini`, `GEMINI_API_KEY=<chave secreta>`, `GEMINI_MODEL=gemini-2.5-flash-lite`. Configure como segredos/variáveis do serviço, nunca no Git. Reinicie o deploy para aplicar. Provedor `none` desliga a função. **Sem fallback automático para Grok/OpenAI.** A chave Grok reservada não é lida nesta versão.
+
+A existência da API Free Tier do Gemini não garante que uma chave/projeto com faturamento ativo nunca produza custos. Confira **quota e faturamento no AI Studio**, e não habilite plano pago se o objetivo for custo zero. Dados enviados ao Free Tier podem ser utilizados pelo provedor conforme seus termos; não inclua segredos, dados de compradores ou fornecedor confidencial nos textos de entrada.
+
+**As fotos ainda são fornecidas manualmente.** Não é criado anúncio final com imagens nem ocorre publicação no Mercado Livre.
+
+## Pontos de precisão financeira
+
+A API `/sites/MLB/listing_prices` retorna `sale_fee_amount` com taxa fixa **já incluída**. Na simulação assistida, o motor usa esse total integral em vez de somar uma taxa fixa duas vezes. A cotação também recebe o tipo de logística e a opção de frete grátis escolhidos, refletindo as regras de setembro/2026, e devolve a composição dos custos.
+
+**Casos de regressão:** arame encapado kit 4 (custo de 4 rolos × R$3,96 e preço R$44,90) e Shake Paint Couro 37ml (custo R$7,50 com desconto 10%). **Tarifas e preços não confirmados são cenários de teste**, não cobranças observadas no ML. Para declarar equivalência com o vendedor, é obrigatório confrontar cotação real da conta e histórico do pedido.
+
+## Notas anteriores
+
 ## Grok e imagens
 
 - O código examinado possui estratégia para `AIProvider` com Grok/OpenAI, mas não a configuração operacional correspondente. A existência de credencial no Coolify não foi verificada.

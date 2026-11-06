@@ -19,6 +19,7 @@ const schema = z.object({
 const itemData = z.object({
   name: z.string().min(3), title: z.string().min(5), description: z.string().min(60),
   categoryId: z.string().regex(/^MLB\d{3,12}$/),
+  catalogProductId: z.string().trim().max(50).nullable().optional(),
   brand: z.string().optional(), barcode: z.string().nullable().optional(),
   sku: z.string().optional(), attributes: z.record(z.string(), z.string()).default({}),
   imageUrls: z.array(z.string()).min(1).max(12),
@@ -107,7 +108,20 @@ async function prepare(
   if (data.imageUrls.length > (settingsOfCategory.max_pictures_per_item || 12)) {
     throw new Error("A categoria permite menos fotos. Remova as excedentes.");
   }
-  const attrs = await mlJson("https://api.mercadolibre.com/categories/" + data.categoryId + "/attributes", token);
+  // This endpoint builds traditional /items, not catalog listings.
+  // Never silently publish a required/exclusive catalog product as traditional.
+  if (data.catalogProductId) {
+    const result = await mlJson("https://api.mercadolibre.com/products/" + encodeURIComponent(data.catalogProductId), token);
+    if (!result.response.ok || !result.payload) throw new Error("Não foi possível verificar as regras do produto de catálogo.");
+    const catalog = result.payload as { status?: string; children_ids?: string[]; settings?: { listing_strategy?: string; exclusive?: boolean } };
+    if (catalog.settings?.exclusive === true || ["catalog_required", "catalog_only"].includes(catalog.settings?.listing_strategy ?? "")) {
+      throw new Error("Este produto exige catálogo. A publicação tradicional está bloqueada até existir um fluxo de catálogo específico.");
+    }
+    if (catalog.children_ids?.length) {
+      throw new Error("Referência de catálogo aponta para produto pai. Escolha um produto filho específico.");
+    }
+  }
+    const attrs = await mlJson("https://api.mercadolibre.com/categories/" + data.categoryId + "/attributes", token);
   if (!attrs.response.ok || !Array.isArray(attrs.payload)) throw new Error("Não foi possível verificar os atributos exigidos.");
   const required = (attrs.payload as Array<{ id?: string; name?: string; tags?: { required?: boolean; new_required?: boolean } }>)
     .filter(a => a.tags?.required || a.tags?.new_required);

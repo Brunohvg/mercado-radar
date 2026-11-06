@@ -504,11 +504,14 @@ async function backgroundHarness() {
       });
     },
     chrome: {
+      identity: {
+        getRedirectURL: () => "https://" + "a".repeat(32) + ".chromiumapp.org/radar-auth",
+      },
       runtime: {
         id: "a".repeat(32),
         onInstalled: { addListener() {} },
         onMessageExternal: { addListener(fn) { externalListener = fn; } },
-        getRedirectURL: () => "https://" + "a".repeat(32) + ".chromiumapp.org/radar-auth",
+
         onMessage: {
           addListener(fn) {
             listener = fn;

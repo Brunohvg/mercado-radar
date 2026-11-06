@@ -23,14 +23,11 @@ export default function ExtensionPage() {
           <section className="clean-panel extension-install-hero">
             <div className="extension-install-copy">
               <span className="extension-install-kicker">
-                Instalação no Windows
+                Instalação no Windows e Linux
               </span>
-              <h2>Instale em poucos cliques, sem baixar código</h2>
+              <h2>Instale no Chrome ou Chromium</h2>
               <p>
-                O instalador prepara a versão atual da extensão em uma pasta
-                fixa do Windows e abre o Chrome na tela correta. Enquanto a
-                extensão não estiver na Chrome Web Store, o Chrome exige apenas
-                a confirmação final em modo de desenvolvedor.
+                Escolha o instalador para seu sistema. Ele prepara os arquivos da extensão em uma pasta local, sem modificar o sistema ou exigir acesso administrativo. No navegador, confirme a instalação em modo de desenvolvedor.
               </p>
 
               <div className="extension-install-actions">
@@ -40,6 +37,14 @@ export default function ExtensionPage() {
                   download
                 >
                   Instalar extensão no Windows
+                </a>
+
+                <a
+                  className="secondary extension-install-secondary"
+                  href="/api/extension/linux-installer"
+                  download
+                >
+                  Instalar extensão no Linux
                 </a>
 
                 <span
@@ -61,16 +66,17 @@ export default function ExtensionPage() {
                 <span aria-hidden="true">1</span>
                 <strong>Dê dois cliques no instalador</strong>
                 <small>
-                  Execute o MercadoRadar-Instalar.cmd baixado. Ele prepara a
-                  pasta correta sozinho.
+                  No Windows, execute MercadoRadar-Instalar.cmd. No Linux,
+                  abra o terminal na pasta de downloads e rode
+                  <code>bash MercadoRadar-Instalar-Linux.sh</code>.
                 </small>
               </li>
               <li>
                 <span aria-hidden="true">2</span>
-                <strong>O Chrome será aberto</strong>
+                <strong>Abra as extensões no navegador</strong>
                 <small>
-                  Na tela de extensões, deixe o Modo do desenvolvedor ativado
-                  (canto superior direito).
+                  Abra <code>chrome://extensions</code> no Chrome ou Chromium e
+                  ative o Modo do desenvolvedor.
                 </small>
               </li>
               <li>
@@ -78,7 +84,8 @@ export default function ExtensionPage() {
                 <strong>Carregue a pasta gerada</strong>
                 <small>
                   Clique em “Carregar sem compactação” e selecione somente a
-                  pasta aberta pelo instalador: <code>ExtensionBeta</code> na
+                  pasta aberta pelo instalador. No Linux, fica em
+                  <code>~/.local/share/MercadoRadar/ExtensionBeta</code> para
                   homologação ou <code>ExtensionDev</code> na produção.
                   Não selecione a pasta Downloads nem o instalador.
                 </small>

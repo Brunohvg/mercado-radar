@@ -59,7 +59,7 @@ type PriceResponse = {
     purchaseCost: number; taxAmount: number; commissionAmount: number;
     saleFeeAmount: number; operatingCost: number; amountReceived: number;
   };
-  quote?: { commissionPercent: number; fixedFee: number; saleFeeAmount: number; shippingCost: number; logisticType: string; freeShipping: boolean; mandatoryFreeShippingApplied?: boolean; shippingGrossReference?: number };
+  quote?: { commissionPercent: number; fixedFee: number; saleFeeAmount: number; shippingCost: number; logisticType: string; freeShipping: boolean; mandatoryFreeShippingApplied?: boolean; shippingGrossReference?: number; shippingSource?: string };
   comparison?: {
     price: number;
     selected: { listingType: string; saleFeeAmount: number; shippingCost: number; profit: number };
@@ -127,6 +127,7 @@ export function ListingDraftAssistant({
   const [shippingPreferences, setShippingPreferences] = useState<ShippingPreferences | null>(null);
   const [shippingError, setShippingError] = useState("");
   const [freeShipping, setFreeShipping] = useState<"" | "true" | "false">("");
+  const [manualShippingCost, setManualShippingCost] = useState("");
   const [discovery, setDiscovery] = useState<Discovery | null>(null);
   const [price, setPrice] = useState<PriceResponse | null>(null);
   const [loading, setLoading] = useState<"discover" | "price" | null>(null);
@@ -283,6 +284,11 @@ export function ListingDraftAssistant({
     const heightCm = positiveNumber(height);
     const widthCm = positiveNumber(width);
     const lengthCm = positiveNumber(length);
+    const userShipping = manualShippingCost.trim() ? nonnegativeNumber(manualShippingCost) : null;
+    if (manualShippingCost.trim() && userShipping === null) {
+      setError("O frete manual precisa ser um valor positivo ou zero confirmado.");
+      return;
+    }
     if (!categoryId || !cost || !kitQuantity || !Number.isInteger(kitQuantity) || operating === null || discountPercent === null) {
       shippingDetails.current?.setAttribute("open", "");
       setError("Confirme categoria, custo por unidade, unidades do kit e custos. O custo operacional já inicia em R$ 0,00.");
@@ -294,7 +300,7 @@ export function ListingDraftAssistant({
       setError("A logística da conta vendedora ainda não foi confirmada. Confira a conexão Mercado Livre.");
       return;
     }
-    if (freeShipping === "" || weightGrams === null || heightCm === null || widthCm === null || lengthCm === null) {
+    if (freeShipping === "" || (userShipping === null && (weightGrams === null || heightCm === null || widthCm === null || lengthCm === null))) {
       shippingDetails.current?.setAttribute("open", "");
       setError("Para cotar frete e sugerir preço, confirme frete grátis e medidas reais. Peso em gramas: use 100, não 0,100.");
       return;
@@ -311,10 +317,11 @@ export function ListingDraftAssistant({
         listingType,
         logisticType,
         freeShipping: freeShipping === "true",
-        weightGrams,
-        heightCm,
-        widthCm,
-        lengthCm,
+        ...(userShipping !== null ? { manualShippingCost: userShipping } : {}),
+        ...(weightGrams !== null ? { weightGrams } : {}),
+        ...(heightCm !== null ? { heightCm } : {}),
+        ...(widthCm !== null ? { widthCm } : {}),
+        ...(lengthCm !== null ? { lengthCm } : {}),
       });
       setPrice(result);
       if (result.quote?.freeShipping === true) setFreeShipping("true");
@@ -479,6 +486,15 @@ export function ListingDraftAssistant({
           <p className="listing-assistant__helper" role="status">
             {shippingError || shippingPreferences?.notice || "Consultando as modalidades habilitadas do vendedor…"}
           </p>
+          <label className="field listing-assistant__field">
+            Frete do vendedor conferido (R$) — opcional
+            <input inputMode="decimal" value={manualShippingCost} placeholder="Se a API negar a cotação, ex.: 12,95"
+              onChange={e => { setManualShippingCost(e.target.value); setPrice(null); }} />
+          </label>
+          <p className="listing-assistant__helper">
+            Deixe vazio para cotar automaticamente pela API. Se preencher, o Radar gera apenas
+            um cenário manual de lucro; esse valor não é uma tarifa oficial.
+          </p>
           <h3 className="listing-assistant__subheading">Medidas da embalagem para frete</h3>
           <div className="listing-assistant__grid">
             {label("Peso real, em gramas", weight, setWeight)}
@@ -563,7 +579,11 @@ export function ListingDraftAssistant({
                 <small>{price.comparison.observation}</small>
               </div>
             ) : <p className="listing-assistant__helper">A comparação entre modalidades não ficou disponível na API; não foi estimada.</p>}
-            <p className="listing-assistant__helper">Tarifa: API de listing prices. Frete: cotação por vendedor, já com descontos informados pela API. Valor realizado somente após a venda.</p>
+            <p className="listing-assistant__helper">
+              {price.quote?.shippingSource === "USER_VERIFIED_MANUAL"
+                ? "Cenário com frete informado manualmente; não equivale a tarifa confirmada do Mercado Livre."
+                : "Tarifa: API de listing prices. Frete: cotação estimada por vendedor; custo efetivo só após a venda."}
+            </p>
           </div>
         )}
         <ListingDraftManager

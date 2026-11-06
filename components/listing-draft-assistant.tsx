@@ -276,6 +276,28 @@ export function ListingDraftAssistant({
       setCategoryId(data.identification?.categoryId ?? "");
       setCategoryName(data.identification?.categoryName ?? "");
       setManualCategory(!data.identification?.categoryId);
+      // Automatically prepare commercial copy from server-verified catalog
+      // facts. This never publishes an item or overwrites a different search.
+      if (aiConfig?.configured && !data.identification?.requiresProductName) {
+        setAiLoading(true);
+        void postJson<AiDraft>("/api/ai/listing-draft", {
+          name: data.identification?.name || name.trim(),
+          brand: data.identification?.brand || brand.trim(),
+          category: data.identification?.categoryName || "",
+          confirmedFacts: confirmedFacts.trim(),
+          catalogProductId: data.identification?.catalogProductId || undefined,
+        }).then(result => {
+          if (serial !== identificationSerial.current) return;
+          setAiDraft(result);
+          setSavedTitle(result.title);
+          setSavedDescription(result.description);
+          setRestoredMissingFacts(result.missingFacts);
+        }).catch(() => {
+          // AI quota and availability must not prevent manual editing.
+        }).finally(() => {
+          if (serial === identificationSerial.current) setAiLoading(false);
+        });
+      }
       // The discovery API already calculates medians from comparable listings.
       // Prefill only missing values; never overwrite the seller's manual inputs.
       // This is simulation evidence, not verified package measurements.

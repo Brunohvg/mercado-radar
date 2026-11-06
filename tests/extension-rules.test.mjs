@@ -87,6 +87,10 @@ test("instalador da homologação serve os próprios arquivos e Docker inclui ex
   assert.match(docker, /\/app\/extension \.\/extension/);
   assert.match(cmd, /new URL\(request\.url\)\.origin/);
   assert.doesNotMatch(cmd, /set \\"URL=https:\/\/radar\.optarys\.com\.br/);
+  const installer = await readFile(new URL("../app/api/extension/dev-installer/route.ts", import.meta.url), "utf8");
+  assert.match(installer, /ExtensionBeta/);
+  assert.match(installer, /replaceAll\("https:\/\/radar\.optarys\.com\.br", origin\)/);
+  assert.match(installer, /host_permissions/);
 });
 const measured = (rate, method = "HISTORICO", isOwn = false) => ({
   isOwn,

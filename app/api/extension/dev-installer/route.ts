@@ -26,14 +26,45 @@ function psString(value: string) {
   return "'" + value.replaceAll("'", "''") + "'";
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const origin = new URL(request.url).origin;
+    const isLocal = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+    if (!origin.startsWith("https://") && !isLocal) {
+      return NextResponse.json(
+        { error: "A instalação exige HTTPS ou localhost." },
+        { status: 400 },
+      );
+    }
+    const isProduction = origin === "https://radar.optarys.com.br";
+    const destination = isProduction ? "ExtensionDev" : "ExtensionBeta";
+    const installDirLine = '$installDir = Join-Path $env:LOCALAPPDATA "MercadoRadar\\' + destination + '"';
     const root = path.join(process.cwd(), "extension");
+
+    // Bind beta files only to the Coolify deployment they came from.
+    // No production seller token or session is carried into homologation.
     const files = await Promise.all(
-      EXTENSION_FILES.map(async (name) => ({
-        name,
-        data: (await readFile(path.join(root, name))).toString("base64"),
-      })),
+      EXTENSION_FILES.map(async (name) => {
+        const original = await readFile(path.join(root, name));
+        let data = original;
+        if (!isProduction && name === "manifest.json") {
+          const manifest = JSON.parse(original.toString("utf8")) as {
+            host_permissions: string[];
+          };
+          manifest.host_permissions = manifest.host_permissions.map((host) =>
+            host === "https://radar.optarys.com.br/*" ? origin + "/*" : host,
+          );
+          data = Buffer.from(JSON.stringify(manifest, null, 2) + "\n");
+        } else if (
+          !isProduction &&
+          ["background.js", "sidepanel.js", "content.js", "sidepanel.html"].includes(name)
+        ) {
+          data = Buffer.from(
+            original.toString("utf8").replaceAll("https://radar.optarys.com.br", origin),
+          );
+        }
+        return { name, data: data.toString("base64") };
+      }),
     );
 
     const entries = files
@@ -43,7 +74,7 @@ export async function GET() {
     const script = [
       '$ErrorActionPreference = "Stop"',
       "",
-      '$installDir = Join-Path $env:LOCALAPPDATA "MercadoRadar\\ExtensionDev"',
+      installDirLine,
       "New-Item -ItemType Directory -Force -Path $installDir | Out-Null",
       "",
       "$files = @{",

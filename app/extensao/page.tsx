@@ -78,7 +78,8 @@ export default function ExtensionPage() {
                 <strong>Carregue a pasta gerada</strong>
                 <small>
                   Clique em “Carregar sem compactação” e selecione somente a
-                  pasta <code>%LOCALAPPDATA%\MercadoRadar\ExtensionDev</code>.
+                  pasta aberta pelo instalador: <code>ExtensionBeta</code> na
+                  homologação ou <code>ExtensionDev</code> na produção.
                   Não selecione a pasta Downloads nem o instalador.
                 </small>
               </li>

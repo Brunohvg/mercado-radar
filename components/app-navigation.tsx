@@ -34,6 +34,7 @@ const groups: Array<{ label: string; items: MenuItem[] }> = [
     items: [
       { href: "/", label: "Dashboard", icon: "dashboard" },
       { href: "/anuncios", label: "Anúncios", icon: "listings" },
+      { href: "/assistente-anuncios", label: "Criar anúncio", icon: "listings", badge: "Novo" },
       { href: "/produtos", label: "Produtos", icon: "products" },
       { href: "/vendas", label: "Vendas e lucro", icon: "sales" },
       { href: "/publicidade", label: "Publicidade", icon: "ads" },

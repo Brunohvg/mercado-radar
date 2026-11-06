@@ -196,6 +196,7 @@ export async function POST(request: Request) {
         ? "ITEM_API"
         : "USER"
       : null;
+    let shippingQuoteError: string | null = null;
     const [quotedFee, shipping] = await Promise.all([
       categoryId && !parsed.data.manualFees
         ? getListingPriceQuote({
@@ -227,7 +228,10 @@ export async function POST(request: Request) {
                 freeShipping: item.freeShipping,
               })
             : Promise.resolve(null)
-      ).catch(() => null),
+      ).catch(error => {
+        shippingQuoteError = error instanceof Error ? error.message : "Cotação de frete indisponível.";
+        return null;
+      }),
     ]);
     const fee = parsed.data.manualFees ?? quotedFee;
     const feeSource = parsed.data.manualFees
@@ -258,10 +262,14 @@ export async function POST(request: Request) {
               : "Medidas informadas por você. ") +
             "Estimativa na sua conta para preço, modalidade e logística simulados. Produto novo; pode mudar no envio."
           : parcel && !shipping
-            ? "A API não retornou frete para esta embalagem. Confira as medidas/logística ou informe um valor verificado."
+            ? (shippingQuoteError
+                ? "Cotação oficial não disponível: " + shippingQuoteError + ". Use um custo informado somente para simulação, não como tarifa confirmada."
+                : "A API não retornou frete para esta embalagem. Confira as medidas/logística ou informe um valor verificado.")
             : shippingKnown
               ? "Cotação da API para o anúncio próprio. O custo final depende do envio realizado."
-              : "Informe a embalagem para estimar na sua conta ou um custo de frete verificado.";
+              : shippingQuoteError
+                ? "Frete não obtido pela API: " + shippingQuoteError + ". Confira as permissões ou informe um custo conferido para estimar."
+                : "Informe a embalagem para estimar na sua conta ou um custo de frete verificado.";
     const shippingCost =
       parsed.data.shippingCost ?? shipping?.shippingCost ?? null;
     const shippingDiscount = parseShippingDiscount(
@@ -283,6 +291,7 @@ export async function POST(request: Request) {
       shippingEstimated,
       shippingSource,
       shippingNote,
+      shippingQuoteError,
       shippingPackageSource,
       shippingDiscount,
       fees: {

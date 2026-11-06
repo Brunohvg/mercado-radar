@@ -127,7 +127,9 @@
           : "Frete cotado na API: ") +
         brl(quote.fees.shippingCost) +
         ". O custo final depende do envio."
-      : "Frete do vendedor a confirmar. O repasse acima ainda não desconta frete.";
+      : quote?.shippingNote
+        ? quote.shippingNote
+        : "Frete do vendedor a confirmar. O repasse acima ainda não desconta frete.";
     $("autoNote").textContent =
       s.status === "connection"
         ? "Entre na sua conta Radar para consultar tarifas e histórico."

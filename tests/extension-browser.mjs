@@ -528,6 +528,12 @@ try {
         .waitFor();
       await host.keyboard.press("Escape");
       assert.equal(await launcher.locator("nav").isVisible(), false);
+      await launcher.getByRole("button", { name: "Abrir menu do Mercado Radar" }).click();
+      await launcher.getByRole("button", { name: "Mover botão do Radar para esquerda" }).click();
+      assert.equal(await launcher.evaluate(el => el.style.left), "20px");
+      await launcher.getByRole("button", { name: "Abrir menu do Mercado Radar" }).click();
+      await launcher.getByRole("button", { name: "Mover botão do Radar para direita" }).click();
+      assert.equal(await launcher.evaluate(el => el.style.right), "20px");
       await product
         .getByRole("button", { name: "Ocultar", exact: true })
         .click();

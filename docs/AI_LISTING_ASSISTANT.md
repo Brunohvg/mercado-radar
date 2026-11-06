@@ -26,7 +26,7 @@ Qualquer produto permitido no Mercado Livre (não apenas ilhós ou tintas) pode 
 **Configurado nesta branch:** `POST /api/ai/listing-draft` autenticado, com Gemini e chave apenas no servidor.
 A tela `/assistente-anuncios` tem botão **Gerar título e descrição com Gemini**, campo de fatos confirmados e prévia revisável. Sem chave ou cota, a análise determinística continua funcionando normalmente.
 
-Para homologação no Coolify: `RADAR_AI_PROVIDER=gemini`, `GEMINI_API_KEY=<chave secreta>`, `GEMINI_MODEL=gemini-2.5-flash-lite`. Configure como segredos/variáveis do serviço, nunca no Git. Reinicie o deploy para aplicar. Provedor `none` desliga a função. **Sem fallback automático para Grok/OpenAI.** A chave Grok reservada não é lida nesta versão.
+Para homologação no Coolify: `RADAR_AI_PROVIDER=gemini`, `GEMINI_API_KEY=<chave secreta>`, `GEMINI_MODEL=gemini-3.5-flash-lite`. Configure como segredos/variáveis do serviço, nunca no Git. Reinicie o deploy para aplicar. Provedor `none` desliga a função. **Sem fallback automático para Grok/OpenAI.** A chave Grok reservada não é lida nesta versão.
 
 A existência da API Free Tier do Gemini não garante que uma chave/projeto com faturamento ativo nunca produza custos. Confira **quota e faturamento no AI Studio**, e não habilite plano pago se o objetivo for custo zero. Dados enviados ao Free Tier podem ser utilizados pelo provedor conforme seus termos; não inclua segredos, dados de compradores ou fornecedor confidencial nos textos de entrada.
 

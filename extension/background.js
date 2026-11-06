@@ -114,7 +114,7 @@ async function refreshAccessToken() {
 
 async function currentAccessToken() {
   const tokens = await authTokens();
-  if ((tokens.radarAuthOrigin || DEFAULT_API_BASE) !== (await getApiBase())) {
+  if (!tokens.radarAuthOrigin || tokens.radarAuthOrigin !== (await getApiBase())) {
     await clearTokens();
     return null;
   }

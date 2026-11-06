@@ -616,7 +616,7 @@ test("transient auth failure does not delete a refresh token", async () => {
   assert.equal(h.local.radarRefreshToken, "refresh-still-valid");
   assert.equal(h.removed.length, 0);
 });
-test("changing server cannot forward current or legacy Radar tokens to another origin", async () => {
+test("stale server override cannot redirect tokens and legacy tokens without origin are discarded", async () => {
   for (const origin of ["https://radar.optarys.com.br", undefined]) {
     const h = await backgroundHarness();
     h.sync.radarApiBase = "http://localhost:3000";
@@ -626,11 +626,14 @@ test("changing server cannot forward current or legacy Radar tokens to another o
       radarAccessToken: "prod-access",
       radarAccessTokenExpiresAt: Date.now() + 999999,
     });
-    assert.equal(
-      (await h.call({ type: "RADAR_AUTH_STATUS" })).authenticated,
-      false,
-    );
-    assert.equal(h.fetches.length, 0);
-    assert.equal(h.local.radarAccessToken, undefined);
+    const result = await h.call({ type: "RADAR_AUTH_STATUS" });
+    assert.equal(result.authenticated, false);
+    assert.ok(h.fetches.every(([url]) => String(url).startsWith("https://radar.optarys.com.br/")));
+    if (!origin) {
+      assert.equal(h.fetches.length, 0);
+      assert.equal(h.local.radarAccessToken, undefined);
+    } else {
+      assert.equal(h.fetches.length, 1);
+    }
   }
 });

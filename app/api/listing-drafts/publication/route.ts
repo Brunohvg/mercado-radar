@@ -95,15 +95,16 @@ async function prepare(
 ) {
   const cat = await mlJson("https://api.mercadolibre.com/categories/" + data.categoryId, token);
   const category = cat.payload as {
-    listing_allowed?: boolean; status?: string; max_title_length?: number; max_pictures_per_item?: number;
+    settings?: { listing_allowed?: boolean; status?: string; max_title_length?: number; max_pictures_per_item?: number };
   } | null;
-  if (!cat.response.ok || !category?.listing_allowed || category.status !== "enabled") {
+  const settingsOfCategory = category?.settings;
+  if (!cat.response.ok || !settingsOfCategory?.listing_allowed || settingsOfCategory.status !== "enabled") {
     throw new Error("A categoria não está habilitada para novas publicações.");
   }
-  if (data.title.length > (category.max_title_length || 120)) {
-    throw new Error("O título excede o limite de " + category.max_title_length + " caracteres da categoria.");
+  if (data.title.length > (settingsOfCategory.max_title_length || 120)) {
+    throw new Error("O título excede o limite de " + settingsOfCategory.max_title_length + " caracteres da categoria.");
   }
-  if (data.imageUrls.length > (category.max_pictures_per_item || 12)) {
+  if (data.imageUrls.length > (settingsOfCategory.max_pictures_per_item || 12)) {
     throw new Error("A categoria permite menos fotos. Remova as excedentes.");
   }
   const attrs = await mlJson("https://api.mercadolibre.com/categories/" + data.categoryId + "/attributes", token);

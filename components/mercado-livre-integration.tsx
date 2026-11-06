@@ -152,7 +152,7 @@ export function MercadoLivreIntegration() {
             <small>Mesmo com escrita autorizada, a publicação precisa atender às políticas e regras do vendedor e da categoria.</small>
           </div>
         )}
-        {error && <div className="error">{error}</div>
+        {error && <div className="error">{error}</div>}
 
         {status && !status.configured && (
           <div className="integration-note">

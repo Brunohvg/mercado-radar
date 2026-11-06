@@ -59,7 +59,7 @@ type PriceResponse = {
     purchaseCost: number; taxAmount: number; commissionAmount: number;
     saleFeeAmount: number; operatingCost: number; amountReceived: number;
   };
-  quote?: { commissionPercent: number; fixedFee: number; saleFeeAmount: number; shippingCost: number; logisticType: string; freeShipping: boolean };
+  quote?: { commissionPercent: number; fixedFee: number; saleFeeAmount: number; shippingCost: number; logisticType: string; freeShipping: boolean; mandatoryFreeShippingApplied?: boolean; shippingGrossReference?: number };
   comparison?: {
     price: number;
     selected: { listingType: string; saleFeeAmount: number; shippingCost: number; profit: number };
@@ -303,6 +303,7 @@ export function ListingDraftAssistant({
         lengthCm,
       });
       setPrice(result);
+      if (result.quote?.freeShipping === true) setFreeShipping("true");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível cotar as tarifas.");
     } finally {
@@ -523,7 +524,7 @@ export function ListingDraftAssistant({
             </div>
             <p>Mercadoria {money(price.analysis.purchaseCost)} · Tarifa total ML {money(price.quote?.saleFeeAmount)} (inclui tarifa fixa {money(price.quote?.fixedFee)}) · Frete {money(price.quote?.shippingCost)} · Imposto {money(price.analysis.taxAmount)} · Operação {money(price.analysis.operatingCost)}.</p>
             <p>Cotação estimada para {price.quote?.logisticType || "logística informada"}, frete grátis {price.quote?.freeShipping ? "sim" : "não"}. O valor efetivo depende da venda e das regras da sua conta.</p>
-            {price.quote?.freeShipping && freeShipping === "false" && (
+            {price.quote?.mandatoryFreeShippingApplied && (
               <p className="listing-assistant__identity-warning">O frete grátis foi aplicado automaticamente porque o preço sugerido atingiu a faixa de obrigação. A cotação é estimada, conforme regras e elegibilidade.</p>
             )}
             {price.comparison ? (

@@ -118,7 +118,7 @@ export async function POST(request: Request) {
         feeSource: "ML_SELLER_LISTING_PRICES",
         shippingSource: "ML_SELLER_SHIPPING_OPTIONS_FREE",
         shippingCostKind: "ESTIMATE_NET_AFTER_DISCOUNT",
-        shippingDiscountAmount: shipping.promotedAmount,
+        shippingGrossReference: shipping.promotedAmount,
         mandatoryFreeShippingApplied: candidate >= 79 && !input.freeShipping,
         sellerUserId: session.account.mercadoLivreUserId,
         billableWeight: shipping.billableWeight,

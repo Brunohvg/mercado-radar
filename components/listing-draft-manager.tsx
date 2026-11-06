@@ -36,6 +36,8 @@ export function ListingDraftManager({
   const [description, setDescription] = useState(data.description);
   const [stock, setStock] = useState("0");
   const [photos, setPhotos] = useState("");
+  const [photoFacts, setPhotoFacts] = useState<string[]>([]);
+  const [photoReviewStatus, setPhotoReviewStatus] = useState("");
   const [pending, setPending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
@@ -107,6 +109,8 @@ export function ListingDraftManager({
       setDescription(saved.data.description);
       setStock(String(saved.data.stock));
       setPhotos((saved.data.imageUrls || []).join("\n"));
+      setPhotoFacts([]);
+      setPhotoReviewStatus("");
       setAttributes(saved.data.attributes ?? {});
       setFactsReviewed(Boolean(saved.data.factsReviewed));
       setChannel(saved.data.publicationChannel === "CATALOG" ? "CATALOG" : "TRADITIONAL");
@@ -140,6 +144,32 @@ export function ListingDraftManager({
         uploaded.push(result.url);
       }
       setPhotos([...existing, ...uploaded].join("\n"));
+      // Read the first uploaded product photo. Image observations are NOT
+      // confirmed facts and are never added to an advert without seller review.
+      if (uploaded.length) {
+        setPhotoReviewStatus("Lendo o rótulo da foto com IA…");
+        try {
+          const res = await fetch("/api/ai/photo-facts", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ photoUrl: uploaded[0], name: data.name }),
+          });
+          const analysis = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            setPhotoReviewStatus("A foto foi salva, mas a leitura por IA não ficou disponível.");
+          } else {
+            setPhotoFacts(Array.isArray(analysis.visibleFacts) ? analysis.visibleFacts : []);
+            setPhotoReviewStatus(
+              (Array.isArray(analysis.visibleFacts) && analysis.visibleFacts.length
+                ? "A IA identificou possíveis características na imagem. Confira antes de usar. "
+                : "Não há características legíveis suficientes na imagem. ") +
+              (analysis.caution || ""),
+            );
+          }
+        } catch {
+          setPhotoReviewStatus("A foto foi salva; a IA não conseguiu analisar o rótulo.");
+        }
+      }
       setValidated(false);
       setRequiresSave(true);
       setMessage(uploaded.length + " foto(s) enviada(s). Salve o rascunho para associá-las ao produto.");
@@ -298,6 +328,24 @@ export function ListingDraftManager({
         )}
       </div>}
       </label>
+      {photoReviewStatus && (
+        <div className="listing-draft-workspace__attributes" role="status">
+          <strong>Leitura inteligente da foto — confirme antes de usar</strong>
+          <p className="listing-assistant__helper">{photoReviewStatus}</p>
+          {photoFacts.length > 0 && <>
+            <ul>{photoFacts.map((fact, i) => <li key={i}>{fact}</li>)}</ul>
+            <button type="button" className="secondary" onClick={() => {
+              const lines = photoFacts.filter(x => x.trim()).map(x => "• " + x);
+              setDescription(current =>
+                (current.trim() ? current.trim() + "\n\n" : "") +
+                "Informações conferidas na foto pelo vendedor:\n" + lines.join("\n"));
+              setPhotoFacts([]);
+              setPhotoReviewStatus("Fatos adicionados à descrição após sua confirmação. Confira antes de salvar.");
+              setValidated(false); setRequiresSave(true);
+            }}>Conferi a embalagem — usar na descrição</button>
+          </>}
+        </div>
+      )}
       {data.categoryId && (
         <div className="listing-draft-workspace__attributes">
           <strong>Ficha técnica da categoria</strong>

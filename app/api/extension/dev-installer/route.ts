@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import { getPublicOrigin } from "@/lib/public-url";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ function psString(value: string) {
 
 export async function GET(request: Request) {
   try {
-    const origin = new URL(request.url).origin;
+    const origin = new URL(getPublicOrigin(request)).origin;
     const isLocal = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
     if (!origin.startsWith("https://") && !isLocal) {
       return NextResponse.json(

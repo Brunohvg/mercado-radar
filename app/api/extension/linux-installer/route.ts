@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import { getPublicOrigin } from "@/lib/public-url";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ const FILES = [
 
 export async function GET(request: Request) {
   try {
-    const origin = new URL(request.url).origin;
+    const origin = new URL(getPublicOrigin(request)).origin;
     const local = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
     if (!origin.startsWith("https://") && !local) {
       return NextResponse.json({ error: "Instalação exige HTTPS ou localhost." }, { status: 400 });

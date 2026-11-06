@@ -163,6 +163,23 @@ export async function POST(request: Request) {
     );
 
     const catalogStrategy = (() => {
+      const strategy = catalogDetails?.settings?.listing_strategy ?? "unknown";
+      const exclusive = catalogDetails?.settings?.exclusive === true;
+      if (exclusive || strategy === "catalog_only") return {
+        status: "CATALOG_ONLY" as const,
+        recommendation: "CATALOG_REQUIRED" as const,
+        reason: "A API indica catálogo exclusivo. Não é permitido recomendar anúncio tradicional como alternativa.",
+      };
+      if (strategy === "catalog_required") return {
+        status: "CATALOG_REQUIRED" as const,
+        recommendation: "CATALOG_REQUIRED" as const,
+        reason: "O produto exige presença no catálogo. Confirme que o código e todos os atributos do item são idênticos antes de associar.",
+      };
+      if (catalogDetails?.children_ids?.length) return {
+        status: "PARENT_PRODUCT" as const,
+        recommendation: "REVIEW" as const,
+        reason: "O produto encontrado é pai e possui variantes. Escolha um produto filho específico antes de anunciar em catálogo.",
+      };
       if (!catalogBest || !catalogDetails) return {
         status: "UNCONFIRMED" as const,
         recommendation: "REVIEW" as const,
@@ -368,6 +385,8 @@ export async function POST(request: Request) {
       catalogStrategy: {
         ...catalogStrategy,
         productId: catalogBest?.id ?? null,
+        listingStrategy: catalogDetails?.settings?.listing_strategy ?? "unknown",
+        catalogExclusive: catalogDetails?.settings?.exclusive === true,
         productName: catalogDetails?.name ?? catalogBest?.name ?? null,
         competitionPrice: catalogPeerPrices.length ? median(catalogPeerPrices) : null,
         restrictions: [

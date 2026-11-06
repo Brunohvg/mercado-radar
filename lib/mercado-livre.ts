@@ -1202,6 +1202,8 @@ export async function getCatalogProductDetails(input: {
     family_name?: string;
     domain_id?: string;
     status?: string;
+    children_ids?: string[];
+    settings?: { listing_strategy?: string; exclusive?: boolean; content?: string };
     sold_quantity?: number;
     permalink?: string;
     attributes?: Array<{

@@ -15,6 +15,8 @@ type FormState = {
   kitQuantity: string;
   salePrice: string;
   listingType: ListingType;
+  logisticType: "drop_off" | "cross_docking" | "xd_drop_off" | "fulfillment" | "self_service";
+  freeShipping: "true" | "false";
   commissionPercent: string;
   fixedFee: string;
   quotedSaleFeeAmount: string;
@@ -32,6 +34,8 @@ type FormState = {
 
 type MlQuote = {
   listingType: ListingType;
+  logisticType: string;
+  freeShipping: boolean;
   commissionPercent: number;
   fixedFee: number;
   saleFeeAmount: number;
@@ -164,6 +168,8 @@ const initial: FormState = {
   kitQuantity: "1",
   salePrice: "",
   listingType: "CLASSIC",
+  logisticType: "drop_off",
+  freeShipping: "true",
   commissionPercent: "0",
   fixedFee: "0",
   quotedSaleFeeAmount: "",
@@ -702,6 +708,8 @@ export function ProductAnalyzer() {
               discountPercent: number(next.discountPercent),
               kitQuantity: number(next.kitQuantity),
               listingType: next.listingType,
+              logisticType: next.logisticType,
+              freeShipping: next.freeShipping === "true",
               categoryId: next.categoryId.trim(),
               weightGrams: number(next.weightGrams),
               heightCm: number(next.heightCm),
@@ -764,6 +772,8 @@ export function ProductAnalyzer() {
           salePrice: number(sourceForm.salePrice),
           categoryId: sourceForm.categoryId.trim(),
           listingType,
+          logisticType: sourceForm.logisticType,
+          freeShipping: sourceForm.freeShipping === "true",
           weightGrams: number(sourceForm.weightGrams),
           heightCm: number(sourceForm.heightCm),
           widthCm: number(sourceForm.widthCm),
@@ -897,6 +907,8 @@ export function ProductAnalyzer() {
           discountPercent: number(form.discountPercent),
           kitQuantity: number(form.kitQuantity),
           listingType: form.listingType,
+          logisticType: form.logisticType,
+          freeShipping: form.freeShipping === "true",
           categoryId: form.categoryId.trim(),
           weightGrams: number(form.weightGrams),
           heightCm: number(form.heightCm),
@@ -1407,6 +1419,29 @@ export function ProductAnalyzer() {
               <option value="PREMIUM">Premium</option>
             </select>
           </div>
+          <div className="field">
+            <label>Forma de envio</label>
+            <select
+              value={form.logisticType}
+              onChange={(e) => field("logisticType", e.target.value as FormState["logisticType"])}
+            >
+              <option value="drop_off">Agência / Drop-off</option>
+              <option value="cross_docking">Coleta / Cross-docking</option>
+              <option value="xd_drop_off">Mercado Envios Places</option>
+              <option value="fulfillment">Full</option>
+              <option value="self_service">Flex</option>
+            </select>
+          </div>
+          <div className="field">
+            <label>Frete grátis no anúncio?</label>
+            <select
+              value={form.freeShipping}
+              onChange={(e) => field("freeShipping", e.target.value as FormState["freeShipping"])}
+            >
+              <option value="true">Sim — padrão inicial</option>
+              <option value="false">Não — frete pago pelo comprador</option>
+            </select>
+          </div>
           <div className="ml-costs-auto wide">
             <div className="ml-costs-head">
               <div>
@@ -1443,7 +1478,7 @@ export function ProductAnalyzer() {
             </div>
             <small>
               Esses valores não são digitados manualmente. O Radar consulta sua
-              conta, categoria, preço e logística no momento da análise.
+              conta, categoria, preço, forma de envio e frete grátis no momento da análise.
             </small>
           </div>
           <div className="field field-goal">

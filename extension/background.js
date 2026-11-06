@@ -208,7 +208,10 @@ async function login() {
 
   const authError = returned.searchParams.get("error");
   if (authError) {
-    throw new Error("Mercado Livre não concluiu o login: " + authError);
+    if (authError === "ml_account_required") {
+      throw new Error("Conecte sua conta vendedora em Integrações no painel Radar e tente novamente.");
+    }
+    throw new Error("Não foi possível autorizar a extensão no Radar. Código: " + authError);
   }
 
   const code = returned.searchParams.get("code");

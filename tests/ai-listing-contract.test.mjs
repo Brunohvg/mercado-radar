@@ -89,3 +89,13 @@ test("extension uses its bundled deployment and does not ask sellers for server 
   assert.ok(!html.includes('id="apiBase"'));
   assert.ok(!html.includes('id="saveServer"'));
 });
+
+
+test("existing vendor logs into extension without a second Mercado Livre OAuth", async () => {
+  const route = await readFile(new URL("../app/api/extension/auth/start/route.ts", import.meta.url), "utf8");
+  const background = await readFile(new URL("../extension/background.js", import.meta.url), "utf8");
+  assert.ok(route.includes("getWorkspaceMlAccount(user.workspaceId)"));
+  assert.ok(route.includes("createExtensionAuthorizationCode"));
+  assert.ok(!route.includes("https://auth.mercadolivre.com.br/authorization"));
+  assert.ok(background.includes("ml_account_required"));
+});

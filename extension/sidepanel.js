@@ -384,6 +384,21 @@
       if (!state.result) scheduleCalculation();
     }
   }
+  function openDraftAssistant() {
+    const observation = current();
+    const productName = observation?.title || state.context?.query || state.context?.title || "";
+    const reference = observation?.id || state.context?.referenceId || "";
+    const url = new URL("/assistente-anuncios", state.server);
+    url.searchParams.set("origem", "extensao");
+    if (productName) url.searchParams.set("produto", String(productName).slice(0, 180));
+    if (/^MLB(?:U)?\\d{5,}$/.test(reference)) url.searchParams.set("referencia", reference);
+    window.open(url.toString(), "_blank", "noopener,noreferrer");
+  }
+  $("prepareDraft").addEventListener("click", openDraftAssistant);
+  $("menuPrepareDraft").addEventListener("click", () => {
+    $("toolMenu").open = false;
+    openDraftAssistant();
+  });
   for (const button of document.querySelectorAll(".tabs button"))
     button.addEventListener("click", () => showTab(button.dataset.tab));
   for (const button of document.querySelectorAll("[data-tool]"))

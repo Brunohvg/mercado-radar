@@ -10,6 +10,9 @@ export type ProfitabilityInput = {
   listingType: ListingType;
   commissionPercent: number;
   fixedFee: number;
+  // Total returned by Mercado Livre: already includes fixedFee.
+  // When supplied, prefer this value over a recomputed percentage.
+  quotedSaleFeeAmount?: number;
   shippingCost: number;
   operatingCost: number;
   taxPercent?: number;
@@ -21,6 +24,7 @@ export type ProfitabilityResult = ProfitabilityInput & {
   unitCost: number;
   purchaseCost: number;
   commissionAmount: number;
+  saleFeeAmount: number;
   taxAmount: number;
   amountReceived: number;
   profit: number;
@@ -80,6 +84,7 @@ export function analyzeProfitability(
     input.salePrice,
     input.commissionPercent,
     input.fixedFee,
+    ...(input.quotedSaleFeeAmount == null ? [] : [input.quotedSaleFeeAmount]),
     input.shippingCost,
     input.operatingCost,
     input.taxPercent ?? 0,
@@ -92,17 +97,22 @@ export function analyzeProfitability(
     !Number.isInteger(input.kitQuantity) ||
     input.kitQuantity < 1 ||
     input.discountPercent > 100 ||
+    (input.quotedSaleFeeAmount != null && input.quotedSaleFeeAmount + 1e-8 < input.fixedFee) ||
     input.commissionPercent + (input.taxPercent ?? 0) >= 100
   )
     throw new Error("Valores financeiros inválidos.");
   const unitCost = input.supplierPrice * (1 - input.discountPercent / 100);
   const purchaseCost = round2(unitCost * input.kitQuantity);
-  const commissionAmount = round2(
-    input.salePrice * (input.commissionPercent / 100),
-  );
+  const commissionAmount = input.quotedSaleFeeAmount == null
+    ? round2(input.salePrice * (input.commissionPercent / 100))
+    : round2(input.quotedSaleFeeAmount - input.fixedFee);
+  // The official sale_fee_amount already contains fixed_fee.
+  const saleFeeAmount = input.quotedSaleFeeAmount == null
+    ? round2(commissionAmount + input.fixedFee)
+    : round2(input.quotedSaleFeeAmount);
   const taxAmount = round2(input.salePrice * ((input.taxPercent ?? 0) / 100));
   const amountReceived =
-    input.salePrice - commissionAmount - input.fixedFee - input.shippingCost;
+    input.salePrice - saleFeeAmount - input.shippingCost;
   const profit = round2(
     amountReceived - purchaseCost - input.operatingCost - taxAmount,
   );
@@ -160,6 +170,7 @@ export function analyzeProfitability(
     unitCost: round2(unitCost),
     purchaseCost: round2(purchaseCost),
     commissionAmount: round2(commissionAmount),
+    saleFeeAmount,
     taxAmount: round2(taxAmount),
     amountReceived: round2(amountReceived),
     profit: round2(profit),

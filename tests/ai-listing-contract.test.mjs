@@ -34,3 +34,14 @@ test("EAN sem identidade não gera texto genérico e instalador oferece Linux", 
   assert.ok(linux.includes("ExtensionBeta"));
   assert.ok(page.includes("/api/extension/linux-installer"));
 });
+
+test("catalog mandatory rules are checked and never silently published traditionally", async () => {
+  const ml = await readFile(new URL("../lib/mercado-livre.ts", import.meta.url), "utf8");
+  const discovery = await readFile(new URL("../app/api/ml/product-discovery/route.ts", import.meta.url), "utf8");
+  const publish = await readFile(new URL("../app/api/listing-drafts/publication/route.ts", import.meta.url), "utf8");
+  assert.ok(ml.includes("listing_strategy?: string"));
+  assert.ok(discovery.includes("CATALOG_REQUIRED"));
+  assert.ok(discovery.includes("PARENT_PRODUCT"));
+  assert.ok(publish.includes("Este produto exige catálogo."));
+  assert.ok(publish.includes("RADAR_ENABLE_PUBLISHING"));
+});

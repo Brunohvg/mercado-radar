@@ -263,7 +263,8 @@ export async function POST(request: Request) {
     // The seller's catalog-reference category is more trustworthy than another
     // predicted category with the same display name.
     const preferredId = catalogCategoryId ?? category?.categoryId ?? null;
-    categorySuggestions.sort((a, b) => Number(b.categoryId === preferredId) - Number(a.categoryId === preferredId));
+    confirmedSuggestions.sort((a, b) =>
+      Number(b.categoryId === preferredId) - Number(a.categoryId === preferredId));
     const winnerItemId = catalogDetails?.buy_box_winner?.item_id ?? null;
     const winnerPrice = Number(catalogDetails?.buy_box_winner?.price ?? 0);
 
@@ -422,7 +423,7 @@ export async function POST(request: Request) {
           "O Radar não altera o modo de publicação automaticamente.",
         ],
       },
-      categoryNotice: categorySuggestions.length > 1
+      categoryNotice: confirmedSuggestions.length > 1
         ? "O Mercado Livre retornou categorias diferentes. A referência do catálogo tem prioridade, mas confira os atributos antes de publicar."
         : null,
       identification: {
@@ -436,7 +437,8 @@ export async function POST(request: Request) {
         brand: (catalogDetails?.attributes ?? [])
           .find(x => x.id === "BRAND")?.value_name ?? null,
         categoryId: preferredId,
-        categoryName: categorySuggestions.find(x => x.categoryId === preferredId)?.categoryName ?? null,
+        categoryName: confirmedSuggestions.find(x => x.categoryId === preferredId)?.path?.split(" › ").at(-1)
+          ?? confirmedSuggestions.find(x => x.categoryId === preferredId)?.categoryName ?? null,
         domainName: category?.domainName ?? null,
       },
       market: {

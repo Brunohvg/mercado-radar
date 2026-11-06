@@ -690,3 +690,19 @@ test("manifestos e instaladores autorizam somente o site Radar para vinculação
     assert.ok(src.includes("manifest.externally_connectable"));
   }
 });
+
+test("o painel pode consultar compatibilidade do vendedor mas não possui rota de publicação", async () => {
+  const h = await backgroundHarness();
+  Object.assign(h.local, {
+    radarAuthOrigin: "https://radar.optarys.com.br",
+    radarAccessToken: "trusted-test-token",
+    radarAccessTokenExpiresAt: Date.now() + 999999,
+  });
+  const check = await h.call({ type: "RADAR_FETCH", path: "/api/extension/publication-capabilities", method: "GET" });
+  assert.equal(check.status, 500); // Mock reached the authorized backend URL.
+  assert.equal(h.fetches.length, 1);
+  assert.ok(String(h.fetches[0][0]).endsWith("/api/extension/publication-capabilities"));
+  const publish = await h.call({ type: "RADAR_FETCH", path: "/api/listing-drafts/publication", method: "POST" });
+  assert.equal(publish.ok, false);
+  assert.equal(h.fetches.length, 1);
+});

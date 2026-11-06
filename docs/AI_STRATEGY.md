@@ -62,7 +62,9 @@ Assim a IA melhora a experiência sem comprometer a confiabilidade financeira.
 
 ## Restrição de custo
 
-Durante o MVP, a camada de IA deve ter **custo zero**.
+Durante o MVP, a camada de IA deve priorizar o **uso gratuito** e não pode fazer fallback automático para provedor pago. Custos reais dependem do plano e do faturamento do projeto da chave; configure o Gemini Free Tier, confirme cotas e mantenha o provedor `none` enquanto não estiver validado.
+
+Implementação inicial: servidor possui rota autenticada de geração de texto com Gemini, modelo selecionável por env e sem automação de publicação. Grok não é fallback ativo.
 
 Regras:
 - não depender de API paga;

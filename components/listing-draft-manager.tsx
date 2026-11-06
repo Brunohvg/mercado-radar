@@ -19,7 +19,7 @@ export type DraftValues = {
 };
 
 type DraftSummary = { id: string; status: string; name: string; updatedAt: string };
-type Saved = { id: string; data: DraftValues; status: string };
+type Saved = { id: string; data: DraftValues; status: string; mlItemId?: string | null };
 
 export function ListingDraftManager({
   data, onRestore,
@@ -40,6 +40,11 @@ export function ListingDraftManager({
   const [attributes, setAttributes] = useState<Record<string, string>>({});
   const [requiredAttributes, setRequiredAttributes] = useState<Array<{ id: string; name: string; values: Array<{ id: string; name: string }> }>>([]);
   const [categoryStatus, setCategoryStatus] = useState("");
+  const [validated, setValidated] = useState(false);
+  const [publishConfirmed, setPublishConfirmed] = useState(false);
+  const [publishedId, setPublishedId] = useState("");
+  const [publishedLink, setPublishedLink] = useState("");
+  const [requiresSave, setRequiresSave] = useState(true);
 
   useEffect(() => { setTitle(data.title); }, [data.title]);
   useEffect(() => { setDescription(data.description); }, [data.description]);
@@ -88,6 +93,10 @@ export function ListingDraftManager({
       setPhotos((saved.data.imageUrls || []).join("\n"));
       setAttributes(saved.data.attributes ?? {});
       setIssues([]);
+      setValidated(false);
+      setRequiresSave(false);
+      setPublishConfirmed(false);
+      setPublishedId(saved.mlItemId || "");
       onRestore(saved.data);
       setMessage("Rascunho recuperado. Calcule novamente as tarifas antes de publicar.");
     } catch (error) {
@@ -112,6 +121,8 @@ export function ListingDraftManager({
         uploaded.push(result.url);
       }
       setPhotos([...existing, ...uploaded].join("\n"));
+      setValidated(false);
+      setRequiresSave(true);
       setMessage(uploaded.length + " foto(s) enviada(s). Salve o rascunho para associá-las ao produto.");
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Não foi possível enviar imagens.");
@@ -150,10 +161,43 @@ export function ListingDraftManager({
       }
       setDraftId(result.draft.id);
       setIssues(result.issues ?? []);
+      setValidated(false);
+      setRequiresSave(false);
+      setPublishConfirmed(false);
       setMessage(result.message);
       await refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Falha ao salvar.");
+    } finally { setPending(false); }
+  }
+
+  async function publication(action: "validate" | "publish") {
+    if (!draftId) { setMessage("Salve o rascunho primeiro."); return; }
+    setPending(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/listing-drafts/publication", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: draftId, action, confirmed: action === "publish" && publishConfirmed }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        const details = Array.isArray(result.causes) && result.causes.length
+          ? " " + result.causes.map((c: {message?: string}) => c.message).join("; ")
+          : "";
+        throw new Error((result.error || "Falha na validação.") + details);
+      }
+      setMessage(result.message);
+      if (action === "validate") setValidated(true);
+      if (action === "publish") {
+        setPublishedId(result.mlItemId || "");
+        setPublishedLink(result.permalink || "");
+        setValidated(false);
+      }
+      await refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Falha na publicação.");
+      setValidated(false);
     } finally { setPending(false); }
   }
 
@@ -182,16 +226,16 @@ export function ListingDraftManager({
       </label>
       <label className="field listing-assistant__field">
         <span>Título comercial (editável)</span>
-        <input maxLength={120} value={title} onChange={e => setTitle(e.target.value)} />
+        <input maxLength={120} value={title} onChange={e => { setTitle(e.target.value); setValidated(false); setRequiresSave(true); }} />
       </label>
       <label className="field listing-assistant__field">
         <span>Descrição verificada</span>
-        <textarea rows={7} maxLength={7500} value={description} onChange={e => setDescription(e.target.value)}
+        <textarea rows={7} maxLength={7500} value={description} onChange={e => { setDescription(e.target.value); setValidated(false); setRequiresSave(true); }}
           placeholder="Gere o texto com IA ou descreva as características comprovadas." />
       </label>
       <label className="field listing-assistant__field">
         <span>Estoque disponível</span>
-        <input inputMode="numeric" value={stock} onChange={e => setStock(e.target.value)} placeholder="Quantidade" />
+        <input inputMode="numeric" value={stock} onChange={e => { setStock(e.target.value); setValidated(false); setRequiresSave(true); }} placeholder="Quantidade" />
       </label>
       <label className="field listing-assistant__field">
         <span>Adicionar fotos reais do produto</span>
@@ -201,7 +245,7 @@ export function ListingDraftManager({
       </label>
       <label className="field listing-assistant__field">
         <span>Fotos salvas e links externos (uma por linha)</span>
-        <textarea rows={3} value={photos} onChange={e => setPhotos(e.target.value)}
+        <textarea rows={3} value={photos} onChange={e => { setPhotos(e.target.value); setValidated(false); setRequiresSave(true); }}
           placeholder="/api/listing-drafts/photos/... ou https://seusite.com.br/imagem.jpg" />
       {photos && <div className="listing-draft-workspace__photos">
         {photos.split(/[\n,]/).map(x => x.trim()).filter(Boolean).slice(0, 12).map((url, i) =>
@@ -217,12 +261,12 @@ export function ListingDraftManager({
             <label key={attr.id} className="field listing-assistant__field">
               <span>{attr.name} (obrigatório)</span>
               {attr.values.length > 0 && attr.values.length < 40 ? (
-                <select value={attributes[attr.id] ?? ""} onChange={e => setAttributes(prev => ({ ...prev, [attr.id]: e.target.value }))}>
+                <select value={attributes[attr.id] ?? ""} onChange={e => { setAttributes(prev => ({ ...prev, [attr.id]: e.target.value })); setValidated(false); setRequiresSave(true); }}>
                   <option value="">Selecione ou informe abaixo</option>
                   {attr.values.map(v => <option key={v.id || v.name} value={v.name}>{v.name}</option>)}
                 </select>
               ) : (
-                <input value={attributes[attr.id] ?? ""} maxLength={255} onChange={e => setAttributes(prev => ({ ...prev, [attr.id]: e.target.value }))} placeholder="Valor confirmado do produto" />
+                <input value={attributes[attr.id] ?? ""} maxLength={255} onChange={e => { setAttributes(prev => ({ ...prev, [attr.id]: e.target.value })); setValidated(false); setRequiresSave(true); }} placeholder="Valor confirmado do produto" />
               )}
             </label>
           ))}
@@ -235,9 +279,30 @@ export function ListingDraftManager({
           <ul>{issues.map(x => <li key={x}>{x}</li>)}</ul>
         </div>
       )}
-      <button type="button" className="primary listing-assistant__button" disabled={pending || uploading} onClick={() => void save()}>
+      <button type="button" className="primary listing-assistant__button" disabled={pending || uploading || Boolean(publishedId)} onClick={() => void save()}>
         {pending ? "Salvando…" : draftId ? "Salvar alterações do rascunho" : "Salvar rascunho"}
       </button>
+      {!publishedId && draftId && issues.length === 0 && !requiresSave && (
+        <div className="listing-draft-workspace__publication">
+          <strong>Etapa final — Mercado Livre</strong>
+          <p className="listing-assistant__helper">A pré-validação consulta regras reais do Mercado Livre e verifica novamente tarifas e frete.</p>
+          <button type="button" className="secondary listing-assistant__button" onClick={() => void publication("validate")} disabled={pending || uploading}>
+            {pending ? "Validando…" : "Validar anúncio na API do Mercado Livre"}
+          </button>
+          {validated && <>
+            <label className="listing-draft-workspace__confirmation">
+              <input type="checkbox" checked={publishConfirmed} onChange={e => setPublishConfirmed(e.target.checked)} />
+              <span>Confirmo que revisei os dados e quero criar um anúncio PAUSADO na minha conta Mercado Livre.</span>
+            </label>
+            <button type="button" className="primary listing-assistant__button" disabled={!publishConfirmed || pending} onClick={() => void publication("publish")}>
+              Criar anúncio pausado no Mercado Livre
+            </button>
+          </>}
+        </div>
+      )}
+      {publishedId && <p className="listing-draft-workspace__message">Anúncio criado pausado: <strong>{publishedId}</strong>.
+        {publishedLink.startsWith("https://") && <a href={publishedLink} target="_blank" rel="noopener noreferrer"> Abrir no Mercado Livre</a>}
+      </p>}
       <p className="listing-assistant__note">
         Salvar não publica no Mercado Livre. Antes da publicação, será preciso validar
         atributos obrigatórios, imagens e regras atuais da categoria.

@@ -454,6 +454,7 @@ export async function getListingPriceQuote(input: {
   listingType: MlListingType;
   logisticType?: string;
   shippingMode?: string;
+  billableWeightGrams?: number;
 }) {
   const query = new URLSearchParams({
     price: String(input.price),
@@ -461,8 +462,10 @@ export async function getListingPriceQuote(input: {
     category_id: input.categoryId,
     listing_type_id: listingTypeId(input.listingType),
     logistic_type: input.logisticType ?? "drop_off",
-    shipping_mode: input.shippingMode ?? "me2",
+    shipping_modes: input.shippingMode ?? "me2",
   });
+  if (input.billableWeightGrams && input.billableWeightGrams > 0)
+    query.set("billable_weight", String(Math.round(input.billableWeightGrams)));
 
   const raw = await jsonFetch<any>(
     `${API}/sites/MLB/listing_prices?${query.toString()}`,

@@ -21,3 +21,16 @@ test("Modelo Gemini default atual e thinking level compatível", async () => {
   assert.match(lib, /thinkingLevel: "MINIMAL"/);
   assert.ok(compose.includes("GEMINI_MODEL:-gemini-3.5-flash-lite"));
 });
+
+
+test("EAN sem identidade não gera texto genérico e instalador oferece Linux", async () => {
+  const api = await readFile(new URL("../app/api/ai/listing-draft/route.ts", import.meta.url), "utf8");
+  const discovery = await readFile(new URL("../app/api/ml/product-discovery/route.ts", import.meta.url), "utf8");
+  const linux = await readFile(new URL("../app/api/extension/linux-installer/route.ts", import.meta.url), "utf8");
+  const page = await readFile(new URL("../app/extensao/page.tsx", import.meta.url), "utf8");
+  assert.ok(api.includes("PRODUCT_IDENTITY_REQUIRED"));
+  assert.ok(discovery.includes("requiresProductName: true"));
+  assert.ok(linux.includes("base64 --decode"));
+  assert.ok(linux.includes("ExtensionBeta"));
+  assert.ok(page.includes("/api/extension/linux-installer"));
+});

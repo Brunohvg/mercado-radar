@@ -28,6 +28,13 @@ export async function POST(request: Request) {
   if (!input.success) {
     return NextResponse.json({ error: "Dados do produto inválidos." }, { status: 400 });
   }
+  // Never call the model with only a barcode: that produces fake names and attributes.
+  if (/^\\d{8,14}$/.test(input.data.name.replace(/\\D/g, ""))) {
+    return NextResponse.json({
+      error: "O EAN sozinho não identifica o produto. Confirme o nome comercial antes de gerar o anúncio.",
+      code: "PRODUCT_IDENTITY_REQUIRED",
+    }, { status: 422 });
+  }
   try {
     const copy = await generateListingCopy(input.data);
     return NextResponse.json({

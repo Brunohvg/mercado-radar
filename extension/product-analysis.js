@@ -475,7 +475,7 @@
       if (!alive(revision)) return;
       state.auth = auth;
       if (!auth?.authenticated || auth.extensionProtocol !== 2) {
-        state.status = "connection";
+        state.status = "public";
         emit();
         return;
       }
@@ -955,7 +955,7 @@
           row.append($("dt", label), $("dd", brl(value)));
           breakdown.append(row);
         }
-        form.hidden = s.status === "connection";
+        form.hidden = !s.auth?.authenticated || s.status === "connection";
         for (const [name, input] of Object.entries(fields)) {
           syncInput(input, s.fields[name]);
           const v = M.money(input.value);
@@ -997,7 +997,7 @@
                   .join(" "));
         helper.hidden =
           !s.error && !s.calculating && M.money(s.fields.cost) == null;
-        payout.hidden = s.status === "connection";
+        payout.hidden = s.status === "connection" || s.status === "public";
         resultBox.hidden = !s.result;
         resultBox.className =
           "auto-result" + (s.result?.verdict === "BAD" ? " bad" : "");
@@ -1034,9 +1034,11 @@
         status.textContent =
           s.status === "loading"
             ? "Consultas automáticas em andamento"
-            : s.status === "connection"
-              ? "Entre para consultar dados da sua conta"
-              : "Leitura e análise automáticas";
+            : s.status === "public"
+              ? "Análise pública ativa · conta opcional para dados privados"
+              : s.status === "connection"
+                ? "Conexão necessária para dados privados"
+                : "Leitura e análise automáticas";
         retry.disabled = s.status === "loading";
       },
     };

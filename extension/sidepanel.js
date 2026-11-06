@@ -234,30 +234,51 @@
       if (!group.contains(document.activeElement))
         group.hidden = !state.editCostInputs && known;
     }
-    $("calcAutoFacts").textContent = [
-      ($("listingType").value === "PREMIUM" ? "Premium" : "Clássico") +
-        (q?.fees?.commissionPercent == null
-          ? " · tarifa a confirmar"
-          : " · " +
-            pct(q.fees.commissionPercent) +
-            " + " +
-            brl(q.fees.fixedFee)),
-      manualShipping != null
-        ? "Frete informado " + brl(manualShipping)
-        : quotedShipping != null
-          ? (q.shippingEstimated ? "Frete estimado " : "Frete cotado ") +
-            brl(quotedShipping) +
-            (q.shippingDiscount?.rate > 0
-              ? " (" +
-                pct(q.shippingDiscount.rate * 100) +
-                " de desconto aplicado)"
-              : "")
-          : "Frete a confirmar",
-      tax == null ? "Imposto a confirmar" : "Imposto " + pct(tax),
-    ].join(" · ");
+    // Three compact facts replace the long, hard-to-scan calculation sentence.
+    // The freight is only called "quoted" for the seller's own authorized item.
+    const quoteDiscount = q?.shippingDiscount?.rate > 0
+      ? pct(q.shippingDiscount.rate * 100) + " de desconto aplicado"
+      : "";
+    const freight = manualShipping != null
+      ? { value: brl(manualShipping), source: "Informado por você", tone: "manual" }
+      : quotedShipping != null
+        ? {
+            value: brl(quotedShipping),
+            source: (q.shippingEstimated ? "Estimado na sua conta" : "Cotado na sua conta") +
+              (quoteDiscount ? " · " + quoteDiscount : ""),
+            tone: q.shippingEstimated ? "estimated" : "confirmed",
+          }
+        : {
+            value: "Pendente",
+            source: "Informe a embalagem para estimar ou um custo verificado",
+            tone: "pending",
+          };
+    const facts = $("calcAutoFacts");
+    facts.replaceChildren();
+    for (const [label, value, source, tone] of [
+      [
+        $("listingType").value === "PREMIUM" ? "Tarifas · Premium" : "Tarifas · Clássico",
+        q?.fees?.commissionPercent == null
+          ? "A confirmar"
+          : pct(q.fees.commissionPercent) + " + " + brl(q.fees.fixedFee),
+        q?.feeSource === "MANUAL" ? "Informadas por você" : "Cotação Mercado Livre",
+        q?.fees?.commissionPercent == null ? "pending" : "confirmed",
+      ],
+      ["Frete do vendedor", freight.value, freight.source, freight.tone],
+      [
+        "Imposto",
+        tax == null ? "Pendente" : pct(tax),
+        tax == null ? "Confirme a alíquota da sua operação" : "Configuração da sua operação",
+        tax == null ? "pending" : "confirmed",
+      ],
+    ]) {
+      const fact = node("span", null, "calc-fact " + tone);
+      fact.append(node("small", label), node("strong", value), node("small", source));
+      facts.append(fact);
+    }
     $("editCostInputs").textContent = state.editCostInputs
       ? "Recolher custos confirmados"
-      : "Alterar frete e imposto";
+      : "Revisar frete e imposto";
     renderCalculatorComparison();
   }
   function renderCalculatorComparison() {

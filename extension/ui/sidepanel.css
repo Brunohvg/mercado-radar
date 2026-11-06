@@ -336,8 +336,45 @@ h2 {
   margin-left: 7px;
 }
 #calcAutoFacts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin: 12px 0 2px;
+}
+#calcAutoFacts .calc-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  border: 1px solid #dee9e2;
+  border-radius: 9px;
+  padding: 9px;
+  background: #f7faf8;
+}
+#calcAutoFacts .calc-fact:first-child {
+  grid-column: 1 / -1;
+}
+#calcAutoFacts .calc-fact small {
+  color: #637e71;
   font-size: 10px;
-  margin-top: 14px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+#calcAutoFacts .calc-fact strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: #173c33;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+#calcAutoFacts .calc-fact.pending {
+  border-color: #ead9b3;
+  background: #fffbf2;
+}
+#calcAutoFacts .calc-fact.pending strong { color: #8b621e; }
+#calcAutoFacts .calc-fact.estimated strong { color: #2d6254; }
+@media (max-width: 310px) {
+  #calcAutoFacts { grid-template-columns: 1fr; }
 }
 #calcHint {
   text-align: center;

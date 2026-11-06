@@ -198,11 +198,11 @@
               />
             </div>
             <div id="shippingField" hidden>
-              <label for="shippingCost">Seu frete por venda · R$</label
+              <label for="shippingCost">Ajustar frete por venda · R$</label
               ><input
                 id="shippingCost"
                 inputmode="decimal"
-                placeholder="Automático ou informe"
+                placeholder="Informe somente se necessário"
               />
               <button id="openShipping" type="button" class="text-action">
                 Estimar frete
@@ -228,11 +228,11 @@
           </div>
           <p id="calcAutoFacts" class="muted" aria-live="polite"></p>
           <button id="editCostInputs" type="button" class="text-action">
-            Alterar frete e imposto
+            Revisar frete e imposto
           </button>
           <button id="calculate" type="submit">Calcular lucro</button>
           <p id="calcHint" class="muted">
-            Atualiza automaticamente ao editar os custos.
+            Tarifas e frete vêm da conta autorizada quando disponíveis. Caso contrário, confira a estimativa antes de decidir.
           </p>
           <p id="calcStatus" class="notice" role="status" hidden></p>
           <div id="calcResult" hidden>

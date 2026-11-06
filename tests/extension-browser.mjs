@@ -1684,10 +1684,12 @@ try {
         await page.locator("#calculatorForm input:visible").count(),
         1,
       );
-      assert.match(
-        await page.locator("#calcAutoFacts").innerText(),
-        /6,85.*50% de desconto aplicado.*6%/,
-      );
+      const feeFacts = page.locator("#calcAutoFacts .calc-fact");
+      assert.equal(await feeFacts.count(), 3);
+      assert.match(await feeFacts.nth(0).innerText(), /Clássico/);
+      assert.match(await feeFacts.nth(1).innerText(), /6,85/);
+      assert.match(await feeFacts.nth(1).innerText(), /50% de desconto aplicado/);
+      assert.match(await feeFacts.nth(2).innerText(), /6%/);
       const payload = await page.evaluate(
         () =>
           __qa.calls

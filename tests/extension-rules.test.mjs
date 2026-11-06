@@ -69,6 +69,18 @@ test("instalador inclui os scripts executados pelo manifest e pelo painel", asyn
       `${file} ausente do instalador`,
     );
 });
+test("beta e versão de extensão são iguais no Chrome, painel e instalador", async () => {
+  const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
+  const development = JSON.parse(await read("../extension/manifest.json"));
+  const production = JSON.parse(await read("../extension/manifest.prod.json"));
+  const panel = await read("../extension/sidepanel.html");
+  const injected = await read("../extension/content.js");
+  const installPage = await read("../app/extensao/page.tsx");
+  assert.equal(production.version, development.version);
+  assert.ok(panel.includes("Decida com margem · " + development.version));
+  assert.ok(injected.includes("Mercado Radar · " + development.version));
+  assert.ok(installPage.includes("Beta " + development.version));
+});
 const measured = (rate, method = "HISTORICO", isOwn = false) => ({
   isOwn,
   estimate: { method, windowDays: 30, salesPerDay: { value: rate } },

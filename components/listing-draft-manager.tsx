@@ -19,10 +19,6 @@ export type DraftValues = {
 
 type DraftSummary = { id: string; status: string; name: string; updatedAt: string };
 type Saved = { id: string; data: DraftValues; status: string };
-const positive = (value: string) => {
-  const v = Number(value.replace(",", "."));
-  return Number.isFinite(v) && v > 0 ? v : null;
-};
 
 export function ListingDraftManager({
   data, onRestore,
@@ -37,6 +33,7 @@ export function ListingDraftManager({
   const [stock, setStock] = useState("0");
   const [photos, setPhotos] = useState("");
   const [pending, setPending] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [issues, setIssues] = useState<string[]>([]);
 
@@ -73,13 +70,36 @@ export function ListingDraftManager({
     } finally { setPending(false); }
   }
 
+  async function uploadPhotos(files: FileList | null) {
+    if (!files?.length) return;
+    setUploading(true);
+    setMessage("");
+    try {
+      const existing = photos.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
+      if (existing.length + files.length > 12) throw new Error("Use no máximo 12 fotos.");
+      const uploaded: string[] = [];
+      for (const file of Array.from(files)) {
+        const form = new FormData();
+        form.set("file", file);
+        const response = await fetch("/api/listing-drafts/photos", { method: "POST", body: form });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Falha ao enviar imagem.");
+        uploaded.push(result.url);
+      }
+      setPhotos([...existing, ...uploaded].join("\n"));
+      setMessage(uploaded.length + " foto(s) enviada(s). Salve o rascunho para associá-las ao produto.");
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Não foi possível enviar imagens.");
+    } finally { setUploading(false); }
+  }
+
   async function save() {
     if (!data.name || /^\d{8,14}$/.test(data.name)) {
       setMessage("Identifique o nome comercial do produto antes de salvar.");
       return;
     }
     const imageUrls = photos.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
-    if (imageUrls.some(url => !url.startsWith("https://"))) {
+    if (imageUrls.some(url => !url.startsWith("https://") && !url.startsWith("/api/listing-drafts/photos/"))) {
       setMessage("As fotos precisam de URLs HTTPS próprias.");
       return;
     }
@@ -149,9 +169,20 @@ export function ListingDraftManager({
         <input inputMode="numeric" value={stock} onChange={e => setStock(e.target.value)} placeholder="Quantidade" />
       </label>
       <label className="field listing-assistant__field">
-        <span>Links de fotos próprias (HTTPS, um por linha)</span>
+        <span>Adicionar fotos reais do produto</span>
+        <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={uploading || pending}
+          onChange={e => { void uploadPhotos(e.target.files); e.target.value = ""; }} />
+        <small>JPG, PNG ou WebP, até 7 MB por imagem. Armazenadas no seu workspace.</small>
+      </label>
+      <label className="field listing-assistant__field">
+        <span>Fotos salvas e links externos (uma por linha)</span>
         <textarea rows={3} value={photos} onChange={e => setPhotos(e.target.value)}
-          placeholder="https://loja.exemplo.com/imagens/produto.jpg" />
+          placeholder="/api/listing-drafts/photos/... ou https://seusite.com.br/imagem.jpg" />
+      {photos && <div className="listing-draft-workspace__photos">
+        {photos.split(/[\n,]/).map(x => x.trim()).filter(Boolean).slice(0, 12).map((url, i) =>
+          <img key={url + i} src={url} alt={"Foto de produto " + (i + 1)} loading="lazy" />
+        )}
+      </div>}
       </label>
       {message && <p className="listing-draft-workspace__message" role="status">{message}</p>}
       {issues.length > 0 && (
@@ -160,7 +191,7 @@ export function ListingDraftManager({
           <ul>{issues.map(x => <li key={x}>{x}</li>)}</ul>
         </div>
       )}
-      <button type="button" className="primary listing-assistant__button" disabled={pending} onClick={() => void save()}>
+      <button type="button" className="primary listing-assistant__button" disabled={pending || uploading} onClick={() => void save()}>
         {pending ? "Salvando…" : draftId ? "Salvar alterações do rascunho" : "Salvar rascunho"}
       </button>
       <p className="listing-assistant__note">

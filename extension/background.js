@@ -185,56 +185,53 @@ async function login() {
   const verifier = randomVerifier(48);
   const challenge = await sha256Base64Url(verifier);
   const deviceId = await getDeviceId();
-
-  const url = new URL(base + "/api/extension/auth/start");
+  await chrome.storage.session.set({
+    radarPendingLink: { state, verifier, redirectUri, issuedAt: Date.now() },
+  });
+  const url = new URL(base + "/extensao/conectar");
+  url.searchParams.set("extension_id", chrome.runtime.id);
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("code_challenge", challenge);
-  url.searchParams.set("code_challenge_method", "S256");
   url.searchParams.set("state", state);
   url.searchParams.set("device_id", deviceId);
-  url.searchParams.set("device_name", "Chrome");
-
-  const callback = await chrome.identity.launchWebAuthFlow({
-    url: url.toString(),
-    interactive: true,
-  });
-
-  if (!callback) throw new Error("Login cancelado.");
-
-  const returned = new URL(callback);
-  if (returned.searchParams.get("state") !== state) {
-    throw new Error("Estado de autenticação inválido.");
+  try {
+    await chrome.tabs.create({ url: url.toString(), active: true });
+  } catch (error) {
+    await chrome.storage.session.remove("radarPendingLink");
+    throw error;
   }
+  return { authenticated: false, pending: true,
+    message: "Uma aba do Radar foi aberta. Autorize a extensão nessa aba." };
+}
 
-  const authError = returned.searchParams.get("error");
-  if (authError) {
-    if (authError === "ml_account_required") {
-      throw new Error("Conecte sua conta vendedora em Integrações no painel Radar e tente novamente.");
-    }
-    throw new Error("Não foi possível autorizar a extensão no Radar. Código: " + authError);
+async function finishBrowserLink(message, sender) {
+  const base = await getApiBase();
+  if (!sender.url || new URL(sender.url).origin !== base) {
+    throw new Error("Origem de vinculação não autorizada.");
   }
-
-  const code = returned.searchParams.get("code");
-  if (!code) throw new Error("Código de autenticação não recebido.");
-
-  const tokenResponse = await fetch(base + "/api/extension/auth/token", {
+  const stored = await chrome.storage.session.get(["radarPendingLink"]);
+  const pending = stored.radarPendingLink;
+  if (!pending || Date.now() - pending.issuedAt > 5 * 60 * 1000 ||
+      message.state !== pending.state || message.redirectUri !== pending.redirectUri ||
+      typeof message.code !== "string" || message.code.length < 20) {
+    throw new Error("Vinculação expirada ou não solicitada neste navegador.");
+  }
+  await chrome.storage.session.remove("radarPendingLink");
+  const response = await fetch(base + "/api/extension/auth/token", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      grant_type: "authorization_code",
-      code,
-      code_verifier: verifier,
-      redirect_uri: redirectUri,
+      grant_type: "authorization_code", code: message.code,
+      code_verifier: pending.verifier, redirect_uri: pending.redirectUri,
     }),
+    signal: AbortSignal.timeout(20000),
   });
-
-  const body = await tokenResponse.json().catch(() => ({}));
-  if (!tokenResponse.ok || !body.access_token) {
-    throw new Error(body.error || "Falha ao criar sessão da extensão.");
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.access_token) {
+    throw new Error(payload.error || "A vinculação da extensão não foi concluída.");
   }
-
-  await saveTokens(body);
-  return authStatus();
+  await saveTokens(payload);
+  return { ok: true };
 }
 
 async function authStatus() {
@@ -437,4 +434,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.tabs.onRemoved.addListener((id) => {
   void chrome.storage.session.remove("radarContext:" + id);
+});
+
+chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+  if (message?.type !== "RADAR_BROWSER_LINK") return false;
+  finishBrowserLink(message, sender)
+    .then(sendResponse)
+    .catch(error => sendResponse({ ok: false,
+      error: error instanceof Error ? error.message : "Falha na vinculação." }));
+  return true;
 });

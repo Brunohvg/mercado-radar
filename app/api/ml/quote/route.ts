@@ -10,6 +10,8 @@ const schema = z.object({
   salePrice: z.coerce.number().positive(),
   categoryId: z.string().min(3).max(40),
   listingType: z.enum(["CLASSIC", "PREMIUM"]),
+  logisticType: z.enum(["drop_off", "cross_docking", "xd_drop_off", "fulfillment", "self_service"]).default("drop_off"),
+  freeShipping: z.boolean().default(true),
   weightGrams: z.coerce.number().int().positive().max(100000),
   heightCm: z.coerce.number().positive().max(300),
   widthCm: z.coerce.number().positive().max(300),
@@ -36,6 +38,8 @@ export async function POST(request: Request) {
         price: input.salePrice,
         categoryId: input.categoryId,
         listingType: input.listingType,
+        logisticType: input.logisticType,
+        shippingMode: "me2",
       }),
       getShippingQuote({
         accessToken: session.accessToken,
@@ -46,11 +50,16 @@ export async function POST(request: Request) {
         heightCm: input.heightCm,
         widthCm: input.widthCm,
         lengthCm: input.lengthCm,
+        logisticType: input.logisticType,
+        shippingMode: "me2",
+        freeShipping: input.freeShipping,
       }),
     ]);
 
     return NextResponse.json({
       listingType: input.listingType,
+      logisticType: input.logisticType,
+      freeShipping: input.freeShipping,
       commissionPercent:
         Math.round(fee.commissionPercent * 100) / 100,
       fixedFee: fee.fixedFee,

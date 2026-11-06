@@ -321,7 +321,9 @@ export function ListingDraftAssistant({
               <div className="listing-assistant__catalog-decision">
                 <strong>Estratégia: catálogo ou anúncio tradicional?</strong>
                 <p className="listing-assistant__helper">
-                  {discovery.catalogStrategy.recommendation === "COMPARE"
+                  {discovery.catalogStrategy.recommendation === "CATALOG_REQUIRED"
+                    ? "Catálogo obrigatório — anúncio tradicional bloqueado"
+                    : discovery.catalogStrategy.recommendation === "COMPARE"
                     ? "Catálogo encontrado — comparar antes de escolher"
                     : "Decisão pendente — não publicar automaticamente no catálogo"}
                 </p>
@@ -356,7 +358,7 @@ export function ListingDraftAssistant({
                   }
                 }}>
                   <option value="">Selecione</option>
-                  {discovery.categorySuggestions?.map((item) => <option key={item.categoryId} value={item.categoryId}>{item.categoryName} ({item.categoryId})</option>)}
+                  {discovery.categorySuggestions?.map((item) => <option key={item.categoryId} value={item.categoryId}>{item.categoryName} ({item.categoryId}) {item.source === "CATALOG" ? "· referência catálogo" : "· sugestão automática"}</option>)}
                   <option value="manual">Informar outro ID</option>
                 </select>
               </label>

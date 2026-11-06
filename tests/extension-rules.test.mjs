@@ -44,6 +44,53 @@ vm.runInContext(
   sandbox,
 );
 const A = sandbox.RadarProductAnalysis;
+test("modo público calcula lucro apenas com tarifas e frete manuais explicitamente informados", () => {
+  const input = {
+    salePrice: 100,
+    supplierPrice: 20,
+    kitQuantity: 2,
+    discountPercent: 0,
+    taxPercent: 5,
+    operatingCost: 3,
+    targetMarginPercent: 20,
+    targetRoiPercent: 30,
+    shippingCost: 12,
+    manualFees: { commissionPercent: 10, fixedFee: 5 },
+  };
+  const response = M.manualProfitability(input);
+  assert.equal(response.feeSource, "MANUAL");
+  assert.equal(response.shippingSource, "MANUAL_ESTIMATE");
+  assert.equal(response.shippingKnown, false);
+  assert.equal(response.shippingEstimated, false);
+  assert.equal(response.fees.saleFeeAmount, 15);
+  assert.equal(response.result.profit, 25);
+  assert.equal(response.result.marginPercent, 25);
+  assert.equal(response.result.purchaseCost, 40);
+  assert.equal(response.result.commissionAmount, 10);
+  assert.ok(response.result.minimumSuggestedPrice > 0);
+  assert.match(response.note, /sem login/);
+  assert.throws(() => M.manualProfitability({ ...input, shippingCost: undefined }), /frete válidos/);
+  assert.throws(() => M.manualProfitability({ ...input, manualFees: undefined }), /frete válidos/);
+  const free = M.manualProfitability({ ...input, shippingCost: 0 });
+  assert.equal(free.result.profit, 37);
+  const withAds = M.manualProfitability({
+    ...input, advertising: { roasTarget: 5, attributedSalesPercent: 100 },
+  });
+  assert.equal(withAds.adsSimulation.costPerSale, 20);
+  assert.equal(withAds.adsSimulation.profitAfterAds, 5);
+});
+
+test("modo público não exige login e não envia operações privadas ao servidor", async () => {
+  const panel = await readFile(new URL("../extension/sidepanel.js", import.meta.url), "utf8");
+  const page = await readFile(new URL("../extension/product-analysis.js", import.meta.url), "utf8");
+  assert.match(panel, /Modo público · sem login/);
+  assert.match(panel, /M\.manualProfitability\(payload\)/);
+  assert.match(panel, /guest \|\| r\.minimumSuggestedPrice == null/);
+  assert.match(panel, /\$\("connectionCard"\)\.open = false/);
+  assert.match(page, /state\.status = "public"/);
+  assert.match(page, /form\.hidden = !s\.auth\?\.authenticated/);
+});
+
 test("instalador inclui os scripts executados pelo manifest e pelo painel", async () => {
   const installer = await readFile(
     new URL("../app/api/extension/dev-installer/route.ts", import.meta.url),

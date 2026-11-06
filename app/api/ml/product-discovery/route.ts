@@ -151,6 +151,22 @@ export async function POST(request: Request) {
       limit: 3,
     }).catch(() => []);
 
+    // Mostra alternativas reais ao vendedor: a primeira previsão não é confirmação.
+    const categorySuggestions = predicted.map((item) => ({
+      categoryId: item.categoryId,
+      categoryName: item.categoryName,
+      source: "PREDICTED" as const,
+    }));
+    const catalogCategoryId = catalogDetails?.buy_box_winner?.category_id;
+    if (catalogCategoryId && !categorySuggestions.some(
+      (item) => item.categoryId === catalogCategoryId,
+    )) {
+      categorySuggestions.push({
+        categoryId: catalogCategoryId,
+        categoryName: "Categoria do anúncio de referência",
+        source: "CATALOG" as const,
+      });
+    }
     const category = predicted[0] ?? null;
     const winnerItemId = catalogDetails?.buy_box_winner?.item_id ?? null;
     const winnerPrice = Number(catalogDetails?.buy_box_winner?.price ?? 0);
@@ -295,6 +311,7 @@ export async function POST(request: Request) {
     const sortedPrices = [...prices].sort((a, b) => a - b);
 
     return NextResponse.json({
+      categorySuggestions,
       identification: {
         input: rawQuery,
         barcode,

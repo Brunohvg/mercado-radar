@@ -15,7 +15,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!match) return new NextResponse(null, { status: 404 });
   try {
     const bytes = await readFile(path.join(STORAGE, workspaceId, id));
-    return new NextResponse(bytes, {
+    return new NextResponse(new Uint8Array(bytes), {
       headers: {
         "Content-Type": match[2] === "jpg" ? "image/jpeg" : match[2] === "png" ? "image/png" : "image/webp",
         "Cache-Control": "private, max-age=120",

@@ -17,11 +17,12 @@ const schema = z.object({
   logisticType: z.enum(["drop_off", "cross_docking", "xd_drop_off", "fulfillment", "self_service"]).default("drop_off"),
   freeShipping: z.boolean().default(true),
   categoryId: z.string().min(3).max(40),
-  weightGrams: z.coerce.number().int().positive().max(100000),
-  heightCm: z.coerce.number().positive().max(300),
-  widthCm: z.coerce.number().positive().max(300),
-  lengthCm: z.coerce.number().positive().max(300),
+  weightGrams: z.coerce.number().int().positive().max(100000).optional(),
+  heightCm: z.coerce.number().positive().max(300).optional(),
+  widthCm: z.coerce.number().positive().max(300).optional(),
+  lengthCm: z.coerce.number().positive().max(300).optional(),
   taxPercent: z.coerce.number().min(0).max(50).optional(),
+  manualShippingCost: z.coerce.number().min(0).max(10000).optional(),
   operatingCost: z.coerce.number().min(0).default(0),
   targetMarginPercent: z.coerce.number().min(0).max(80).default(20),
   targetRoiPercent: z.coerce.number().min(0).max(500).default(30),
@@ -41,12 +42,16 @@ export async function POST(request: Request) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Preencha custo, categoria, peso e dimensões para sugerir o preço." },
+        { error: "Preencha custo e categoria. Para cotação oficial, informe também as medidas da embalagem; para cenário manual, indique um frete conferido." },
         { status: 400 },
       );
     }
 
     const input = parsed.data;
+    if (input.manualShippingCost == null &&
+        (!input.weightGrams || !input.heightCm || !input.widthCm || !input.lengthCm)) {
+      return NextResponse.json({ error: "Informe as medidas para cotar frete na API ou um frete verificado para simulação manual." }, { status: 422 });
+    }
     const session = await getMlSession();
     const settings = await getWorkspaceSettings(session.account.workspaceId);
     if (input.taxPercent == null && settings.taxPercent == null) return NextResponse.json({ error: "Confirme seu imposto em Metas e configurações." }, { status: 422 });
@@ -75,19 +80,17 @@ export async function POST(request: Request) {
           logisticType: input.logisticType,
           shippingMode: "me2",
         }),
-        getShippingQuote({
-          accessToken: session.accessToken,
-          userId: session.account.mercadoLivreUserId,
-          price: candidate,
-          listingType: input.listingType,
-          weightGrams: input.weightGrams,
-          heightCm: input.heightCm,
-          widthCm: input.widthCm,
-          lengthCm: input.lengthCm,
-          logisticType: input.logisticType,
-          shippingMode: "me2",
-          freeShipping: effectiveFreeShipping,
-        }),
+        input.manualShippingCost != null
+          ? Promise.resolve({ shippingCost: input.manualShippingCost, billableWeight: 0, discountRate: 0, promotedAmount: 0 })
+          : getShippingQuote({
+              accessToken: session.accessToken,
+              userId: session.account.mercadoLivreUserId,
+              price: candidate, listingType: input.listingType,
+              weightGrams: input.weightGrams!, heightCm: input.heightCm!,
+              widthCm: input.widthCm!, lengthCm: input.lengthCm!,
+              logisticType: input.logisticType, shippingMode: "me2",
+              freeShipping: effectiveFreeShipping,
+            }),
       ]);
 
       const analysis = analyzeProfitability({
@@ -116,9 +119,9 @@ export async function POST(request: Request) {
         logisticType: input.logisticType,
         freeShipping: effectiveFreeShipping,
         feeSource: "ML_SELLER_LISTING_PRICES",
-        shippingSource: "ML_SELLER_SHIPPING_OPTIONS_FREE",
-        shippingCostKind: "ESTIMATE_NET_AFTER_DISCOUNT",
-        shippingGrossReference: shipping.promotedAmount,
+        shippingSource: input.manualShippingCost == null ? "ML_SELLER_SHIPPING_OPTIONS_FREE" : "USER_VERIFIED_MANUAL",
+        shippingCostKind: input.manualShippingCost == null ? "ESTIMATE_NET_AFTER_DISCOUNT" : "MANUAL_SCENARIO",
+        shippingGrossReference: input.manualShippingCost == null ? shipping.promotedAmount : null,
         mandatoryFreeShippingApplied: candidate >= 79 && !input.freeShipping,
         sellerUserId: session.account.mercadoLivreUserId,
         billableWeight: shipping.billableWeight,
@@ -135,6 +138,7 @@ export async function POST(request: Request) {
         const otherType = input.listingType === "CLASSIC" ? "PREMIUM" : "CLASSIC";
         let comparison = null;
         try {
+          if (input.manualShippingCost != null) throw new Error("Comparação oficial indisponível com frete manual.");
           const [otherFee, otherShipping] = await Promise.all([
             getListingPriceQuote({
               accessToken: session.accessToken, price: candidate, categoryId: input.categoryId,
@@ -142,8 +146,8 @@ export async function POST(request: Request) {
             }),
             getShippingQuote({
               accessToken: session.accessToken, userId: session.account.mercadoLivreUserId,
-              price: candidate, listingType: otherType, weightGrams: input.weightGrams,
-              heightCm: input.heightCm, widthCm: input.widthCm, lengthCm: input.lengthCm,
+              price: candidate, listingType: otherType, weightGrams: input.weightGrams!,
+              heightCm: input.heightCm!, widthCm: input.widthCm!, lengthCm: input.lengthCm!,
               logisticType: input.logisticType, shippingMode: "me2",
               freeShipping: effectiveFreeShipping,
             }),
@@ -180,7 +184,7 @@ export async function POST(request: Request) {
           analysis, comparison,
           quote: lastQuote,
           attempts: attempt,
-          method: "mercado_livre_cost_search",
+          method: input.manualShippingCost == null ? "mercado_livre_cost_search" : "manual_shipping_scenario",
         });
       }
 

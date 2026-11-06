@@ -146,7 +146,7 @@ export function ListingDraftManager({
     }
     const imageUrls = photos.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
     if (imageUrls.some(url => !url.startsWith("https://") && !url.startsWith("/api/listing-drafts/photos/"))) {
-      setMessage("As fotos precisam de URLs HTTPS próprias.");
+      setMessage("Use imagens enviadas ou URLs HTTPS próprias.");
       return;
     }
     setPending(true);
@@ -266,6 +266,7 @@ export function ListingDraftManager({
       {data.categoryId && (
         <div className="listing-draft-workspace__attributes">
           <strong>Ficha técnica da categoria</strong>
+          <p className="listing-assistant__helper">Preencha características do produto, não preços. Os atributos obrigatórios ficam aqui, sem atrapalhar o fluxo principal.</p>
           <p className="listing-assistant__helper">{categoryStatus || "Consultando requisitos…"}</p>
           {requiredAttributes.map(attr => (
             <label key={attr.id} className="field listing-assistant__field">

@@ -53,7 +53,8 @@ function review(data: ListingData) {
       data.heightCm === null || data.widthCm === null || data.lengthCm === null) {
     issues.push("Confirme frete e as medidas reais da embalagem.");
   }
-  if (data.missingFacts.length > 0) issues.push("Revise as informações pendentes da IA.");
+  const unresolved = data.missingFacts.filter(x => !/^confirmed(Brand|Facts)$/i.test(x.trim()));
+  if (unresolved.length > 0) issues.push("Confira as pendências de conteúdo: " + unresolved.slice(0, 3).join(", "));
   // Category-specific mandatory attributes and ML validation are not implemented.
   // A draft is never described as ready to publish without those checks.
   return issues;
@@ -106,7 +107,8 @@ export async function POST(request: Request) {
         const attrs: unknown = await res.json();
         if (!Array.isArray(attrs)) throw new Error("bad attributes");
         const missing = attrs.filter(a => (a.tags?.required || a.tags?.new_required) &&
-          typeof a.id === "string" && !data.attributes[a.id]?.trim());
+          typeof a.id === "string" && !(a.id === "BRAND" ? (data.attributes.BRAND?.trim() || data.brand.trim()) : data.attributes[a.id]?.trim()));
+        if (data.attributes.BRAND && /^(?:\d+[\d.,]*|r\$\s*\d[\d.,]*)$/i.test(data.attributes.BRAND.trim())) issues.push("Marca inválida: informe a marca do fabricante, não um preço.");
         for (const attr of missing.slice(0, 15)) issues.push("Atributo obrigatório: " + String(attr.name || attr.id));
       } catch {
         issues.push("Não foi possível verificar os atributos obrigatórios da categoria.");

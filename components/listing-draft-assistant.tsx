@@ -7,6 +7,7 @@ type Discovery = {
   categorySuggestions?: Array<{ categoryId: string; categoryName: string; source: string }>;
   identification?: {
     name?: string;
+    brand?: string | null;
     categoryId?: string | null;
     categoryName?: string | null;
     source?: string;
@@ -15,6 +16,7 @@ type Discovery = {
     requiresProductName?: boolean;
   };
   notice?: string;
+  categoryNotice?: string | null;
   market?: {
     comparableCount?: number;
     minimumPrice?: number | null;
@@ -211,6 +213,7 @@ export function ListingDraftAssistant({
     try {
       const data = await postJson<Discovery>("/api/ml/product-discovery", { query: name.trim() });
       setDiscovery(data);
+      if (data.identification?.brand && !brand.trim()) setBrand(data.identification.brand);
       setCategoryId(data.identification?.categoryId ?? "");
       setCategoryName(data.identification?.categoryName ?? "");
       setManualCategory(!data.identification?.categoryId);
@@ -312,6 +315,7 @@ export function ListingDraftAssistant({
           <div className="listing-assistant__discovery" role="status">
             <h3>Resultado da identificação</h3>
             {discovery.notice && <p className="listing-assistant__identity-warning" role="alert">{discovery.notice}</p>}
+            {discovery.categoryNotice && <p className="listing-assistant__identity-warning">{discovery.categoryNotice}</p>}
             {discovery.identification?.verified && discovery.identification.name && (
               <p className="listing-assistant__identity-success"><strong>Produto encontrado:</strong> {discovery.identification.name}</p>
             )}
@@ -356,7 +360,7 @@ export function ListingDraftAssistant({
         </div>
         <details ref={shippingDetails} className="listing-assistant__package listing-assistant__advanced">
           <summary>Frete, embalagem e custos adicionais <small>Obrigatórios para cotação</small></summary>
-          <p className="listing-assistant__helper">A conta Mercado Livre fornece tarifas e cotações; as medidas reais de sua embalagem ainda precisam ser confirmadas.</p>
+          <p className="listing-assistant__helper">Preencha só os dados reais. A modalidade de logística deve corresponder à habilitada na sua conta; não é uma lista de opções garantidas. O valor do frete é uma estimativa pré-venda, não uma cobrança realizada.</p>
           <div className="listing-assistant__grid">
           {label("Desconto do fornecedor (%)", discount, setDiscount)}
           {label("Custo operacional por venda (R$)", operatingCost, setOperatingCost, "Informe inclusive 0")}

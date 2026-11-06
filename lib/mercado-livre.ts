@@ -469,7 +469,12 @@ export async function getListingPriceQuote(input: {
     { headers: { Authorization: `Bearer ${input.accessToken}` } },
   );
 
-  const quote = Array.isArray(raw) ? raw[0] : raw;
+  const candidates = Array.isArray(raw) ? raw : [raw];
+  const expected = listingTypeId(input.listingType);
+  const quote = candidates.find((row) => row?.listing_type_id === expected);
+  if (!quote) {
+    throw new Error("A API não retornou uma tarifa para " + expected + ". Não foi possível calcular essa modalidade.");
+  }
   if (!quote) {
     throw new Error("Mercado Livre não retornou tarifa para essa combinação.");
   }

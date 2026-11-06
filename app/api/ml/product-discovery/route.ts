@@ -193,7 +193,11 @@ export async function POST(request: Request) {
         source: "CATALOG" as const,
       });
     }
-    const category = predicted[0] ?? null;
+    const category = predicted.find(x => x.categoryId === catalogCategoryId) ?? predicted[0] ?? null;
+    // The seller's catalog-reference category is more trustworthy than another
+    // predicted category with the same display name.
+    const preferredId = catalogCategoryId ?? category?.categoryId ?? null;
+    categorySuggestions.sort((a, b) => Number(b.categoryId === preferredId) - Number(a.categoryId === preferredId));
     const winnerItemId = catalogDetails?.buy_box_winner?.item_id ?? null;
     const winnerPrice = Number(catalogDetails?.buy_box_winner?.price ?? 0);
 
@@ -338,6 +342,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       categorySuggestions,
+      categoryNotice: categorySuggestions.length > 1
+        ? "O Mercado Livre retornou categorias diferentes. A referência do catálogo tem prioridade, mas confira os atributos antes de publicar."
+        : null,
       identification: {
         input: rawQuery,
         barcode,
@@ -346,11 +353,10 @@ export async function POST(request: Request) {
         requiresProductName: false,
         catalogProductId: catalogBest?.id ?? null,
         name: catalogBest?.name ?? searchTitle,
-        categoryId:
-          category?.categoryId ??
-          catalogDetails?.buy_box_winner?.category_id ??
-          null,
-        categoryName: category?.categoryName ?? null,
+        brand: (catalogDetails?.attributes ?? [])
+          .find(x => x.id === "BRAND")?.value_name ?? null,
+        categoryId: preferredId,
+        categoryName: categorySuggestions.find(x => x.categoryId === preferredId)?.categoryName ?? null,
         domainName: category?.domainName ?? null,
       },
       market: {

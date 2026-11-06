@@ -76,3 +76,16 @@ test("opcoes de logistica da conta e categorias verificadas sem lista inventada"
   assert.ok(ui.includes('shippingPreferences?.choices.map'));
   assert.ok(ui.includes("item.path || item.categoryName"));
 });
+
+
+test("extension uses its bundled deployment and does not ask sellers for server URL", async () => {
+  const background = await readFile(new URL("../extension/background.js", import.meta.url), "utf8");
+  const panel = await readFile(new URL("../extension/sidepanel.js", import.meta.url), "utf8");
+  const html = await readFile(new URL("../extension/sidepanel.html", import.meta.url), "utf8");
+  assert.ok(background.includes("const DEFAULT_API_BASE = \"https://radar.optarys.com.br\""));
+  assert.ok(background.includes("return url.origin"));
+  assert.ok(!background.includes('chrome.storage.sync.get(["radarApiBase"])'));
+  assert.ok(!panel.includes('chrome.storage.sync.set({ radarApiBase:'));
+  assert.ok(!html.includes('id="apiBase"'));
+  assert.ok(!html.includes('id="saveServer"'));
+});

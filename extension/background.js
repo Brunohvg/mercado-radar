@@ -26,19 +26,14 @@ async function sha256Base64Url(value) {
 }
 
 async function getApiBase() {
-  const settings = await chrome.storage.sync.get(["radarApiBase"]);
-  const raw = settings.radarApiBase || DEFAULT_API_BASE;
-  const url = new URL(raw);
-  if (
-    url.origin !== DEFAULT_API_BASE &&
-    !(
-      url.protocol === "http:" &&
-      ["localhost", "127.0.0.1"].includes(url.hostname)
-    )
-  )
-    throw new Error(
-      "URL da API inválida. Use o Radar ou um servidor local de desenvolvimento.",
-    );
+  // The origin is bundled by the installer for this deployment, never entered
+  // by the seller or read from Chrome's synced preferences. This also repairs
+  // stale addresses (for example 0.0.0.0:3000) from older builds.
+  const url = new URL(DEFAULT_API_BASE);
+  const local = url.protocol === "http:" &&
+    ["localhost", "127.0.0.1"].includes(url.hostname);
+  if (url.protocol !== "https:" && !local)
+    throw new Error("O endereço do Radar nesta extensão é inválido. Reinstale pelo painel Radar.");
   return url.origin;
 }
 

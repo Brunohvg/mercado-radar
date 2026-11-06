@@ -588,15 +588,14 @@
       "radarOperatingCost",
       "radarTargetMarginPercent",
       "radarTargetRoiPercent",
-      "radarApiBase",
     ]);
     $("taxPercent").value =
       p.radarTaxPercent == null ? "" : String(p.radarTaxPercent);
     $("operatingCost").value = String(p.radarOperatingCost ?? 0);
     $("targetMargin").value = String(p.radarTargetMarginPercent ?? 20);
     $("targetRoi").value = String(p.radarTargetRoiPercent ?? 30);
-    state.server = p.radarApiBase || "https://radar.optarys.com.br";
-    $("apiBase").value = state.server;
+    // This is replaced with the deployment's origin during installation.
+    state.server = "https://radar.optarys.com.br";
     $("dashboardLink").href = state.server;
     $("monitorLink").href = state.server + "/monitoramento";
     $("menuMonitorLink").href = state.server + "/monitoramento";
@@ -1602,30 +1601,6 @@
     await authStatus();
     await preferences();
     await loadContext(true);
-  });
-  $("saveServer").addEventListener("click", async () => {
-    try {
-      const url = new URL($("apiBase").value);
-      if (
-        url.origin !== "https://radar.optarys.com.br" &&
-        !(
-          url.protocol === "http:" &&
-          ["localhost", "127.0.0.1"].includes(url.hostname)
-        )
-      )
-        throw new Error();
-      await chrome.runtime.sendMessage({ type: "RADAR_AUTH_LOGOUT" });
-      await chrome.storage.sync.set({ radarApiBase: url.origin });
-      await authStatus();
-      await preferences();
-      notice("globalStatus", "Servidor salvo. Entre na conta deste ambiente.");
-    } catch {
-      notice(
-        "globalStatus",
-        "Use https://radar.optarys.com.br ou http://localhost:porta no desenvolvimento.",
-        "error",
-      );
-    }
   });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (

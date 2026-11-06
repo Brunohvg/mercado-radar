@@ -542,21 +542,10 @@
           ><button id="logoutButton" class="secondary" hidden>Sair</button>
         </div>
         <p id="authStatus" class="muted" role="status"></p>
-        <details>
-          <summary>Servidor da extensão</summary>
-          <label for="apiBase">Endereço do Radar</label
-          ><input
-            id="apiBase"
-            type="url"
-            value="https://radar.optarys.com.br"
-          /><button id="saveServer" type="button" class="secondary">
-            Salvar servidor
-          </button>
-          <p class="muted">
-            Produção ou localhost de desenvolvimento. Não usa chave global
-            compartilhada.
-          </p>
-        </details>
+        <p class="muted">
+          Servidor configurado automaticamente na instalação. Entre com sua
+          conta Radar; não é necessário informar endereço ou chave de API.
+        </p>
       </details>
     </main>
     <dialog id="saveDialog" aria-labelledby="saveTitle">

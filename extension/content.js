@@ -673,7 +673,7 @@
     links,
     visibilityButton,
     positionButton,
-    el("div", "Mercado Radar · 0.12.3", "version"),
+    el("div", "Mercado Radar · 0.12.4", "version"),
   );
   const launcherNotice = el("div", "", "notice");
   launcherNotice.hidden = true;

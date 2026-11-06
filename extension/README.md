@@ -2,6 +2,14 @@
 
 Chrome 116+. Manifest V3. Backend da branch `feature/radar-commercial-readiness-v1`, protocolo 2.
 
+## Integração com o assistente de anúncios
+
+Na versão de desenvolvimento desta branch, o painel lateral inclui **Preparar anúncio com este produto no Radar** e um atalho no menu. A extensão encaminha apenas o nome observado e a referência pública, abrindo `/assistente-anuncios` em outra aba. Não abre cadastro no Mercado Livre, nem transmite credenciais ou fotos de concorrentes.
+
+O botão flutuante **R** pode ser movido entre a direita e a esquerda através de **Mover botão do Radar** no menu. A preferência é salva no Chrome. **Ocultar análise na página** mantém o modo pouco intrusivo.
+
+O manifest continua `0.11.0` nesta branch enquanto os testes de homologação são realizados. Ao distribuir, atualizar a versão e testar layout real. A extensão não se atualiza sozinha após deploy do Coolify.
+
 ## Instalar ou atualizar
 
 1. No Coolify, implantar a branch de homologação com backup e migrations aplicadas.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 type Discovery = {
   categorySuggestions?: Array<{ categoryId: string; categoryName: string; source: string }>;
@@ -110,6 +110,7 @@ export function ListingDraftAssistant({
   const [aiConfig, setAiConfig] = useState<AiConfig | null>(null);
   const [aiTestStatus, setAiTestStatus] = useState("");
   const [aiTesting, setAiTesting] = useState(false);
+  const shippingDetails = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -206,10 +207,14 @@ export function ListingDraftAssistant({
     const heightCm = positiveNumber(height);
     const widthCm = positiveNumber(width);
     const lengthCm = positiveNumber(length);
-    if (!categoryId || !cost || !kitQuantity || freeShipping === "" || !Number.isInteger(kitQuantity) ||
-      operating === null || discountPercent === null ||
-      weightGrams === null || heightCm === null || widthCm === null || lengthCm === null) {
-      setError("Confirme categoria, custo, quantidade, opção de frete grátis, custo operacional e medidas reais da embalagem. Não vamos inventar dados.");
+    if (!categoryId || !cost || !kitQuantity || !Number.isInteger(kitQuantity) || operating === null || discountPercent === null) {
+      shippingDetails.current?.setAttribute("open", "");
+      setError("Confirme categoria, custo, quantidade, desconto e custo operacional (inclusive zero).");
+      return;
+    }
+    if (freeShipping === "" || weightGrams === null || heightCm === null || widthCm === null || lengthCm === null) {
+      shippingDetails.current?.setAttribute("open", "");
+      setError("Abra Frete e embalagem e confirme peso, medidas e frete grátis para obter a cotação real.");
       return;
     }
     setLoading("price");
@@ -314,11 +319,16 @@ export function ListingDraftAssistant({
       <section className="panel listing-assistant__section">
         <div className="listing-assistant__section-heading">
           <span className="listing-assistant__step-number">02</span>
-          <div><h2>Custos e frete</h2><p>Use valores reais para calcular o preço e a margem.</p></div>
+          <div><h2>Custos e frete</h2><p>Comece pelo custo. Abra os detalhes apenas quando for cotar.</p></div>
         </div>
         <div className="listing-assistant__grid">
           {label("Custo de compra por unidade (R$)", purchaseCost, setPurchaseCost, "Ex.: 7,50")}
           {label("Unidades por kit", units, setUnits)}
+        </div>
+        <details ref={shippingDetails} className="listing-assistant__package listing-assistant__advanced">
+          <summary>Frete, embalagem e custos adicionais <small>Obrigatórios para cotação</small></summary>
+          <p className="listing-assistant__helper">A conta Mercado Livre fornece tarifas e cotações; as medidas reais de sua embalagem ainda precisam ser confirmadas.</p>
+          <div className="listing-assistant__grid">
           {label("Desconto do fornecedor (%)", discount, setDiscount)}
           {label("Custo operacional por venda (R$)", operatingCost, setOperatingCost, "Informe inclusive 0")}
           <label className="field listing-assistant__field">Modalidade
@@ -343,11 +353,10 @@ export function ListingDraftAssistant({
               <option value="false">Não</option>
             </select>
           </label>
-        </div>
-        <details className="listing-assistant__package" open>
-          <summary>Embalagem para cotação de frete</summary>
+          </div>
+          <h3 className="listing-assistant__subheading">Medidas da embalagem para frete</h3>
           <div className="listing-assistant__grid">
-            {label("Peso em gramas", weight, setWeight)}
+            {label("Peso real, em gramas", weight, setWeight)}
             {label("Altura em cm", height, setHeight)}
             {label("Largura em cm", width, setWidth)}
             {label("Comprimento em cm", length, setLength)}

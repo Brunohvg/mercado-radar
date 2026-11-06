@@ -35,6 +35,12 @@ type Discovery = {
   } | null;
 };
 
+type ShippingPreferences = {
+  choices: Array<{ type: string; label: string; default: boolean }>;
+  defaultType: string | null;
+  verified: boolean;
+  notice?: string;
+};
 type AiConfig = { provider: string; model: string; configured: boolean; message: string };
 type AiDraft = {
   title: string;
@@ -117,7 +123,9 @@ export function ListingDraftAssistant({
   const [width, setWidth] = useState("");
   const [length, setLength] = useState("");
   const [listingType, setListingType] = useState<"CLASSIC" | "PREMIUM">("CLASSIC");
-  const [logisticType, setLogisticType] = useState("drop_off");
+  const [logisticType, setLogisticType] = useState("");
+  const [shippingPreferences, setShippingPreferences] = useState<ShippingPreferences | null>(null);
+  const [shippingError, setShippingError] = useState("");
   const [freeShipping, setFreeShipping] = useState<"" | "true" | "false">("");
   const [discovery, setDiscovery] = useState<Discovery | null>(null);
   const [price, setPrice] = useState<PriceResponse | null>(null);
@@ -130,6 +138,25 @@ export function ListingDraftAssistant({
   const [savedTitle, setSavedTitle] = useState("");
   const [savedDescription, setSavedDescription] = useState("");
   const shippingDetails = useRef<HTMLDetailsElement>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/ml/seller-shipping", { cache: "no-store" })
+      .then(async response => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Falha ao consultar logística.");
+        return body as ShippingPreferences;
+      })
+      .then(prefs => {
+        if (!active) return;
+        setShippingPreferences(prefs);
+        setLogisticType(current => current && prefs.choices.some(x => x.type === current)
+          ? current : prefs.defaultType ?? "");
+        if (!prefs.verified) setShippingError(prefs.notice ?? "Logística não confirmada.");
+      })
+      .catch(error => { if (active) setShippingError(error instanceof Error ? error.message : "Erro de logística."); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -245,6 +272,12 @@ export function ListingDraftAssistant({
     if (!categoryId || !cost || !kitQuantity || !Number.isInteger(kitQuantity) || operating === null || discountPercent === null) {
       shippingDetails.current?.setAttribute("open", "");
       setError("Confirme categoria, custo por unidade, unidades do kit e custos. O custo operacional já inicia em R$ 0,00.");
+      return;
+    }
+    if (!logisticType || !shippingPreferences?.verified ||
+        !shippingPreferences.choices.some(x => x.type === logisticType)) {
+      shippingDetails.current?.setAttribute("open", "");
+      setError("A logística da conta vendedora ainda não foi confirmada. Confira a conexão Mercado Livre.");
       return;
     }
     if (freeShipping === "" || weightGrams === null || heightCm === null || widthCm === null || lengthCm === null) {
@@ -397,12 +430,11 @@ export function ListingDraftAssistant({
             </select>
           </label>
           <label className="field listing-assistant__field">Sua logística
-            <select value={logisticType} onChange={(e) => { setLogisticType(e.target.value); setPrice(null); }}>
-              <option value="drop_off">Agência / Drop-off</option>
-              <option value="cross_docking">Coleta / Cross-docking</option>
-              <option value="xd_drop_off">Mercado Envios Places</option>
-              <option value="fulfillment">Full</option>
-              <option value="self_service">Flex</option>
+            <select value={logisticType} disabled={!shippingPreferences?.verified} onChange={(e) => { setLogisticType(e.target.value); setPrice(null); }}>
+              <option value="">Aguardando confirmação da conta</option>
+              {shippingPreferences?.choices.map(option =>
+                <option key={option.type} value={option.type}>{option.label}</option>
+              )}
             </select>
           </label>
           <label className="field listing-assistant__field">O anúncio oferece frete grátis?
@@ -413,6 +445,9 @@ export function ListingDraftAssistant({
             </select>
           </label>
           </div>
+          <p className="listing-assistant__helper" role="status">
+            {shippingError || shippingPreferences?.notice || "Consultando as modalidades habilitadas do vendedor…"}
+          </p>
           <h3 className="listing-assistant__subheading">Medidas da embalagem para frete</h3>
           <div className="listing-assistant__grid">
             {label("Peso real, em gramas", weight, setWeight)}

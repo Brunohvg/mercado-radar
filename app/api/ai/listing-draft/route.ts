@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/workspace-auth";
-import { generateListingCopy, geminiIsConfigured } from "@/lib/ai/gemini-listing";
+import { generateListingCopy, geminiIsConfigured, geminiConfiguration, GeminiRequestError } from "@/lib/ai/gemini-listing";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,8 @@ export async function POST(request: Request) {
   }
   if (!geminiIsConfigured()) {
     return NextResponse.json({
-      error: "IA desativada. Configure RADAR_AI_PROVIDER=gemini e GEMINI_API_KEY no Coolify.",
+      error: geminiConfiguration().message,
+      code: "NOT_CONFIGURED",
     }, { status: 503 });
   }
   const input = inputSchema.safeParse(await request.json().catch(() => null));
@@ -37,8 +38,10 @@ export async function POST(request: Request) {
     }, { headers: { "cache-control": "no-store" } });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha ao gerar o texto do anúncio.";
-    // No upstream error body, request headers, user content or API secret is surfaced.
-    const status = message.includes("Cota") ? 429 : 502;
-    return NextResponse.json({ error: message }, { status });
+    // Códigos estáveis ajudam o suporte; nenhum corpo upstream ou segredo é exposto.
+    const status = error instanceof GeminiRequestError ? error.status : 502;
+    const code = error instanceof GeminiRequestError ? error.code : "UNKNOWN";
+    console.warn("[Radar IA] Falha na geração:", code, status);
+    return NextResponse.json({ error: message, code }, { status });
   }
 }

@@ -52,7 +52,7 @@ test("precificacao usa a mesma base para Classico e Premium e nao perde a regra 
   assert.ok(api.includes("const otherType = input.listingType === \"CLASSIC\""));
   assert.ok(api.includes("price: candidate, listingType: otherType"));
   assert.ok(api.includes("const effectiveFreeShipping = candidate >= 79 ? true"));
-  assert.ok(api.includes("shippingCostKind: \"ESTIMATE_NET_AFTER_DISCOUNT\""));
+  assert.ok(api.includes('shippingCostKind: input.manualShippingCost == null ? "ESTIMATE_NET_AFTER_DISCOUNT"'));
   assert.ok(ui.includes("Clássico × Premium, mesmo preço"));
 });
 
@@ -62,7 +62,7 @@ test("rascunho pode ser salvo sem resposta do Mercado Livre e ficha tecnica e pr
   assert.ok(drafts.includes("Saving must never depend on a remote Mercado Livre response."));
   assert.ok(drafts.includes("factsReviewed: z.boolean().default(false)"));
   assert.ok(preflight.includes('status: { in: ["DRAFT", "REVIEW", "VALIDATED"] }'));
-  assert.ok(preflight.includes("Não foi possível confirmar a logística da conta vendedora."));
+  assert.ok(preflight.includes("loadSellerShippingProfile(token, sellerId)"));
   assert.ok(preflight.includes("const effectiveFreeShipping = data.suggestedPrice >= 79"));
 });
 
@@ -70,7 +70,11 @@ test("opcoes de logistica da conta e categorias verificadas sem lista inventada"
   const shipping = await readFile(new URL("../app/api/ml/seller-shipping/route.ts", import.meta.url), "utf8");
   const category = await readFile(new URL("../app/api/ml/product-discovery/route.ts", import.meta.url), "utf8");
   const ui = await readFile(new URL("../components/listing-draft-assistant.tsx", import.meta.url), "utf8");
-  assert.ok(shipping.includes("/shipping_preferences"));
+  assert.ok(shipping.includes("loadSellerShippingProfile"));
+  const service = await readFile(new URL("../lib/ml-seller-shipping.ts", import.meta.url), "utf8");
+  assert.ok(service.includes("/shipping_preferences"));
+  assert.ok(service.includes("logistic_types"));
+  assert.ok(service.includes("OWN_LISTINGS"));
   assert.ok(shipping.includes("getMlSession()"));
   assert.ok(category.includes("path_from_root"));
   assert.ok(ui.includes('shippingPreferences?.choices.map'));

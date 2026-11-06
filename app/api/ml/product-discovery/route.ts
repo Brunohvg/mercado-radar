@@ -233,6 +233,32 @@ export async function POST(request: Request) {
         source: "CATALOG" as const,
       });
     }
+    // Display the complete real category path and publication permission,
+    // not a collection of indistinguishable IDs.
+    const confirmedSuggestions = await Promise.all(
+      categorySuggestions.slice(0, 5).map(async (suggestion) => {
+        try {
+          const res = await fetch("https://api.mercadolibre.com/categories/" + encodeURIComponent(suggestion.categoryId), {
+            headers: { Authorization: "Bearer " + session.accessToken },
+            cache: "no-store", signal: AbortSignal.timeout(9000),
+          });
+          if (!res.ok) return { ...suggestion, path: null, listingAllowed: null };
+          const details = await res.json() as {
+            path_from_root?: Array<{ id?: string; name?: string }>;
+            settings?: { listing_allowed?: boolean };
+          };
+          const categoryPath = (details.path_from_root ?? [])
+            .map(x => x.name).filter(Boolean).join(" › ");
+          return {
+            ...suggestion,
+            path: categoryPath || suggestion.categoryName,
+            listingAllowed: details.settings?.listing_allowed ?? null,
+          };
+        } catch {
+          return { ...suggestion, path: null, listingAllowed: null };
+        }
+      }),
+    );
     const category = predicted.find(x => x.categoryId === catalogCategoryId) ?? predicted[0] ?? null;
     // The seller's catalog-reference category is more trustworthy than another
     // predicted category with the same display name.
@@ -381,7 +407,7 @@ export async function POST(request: Request) {
     const sortedPrices = [...prices].sort((a, b) => a - b);
 
     return NextResponse.json({
-      categorySuggestions,
+      categorySuggestions: confirmedSuggestions,
       catalogStrategy: {
         ...catalogStrategy,
         productId: catalogBest?.id ?? null,

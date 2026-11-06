@@ -5,7 +5,7 @@ import { ListingDraftManager, type DraftValues } from "@/components/listing-draf
 
 type Discovery = {
   catalogStrategy?: { status: string; recommendation: string; reason: string; productId: string | null; productName: string | null; competitionPrice: number | null; restrictions: string[] };
-  categorySuggestions?: Array<{ categoryId: string; categoryName: string; source: string }>;
+  categorySuggestions?: Array<{ categoryId: string; categoryName: string; source: string; path?: string | null; listingAllowed?: boolean | null }>;
   identification?: {
     name?: string;
     brand?: string | null;
@@ -379,6 +379,11 @@ export function ListingDraftAssistant({
               <p className="listing-assistant__identity-success"><strong>Produto encontrado:</strong> {discovery.identification.name}</p>
             )}
             {!discovery.identification?.requiresProductName && <p>Categoria sugerida pelo Mercado Livre. Confirme antes da precificação; isto não certifica o produto.</p>}
+            {(discovery.categorySuggestions?.length ?? 0) > 1 && (
+              <p className="listing-assistant__helper">
+                Selecione a categoria que descreve o produto real. Quando o catálogo traz uma referência, ela aparece identificada. Se houver dúvida, não publique.
+              </p>
+            )}
             {(discovery.categorySuggestions?.length ?? 0) > 0 && (
               <label className="field listing-assistant__field">
                 <span>Escolha a categoria correta</span>
@@ -397,7 +402,9 @@ export function ListingDraftAssistant({
                   }
                 }}>
                   <option value="">Selecione</option>
-                  {discovery.categorySuggestions?.map((item) => <option key={item.categoryId} value={item.categoryId}>{item.categoryName} ({item.categoryId}) {item.source === "CATALOG" ? "· referência catálogo" : "· sugestão automática"}</option>)}
+                  {discovery.categorySuggestions?.map((item) => <option key={item.categoryId} value={item.categoryId}>{item.path || item.categoryName} ({item.categoryId})
+                    {item.source === "CATALOG" ? " · referência catálogo" : " · sugestão automática"}
+                    {item.listingAllowed === false ? " · publicação indisponível" : ""}</option>)}
                   <option value="manual">Informar outro ID</option>
                 </select>
               </label>

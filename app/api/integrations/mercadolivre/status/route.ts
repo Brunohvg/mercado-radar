@@ -22,6 +22,11 @@ export async function GET() {
       nickname: account?.nickname ?? null,
       userId: account?.mercadoLivreUserId ?? null,
       tokenExpiresAt: account?.tokenExpiresAt?.toISOString() ?? null,
+      scopes: account?.scope?.split(/\s+/).filter(Boolean) ?? [],
+      publishingScopeAuthorized: Boolean(account?.scope?.split(/\s+/).includes("write")),
+      publishingScopeNotice: account && !account.scope?.split(/\s+/).includes("write")
+        ? "Reconecte a conta após habilitar Publicação e sincronização com leitura e escrita no DevCenter."
+        : null,
     });
   } catch {
     return NextResponse.json({

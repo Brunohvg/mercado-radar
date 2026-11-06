@@ -99,3 +99,14 @@ test("existing vendor logs into extension without a second Mercado Livre OAuth",
   assert.ok(!route.includes("https://auth.mercadolivre.com.br/authorization"));
   assert.ok(background.includes("ml_account_required"));
 });
+
+
+test("seller OAuth requests write and publication origin uses trusted external URL", async () => {
+  const authorization = await readFile(new URL("../app/api/integrations/mercadolivre/authorize/route.ts", import.meta.url), "utf8");
+  const publication = await readFile(new URL("../app/api/listing-drafts/publication/route.ts", import.meta.url), "utf8");
+  const status = await readFile(new URL("../app/api/integrations/mercadolivre/status/route.ts", import.meta.url), "utf8");
+  assert.ok(authorization.includes('"read write offline_access"'));
+  assert.ok(publication.includes("getPublicOrigin(request)"));
+  assert.ok(!publication.includes('origin !== new URL(request.url).origin'));
+  assert.ok(status.includes("publishingScopeAuthorized"));
+});

@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/workspace-auth";
 import { getMlSession, getListingPriceQuote, getShippingQuote } from "@/lib/mercado-livre";
 import { getWorkspaceSettings } from "@/lib/workspace-settings";
+import { getPublicOrigin } from "@/lib/public-url";
 import { analyzeProfitability } from "@/lib/profitability";
 
 export const dynamic = "force-dynamic";
@@ -196,8 +197,12 @@ async function prepare(
   return { body, real };
 }
 export async function POST(request: Request) {
+  // Behind Coolify's reverse proxy, request.url may be an internal
+  // 0.0.0.0:3000 address even when the browser is on the public HTTPS domain.
+  // Compare to the configured/trusted public origin, not the internal server URL.
   const origin = request.headers.get("origin");
-  if (origin && origin !== new URL(request.url).origin) {
+  const publicOrigin = new URL(getPublicOrigin(request)).origin;
+  if (origin && origin !== publicOrigin) {
     return responseError("Origem da requisição não permitida.", 403);
   }
   let user;

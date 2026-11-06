@@ -31,12 +31,13 @@ test("Catalog posts require explicit product match and valid catalog identifier"
     model: "USER_PRODUCTS", channel: "CATALOG", title: "Verniz 100ml",
     categoryId: "MLB249466", price: 29.9, stock: 2,
     listingType: "CLASSIC", pictures: [], attributes: [],
-    freeShipping: false, catalogProductId: "MLBU1234",
+    freeShipping: false, catalogProductId: "MLB1234",
   };
   assert.throws(() => buildPublicationBody({ ...base, catalogExactMatchConfirmed: false }), /confirme/);
   assert.throws(() => buildPublicationBody({ ...base, catalogProductId: "MLBbad", catalogExactMatchConfirmed: true }), /confirme/);
   const candidate = buildPublicationBody({ ...base, catalogExactMatchConfirmed: true });
-  assert.equal(candidate.catalog_product_id, "MLBU1234");
+  assert.equal(candidate.catalog_product_id, "MLB1234");
+  assert.throws(() => buildPublicationBody({ ...base, catalogProductId: "MLBU1234", catalogExactMatchConfirmed: true }), /confirme/);
   assert.equal(candidate.catalog_listing, true);
 });
 

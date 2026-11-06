@@ -151,6 +151,12 @@ async function prepare(
     .filter(a => a.tags?.required || a.tags?.new_required);
   const attributes = { ...(data.attributes || {}) };
   if (data.brand && !attributes.BRAND) attributes.BRAND = data.brand;
+  // Block obviously incorrect values (e.g. R$ 29,90 entered as Marca).
+  const brand = attributes.BRAND?.trim();
+  if (brand && (/^(?:r\\$\\s*)?\\d+[\\d.,]*$/i.test(brand) ||
+      /^(?:confirmedBrand|nao informado|não informado|sem marca)$/i.test(brand))) {
+    throw new Error("Marca inválida: informe o fabricante real, não preço nem placeholder da IA.");
+  }
   if (data.barcode && !attributes.GTIN && !attributes.EAN) attributes.GTIN = data.barcode;
   const missing = required.filter(a => a.id && !attributes[a.id]?.trim());
   if (missing.length) throw new Error("Ficha técnica incompleta: " + missing.slice(0, 8).map(a => a.name || a.id).join(", "));

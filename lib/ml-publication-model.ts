@@ -23,7 +23,7 @@ export function buildPublicationBody(input: {
   catalogExactMatchConfirmed: boolean;
 }) {
   if (input.channel === "CATALOG" &&
-    (!input.catalogExactMatchConfirmed || !input.catalogProductId || !/^MLBU?\d+$/.test(input.catalogProductId))) {
+    (!input.catalogExactMatchConfirmed || !input.catalogProductId || !/^MLB\d+$/.test(input.catalogProductId))) {
     throw new Error("Antes de publicar no catálogo, confirme o ID de catálogo e a correspondência exata do produto.");
   }
   const body = {

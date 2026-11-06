@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { ListingDraftManager, type DraftValues } from "@/components/listing-draft-manager";
 
 type Discovery = {
   categorySuggestions?: Array<{ categoryId: string; categoryName: string; source: string }>;
@@ -116,6 +117,7 @@ export function ListingDraftAssistant({
   const [aiConfig, setAiConfig] = useState<AiConfig | null>(null);
   const [aiTestStatus, setAiTestStatus] = useState("");
   const [aiTesting, setAiTesting] = useState(false);
+  const [restoredMissingFacts, setRestoredMissingFacts] = useState<string[]>([]);
   const shippingDetails = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
@@ -180,6 +182,7 @@ export function ListingDraftAssistant({
         catalogProductId: discovery?.identification?.catalogProductId || undefined,
       });
       setAiDraft(result);
+      setRestoredMissingFacts(result.missingFacts);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível gerar o anúncio com IA.");
     } finally {
@@ -446,6 +449,60 @@ export function ListingDraftAssistant({
             <p>Cotação estimada para {price.quote?.logisticType || "logística informada"}, frete grátis {price.quote?.freeShipping ? "sim" : "não"}. O valor efetivo depende da venda e das regras da sua conta.</p>
           </div>
         )}
+        <ListingDraftManager
+          data={{
+            name: effectiveName,
+            barcode: /^\d{8,14}$/.test(name.trim()) ? name.trim() : null,
+            brand, sku, categoryId, categoryName,
+            catalogProductId: discovery?.identification?.catalogProductId ?? null,
+            title: aiDraft?.title || draftTitle,
+            description: aiDraft?.description || "",
+            confirmedFacts,
+            missingFacts: aiDraft?.missingFacts ?? restoredMissingFacts,
+            imageUrls: [], stock: 0,
+            costPerUnit: positiveNumber(purchaseCost),
+            kitQuantity: Number(units) || 1,
+            discountPercent: nonnegativeNumber(discount) ?? 0,
+            operatingCost: nonnegativeNumber(operatingCost) ?? 0,
+            listingType, logisticType,
+            freeShipping: freeShipping === "" ? null : freeShipping === "true",
+            weightGrams: positiveNumber(weight),
+            heightCm: positiveNumber(height),
+            widthCm: positiveNumber(width),
+            lengthCm: positiveNumber(length),
+            suggestedPrice: price?.suggestedPrice ?? null,
+            profit: price?.analysis?.profit ?? null,
+            marginPercent: price?.analysis?.marginPercent ?? null,
+          } satisfies DraftValues}
+          onRestore={data => {
+            setName(data.name);
+            setBrand(data.brand);
+            setSku(data.sku);
+            setCategoryId(data.categoryId);
+            setCategoryName(data.categoryName);
+            setConfirmedFacts(data.confirmedFacts);
+            setPurchaseCost(data.costPerUnit == null ? "" : String(data.costPerUnit));
+            setUnits(String(data.kitQuantity));
+            setDiscount(String(data.discountPercent));
+            setOperatingCost(String(data.operatingCost));
+            setWeight(data.weightGrams == null ? "" : String(data.weightGrams));
+            setHeight(data.heightCm == null ? "" : String(data.heightCm));
+            setWidth(data.widthCm == null ? "" : String(data.widthCm));
+            setLength(data.lengthCm == null ? "" : String(data.lengthCm));
+            setListingType(data.listingType);
+            setLogisticType(data.logisticType);
+            setFreeShipping(data.freeShipping === null ? "" : data.freeShipping ? "true" : "false");
+            setDiscovery({ identification: {
+              name: data.name, categoryId: data.categoryId,
+              categoryName: data.categoryName, catalogProductId: data.catalogProductId,
+              source: "SAVED", verified: Boolean(data.catalogProductId),
+            }});
+            setPrice(null);
+            setAiDraft(null);
+            setRestoredMissingFacts(data.missingFacts);
+            setError("");
+          }}
+        />
         <div className="listing-assistant__disclaimer listing-assistant__stack">
           <p className="listing-assistant__note"><strong>Etapa de preparação:</strong> imagens reais, atributos obrigatórios, estoque e validação de publicação ainda precisam ser concluídos. Nenhum anúncio é publicado ou alterado nesta versão.</p>
           <p className="listing-assistant__note">A IA sugere texto; preço e custos vêm do motor financeiro e das APIs do Radar, sujeitos à conferência.</p>

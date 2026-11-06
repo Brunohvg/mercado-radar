@@ -132,6 +132,8 @@ export function ListingDraftAssistant({
   const [loading, setLoading] = useState<"discover" | "price" | null>(null);
   const [error, setError] = useState("");
   const [aiConfig, setAiConfig] = useState<AiConfig | null>(null);
+  const [sellerModel, setSellerModel] = useState<"LEGACY" | "USER_PRODUCTS" | null>(null);
+  const [sellerCanWrite, setSellerCanWrite] = useState<boolean | null>(null);
   const [aiTestStatus, setAiTestStatus] = useState("");
   const [aiTesting, setAiTesting] = useState(false);
   const [restoredMissingFacts, setRestoredMissingFacts] = useState<string[]>([]);
@@ -155,6 +157,18 @@ export function ListingDraftAssistant({
         if (!prefs.verified) setShippingError(prefs.notice ?? "Logística não confirmada.");
       })
       .catch(error => { if (active) setShippingError(error instanceof Error ? error.message : "Erro de logística."); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/ml/publication-capabilities", { cache: "no-store" })
+      .then(async response => {
+        if (!response.ok) throw new Error("Publication capabilities unavailable");
+        return response.json() as Promise<{ model: "LEGACY" | "USER_PRODUCTS"; grantVerified: boolean }>;
+      })
+      .then(data => { if (active) { setSellerModel(data.model); setSellerCanWrite(data.grantVerified); } })
+      .catch(() => { if (active) { setSellerModel(null); setSellerCanWrite(null); } });
     return () => { active = false; };
   }, []);
 
@@ -324,6 +338,15 @@ export function ListingDraftAssistant({
         <h1>Assistente de anúncios</h1>
         <p>Do produto à decisão de venda. Identifique oportunidades, confira os custos da sua operação e revise o texto gerado com IA, sem publicar nada automaticamente.</p>
       </header>
+      <p className="listing-assistant__helper" role="status">
+        <strong>Modelo de publicação da conta:</strong>{" "}
+        {sellerModel === "USER_PRODUCTS" ? "User Products (o Radar usará family_name)" :
+          sellerModel === "LEGACY" ? "Tradicional (o Radar usará title)" :
+          "verificação pendente; publicação bloqueada por segurança"}.
+        {" "}Escrita: {sellerCanWrite === true ? "autorizada" : sellerCanWrite === false ?
+          "não autorizada — reconecte em Integrações" : "a verificar"}.
+        {" "}Catálogo é validado separadamente para cada produto.
+      </p>
       <div className="listing-assistant__steps" aria-label="Etapas do assistente">
         <span><b>01</b> Produto</span>
         <span><b>02</b> Precificação</span>

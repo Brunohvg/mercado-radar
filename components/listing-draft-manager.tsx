@@ -10,6 +10,7 @@ export type DraftValues = {
   title: string; description: string; confirmedFacts: string;
   missingFacts: string[];
   factsReviewed: boolean;
+  packageMeasurementsConfirmed: boolean;
   imageUrls: string[]; stock: number;
   attributes: Record<string, string>;
   costPerUnit: number | null; kitQuantity: number;
@@ -43,6 +44,7 @@ export function ListingDraftManager({
   const [message, setMessage] = useState("");
   const [issues, setIssues] = useState<string[]>([]);
   const [factsReviewed, setFactsReviewed] = useState(false);
+  const [packageMeasurementsConfirmed, setPackageMeasurementsConfirmed] = useState(false);
   const [channel, setChannel] = useState<"TRADITIONAL" | "CATALOG">("TRADITIONAL");
   const [catalogMatchConfirmed, setCatalogMatchConfirmed] = useState(false);
   const [attributes, setAttributes] = useState<Record<string, string>>({});
@@ -66,6 +68,9 @@ export function ListingDraftManager({
 
   useEffect(() => { setTitle(data.title); }, [data.title]);
   useEffect(() => { setDescription(data.description); }, [data.description]);
+  useEffect(() => {
+    setPackageMeasurementsConfirmed(false);
+  }, [data.weightGrams, data.heightCm, data.widthCm, data.lengthCm]);
   useEffect(() => {
     if (!data.categoryId) { setRequiredAttributes([]); return; }
     let active = true;
@@ -113,6 +118,7 @@ export function ListingDraftManager({
       setPhotoReviewStatus("");
       setAttributes(saved.data.attributes ?? {});
       setFactsReviewed(Boolean(saved.data.factsReviewed));
+      setPackageMeasurementsConfirmed(Boolean(saved.data.packageMeasurementsConfirmed));
       setChannel(saved.data.publicationChannel === "CATALOG" ? "CATALOG" : "TRADITIONAL");
       setCatalogMatchConfirmed(Boolean(saved.data.catalogExactMatchConfirmed));
       setIssues([]);
@@ -198,6 +204,7 @@ export function ListingDraftManager({
           ...(draftId ? { id: draftId } : {}),
           data: {
             ...data, title: title.trim(), description: description.trim(), attributes, factsReviewed,
+            packageMeasurementsConfirmed,
             publicationChannel: channel, catalogExactMatchConfirmed: catalogMatchConfirmed,
             stock: Math.max(0, Math.trunc(Number(stock) || 0)),
             imageUrls,
@@ -307,6 +314,17 @@ export function ListingDraftManager({
         <span>Descrição verificada</span>
         <textarea rows={7} maxLength={7500} value={description} onChange={e => { setDescription(e.target.value); setValidated(false); setRequiresSave(true); }}
           placeholder="Gere o texto com IA ou descreva as características comprovadas." />
+      </label>
+      <label className="listing-draft-workspace__confirmation">
+        <input type="checkbox" checked={packageMeasurementsConfirmed}
+          disabled={!data.weightGrams || !data.heightCm || !data.widthCm || !data.lengthCm}
+          onChange={e => {
+            setPackageMeasurementsConfirmed(e.target.checked);
+            setRequiresSave(true); setValidated(false);
+          }} />
+        <span>Conferi na embalagem real: {data.weightGrams ?? "—"} g,
+          {" "}{data.heightCm ?? "—"} × {data.widthCm ?? "—"} × {data.lengthCm ?? "—"} cm.
+          Medidas sugeridas pela IA não são confirmação.</span>
       </label>
       <label className="field listing-assistant__field">
         <span>Estoque disponível</span>

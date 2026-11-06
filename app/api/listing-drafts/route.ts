@@ -21,6 +21,7 @@ const dataSchema = z.object({
   confirmedFacts: z.string().trim().max(2000).default(""),
   missingFacts: z.array(z.string().max(180)).max(12).default([]),
   factsReviewed: z.boolean().default(false),
+  packageMeasurementsConfirmed: z.boolean().default(false),
   imageUrls: z.array(z.string().max(1800).refine(v => v.startsWith("https://") || /^\/api\/listing-drafts\/photos\/[a-f0-9-]+\.(?:jpg|png|webp)$/.test(v), "Foto inválida")).max(12).default([]),
   attributes: z.record(z.string().max(100), z.string().trim().max(255)).default({}),
   stock: z.number().int().min(0).max(1000000).default(0),

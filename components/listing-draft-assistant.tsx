@@ -686,6 +686,7 @@ export function ListingDraftAssistant({
             confirmedFacts,
             missingFacts: aiDraft?.missingFacts ?? restoredMissingFacts,
             factsReviewed: false,
+            packageMeasurementsConfirmed: false,
             imageUrls: [], stock: 0, attributes: {},
             costPerUnit: positiveNumber(purchaseCost),
             kitQuantity: Number(units) || 1,

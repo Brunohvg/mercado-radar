@@ -23,6 +23,7 @@ const schema = z.object({
 const itemData = z.object({
   name: z.string().min(3), title: z.string().min(5), description: z.string().min(60),
   factsReviewed: z.boolean().default(false),
+  packageMeasurementsConfirmed: z.boolean().default(false),
   missingFacts: z.array(z.string()).default([]),
   categoryId: z.string().regex(/^MLB\d{3,12}$/),
   catalogProductId: z.string().trim().max(50).nullable().optional(),
@@ -103,6 +104,9 @@ async function prepare(
   existingPictures?: Picture[],
   model: PublicationModel = "LEGACY",
 ) {
+  if (!data.packageMeasurementsConfirmed) {
+    throw new Error("Confirme o peso e as dimensões medidos na embalagem real antes de validar ou publicar.");
+  }
   const cat = await mlJson("https://api.mercadolibre.com/categories/" + data.categoryId, token);
   const category = cat.payload as {
     settings?: { listing_allowed?: boolean; status?: string; max_title_length?: number; max_pictures_per_item?: number };

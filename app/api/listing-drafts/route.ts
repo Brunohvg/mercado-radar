@@ -58,8 +58,8 @@ function review(data: ListingData) {
   // A draft is never described as ready to publish without those checks.
   return issues;
 }
-function publicRow(row: { id: string; status: string; name: string; createdAt: Date; updatedAt: Date; content: unknown }) {
-  return { id: row.id, status: row.status, name: row.name, createdAt: row.createdAt, updatedAt: row.updatedAt, data: row.content };
+function publicRow(row: { id: string; status: string; name: string; createdAt: Date; updatedAt: Date; content: unknown; mlItemId?: string | null }) {
+  return { id: row.id, status: row.status, mlItemId: row.mlItemId ?? null, name: row.name, createdAt: row.createdAt, updatedAt: row.updatedAt, data: row.content };
 }
 
 export async function GET(request: Request) {
@@ -113,6 +113,8 @@ export async function POST(request: Request) {
       }
     }
     const fields = {
+      validation: {},
+      validatedAt: null,
       name: data.name, barcode: data.barcode ?? null,
       sku: data.sku || null, categoryId: data.categoryId || null,
       content: data as Prisma.InputJsonValue,
@@ -122,10 +124,10 @@ export async function POST(request: Request) {
     let row;
     if (parsed.data.id) {
       const result = await prisma.listingDraft.updateMany({
-        where: { id: parsed.data.id, workspaceId: user.workspaceId },
+        where: { id: parsed.data.id, workspaceId: user.workspaceId, status: { notIn: ["PUBLISHED", "PUBLISHING"] } },
         data: fields,
       });
-      if (!result.count) return NextResponse.json({ error: "Rascunho não encontrado." }, { status: 404 });
+      if (!result.count) return NextResponse.json({ error: "Rascunho inexistente ou já enviado ao Mercado Livre." }, { status: 409 });
       row = await prisma.listingDraft.findFirstOrThrow({ where: { id: parsed.data.id, workspaceId: user.workspaceId } });
     } else {
       row = await prisma.listingDraft.create({

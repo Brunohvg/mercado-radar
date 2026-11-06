@@ -47,6 +47,8 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
       RADAR_UPLOAD_DIR: /app/uploads
+      # Real publication is opt-in; it creates paused items only.
+      RADAR_ENABLE_PUBLISHING: ${RADAR_ENABLE_PUBLISHING:-false}
       SERVICE_URL_APP_3000: /
     volumes:
       - radar-uploads:/app/uploads

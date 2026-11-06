@@ -510,6 +510,10 @@ model ListingDraft {
   workspaceId   String
   ownerId       String
   status        String   @default("DRAFT")
+  mlItemId      String?  @unique
+  validatedAt   DateTime?
+  publishedAt   DateTime?
+  validation    Json     @default("{}")
   name          String
   barcode       String?
   sku           String?

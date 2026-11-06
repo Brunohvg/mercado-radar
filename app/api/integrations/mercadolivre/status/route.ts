@@ -22,9 +22,9 @@ export async function GET() {
       nickname: account?.nickname ?? null,
       userId: account?.mercadoLivreUserId ?? null,
       tokenExpiresAt: account?.tokenExpiresAt?.toISOString() ?? null,
-      scopes: account?.scope?.split(/\s+/).filter(Boolean) ?? [],
-      publishingScopeAuthorized: Boolean(account?.scope?.split(/\s+/).includes("write")),
-      publishingScopeNotice: account && !account.scope?.split(/\s+/).includes("write")
+      scopes: account?.scopes?.split(/\s+/).filter(Boolean) ?? [],
+      publishingScopeAuthorized: Boolean(account?.scopes?.split(/\s+/).includes("write")),
+      publishingScopeNotice: account && !account.scopes?.split(/\s+/).includes("write")
         ? "Reconecte a conta após habilitar Publicação e sincronização com leitura e escrita no DevCenter."
         : null,
     });

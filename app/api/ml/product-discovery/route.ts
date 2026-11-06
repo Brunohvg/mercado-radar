@@ -95,6 +95,32 @@ export async function POST(request: Request) {
     }).catch(() => []);
 
     const catalogBest = catalog[0] ?? null;
+    // An EAN without a matching catalog product is NOT an identified product.
+    // Do not guess a category or generate a misleading product title.
+    if (barcode && !catalogBest) {
+      return NextResponse.json({
+        categorySuggestions: [],
+        identification: {
+          input: rawQuery,
+          barcode,
+          source: "UNVERIFIED",
+          verified: false,
+          requiresProductName: true,
+          name: null,
+          categoryId: null,
+          categoryName: null,
+          domainName: null,
+        },
+        market: {
+          comparableCount: 0, minimumPrice: null, averagePrice: null,
+          medianPrice: null, maximumPrice: null, source: "UNAVAILABLE",
+          accessBlocked: false,
+        },
+        dimensions: null,
+        comparables: [],
+        notice: "Não encontramos correspondência confiável para este EAN. Informe o nome comercial do produto para consultar categorias e preços.",
+      });
+    }
     const catalogDetails = catalogBest
       ? await getCatalogProductDetails({
           accessToken: session.accessToken,
@@ -316,6 +342,8 @@ export async function POST(request: Request) {
         input: rawQuery,
         barcode,
         source: catalogBest ? "CATALOG" : "MARKETPLACE",
+        verified: Boolean(catalogBest),
+        requiresProductName: false,
         catalogProductId: catalogBest?.id ?? null,
         name: catalogBest?.name ?? searchTitle,
         categoryId:

@@ -9,7 +9,10 @@ type Discovery = {
     categoryId?: string | null;
     categoryName?: string | null;
     source?: string;
+    verified?: boolean;
+    requiresProductName?: boolean;
   };
+  notice?: string;
   market?: {
     comparableCount?: number;
     minimumPrice?: number | null;
@@ -91,7 +94,7 @@ export function ListingDraftAssistant({
   const [sku, setSku] = useState("");
   const [units, setUnits] = useState("1");
   const [purchaseCost, setPurchaseCost] = useState("");
-  const [operatingCost, setOperatingCost] = useState("");
+  const [operatingCost, setOperatingCost] = useState("0");
   const [discount, setDiscount] = useState("0");
   const [categoryId, setCategoryId] = useState("");
   const [categoryName, setCategoryName] = useState("");
@@ -137,17 +140,28 @@ export function ListingDraftAssistant({
     }
   }
 
+  // The catalog's verified identity takes precedence over a barcode.
+  const effectiveName = discovery?.identification?.verified && discovery.identification.name
+    ? discovery.identification.name
+    : name;
+  const inputIsBarcodeOnly = /^\d{8,14}$/.test(name.replace(/\D/g, ""));
+  const unresolvedBarcode = inputIsBarcodeOnly && !discovery?.identification?.verified;
+
   // This is a deterministic preview, NOT model-generated ad copy.
   const draftTitle = useMemo(() => {
-    const base = name.trim().replace(/\s+/g, " ");
+    const base = effectiveName.trim().replace(/\s+/g, " ");
     const manufacturer = brand.trim();
     return (manufacturer && !base.toLowerCase().includes(manufacturer.toLowerCase())
       ? manufacturer + " " + base
       : base).slice(0, 120);
-  }, [name, brand]);
+  }, [effectiveName, brand]);
 
   async function generateAiDraft() {
-    if (name.trim().length < 3) {
+    if (unresolvedBarcode) {
+      setError("O EAN sozinho não identifica o produto. Informe o nome comercial ou confirme um resultado do catálogo antes de gerar.");
+      return;
+    }
+    if (effectiveName.trim().length < 3) {
       setError("Informe o nome do produto antes de gerar o texto.");
       return;
     }
@@ -156,7 +170,7 @@ export function ListingDraftAssistant({
     setAiLoading(true);
     try {
       const result = await postJson<AiDraft>("/api/ai/listing-draft", {
-        name: name.trim(),
+        name: effectiveName.trim(),
         brand: brand.trim(),
         category: categoryName,
         confirmedFacts: confirmedFacts.trim(),
@@ -209,12 +223,12 @@ export function ListingDraftAssistant({
     const lengthCm = positiveNumber(length);
     if (!categoryId || !cost || !kitQuantity || !Number.isInteger(kitQuantity) || operating === null || discountPercent === null) {
       shippingDetails.current?.setAttribute("open", "");
-      setError("Confirme categoria, custo, quantidade, desconto e custo operacional (inclusive zero).");
+      setError("Confirme categoria, custo por unidade, unidades do kit e custos. O custo operacional já inicia em R$ 0,00.");
       return;
     }
     if (freeShipping === "" || weightGrams === null || heightCm === null || widthCm === null || lengthCm === null) {
       shippingDetails.current?.setAttribute("open", "");
-      setError("Abra Frete e embalagem e confirme peso, medidas e frete grátis para obter a cotação real.");
+      setError("Para cotar frete e sugerir preço, confirme frete grátis e medidas reais. Peso em gramas: use 100, não 0,100.");
       return;
     }
     setLoading("price");
@@ -274,7 +288,7 @@ export function ListingDraftAssistant({
           <div><h2>Identificar produto</h2><p>Encontre a categoria e uma referência de mercado.</p></div>
         </div>
         <form onSubmit={identify} className="listing-assistant__form">
-          {label("Nome ou EAN do produto", name, (v) => { setName(v); setAiDraft(null); }, "Ex.: tinta pinta couro Shake Paint 37 ml", true)}
+          {label("Nome ou EAN do produto", name, (v) => { setName(v); setAiDraft(null); setDiscovery(null); setCategoryId(""); setCategoryName(""); setPrice(null); }, "Ex.: tinta pinta couro Shake Paint 37 ml", true)}
           <div className="listing-assistant__grid">
             {label("Marca confirmada (opcional)", brand, (v) => { setBrand(v); setAiDraft(null); }, "Ex.: Acrilex")}
             {label("SKU interno (opcional)", sku, setSku, "Seu código de estoque")}
@@ -286,7 +300,11 @@ export function ListingDraftAssistant({
         {discovery && (
           <div className="listing-assistant__discovery" role="status">
             <h3>Resultado da identificação</h3>
-            <p>Categoria prevista pelo Mercado Livre. Confirme ou selecione outra antes da precificação.</p>
+            {discovery.notice && <p className="listing-assistant__identity-warning" role="alert">{discovery.notice}</p>}
+            {discovery.identification?.verified && discovery.identification.name && (
+              <p className="listing-assistant__identity-success"><strong>Produto encontrado:</strong> {discovery.identification.name}</p>
+            )}
+            {!discovery.identification?.requiresProductName && <p>Categoria sugerida pelo Mercado Livre. Confirme antes da precificação; isto não certifica o produto.</p>}
             {(discovery.categorySuggestions?.length ?? 0) > 0 && (
               <label className="field listing-assistant__field">
                 <span>Escolha a categoria correta</span>
@@ -310,7 +328,7 @@ export function ListingDraftAssistant({
                 </select>
               </label>
             )}
-            <p>Comparáveis encontrados: {discovery.market?.comparableCount ?? "indisponível"}. Mediana de preços observados: <strong>{money(discovery.market?.medianPrice)}</strong>. Comparabilidade e período precisam de validação; isso não representa vendas garantidas.</p>
+            {!discovery.identification?.requiresProductName && <p>Comparáveis encontrados: {discovery.market?.comparableCount ?? "indisponível"}. Mediana de preços observados: <strong>{money(discovery.market?.medianPrice)}</strong>. Comparabilidade e período precisam de validação; isso não representa vendas garantidas.</p>}
             {discovery.dimensions && <p>Foram observadas medidas de referência no catálogo, mas não serão copiadas automaticamente. Confirme o peso e as dimensões da sua embalagem.</p>}
             {manualCategory && label("ID de categoria confirmada", categoryId, (v) => { setCategoryId(v); setCategoryName(""); }, "Ex.: MLB1234")}
           </div>
@@ -393,10 +411,11 @@ export function ListingDraftAssistant({
           {aiTesting ? "Testando conexão…" : "Testar conexão Gemini"}
         </button>
         {aiTestStatus && <p className="listing-assistant__helper" role="status">{aiTestStatus}</p>}
-        <button type="button" className="primary listing-assistant__button" disabled={aiLoading || loading !== null || name.trim().length < 3 || !aiConfig?.configured} onClick={generateAiDraft}>
+        <button type="button" className="primary listing-assistant__button" disabled={aiLoading || loading !== null || effectiveName.trim().length < 3 || unresolvedBarcode || !aiConfig?.configured} onClick={generateAiDraft}>
           {aiLoading ? "Gerando título e descrição…" : "Gerar título e descrição com Gemini"}
         </button>
         <div className="listing-assistant__draft">
+          {unresolvedBarcode && <p className="listing-assistant__identity-warning">Antes da IA, confirme o nome do produto. Código de barras e categoria não bastam para descrever o item.</p>}
           <span className="listing-assistant__preview-label">Título para revisão</span>
           <div className="listing-assistant__preview-title">{aiDraft?.title || draftTitle || "Aguardando produto"}</div>
         {aiDraft && (

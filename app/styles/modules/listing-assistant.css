@@ -268,3 +268,15 @@
   .listing-assistant__section { padding:var(--s-4); }
   .listing-assistant__finance-head { grid-template-columns:1fr; gap:var(--s-3); }
 }
+
+/* Improve the assistant's desktop density without altering other Radar pages. */
+.routed-content:has(.listing-assistant) { max-width: 1550px; }
+.listing-assistant__layout { grid-template-columns: minmax(0, 1fr) minmax(365px, .85fr); gap: 20px; }
+.listing-assistant__section { padding: clamp(16px, 1.7vw, 24px); }
+.listing-assistant__identity-warning { padding: 12px; background: #fff8eb; border: 1px solid #ecd4a8; border-radius: 9px; color: #78551f; line-height: 1.55; }
+.listing-assistant__identity-success { padding: 12px; background: #eef8f2; border: 1px solid #c1e5cf; border-radius: 9px; color: #1f5b3e; line-height: 1.55; }
+.listing-assistant__ai-status { display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:9px; border:1px solid var(--line); background:var(--surface-2); color:var(--ink-700); font-size:var(--fs-13); }
+.listing-assistant__status-dot { display:inline-block; flex:none; width:9px; height:9px; border-radius:100%; background:#d79d4b; }
+.listing-assistant__status-dot.is-ready { background:#389b70; }
+.listing-assistant__subheading { font-size:var(--fs-13); color:var(--ink-700); margin:12px 0 0; }
+@media(max-width:1150px) { .listing-assistant__layout { grid-template-columns: 1fr; } }

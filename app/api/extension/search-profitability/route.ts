@@ -226,6 +226,7 @@ export async function POST(request: Request) {
             listingType,
             commissionPercent: fee.commissionPercent,
             fixedFee: fee.fixedFee,
+            quotedSaleFeeAmount: fee.saleFeeAmount,
             shippingCost: shipping.shippingCost,
             operatingCost: parsed.data.operatingCost,
             taxPercent: parsed.data.taxPercent,

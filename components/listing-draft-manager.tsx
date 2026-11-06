@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type DraftValues = {
   name: string; barcode: string | null; brand: string; sku: string;
@@ -45,6 +45,16 @@ export function ListingDraftManager({
   const [publishedId, setPublishedId] = useState("");
   const [publishedLink, setPublishedLink] = useState("");
   const [requiresSave, setRequiresSave] = useState(true);
+  const lastInputs = useRef("");
+  useEffect(() => {
+    const signature = JSON.stringify(data);
+    if (lastInputs.current && lastInputs.current !== signature) {
+      setRequiresSave(true);
+      setValidated(false);
+      setPublishConfirmed(false);
+    }
+    lastInputs.current = signature;
+  }, [data]);
 
   useEffect(() => { setTitle(data.title); }, [data.title]);
   useEffect(() => { setDescription(data.description); }, [data.description]);

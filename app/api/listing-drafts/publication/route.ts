@@ -251,14 +251,23 @@ export async function POST(request: Request) {
       });
       return responseError("O Mercado Livre recusou a publicação. Corrija os dados e valide novamente.", 422, safeCauses(response.payload));
     }
-    const product = response.payload as { id?: string; permalink?: string } | null;
+    const product = response.payload as { id?: string; permalink?: string; status?: string } | null;
     if (!product?.id || !/^MLB\d+$/.test(product.id)) {
       return responseError("A resposta foi inconclusiva. Não tente publicar novamente sem conferir os anúncios.", 502);
     }
+    // Preserve the created ID before any later action, so a retry cannot duplicate it.
     await prisma.listingDraft.updateMany({
       where: { id: row.id, workspaceId: user.workspaceId, status: "PUBLISHING" },
       data: { status: "PUBLISHED", mlItemId: product.id, publishedAt: new Date() },
     });
+    let paused = product.status === "paused";
+    if (!paused) {
+      try {
+        const pauseResult = await mlJson("https://api.mercadolibre.com/items/" + product.id,
+          session.accessToken, "PUT", { status: "paused" });
+        paused = pauseResult.response.ok;
+      } catch { paused = false; }
+    }
     // Description API failure does not retry the item POST, avoiding duplicates.
     let descriptionAdded = false;
     try {
@@ -267,11 +276,13 @@ export async function POST(request: Request) {
       descriptionAdded = desc.response.ok;
     } catch { /* Leave item paused; user can fix description in seller center. */ }
     return NextResponse.json({
-      published: true, paused: true, mlItemId: product.id,
+      published: true, paused, mlItemId: product.id,
       permalink: product.permalink ?? null, descriptionAdded,
-      message: descriptionAdded
-        ? "Anúncio criado PAUSADO. Revise no Mercado Livre antes de ativar."
-        : "Anúncio criado PAUSADO, mas a descrição não foi confirmada. Revise no Mercado Livre.",
+      message: !paused
+        ? "Anúncio criado, mas não foi possível confirmar a pausa. VERIFIQUE IMEDIATAMENTE o status no Mercado Livre."
+        : descriptionAdded
+          ? "Anúncio criado PAUSADO. Revise no Mercado Livre antes de ativar."
+          : "Anúncio criado PAUSADO, mas a descrição não foi confirmada. Revise no Mercado Livre.",
     });
   } catch (error) {
     console.error("[listing-publish] error", error instanceof Error ? error.message : "unknown");

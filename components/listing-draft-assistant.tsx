@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 type Discovery = {
   categorySuggestions?: Array<{ categoryId: string; categoryName: string; source: string }>;
@@ -27,6 +27,7 @@ type Discovery = {
   } | null;
 };
 
+type AiConfig = { provider: string; model: string; configured: boolean; message: string };
 type AiDraft = {
   title: string;
   description: string;
@@ -106,6 +107,34 @@ export function ListingDraftAssistant({
   const [price, setPrice] = useState<PriceResponse | null>(null);
   const [loading, setLoading] = useState<"discover" | "price" | null>(null);
   const [error, setError] = useState("");
+  const [aiConfig, setAiConfig] = useState<AiConfig | null>(null);
+  const [aiTestStatus, setAiTestStatus] = useState("");
+  const [aiTesting, setAiTesting] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/ai/status", { cache: "no-store" })
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Não foi possível obter o status da IA.");
+        return r.json() as Promise<AiConfig>;
+      })
+      .then((result) => { if (active) setAiConfig(result); })
+      .catch(() => { if (active) setAiTestStatus("Não foi possível consultar o status. Verifique sua sessão no Radar."); });
+    return () => { active = false; };
+  }, []);
+
+  async function testGemini() {
+    setAiTestStatus("");
+    setAiTesting(true);
+    try {
+      const result = await postJson<{ message: string }>("/api/ai/status", {});
+      setAiTestStatus(result.message);
+    } catch (err) {
+      setAiTestStatus(err instanceof Error ? err.message : "Não foi possível testar a conexão.");
+    } finally {
+      setAiTesting(false);
+    }
+  }
 
   // This is a deterministic preview, NOT model-generated ad copy.
   const draftTitle = useMemo(() => {
@@ -346,7 +375,16 @@ export function ListingDraftAssistant({
             placeholder="Ex.: embalagem original com 37 ml, cor preta, produto novo. Informe somente fatos verificados."
           />
         </label>
-        <button type="button" className="secondary listing-assistant__button" disabled={aiLoading || loading !== null || name.trim().length < 3} onClick={generateAiDraft}>
+
+        <div className="listing-assistant__ai-status" role="status">
+          <span className={"listing-assistant__status-dot" + (aiConfig?.configured ? " is-ready" : "")} aria-hidden="true" />
+          <span>{aiConfig?.message ?? "Verificando Gemini no servidor…"}</span>
+        </div>
+        <button type="button" className="secondary listing-assistant__button" onClick={testGemini} disabled={!aiConfig?.configured || aiTesting}>
+          {aiTesting ? "Testando conexão…" : "Testar conexão Gemini"}
+        </button>
+        {aiTestStatus && <p className="listing-assistant__helper" role="status">{aiTestStatus}</p>}
+        <button type="button" className="primary listing-assistant__button" disabled={aiLoading || loading !== null || name.trim().length < 3 || !aiConfig?.configured} onClick={generateAiDraft}>
           {aiLoading ? "Gerando título e descrição…" : "Gerar título e descrição com Gemini"}
         </button>
         <div className="listing-assistant__draft">

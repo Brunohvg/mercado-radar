@@ -463,7 +463,7 @@ export function ListingDraftAssistant({
             description: aiDraft?.description || savedDescription || "",
             confirmedFacts,
             missingFacts: aiDraft?.missingFacts ?? restoredMissingFacts,
-            imageUrls: [], stock: 0,
+            imageUrls: [], stock: 0, attributes: {},
             costPerUnit: positiveNumber(purchaseCost),
             kitQuantity: Number(units) || 1,
             discountPercent: nonnegativeNumber(discount) ?? 0,

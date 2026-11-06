@@ -81,6 +81,13 @@ test("beta e versão de extensão são iguais no Chrome, painel e instalador", a
   assert.ok(injected.includes("Mercado Radar · " + development.version));
   assert.ok(installPage.includes("Beta " + development.version));
 });
+test("instalador da homologação serve os próprios arquivos e Docker inclui extensão", async () => {
+  const docker = await readFile(new URL("../Dockerfile", import.meta.url), "utf8");
+  const cmd = await readFile(new URL("../app/api/extension/dev-installer-cmd/route.ts", import.meta.url), "utf8");
+  assert.match(docker, /\/app\/extension \.\/extension/);
+  assert.match(cmd, /new URL\(request\.url\)\.origin/);
+  assert.doesNotMatch(cmd, /set \\"URL=https:\/\/radar\.optarys\.com\.br/);
+});
 const measured = (rate, method = "HISTORICO", isOwn = false) => ({
   isOwn,
   estimate: { method, windowDays: 30, salesPerDay: { value: rate } },

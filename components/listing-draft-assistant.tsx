@@ -259,6 +259,11 @@ export function ListingDraftAssistant({
       return;
     }
     const serial = ++identificationSerial.current;
+    // Do not reuse guessed package dimensions from a different product.
+    // Preserve fields entered manually by the seller.
+    if (dimensionEvidence) {
+      setWeight(""); setHeight(""); setWidth(""); setLength("");
+    }
     setEstimateStatus("");
     setDimensionEvidence(null);
     setLoading("discover");
@@ -266,11 +271,15 @@ export function ListingDraftAssistant({
     setDiscovery(null);
     setPrice(null);
     setAiDraft(null);
+    setSavedTitle("");
+    setSavedDescription("");
+    setRestoredMissingFacts([]);
     setCategoryId("");
     setCategoryName("");
     setManualCategory(false);
     try {
       const data = await postJson<Discovery>("/api/ml/product-discovery", { query: name.trim() });
+      if (serial !== identificationSerial.current) return;
       setDiscovery(data);
       if (data.identification?.brand && !brand.trim()) setBrand(data.identification.brand);
       setCategoryId(data.identification?.categoryId ?? "");
@@ -584,10 +593,18 @@ export function ListingDraftAssistant({
           </p>}
           {estimateStatus && <p className="listing-assistant__helper" role="status">{estimateStatus}</p>}
           <div className="listing-assistant__grid">
-            {label("Peso embalado (g) — confirme", weight, setWeight)}
-            {label("Altura em cm", height, setHeight)}
-            {label("Largura em cm", width, setWidth)}
-            {label("Comprimento em cm", length, setLength)}
+            {label("Peso embalado (g) — confirme", weight, v => {
+              setWeight(v); setDimensionEvidence(null);
+            })}
+            {label("Altura em cm", height, v => {
+              setHeight(v); setDimensionEvidence(null);
+            })}
+            {label("Largura em cm", width, v => {
+              setWidth(v); setDimensionEvidence(null);
+            })}
+            {label("Comprimento em cm", length, v => {
+              setLength(v); setDimensionEvidence(null);
+            })}
           </div>
         </details>
         <button type="button" onClick={simulatePrice} className="primary listing-assistant__button" disabled={loading !== null || !discovery}>

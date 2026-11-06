@@ -219,6 +219,7 @@ export async function GET(request: Request) {
         listingType,
         commissionPercent: fee.commissionPercent,
         fixedFee: fee.fixedFee,
+        quotedSaleFeeAmount: fee.saleFeeAmount,
         shippingCost: shipping.shippingCost,
         operatingCost,
         taxPercent: Number(settings.taxPercent),

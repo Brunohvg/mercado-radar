@@ -474,7 +474,7 @@ const backgroundSource = await readFile(
   "utf8",
 );
 async function backgroundHarness() {
-  let listener,
+  let listener, externalListener,
     activeId = 1;
   const opened = [],
     sessionWrites = [],
@@ -484,6 +484,7 @@ async function backgroundHarness() {
     ]);
   const local = {},
     sync = {},
+    session = {},
     removed = [],
     fetches = [];
   const scope = {
@@ -506,6 +507,8 @@ async function backgroundHarness() {
       runtime: {
         id: "a".repeat(32),
         onInstalled: { addListener() {} },
+        onMessageExternal: { addListener(fn) { externalListener = fn; } },
+        getRedirectURL: () => "https://" + "a".repeat(32) + ".chromiumapp.org/radar-auth",
         onMessage: {
           addListener(fn) {
             listener = fn;
@@ -519,6 +522,7 @@ async function backgroundHarness() {
         },
       },
       tabs: {
+        create: async ({ url }) => { opened.push({ url }); },
         query: async () => [{ id: activeId }],
         sendMessage: async (id) => {
           if (!contexts.has(id)) throw new Error("No content adapter");
@@ -541,8 +545,9 @@ async function backgroundHarness() {
           },
         },
         session: {
-          set: async (value) => sessionWrites.push(value),
-          remove: async () => {},
+          get: async () => session,
+          set: async (value) => { sessionWrites.push(value); Object.assign(session, value); },
+          remove: async (keys) => { for (const k of typeof keys === "string" ? [keys] : keys) delete session[k]; },
         },
       },
     },
@@ -553,6 +558,8 @@ async function backgroundHarness() {
     scope,
     opened,
     sessionWrites,
+    session,
+    external: (message, sender) => new Promise(resolve => externalListener(message, sender, resolve)),
     local,
     sync,
     removed,
@@ -636,5 +643,50 @@ test("stale server override cannot redirect tokens and legacy tokens without ori
     } else {
       assert.equal(h.fetches.length, 1);
     }
+  }
+});
+
+test("vinculação abre aba oficial e nunca chama a janela OAuth do Chrome", async () => {
+  const h = await backgroundHarness();
+  const response = await h.call({ type: "RADAR_AUTH_LOGIN" });
+  assert.equal(response.pending, true);
+  const opened = h.opened[0].url;
+  const page = new URL(opened);
+  assert.equal(page.origin, "https://radar.optarys.com.br");
+  assert.equal(page.pathname, "/extensao/conectar");
+  assert.equal(page.searchParams.get("extension_id"), "a".repeat(32));
+  assert.equal(page.searchParams.get("redirect_uri"), "https://" + "a".repeat(32) + ".chromiumapp.org/radar-auth");
+  assert.ok(h.session.radarPendingLink.verifier.length >= 43);
+  assert.ok(!backgroundSource.includes("launchWebAuthFlow("));
+});
+
+test("vinculação externa bloqueia origem errada e código não solicitado", async () => {
+  const h = await backgroundHarness();
+  await h.call({ type: "RADAR_AUTH_LOGIN" });
+  const p = h.session.radarPendingLink;
+  const attempt = { type: "RADAR_BROWSER_LINK", state: p.state, redirectUri: p.redirectUri, code: "Z".repeat(48) };
+  const badOrigin = await h.external(attempt, { url: "https://evil.example/extensao/conectar" });
+  assert.equal(badOrigin.ok, false);
+  assert.equal(h.fetches.length, 0);
+  const badState = await h.external({ ...attempt, state: "wrong" }, { url: "https://radar.optarys.com.br/extensao/conectar" });
+  assert.equal(badState.ok, false);
+  assert.equal(h.fetches.length, 0);
+  const realAttempt = await h.external(attempt, { url: "https://radar.optarys.com.br/extensao/conectar" });
+  assert.equal(realAttempt.ok, false); // Mocked API intentionally returns HTTP 500.
+  assert.equal(h.fetches.length, 1);
+  assert.equal(h.session.radarPendingLink, undefined);
+  const replay = await h.external(attempt, { url: "https://radar.optarys.com.br/extensao/conectar" });
+  assert.equal(replay.ok, false);
+  assert.equal(h.fetches.length, 1);
+});
+
+test("manifestos e instaladores autorizam somente o site Radar para vinculação", async () => {
+  const dev = JSON.parse(await readFile(new URL("../extension/manifest.json", import.meta.url), "utf8"));
+  const prod = JSON.parse(await readFile(new URL("../extension/manifest.prod.json", import.meta.url), "utf8"));
+  assert.deepEqual(dev.externally_connectable, { matches: ["https://radar.optarys.com.br/*"] });
+  assert.deepEqual(prod.externally_connectable, { matches: ["https://radar.optarys.com.br/*"] });
+  for (const installer of ["linux-installer", "dev-installer"]) {
+    const src = await readFile(new URL("../app/api/extension/" + installer + "/route.ts", import.meta.url), "utf8");
+    assert.ok(src.includes("manifest.externally_connectable"));
   }
 });

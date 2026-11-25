@@ -55,12 +55,17 @@ Citados sem detalhes: Nubimetrics, Real Trends, Mercado Turbo, Meli Pro, Seller 
 ## 6. Feito nesta etapa
 - Aba Fornecedor da extensão mostra os sinais oficiais do anúncio: compra em volume, vendedor, o que os compradores perguntam e o que pedir ao fornecedor.
 - Este documento.
+- **Faixa de vendas estimada** (decisão do Bruno em 25/11): quando o anúncio não tem período de vendas, o painel mostra "X a Y vendas/mês · estimativa" = visitas reais dos últimos 30 dias (API oficial) × conversão de 1,2% a 5%, com a conta escrita na tela. Nunca substitui pedidos reais nem a diferença entre leituras.
+
+## 6b. Cargoos (indicada pelo Bruno)
+UNDERSTACK (São Paulo), cerca de 6 mil usuários, nota 5,0 em 27 avaliações, versão 1.0.44 de 25/11/2026, compras dentro do app. Declara: lucro com comissão da API para Clássico/Premium, frete Standard/Flex/Full, imposto por regime (MEI, PJ), **modo reverso** (margem → preço ideal), ponto de equilíbrio, **análise de sensibilidade com gráfico**, visitas, vendas e conversão diárias, score de produto, **cenários do pior ao "produto que decola"**, projeção de caixa, **payback e estoque necessário**, preço médio/mediana da categoria, buy box e Price to Win, adoção de Full, **busca de EAN em lote**, **mapa de concorrentes por região**, tabela do catálogo com reputação. Não explica como estima vendas. O visual não pôde ser visto daqui (o ambiente bloqueia a loja e as imagens); falta um print do Bruno.
+O que vale trazer: modo reverso e sensibilidade na calculadora, cenários com payback (já temos plano de compra no "Onde comprar"), mapa de concorrentes por UF (agora temos a UF do vendedor pela API).
 
 ## 7. Próximos passos propostos (em ordem)
 1. Veredito único no topo da extensão, com 3 números e o próximo passo (inclui "Onde comprar").
-2. Faixa de vendas estimada com fórmula visível quando houver visitas e nenhum período.
-3. Score de oportunidade 0–100 explicável (demanda, concorrência, margem, fornecedor encontrado), com o peso de cada parte à mostra.
-4. Definir planos e preço.
+2. Score de oportunidade 0–100 explicável (demanda, concorrência, margem, fornecedor encontrado), com o peso de cada parte à mostra.
+3. Definir planos e preço.
+4. Da Cargoos: modo reverso, gráfico de sensibilidade e mapa de concorrentes por UF.
 
 ## Fontes
 - Hunter Spy na Chrome Web Store: https://chromewebstore.google.com/detail/hunter-spy-ferramenta-esp/kgdhkchjcdgbgnhfdhdoimllgjjanfmp e avaliações sincronizadas em https://extscope.org/extension/kgdhkchjcdgbgnhfdhdoimllgjjanfmp

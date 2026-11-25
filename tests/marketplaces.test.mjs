@@ -193,3 +193,16 @@ test("resumo para a extensão: só o que veio da API, sem inventar", () => {
   assert.match(rows[0].value, /82,00 cada a partir de 10 · \+1 faixa/);
   assert.equal(rows[1].value, "LOJA · MercadoLíder Gold · MG");
 });
+
+const { salesRangeFromVisits } = await loadTs("../lib/market-estimates.ts");
+
+test("faixa de vendas por visitas: rotulada, com fórmula e sem inventar com dado ruim", () => {
+  const r = salesRangeFromVisits({ visitsTotal: 600, days: 30 });
+  assert.equal(r.method, "VISITAS_X_CONVERSAO");
+  assert.equal(r.visitsPerDay, 20);
+  assert.deepEqual(r.salesPer30Days, { low: 7, high: 30 });
+  assert.equal(r.salesPerDay.value, 0.5);
+  assert.match(r.formula, /600 visitas em 30 dias .*1,2% a 5%.*faixa padrão/);
+  for (const bad of [{ visitsTotal: 0, days: 30 }, { visitsTotal: 10.5, days: 30 }, { visitsTotal: 100, days: 0 }, { visitsTotal: 100, days: 90 }, { visitsTotal: null, days: 30 }])
+    assert.equal(salesRangeFromVisits(bad), null);
+});

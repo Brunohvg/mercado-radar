@@ -1348,6 +1348,8 @@ try {
       const analytics = response.json.analytics,
         c = analytics.catalog;
       assert.equal(analytics.itemVisits.perDay, 20);
+      assert.deepEqual(analytics.visitSales.salesPer30Days, { low: 7, high: 30 });
+      assert.match(analytics.visitSales.formula, /visitas em 30 dias/);
       assert.equal(c.offersObserved, 5);
       assert.equal(c.totalReported, 52);
       assert.equal(c.fullOffersObserved, 2);

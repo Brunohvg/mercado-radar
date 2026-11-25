@@ -618,6 +618,21 @@
       },
     };
   }
+  /** Faixa de vendas (visitas × conversão) vinda do servidor, já validada. */
+  function visitSales(a) {
+    const v = a?.visitSales;
+    return v &&
+      v.method === "VISITAS_X_CONVERSAO" &&
+      Number.isFinite(v.salesPer30Days?.low) &&
+      Number.isFinite(v.salesPer30Days?.high) &&
+      typeof v.formula === "string"
+      ? v
+      : null;
+  }
+  function rangeText(v) {
+    const { low, high } = v.salesPer30Days;
+    return low === high ? "≈ " + num(low) : num(low) + " a " + num(high);
+  }
   function marketMetrics(s) {
     const d = demand(s.insight),
       a = s.analytics,
@@ -637,6 +652,17 @@
             ? "API · " + num(a.itemVisits.days) + " dias."
             : "A API não disponibilizou visitas datadas para esta referência.",
       },
+      ...(d.rate == null && visitSales(a)
+        ? [
+            {
+              label: "Vendas/mês · estimativa",
+              value: rangeText(a.visitSales),
+              detail:
+                a.visitSales.formula +
+                " É estimativa: confira com o histórico de leituras.",
+            },
+          ]
+        : []),
       {
         label:
           d.rate == null &&
@@ -867,12 +893,23 @@
         metrics[0].parentElement.querySelector("small").textContent =
           reading.demand.label + (reading.demand.lowerBound ? " · mínima" : "");
         metrics[0].title = reading.demand.basis;
+        // Sem período de vendas: mostra a faixa estimada, rotulada e com a conta.
+        const estimate = d.rate == null ? visitSales(s.analytics) : null;
+        if (estimate) {
+          metrics[0].className = "auto-badge";
+          metrics[0].textContent = rangeText(estimate);
+          metrics[0].parentElement.querySelector("small").textContent =
+            "Vendas/mês · estimativa";
+          metrics[0].title = estimate.formula;
+        }
         metrics[1].textContent = card.amount;
         metrics[1].parentElement.querySelector("small").textContent =
           card.label;
         metrics[1].title = card.detail;
         source.textContent =
-          reading.demand.basis + " " + (reading.reference?.detail || "");
+          (estimate
+            ? "Estimativa de vendas: " + estimate.formula + " "
+            : reading.demand.basis + " ") + (reading.reference?.detail || "");
         publicLine.textContent = [
           s.obs.soldLabel ||
             (s.obs.soldLower == null
@@ -1045,6 +1082,8 @@
   }
   globalThis.RadarProductAnalysis = {
     marketMetrics,
+    visitSales,
+    rangeText,
     cardMetrics,
     decision,
     demand,

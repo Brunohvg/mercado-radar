@@ -1060,6 +1060,7 @@ try {
           if (message.path.startsWith("/api/extension/item?"))
             return ok({
               analytics: {
+                visitSales: qa.visitSales ?? null,
                 catalog: {
                   offersObserved: 5,
                   totalReported: 52,
@@ -1257,6 +1258,36 @@ try {
         await page.locator("#publicDetails").getAttribute("open"),
         null,
       );
+    },
+  );
+  await check(
+    "without a sales period the panel shows a labelled visits × conversion range with its formula",
+    async () => {
+      const show = (visitSales, id) =>
+        page.evaluate(
+          ([visitSales, id]) => {
+            __qa.visitSales = visitSales;
+            const obs = { ...__qa.obs, id };
+            __qa.activate({ ...__qa.context, items: [obs], updatedAt: new Date().toISOString() });
+          },
+          [visitSales, id],
+        );
+      await show(
+        {
+          method: "VISITAS_X_CONVERSAO",
+          salesPer30Days: { low: 7, high: 30 },
+          formula: "600 visitas em 30 dias (API oficial) × conversão de 1,2% a 5% (faixa padrão de mercado, não medida nesta categoria).",
+        },
+        "MLBU5074600650",
+      );
+      await page.locator("#autoDemand").filter({ hasText: "estimativa" }).waitFor();
+      assert.match(await page.locator("#autoDemand").innerText(), /7 a 30 vendas\/mês · estimativa/);
+      assert.match(await page.locator("#autoEvidence").innerText(), /600 visitas em 30 dias .* × conversão de 1,2% a 5%/);
+      assert.match(await page.locator("#autoMetrics").innerText(), /Vendas\/mês · estimativa\s+7 a 30/);
+      await show({ method: "OUTRO", salesPer30Days: { low: 1, high: 2 }, formula: "x" }, "MLBU5074600651");
+      await page.waitForFunction(() => !document.querySelector("#autoDemand")?.textContent.includes("estimativa"));
+      await show(null, "MLBU5074600649");
+      await page.locator("#autoMetrics").filter({ hasText: "76" }).waitFor();
     },
   );
   await check(

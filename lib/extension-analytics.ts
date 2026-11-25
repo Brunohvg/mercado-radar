@@ -2,6 +2,7 @@ import {
   getCatalogProductOffersSnapshot,
   getItemVisitWindow,
 } from "@/lib/mercado-livre";
+import { salesRangeFromVisits } from "@/lib/market-estimates";
 
 /** Small per-account cache; API restrictions remain unknown, never numeric zero. */
 const cache = new Map<string, { expires: number; value: Promise<unknown> }>();
@@ -71,6 +72,10 @@ async function read(input: Parameters<typeof getExtensionAnalytics>[0]) {
     source: "MERCADO_LIVRE_API",
     generatedAt: new Date().toISOString(),
     itemVisits,
+    // Estimativa rotulada: visitas reais × faixa de conversão, com a fórmula.
+    visitSales: itemVisits
+      ? salesRangeFromVisits({ visitsTotal: itemVisits.total, days: itemVisits.days })
+      : null,
     catalog: input.catalogProductId
       ? {
           id: input.catalogProductId,

@@ -1,6 +1,9 @@
 /** Public counters are observations, not seller order data. We never derive visits
  * from an assumed conversion rate, sales from reviews, or creation date from IDs.
  * Official orders and changes in exact counters are the only velocity evidence.
+ * Exception decided by the product owner (25/11/2026): when there is no sales
+ * period, `salesRangeFromVisits` shows a labelled range of real dated visits ×
+ * a conversion band, always with its formula. It never feeds measured figures.
  */
 
 export type Range = {
@@ -458,4 +461,57 @@ export function marketScore(input: {
       : 0;
 
   return Math.round(clamp(score, 0, 100));
+}
+
+/* ------------------------------------------------------------------ */
+/* faixa de vendas por visitas (decisão do Bruno, 25/11/2026)          */
+/* ------------------------------------------------------------------ */
+
+export type VisitSalesRange = {
+  method: "VISITAS_X_CONVERSAO";
+  visitsTotal: number;
+  days: number;
+  visitsPerDay: number;
+  conversion: { low: number; value: number; high: number; source: "SUA_CONTA" | "PADRAO" };
+  salesPerDay: { low: number; value: number; high: number };
+  salesPer30Days: { low: number; high: number };
+  formula: string;
+};
+
+/**
+ * Faixa de vendas = visitas reais do anúncio (API oficial, período datado)
+ * × faixa de conversão. É uma estimativa e vai sempre rotulada, com a conta
+ * aberta. Não substitui pedidos reais nem diferença entre leituras: só é
+ * usada quando o anúncio não tem período de vendas.
+ */
+export function salesRangeFromVisits(input: {
+  visitsTotal: number | null | undefined;
+  days: number | null | undefined;
+  conversion?: Calibration["conversion"];
+}): VisitSalesRange | null {
+  const visits = input.visitsTotal;
+  const days = input.days;
+  if (
+    typeof visits !== "number" || !Number.isInteger(visits) || visits <= 0 ||
+    typeof days !== "number" || !(days > 0) || days > 31
+  )
+    return null;
+  const c = input.conversion ?? DEFAULT_CALIBRATION.conversion;
+  const perDay = visits / days;
+  const r2 = (v: number) => Math.round(v * 100) / 100;
+  const pctText = (v: number) => (v * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%";
+  const low = perDay * c.low;
+  const high = perDay * c.high;
+  return {
+    method: "VISITAS_X_CONVERSAO",
+    visitsTotal: visits,
+    days: r2(days),
+    visitsPerDay: r2(perDay),
+    conversion: { low: c.low, value: c.value, high: c.high, source: c.source },
+    salesPerDay: { low: r2(low), value: r2(perDay * c.value), high: r2(high) },
+    salesPer30Days: { low: Math.floor(low * 30), high: Math.ceil(high * 30) },
+    formula:
+      `${visits.toLocaleString("pt-BR")} visitas em ${r2(days).toLocaleString("pt-BR")} dias (API oficial) × conversão de ${pctText(c.low)} a ${pctText(c.high)}` +
+      (c.source === "SUA_CONTA" ? " medida nas vendas da sua conta." : " (faixa padrão de mercado, não medida nesta categoria)."),
+  };
 }

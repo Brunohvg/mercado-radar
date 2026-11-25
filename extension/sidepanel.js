@@ -85,9 +85,12 @@
       payout = A.receipt(quote, obs.price);
     const reading = globalThis.RadarMarketModel.assessMarket(obs, s.insight),
       card = A.cardMetrics(obs, s.insight);
-    $("autoDemand").textContent =
-      reading.demand.text + " · " + reading.demand.label;
-    $("autoDemand").title = reading.demand.basis;
+    // Sem período de vendas: faixa estimada (visitas × conversão), rotulada e com a conta.
+    const estimate = d.rate == null ? A.visitSales(s.analytics) : null;
+    $("autoDemand").textContent = estimate
+      ? A.rangeText(estimate) + " vendas/mês · estimativa"
+      : reading.demand.text + " · " + reading.demand.label;
+    $("autoDemand").title = estimate ? estimate.formula : reading.demand.basis;
     $("autoVerdict").textContent = o.title;
     $("autoVerdict").className = "analysis-verdict " + o.tone;
     $("autoMetrics").replaceChildren(
@@ -106,6 +109,7 @@
         }),
     );
     $("autoEvidence").textContent =
+      (estimate ? "Estimativa de vendas: " + estimate.formula + " " : "") +
       reading.demand.basis +
       (s.analytics?.catalog?.visitsSample
         ? " Visitas: soma das ofertas medidas; cobertura pode ser parcial."

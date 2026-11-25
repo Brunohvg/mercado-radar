@@ -29,9 +29,11 @@ type Saved = {
 };
 
 export function ListingDraftManager({
-  data, onRestore, setAttributes,
+  data, onRestore, setAttributes, preparing, onPrepare,
 }: {
   data: DraftValues;
+  preparing: boolean;
+  onPrepare: () => void;
   setAttributes: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   onRestore: (data: DraftValues) => void;
 }) {
@@ -194,8 +196,8 @@ export function ListingDraftManager({
   }
 
   async function save() {
-    if (!data.name || /^\d{8,14}$/.test(data.name)) {
-      setMessage("Identifique o nome comercial do produto antes de salvar.");
+    if (data.name.trim().length < 3 || /^\d{8,14}$/.test(data.name)) {
+      setMessage("Informe um nome comercial com pelo menos três caracteres.");
       return;
     }
     const imageUrls = photos.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
@@ -301,17 +303,16 @@ export function ListingDraftManager({
     <section className="listing-draft-workspace" aria-label="Salvar e revisar anúncio">
       <div className="listing-draft-workspace__heading">
         <div>
-          <h3>Finalizar e salvar anúncio</h3>
-          <p>Edite a proposta da IA e continue depois sem perder os dados.</p>
+          <h3>Seu anúncio</h3>
         </div>
-        <button type="button" className="secondary" disabled={pending} onClick={() => {
+        {draftId && <button type="button" className="secondary" disabled={pending} onClick={() => {
           setDraftId(""); setStock("0"); setPhotos("");
           setValidated(false); setPublishConfirmed(false); setRequiresSave(true);
           setPublishedId(""); setPublishedLink(""); setPublicationResult(""); setPublicationUncertain(false);
           setIssues([]); setMessage("Novo rascunho iniciado.");
-        }}>Novo</button>
+        }}>Novo</button>}
       </div>
-      <label className="field listing-assistant__field">
+      {list.length > 0 && <label className="field listing-assistant__field">
         <span>Meus rascunhos</span>
         <select value={draftId} disabled={pending} onChange={e => void restore(e.target.value)}>
           <option value="">Novo anúncio — escolher um salvo</option>
@@ -321,8 +322,8 @@ export function ListingDraftManager({
             </option>
           ))}
         </select>
-      </label>
-      <div className="listing-draft-workspace__attributes">
+      </label>}
+      {preparing && <div className="listing-draft-workspace__attributes">
         <label className="field listing-assistant__field">
           <span>Tipo de anúncio</span>
           <select value={channel} onChange={e => {
@@ -346,7 +347,8 @@ export function ListingDraftManager({
             <span>Confirmei que o produto e sua embalagem são idênticos à ficha de catálogo encontrada.</span>
           </label>
         </>}
-      </div>
+      </div>}
+      <details><summary>Editar título e descrição</summary>
       <label className="field listing-assistant__field">
         <span>Título comercial (editável)</span>
         <input maxLength={120} value={title} onChange={e => { setTitle(e.target.value); setValidated(false); setRequiresSave(true); }} />
@@ -356,7 +358,8 @@ export function ListingDraftManager({
         <textarea rows={7} maxLength={7500} value={description} onChange={e => { setDescription(e.target.value); setValidated(false); setRequiresSave(true); }}
           placeholder="Gere o texto com IA ou descreva as características comprovadas." />
       </label>
-      <label className="listing-draft-workspace__confirmation">
+      </details>
+      {preparing && <label className="listing-draft-workspace__confirmation">
         <input type="checkbox" checked={packageMeasurementsConfirmed}
           disabled={!data.weightGrams || !data.heightCm || !data.widthCm || !data.lengthCm}
           onChange={e => {
@@ -366,7 +369,7 @@ export function ListingDraftManager({
         <span>Conferi na embalagem real: {data.weightGrams ?? "—"} g,
           {" "}{data.heightCm ?? "—"} × {data.widthCm ?? "—"} × {data.lengthCm ?? "—"} cm.
           Medidas sugeridas pela IA não são confirmação.</span>
-      </label>
+      </label>}
       <label className="field listing-assistant__field">
         <span>Estoque disponível</span>
         <input inputMode="numeric" value={stock} onChange={e => { setStock(e.target.value); setValidated(false); setRequiresSave(true); }} placeholder="Quantidade" />
@@ -377,16 +380,16 @@ export function ListingDraftManager({
           onChange={e => { void uploadPhotos(e.target.files); e.target.value = ""; }} />
         <small>JPG, PNG ou WebP, até 7 MB por imagem. Armazenadas no seu workspace.</small>
       </label>
-      <label className="field listing-assistant__field">
+      <details><summary>Editar links das fotos</summary><label className="field listing-assistant__field">
         <span>Fotos salvas e links externos (uma por linha)</span>
         <textarea rows={3} value={photos} onChange={e => { setPhotos(e.target.value); setValidated(false); setRequiresSave(true); }}
           placeholder="/api/listing-drafts/photos/... ou https://seusite.com.br/imagem.jpg" />
+      </label></details>
       {photos && <div className="listing-draft-workspace__photos">
         {photos.split(/[\n,]/).map(x => x.trim()).filter(Boolean).slice(0, 12).map((url, i) =>
           <img key={url + i} src={url} alt={"Foto de produto " + (i + 1)} loading="lazy" />
         )}
       </div>}
-      </label>
       {photoReviewStatus && (
         <div className="listing-draft-workspace__attributes" role="status">
           <strong>Leitura inteligente da foto — confirme antes de usar</strong>
@@ -405,7 +408,7 @@ export function ListingDraftManager({
           </>}
         </div>
       )}
-      {data.categoryId && (
+      {preparing && data.categoryId && (
         <div className="listing-draft-workspace__attributes">
           <strong>Ficha técnica da categoria</strong>
           <p className="listing-assistant__helper">Preencha características do produto, não preços. Os atributos obrigatórios ficam aqui, sem atrapalhar o fluxo principal.</p>
@@ -443,7 +446,7 @@ export function ListingDraftManager({
         </div>
       )}
       {message && <p className="listing-draft-workspace__message" role="status">{message}</p>}
-      {issues.length > 0 && (
+      {preparing && issues.length > 0 && (
         <div className="listing-draft-workspace__issues">
           <strong>O que falta para um anúncio completo</strong>
           <ul>{issues.map(x => <li key={x}>{x}</li>)}</ul>
@@ -452,7 +455,8 @@ export function ListingDraftManager({
       <button type="button" className="primary listing-assistant__button" disabled={pending || uploading || publicationUncertain || Boolean(publishedId)} onClick={() => void save()}>
         {pending ? "Salvando…" : draftId ? "Salvar alterações do rascunho" : "Salvar rascunho"}
       </button>
-      {!publishedId && !publicationUncertain && draftId && !requiresSave && (
+      {!preparing && draftId && !publishedId && !publicationUncertain && <button type="button" className="secondary" onClick={onPrepare}>Continuar para publicação</button>}
+      {preparing && !publishedId && !publicationUncertain && draftId && !requiresSave && (
         <div className="listing-draft-workspace__publication">
           <strong>Etapa final — Mercado Livre</strong>
           <p className="listing-assistant__helper">A pré-validação consulta regras reais do Mercado Livre e verifica novamente tarifas e frete.</p>

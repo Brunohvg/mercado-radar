@@ -110,6 +110,7 @@ export function ListingDraftAssistant({
   fromExtension?: boolean;
 }) {
   const [attributes, setAttributes] = useState<Record<string, string>>({});
+  const [preparing, setPreparing] = useState(false);
   const [referenceOpen, setReferenceOpen] = useState(true);
   const [selectedFacts, setSelectedFacts] = useState<string[]>([]);
   const [name, setName] = useState(initialName);
@@ -157,6 +158,7 @@ export function ListingDraftAssistant({
   const shippingDetails = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
+    if (!preparing) return;
     let active = true;
     fetch("/api/ml/seller-shipping", { cache: "no-store" })
       .then(async response => {
@@ -173,9 +175,10 @@ export function ListingDraftAssistant({
       })
       .catch(error => { if (active) setShippingError(error instanceof Error ? error.message : "Erro de logística."); });
     return () => { active = false; };
-  }, []);
+  }, [preparing]);
 
   useEffect(() => {
+    if (!preparing) return;
     let active = true;
     fetch("/api/ml/publication-capabilities", { cache: "no-store" })
       .then(async response => {
@@ -185,9 +188,10 @@ export function ListingDraftAssistant({
       .then(data => { if (active) { setSellerModel(data.model); setSellerCanWrite(data.grantVerified); } })
       .catch(() => { if (active) { setSellerModel(null); setSellerCanWrite(null); } });
     return () => { active = false; };
-  }, []);
+  }, [preparing]);
 
   useEffect(() => {
+    if (!preparing) return;
     let active = true;
     fetch("/api/ai/status", { cache: "no-store" })
       .then(async (r) => {
@@ -197,7 +201,7 @@ export function ListingDraftAssistant({
       .then((result) => { if (active) setAiConfig(result); })
       .catch(() => { if (active) setAiTestStatus("Não foi possível consultar o status. Verifique sua sessão no Radar."); });
     return () => { active = false; };
-  }, []);
+  }, [preparing]);
 
   async function testGemini() {
     setAiTestStatus("");
@@ -434,29 +438,20 @@ export function ListingDraftAssistant({
     </label>;
 
   return (
-    <div className="listing-assistant">
+    <div className={preparing ? "listing-assistant" : "listing-assistant listing-assistant--draft"}>
       <header className="listing-assistant__header">
-        <p className="page-kicker">Operação / Novo anúncio</p>
-        <h1>Assistente de anúncios</h1>
-        <p>Do produto à decisão de venda. Identifique oportunidades, confira os custos da sua operação e revise o texto gerado com IA, sem publicar nada automaticamente.</p>
+        <h1>Criar anúncio</h1>
+        <p>{preparing ? "Confira categoria, preço e envio antes de validar a publicação." : "Comece pelo nome do produto. Estoque e fotos podem ser adicionados depois."}</p>
+        <button type="button" className="secondary" onClick={() => setPreparing(!preparing)}>
+          {preparing ? "Voltar ao rascunho" : "Preparar publicação"}
+        </button>
       </header>
-      <p className="listing-assistant__helper" role="status">
-        <strong>Modelo de publicação da conta:</strong>{" "}
-        {sellerModel === "USER_PRODUCTS" ? "User Products (o Radar usará family_name)" :
-          sellerModel === "LEGACY" ? "Tradicional (o Radar usará title)" :
-          "verificação pendente; publicação bloqueada por segurança"}.
-        {" "}Escrita: {sellerCanWrite === true ? "autorizada" : sellerCanWrite === false ?
-          "não autorizada — reconecte em Integrações" : "a verificar"}.
-        {" "}Catálogo é validado separadamente para cada produto.
-      </p>
-      <div className="listing-assistant__steps" aria-label="Etapas do assistente">
-        <span><b>01</b> Produto</span>
-        <span><b>02</b> Precificação</span>
-        <span><b>03</b> Revisão</span>
-      </div>
+      {preparing && <details><summary>Conexão com o Mercado Livre</summary>
+        <p>{sellerModel ? "Modelo da conta identificado." : "Verificação da conta pendente."} {sellerCanWrite === true ? "Escrita autorizada." : sellerCanWrite === false ? "Reconecte a conta para publicar." : "Verificando permissão para publicar."}</p>
+      </details>}
       {marketReference !== undefined && referenceOpen && (
         <section className="listing-assistant__origin">
-          <div><strong>Ficha de referência · Mercado Livre {marketReference?.source || initialReference}</strong>
+          <details><summary>Revisar ficha da referência {marketReference?.source || initialReference}</summary>
           {marketReference?.facts.length ? <>
             <p>Marque as características que conferiu no seu produto.</p>
             {marketReference.facts.map(f => <label key={f.id} style={{display: "block"}}>
@@ -475,7 +470,7 @@ export function ListingDraftAssistant({
               }
               setAiDraft(null); setReferenceOpen(false);
             }}>Usar características conferidas</button>
-          </> : <p>Ficha técnica indisponível. Continue pelo nome e confira os dados na embalagem.</p>}</div>
+          </> : <p>Ficha técnica indisponível. Continue pelo nome e confira os dados na embalagem.</p>}</details>
         </section>
       )}
       {fromExtension && (
@@ -488,20 +483,19 @@ export function ListingDraftAssistant({
         <div className="listing-assistant__main">
       <section className="panel listing-assistant__section">
         <div className="listing-assistant__section-heading">
-          <span className="listing-assistant__step-number">01</span>
-          <div><h2>Identificar produto</h2><p>Encontre a categoria e uma referência de mercado.</p></div>
+          <h2>Produto</h2>
         </div>
-        <form onSubmit={identify} className="listing-assistant__form">
-          {label("Nome ou EAN do produto", name, (v) => { setName(v); setAttributes({}); setReferenceOpen(false); setAiDraft(null); setSavedTitle(""); setSavedDescription(""); setRestoredMissingFacts([]); setDiscovery(null); setCategoryId(""); setCategoryName(""); setPrice(null); }, "Ex.: tinta pinta couro Shake Paint 37 ml", true)}
-          <div className="listing-assistant__grid">
+        <form onSubmit={event => { if (preparing) void identify(event); else event.preventDefault(); }} className="listing-assistant__form">
+          {label(preparing ? "Nome ou EAN do produto" : "Nome do produto", name, (v) => { setName(v); setAttributes({}); setReferenceOpen(false); setAiDraft(null); setSavedTitle(""); setSavedDescription(""); setRestoredMissingFacts([]); setDiscovery(null); setCategoryId(""); setCategoryName(""); setPrice(null); }, "Ex.: tinta pinta couro Shake Paint 37 ml", true)}
+          {preparing && <><div className="listing-assistant__grid">
             {label("Marca confirmada (opcional)", brand, (v) => { setBrand(v); setAiDraft(null); }, "Ex.: Acrilex")}
             {label("SKU interno (opcional)", sku, setSku, "Seu código de estoque")}
           </div>
           <button type="submit" className="primary listing-assistant__button" disabled={loading !== null}>
             {loading === "discover" ? "Consultando catálogo e mercado…" : "Identificar produto e categoria"}
-          </button>
+          </button></>}
         </form>
-        {discovery && (
+        {preparing && discovery && (
           <div className="listing-assistant__discovery" role="status">
             <h3>Resultado da identificação</h3>
             {discovery.notice && <p className="listing-assistant__identity-warning" role="alert">{discovery.notice}</p>}
@@ -566,7 +560,7 @@ export function ListingDraftAssistant({
           </div>
         )}
       </section>
-      <section className="panel listing-assistant__section">
+      {preparing && <section className="panel listing-assistant__section">
         <div className="listing-assistant__section-heading">
           <span className="listing-assistant__step-number">02</span>
           <div><h2>Custos e frete</h2><p>Comece pelo custo. Abra os detalhes apenas quando for cotar.</p></div>
@@ -640,19 +634,16 @@ export function ListingDraftAssistant({
             })}
           </div>
         </details>
-        <button type="button" onClick={simulatePrice} className="primary listing-assistant__button" disabled={loading !== null || !discovery}>
+        <button type="button" onClick={simulatePrice} className="primary listing-assistant__button" disabled={loading !== null || !categoryId}>
           {loading === "price" ? "Cotando tarifas e frete…" : "Calcular preço e lucro"}
         </button>
-        {!discovery && <p className="listing-assistant__helper">Identifique o produto na primeira etapa para liberar a cotação.</p>}
-      </section>
+        {!categoryId && <p className="listing-assistant__helper">Identifique o produto na primeira etapa para liberar a cotação.</p>}
+      </section>}
         </div>
         <aside className="listing-assistant__aside" aria-label="Prévia do anúncio">
       {error && <p role="alert" className="listing-assistant__error">{error}</p>}
       <section className="panel listing-assistant__section">
-        <div className="listing-assistant__section-heading">
-          <span className="listing-assistant__step-number">03</span>
-          <div><h2>Prévia para revisão</h2><p>Confira o anúncio antes de qualquer publicação.</p></div>
-        </div>
+        {preparing && <details><summary>Gerar título e descrição com IA</summary>
         <label className="field listing-assistant__field">
           <span>Características confirmadas do produto (opcional)</span>
           <textarea
@@ -686,12 +677,13 @@ export function ListingDraftAssistant({
             <p className="listing-assistant__note">{aiDraft.verifiedSource ? `Conteúdo baseado em ${aiDraft.verifiedFactsCount ?? 0} atributos consultados no catálogo do Mercado Livre e dados informados. Revise antes de usar.` : "Nenhuma ficha técnica verificada foi encontrada. O texto contém apenas informações fornecidas e precisa de revisão."} Nenhuma imagem é gerada nem anúncio publicado.</p>
           </div>
         )}
-        <div className="listing-assistant__meta">
+        </div></details>}
+        {preparing && <div className="listing-assistant__meta">
           <div><span>Categoria</span><strong>{categoryName || categoryId || "Aguardando identificação"}</strong></div>
           <div><span>SKU</span><strong>{sku.trim() || "Não informado"}</strong></div>
           <div><span>Preço sugerido</span><strong>{money(price?.suggestedPrice)}</strong></div>
-        </div>
-        {price?.analysis && (
+        </div>}
+        {preparing && price?.analysis && (
           <div className="listing-assistant__finance">
             <div className="listing-assistant__finance-head">
               <div><span>Lucro estimado</span><strong>{money(price.analysis.profit)}</strong></div>
@@ -724,6 +716,8 @@ export function ListingDraftAssistant({
           </div>
         )}
         <ListingDraftManager
+          preparing={preparing}
+          onPrepare={() => { setPreparing(true); window.scrollTo(0, 0); }}
           setAttributes={setAttributes}
           data={{
             name: effectiveName,
@@ -788,11 +782,6 @@ export function ListingDraftAssistant({
             setError("");
           }}
         />
-        <div className="listing-assistant__disclaimer listing-assistant__stack">
-          <p className="listing-assistant__note"><strong>Etapa de preparação:</strong> imagens reais, atributos obrigatórios, estoque e validação de publicação ainda precisam ser concluídos. Nenhum anúncio é publicado ou alterado nesta versão.</p>
-          <p className="listing-assistant__note">A IA sugere texto; preço e custos vêm do motor financeiro e das APIs do Radar, sujeitos à conferência.</p>
-        </div>
-        </div>
       </section>
         </aside>
       </div>

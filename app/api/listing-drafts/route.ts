@@ -30,7 +30,7 @@ const dataSchema = z.object({
   discountPercent: z.number().min(0).max(95).default(0),
   operatingCost: z.number().min(0).max(100000).default(0),
   listingType: z.enum(["CLASSIC", "PREMIUM"]).default("CLASSIC"),
-  logisticType: z.enum(["drop_off", "cross_docking", "xd_drop_off", "fulfillment", "self_service"]).default("drop_off"),
+  logisticType: z.enum(["", "drop_off", "cross_docking", "xd_drop_off", "fulfillment", "self_service"]).default(""),
   freeShipping: z.boolean().nullable().default(null),
   weightGrams: z.number().int().positive().max(100000).nullable().default(null),
   heightCm: z.number().positive().max(300).nullable().default(null),
@@ -52,6 +52,7 @@ function review(data: ListingData) {
   if (data.stock < 1) issues.push("Informe o estoque disponível.");
   if (data.costPerUnit === null) issues.push("Informe o custo de compra.");
   if (data.suggestedPrice === null || data.profit === null) issues.push("Calcule preço, frete e lucro com a conta vinculada.");
+  if (!data.logisticType) issues.push("Escolha a logística da sua conta.");
   if (data.freeShipping === null || data.weightGrams === null ||
       data.heightCm === null || data.widthCm === null || data.lengthCm === null) {
     issues.push("Confirme frete e as medidas reais da embalagem.");

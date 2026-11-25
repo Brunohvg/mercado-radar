@@ -281,6 +281,12 @@
 .listing-assistant__subheading { font-size:var(--fs-13); color:var(--ink-700); margin:12px 0 0; }
 @media(max-width:1150px) { .listing-assistant__layout { grid-template-columns: 1fr; } }
 
+.listing-assistant--draft { width: 100%; max-width: 760px; margin-inline: auto; }
+.listing-assistant--draft .listing-assistant__layout { grid-template-columns: minmax(0, 1fr); }
+.listing-assistant--draft .listing-draft-workspace { border: 0; box-shadow: none; padding: 0; }
+.listing-assistant__header > button { align-self: flex-start; }
+.listing-assistant summary { cursor: pointer; }
+
 /* Rascunhos: fluxo de revisão com fotos e retomada, sem campos dispersos. */
 .listing-draft-workspace { display:flex; flex-direction:column; gap:14px; padding:20px; border:1px solid var(--line); border-radius:14px; background:var(--surface); box-shadow:var(--shadow-hair); }
 .listing-draft-workspace__heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }

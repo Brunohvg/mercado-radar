@@ -104,6 +104,21 @@ export async function runBrowserChecks({ base, cookie }) {
     await page.unroute("**/api/ml/listing-insights?*");
     console.log("PASS app-browser listing editor tolerates unavailable insights, distinguishes blank from zero and handles partial edits");
     checks++;
+    await page.goto(base + "/assistente-anuncios");
+    for (const width of [390, 1366]) {
+      await page.setViewportSize({ width, height: 960 });
+      await page.getByLabel("Nome do produto", { exact: true }).waitFor();
+      assert.equal(await page.getByText("Custos e frete", { exact: true }).count(), 0);
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      if (artifacts) await page.screenshot({ path: artifacts + "/criar-anuncio-" + width + ".png", fullPage: true });
+    }
+    await page.getByLabel("Nome do produto", { exact: true }).fill("Ilhós grafite teste");
+    await page.getByRole("button", { name: "Salvar rascunho", exact: true }).click();
+    await page.getByText(/Rascunho salvo com sucesso/).waitFor();
+    await page.getByRole("button", { name: "Continuar para publicação" }).click();
+    await page.getByRole("heading", { name: "Custos e frete" }).waitFor();
+    assert.equal(await page.getByLabel("Nome ou EAN do produto").inputValue(), "Ilhós grafite teste");
+    checks++;
     const savedDraft = {
       id: "draft-qa-unconfirmed", status: "PUBLISHING", mlItemId: null,
       data: {

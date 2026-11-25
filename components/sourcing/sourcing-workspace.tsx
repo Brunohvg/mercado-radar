@@ -98,11 +98,18 @@ type View = {
 type Tab = "mercado" | "fornecedores" | "margem" | "plano";
 
 const TABS: Array<[Tab, string]> = [
-  ["mercado", "Mercado"],
+  ["mercado", "Preço de venda"],
   ["fornecedores", "Fornecedores"],
-  ["margem", "Margem"],
-  ["plano", "Plano"],
+  ["margem", "Lucro"],
+  ["plano", "Decisão"],
 ];
+
+function stepDone(view: View, tab: Tab) {
+  if (tab === "mercado") return view.opportunity.referencePrice != null;
+  if (tab === "fornecedores") return view.suppliers.length > 0;
+  if (tab === "margem") return view.quotes.length > 0;
+  return ["VIAVEL", "COMPRANDO", "DESCARTADA"].includes(view.opportunity.status);
+}
 
 export function SourcingWorkspace({ id }: { id: string }) {
   const [view, setView] = useState<View | null>(null);
@@ -148,36 +155,50 @@ export function SourcingWorkspace({ id }: { id: string }) {
       <nav className="vr-crumbs"><Link href="/onde-comprar">Onde comprar</Link> / Produto</nav>
       <header className="vr-product">
         <div>
-          <p className="vr-kicker">Produto identificado</p>
           <h1>{o.title}</h1>
           <p className="vr-muted">
-            {[o.brand, o.model && `modelo ${o.model}`, o.packQuantity && `${o.packQuantity} un. por anúncio`].filter(Boolean).join(" · ") || "Marca e modelo não informados pela fonte"}
+            {[o.brand, o.model && `modelo ${o.model}`, o.packQuantity && `${o.packQuantity} un. por anúncio`].filter(Boolean).join(" · ") || "Marca e modelo não informados"}
           </p>
         </div>
         <div className="vr-product-price">
+          <span>Você vende por</span>
           <strong className="vr-num">{brl(o.referencePrice)}</strong>
-          <span>{o.referenceSource ? `${REFERENCE_LABEL[o.referenceSource] ?? o.referenceSource} · ${dateBr(o.referenceAt)}` : "preço de venda a informar"}</span>
           <span className={`vr-status vr-status--${o.status.toLowerCase()}`}>{STATUS_LABEL[o.status] ?? o.status}</span>
         </div>
       </header>
 
-      <aside className="vr-next" aria-label="Próxima ação recomendada">
-        <span className="vr-next-label">Próxima ação recomendada</span>
+      <ol className="vr-steps" role="tablist" aria-label="Etapas">
+        {TABS.map(([key, label], index) => {
+          const done = stepDone(view, key);
+          return (
+            <li key={key}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab === key}
+                className={(done ? "is-done " : "") + (view.nextAction.tab === key ? "is-next" : "")}
+                onClick={() => setTab(key)}
+              >
+                <span className="vr-step-num" aria-hidden="true">{done ? "✓" : index + 1}</span>
+                <span className="vr-step-label">
+                  {label}
+                  {key === "fornecedores" && view.suppliers.length > 0 && <small>{view.suppliers.length} cadastrado(s)</small>}
+                  {key === "margem" && view.best?.perSale && <small>{pct(view.best.perSale.marginPercent)} de margem</small>}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+
+      <aside className="vr-next" aria-label="Próximo passo">
+        <span className="vr-next-label">Próximo passo</span>
         <strong>{view.nextAction.title}</strong>
         <span>{view.nextAction.detail}</span>
         {tab !== view.nextAction.tab && (
           <button className="vr-btn vr-btn--small" onClick={() => setTab(view.nextAction.tab)}>Ir para {TABS.find(([key]) => key === view.nextAction.tab)?.[1]}</button>
         )}
       </aside>
-
-      <div className="vr-tabs" role="tablist">
-        {TABS.map(([key, label]) => (
-          <button key={key} role="tab" aria-selected={tab === key} onClick={() => setTab(key)}>
-            {label}
-            {key === "fornecedores" && view.suppliers.length > 0 && <span className="vr-count">{view.suppliers.length}</span>}
-          </button>
-        ))}
-      </div>
 
       {error && <p className="vr-alert" role="alert">{error}</p>}
       {notice && !error && <p className="vr-notice" role="status">{notice}</p>}

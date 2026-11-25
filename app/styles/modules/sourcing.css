@@ -227,3 +227,51 @@
 }
 .vr-btn--danger { background: var(--risk, #d92d20); border-color: var(--risk, #d92d20); color: #fff; }
 .vr-confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: var(--fs-13, 13px); color: var(--risk-ink, inherit); }
+
+/* Etapas do produto em estudo (substitui as abas) */
+.vr-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.vr-steps button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); color: var(--ink-700, inherit); font: inherit; text-align: left; cursor: pointer; }
+.vr-steps button[aria-selected="true"] { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand) inset; }
+.vr-step-num { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; background: var(--surface-2, #eef2f8); color: var(--ink-500); }
+.vr-steps .is-done .vr-step-num { background: var(--good-tint, #d1fadf); color: var(--good-ink, #027a48); }
+.vr-steps .is-next:not(.is-done) .vr-step-num { background: var(--brand); color: #fff; }
+.vr-step-label { display: grid; font-weight: 600; font-size: var(--fs-14); line-height: 1.2; }
+.vr-step-label small { font-weight: 400; color: var(--ink-500); font-size: var(--fs-12); }
+.vr-product-price > span:first-child { font-size: var(--fs-12); color: var(--ink-500); }
+/* Próximo passo mais leve que o antigo bloco escuro */
+.vr-next { background: var(--brand-tint, #eaf1ff); color: var(--ink-900); border-left-color: var(--brand); }
+.vr-next-label { color: var(--brand); }
+.vr-next strong { color: var(--ink-900); }
+.vr-next > span:not(.vr-next-label) { color: var(--ink-500); }
+.vr-next .vr-btn { background: var(--brand); border-color: var(--brand); color: #fff; }
+@media (max-width: 720px) {
+  .vr-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .vr-next { grid-template-columns: 1fr; grid-template-areas: "label" "title" "detail" "btn"; }
+}
+
+/* Início do Onde comprar: um passo de cada vez */
+.vr-start { display: grid; gap: var(--s-3); padding: var(--s-5); border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--brand); }
+.vr-start h2 { margin: 0; font-size: var(--fs-20, 20px); }
+.vr-start-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.vr-start-row input { font: inherit; font-size: 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); color: inherit; min-width: 0; }
+.vr-start details summary { cursor: pointer; color: var(--brand); font-size: var(--fs-13); }
+.vr-start details label { display: grid; gap: 4px; margin-top: 8px; max-width: 260px; font-size: var(--fs-13); }
+.vr-start details input { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.vr-how { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--ink-500); font-size: var(--fs-13); }
+.vr-how li { display: flex; align-items: center; gap: 6px; }
+.vr-how b { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--brand-tint, #eaf1ff); color: var(--brand); font-size: 12px; }
+.vr-study-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.vr-study { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-md); text-decoration: none; color: inherit; background: var(--surface); }
+.vr-study:hover { border-color: var(--brand); }
+.vr-study strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vr-study small { color: var(--ink-500); font-size: var(--fs-13); }
+.vr-study-next { grid-row: span 2; font-size: var(--fs-13); font-weight: 600; color: var(--brand); white-space: nowrap; }
+.vr-dots { display: flex; gap: 4px; }
+.vr-dots i { width: 22px; height: 4px; border-radius: 2px; background: var(--line); }
+.vr-dots i.on { background: var(--brand); }
+.vr-section-title { margin: var(--s-4) 0 var(--s-2); font-size: var(--fs-16); }
+@media (max-width: 720px) {
+  .vr-start-row { grid-template-columns: 1fr; }
+  .vr-study { grid-template-columns: 1fr; }
+  .vr-study-next { grid-row: auto; }
+}

@@ -60,9 +60,9 @@ export function HunterPanel() {
     <section className="vr-card vr-card--accent hunter" aria-labelledby="hunter-title">
       <div className="hunter-head">
         <div>
-          <h2 id="hunter-title">Produtos para você revender</h2>
+          <h2 id="hunter-title">Vendem bem nas suas categorias</h2>
           <p className="vr-muted">
-            Mais vendidos e buscas em alta nas categorias em que você já fatura, com quanto você pode pagar ao fornecedor para ter a sua margem.
+            Mais vendidos e buscas em alta onde você já vende. "Pague até" é o máximo por unidade para manter a sua margem.
           </p>
         </div>
         <button type="button" className="vr-btn vr-btn--ghost vr-btn--small" disabled={loading} onClick={() => void load(true)}>

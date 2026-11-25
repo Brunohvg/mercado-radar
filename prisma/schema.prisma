@@ -37,6 +37,9 @@ model RadarWorkspace {
   settings          AppSettings?
   listingDrafts     ListingDraft[]
   researchDrafts    RadarResearchDraft[]
+  sourcingOpportunities SourcingOpportunity[]
+  sourcingSuppliers SourcingSupplier[]
+  sourcingQuotes    SourcingQuote[]
 }
 
 /// Opt-in intelligence inputs, never an accounting record or published listing.
@@ -543,4 +546,101 @@ model ListingDraft {
   @@index([workspaceId, updatedAt])
   @@index([workspaceId, status])
   @@index([ownerId, updatedAt])
+}
+
+/// Vidalys Radar 2.0 — produto em estudo para revenda. Campos desconhecidos ficam null.
+model SourcingOpportunity {
+  id                String   @id @default(cuid())
+  workspaceId       String
+  title             String
+  mlItemId          String?
+  permalink         String?
+  categoryId        String?
+  brand             String?
+  model             String?
+  gtin              String?
+  packQuantity      Int?
+  referencePrice    Decimal? @db.Decimal(12, 2)
+  referenceSource   String?
+  referenceAt       DateTime?
+  listingType       String   @default("CLASSIC")
+  commissionPercent Decimal? @db.Decimal(5, 2)
+  fixedFee          Decimal? @db.Decimal(10, 2)
+  shippingCost      Decimal? @db.Decimal(10, 2)
+  taxPercent        Decimal? @db.Decimal(5, 2)
+  operatingCost     Decimal? @db.Decimal(10, 2)
+  budget            Decimal? @db.Decimal(12, 2)
+  monthlyDemand     Int?
+  status            String   @default("PESQUISANDO")
+  notes             String?
+  identity          Json?
+  searchSnapshot    Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  workspace         RadarWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  quotes            SourcingQuote[]
+
+  @@index([workspaceId, updatedAt])
+  @@index([workspaceId, mlItemId])
+}
+
+/// Ficha comercial do fornecedor, reutilizável entre oportunidades.
+model SourcingSupplier {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  name           String
+  kind           String   @default("OUTRO")
+  cnpj           String?
+  website        String?
+  phone          String?
+  email          String?
+  city           String?
+  state          String?
+  sellsToCpf     Boolean?
+  requiresCnpj   Boolean?
+  issuesInvoice  Boolean?
+  servesSmall    Boolean?
+  minOrderValue  Decimal? @db.Decimal(12, 2)
+  minOrderUnits  Int?
+  leadTimeDays   Int?
+  reputationNote String?
+  origin         String   @default("MANUAL")
+  originUrl      String?
+  cnpjCheck      Json?
+  cnpjCheckedAt  DateTime?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  workspace      RadarWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  quotes         SourcingQuote[]
+
+  @@index([workspaceId, updatedAt])
+  @@index([workspaceId, cnpj])
+}
+
+/// Cotação com origem explícita. ESTIMATIVA_USUARIO nunca é apresentada como cotação recebida.
+model SourcingQuote {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  opportunityId String
+  supplierId    String
+  unitPrice     Decimal  @db.Decimal(12, 4)
+  unitsPerPack  Int      @default(1)
+  minUnits      Int?
+  freightCost   Decimal? @db.Decimal(10, 2)
+  otherCosts    Decimal? @db.Decimal(10, 2)
+  exactMatch    Boolean?
+  source        String
+  evidenceUrl   String?
+  quotedAt      DateTime @default(now())
+  validUntil    DateTime?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  workspace     RadarWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  opportunity   SourcingOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  supplier      SourcingSupplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, opportunityId])
+  @@index([supplierId])
 }

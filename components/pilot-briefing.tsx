@@ -96,7 +96,7 @@ export function PilotBriefing() {
               <div className="pilot-item-side">
                 <span className="pilot-stake">{action.stakeLabel}</span>
                 <a
-                  className="vr-btn vr-btn--small"
+                  className={`vr-btn vr-btn--small${action.execute?.type === "COST" ? " vr-btn--ghost" : ""}`}
                   href={action.cta.href}
                   {...(action.cta.href.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}
                 >
@@ -144,6 +144,41 @@ function PilotExecute({ action, onDone }: { action: PilotAction; onDone: (messag
   const [text, setText] = useState("");
   const [price, setPrice] = useState(exec.type === "PRICE" ? exec.suggested.toFixed(2).replace(".", ",") : "");
 
+  if (exec.type === "COST") {
+    const value = Number(text.replace(/\./g, "").replace(",", "."));
+    const save = async () => {
+      setBusy(true); setError("");
+      try {
+        const r = await fetch("/api/ml/products/cost", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ mlItemId: action.mlItemId, supplierPrice: value }),
+        });
+        const body = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(body.error ?? "Não salvou.");
+        onDone(`Custo de ${money.format(value)} salvo. O lucro deste produto já entra nas contas.`);
+      } catch (e) { setError(e instanceof Error ? e.message : "Não salvou."); }
+      finally { setBusy(false); }
+    };
+    return (
+      <div className="pilot-exec pilot-exec--inline">
+        <div className="pilot-exec-row">
+          <input
+            aria-label={`Custo por unidade de ${action.title}`}
+            inputMode="decimal"
+            placeholder="R$ por un."
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+          <button type="button" className="vr-btn vr-btn--small" disabled={busy || !(value > 0)} onClick={() => void save()}>
+            {busy ? "Salvando..." : "Salvar custo"}
+          </button>
+        </div>
+        {error && <p className="pilot-exec-error" role="alert">{error}</p>}
+      </div>
+    );
+  }
+
   if (!open)
     return (
       <button type="button" className="vr-btn vr-btn--small pilot-exec-open" onClick={() => setOpen(true)}>
@@ -168,7 +203,7 @@ function PilotExecute({ action, onDone }: { action: PilotAction; onDone: (messag
       if (exec.type === "ANSWER") {
         await post(`/api/pilot/questions/${exec.questionId}/answer`, { text, confirm: true });
         onDone("Resposta publicada no Mercado Livre.");
-      } else {
+      } else if (exec.type === "PRICE") {
         const value = Number(price.replace(/\./g, "").replace(",", "."));
         const r = await post<{ before: number; after: number }>("/api/pilot/price", {
           mlItemId: action.mlItemId, price: value, expectedCurrent: exec.current, confirm: true,

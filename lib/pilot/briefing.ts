@@ -68,7 +68,8 @@ export type PilotAction = {
   /** Ação que o Piloto pode executar com um clique (sempre com confirmação). */
   execute?:
     | { type: "PRICE"; current: number; suggested: number }
-    | { type: "ANSWER"; questionId: string; question: string };
+    | { type: "ANSWER"; questionId: string; question: string }
+    | { type: "COST" };
 };
 
 export type ProductEconomics = {
@@ -214,7 +215,9 @@ export function buildBriefing(input: {
           stake: round2(monthly),
           stakeLabel: `${brl(monthly)}/mês em vendas`,
           formula: unit ? `Teto de compra para ${s.targetMarginPercent}% de margem: ${brl(unit.maxCost)}` : null,
-          cta: { label: "Onde comprar", href: `/onde-comprar?q=${encodeURIComponent(product.title)}` },
+          cta: product.supplier
+            ? { label: "Montar pedido", href: "/reposicao" }
+            : { label: "Onde comprar", href: `/onde-comprar?q=${encodeURIComponent(product.title)}` },
         });
       }
     }
@@ -230,7 +233,8 @@ export function buildBriefing(input: {
         stake: round2(econ.revenue),
         stakeLabel: `${brl(econ.revenue)} vendidos sem lucro conhecido`,
         formula: null,
-        cta: { label: "Informar custo", href: "/vendas" },
+        cta: { label: "Ver produtos sem custo", href: "/vendas?filtro=sem-custo" },
+        execute: { type: "COST" },
       });
     }
 
@@ -281,11 +285,11 @@ export function buildBriefing(input: {
         kind: "IDLE_STOCK",
         ...base,
         headline: `${product.stock} un. paradas há ${input.days} dias`,
-        detail: "Nenhuma venda paga no período. Considere promoção, Ads ou kit com um produto que vende.",
+        detail: "Nenhuma venda paga no período. Melhore o anúncio (título, fotos, ficha) ou veja se há promoção aberta para ele.",
         stake: round2(capital),
         stakeLabel: `${brl(capital)} empatados`,
         formula: null,
-        cta: { label: "Ver anúncio", href: product.permalink ?? "/anuncios" },
+        cta: { label: "Melhorar anúncio", href: `/melhorar-anuncio?item=${product.mlItemId}` },
       });
     }
   }

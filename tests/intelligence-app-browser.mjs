@@ -84,8 +84,8 @@ export async function runBrowserChecks({ base, cookie }) {
     await page.getByRole("heading", { name: "Fornecedores para este produto" }).waitFor();
     await page.getByText(/Busca automática desligada/).waitFor();
     await page.getByRole("button", { name: "Usar fornecedor salvo" }).click();
-    const directory = page.getByLabel("Fornecedor salvo", { exact: true });
-    await directory.locator("option").nth(1).waitFor({ state: "attached" });
+    const directory = page.locator('select[name="supplierId"]');
+    await directory.waitFor();
     await directory.selectOption({ label: "Aviamentos do teste de navegação" });
     await page.getByRole("button", { name: "Vincular ao produto" }).click();
     await page.getByRole("button", { name: "Registrar cotação" }).click();
@@ -100,12 +100,17 @@ export async function runBrowserChecks({ base, cookie }) {
     for (const width of [390, 1366]) {
       await page.setViewportSize({ width, height: 960 });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `Comparação de cotações a ${width}px`);
+      if (width === 390) {
+        const column = page.locator(".vr-table td[data-label='Condições']").first();
+        assert.equal(await column.evaluate((cell) => getComputedStyle(cell, "::before").position), "static");
+      }
       if (artifacts) await page.screenshot({ path: `${artifacts}/onde-comprar-comparar-${width}.png`, fullPage: true });
     }
     console.log("PASS app-browser supplier search, directory, pack price and pending freight");
     checks++;
     await page.setViewportSize({ width: 390, height: 960 });
     await page.getByRole("button", { name: "Abrir menu", exact: true }).click();
+    await page.locator(".sidebar summary").filter({ hasText: "Mais ferramentas" }).click();
     await page.getByRole("link", { name: "Concorrentes", exact: true }).click();
     await page
       .getByRole("heading", { name: "Compare o produto certo" })

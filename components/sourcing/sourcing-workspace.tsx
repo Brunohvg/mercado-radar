@@ -882,7 +882,7 @@ function MarginTab({ view, onMarket, onSuppliers }: { view: View; onMarket: () =
       <div className="vr-card">
         <h2>Comparar fornecedores</h2>
         <div className="vr-table-wrap">
-          <table className="vr-table vr-compare">
+          <table className="vr-table">
             <thead>
               <tr><th>Fornecedor</th><th className="num">Lote mínimo</th><th className="num">Total no mínimo</th><th>Condições</th><th className="num">Custo entregue/peça</th><th className="num">Lucro estimado/venda</th><th className="num">Margem estimada</th></tr>
             </thead>
@@ -899,13 +899,17 @@ function MarginTab({ view, onMarket, onSuppliers }: { view: View; onMarket: () =
                     </td>
                     <td className="num" data-label="Lote mínimo">{v.order.minimumUnits.toLocaleString("pt-BR")} un.</td>
                     <td className="num" data-label="Total no mínimo">
-                      {brl(v.order.minimumUnits * quote.unitPrice + v.order.extraCosts)}
-                      {v.freightPending && <small className="vr-table-detail">+ frete a confirmar</small>}
+                      <span>
+                        {brl(v.order.minimumUnits * quote.unitPrice + v.order.extraCosts)}
+                        {v.freightPending && <small className="vr-table-detail">+ frete a confirmar</small>}
+                      </span>
                     </td>
                     <td data-label="Condições">
-                      {supplier?.leadTimeDays != null ? `${supplier.leadTimeDays} dia(s)` : "Prazo a confirmar"}
-                      <small className="vr-table-detail">{supplier?.paymentTerms || "Pagamento a confirmar"}</small>
-                      <small className="vr-table-detail">{supplier?.issuesInvoice == null ? "NF a confirmar" : supplier.issuesInvoice ? "Emite NF" : "Sem NF"}</small>
+                      <span>
+                        {supplier?.leadTimeDays != null ? `${supplier.leadTimeDays} dia(s)` : "Prazo a confirmar"}
+                        <small className="vr-table-detail">{supplier?.paymentTerms || "Pagamento a confirmar"}</small>
+                        <small className="vr-table-detail">{supplier?.issuesInvoice == null ? "NF a confirmar" : supplier.issuesInvoice ? "Emite NF" : "Sem NF"}</small>
+                      </span>
                     </td>
                     <td className="num" data-label="Custo entregue por peça">{v.freightPending ? "—" : brl(v.landedUnitCost)}</td>
                     <td data-label="Lucro estimado por venda" className={`num ${v.perSale && !v.purchasePending.length ? (v.perSale.profit > 0 ? "vr-pos" : "vr-neg") : ""}`}>{v.perSale ? brl(v.perSale.profit) : "—"}</td>

@@ -16,7 +16,7 @@ Data: 25/11/2026. Método: subi o sistema com uma conta de teste conectada a res
 | Onde comprar | sim | estudos salvos + API de itens + BrasilAPI + busca de fornecedor | funciona; busca automática depende de chave | **Manter (núcleo)** |
 | Dashboard | sim | vendas e custos da conta | 3 avisos e "a apurar" em tudo enquanto não há vendas sincronizadas e custos | **Manter e simplificar**: uma pergunta e um próximo passo |
 | Anúncios | sim | anúncios da conta | ok | Manter, junto com Produtos |
-| Criar anúncio (IA) | **travou** (sem carregar por 30 s) | Gemini + capacidades de publicação | chamada `publication-capabilities` deu 502 e a tela ficou esperando | Corrigir ou esconder até homologar |
+| Criar anúncio (IA) | carrega; modelo de publicação não confirmado no teste | Gemini + capacidades de publicação | no teste o vendedor era fictício, então `/users/{id}` não respondeu e `publication-capabilities` deu 502 depois de 12 s. A tela continua usável; com conta real essa chamada funciona. Revisado: não é trava | Homologar com conta real |
 | Produtos | sim | custos cadastrados | duplica Anúncios e Custos por fornecedor | **Juntar** com Anúncios |
 | Vendas e lucro | sim | pedidos da conta | ok, depende de sincronizar | **Manter (núcleo)** |
 | Publicidade | sim | Product Ads | "indisponível nesta conta" para quem não anuncia | Mostrar só se a conta for anunciante |
@@ -52,7 +52,7 @@ Nenhuma tela deu erro de JavaScript. Os problemas são **fonte de dados bloquead
 2. Uma calculadora só (a da extensão, com modo reverso), reaproveitada na web.
 3. Toda função que dependa da busca aberta mostra "fonte bloqueada pelo Mercado Livre" em vez de lista vazia, ou passa a usar a busca de catálogo e os anúncios lidos pela extensão.
 4. Início com uma única pergunta ("O que você quer revender?") e um próximo passo, sem três avisos.
-5. Corrigir a trava do "Criar anúncio" quando a API de publicação falha.
+5. Mostrar no "Criar anúncio" quando o modelo de publicação não pôde ser confirmado (hoje fica em silêncio).
 
 **Fase 2, provar com a sua conta:** deploy, "Verificar acesso às APIs" e 10 anúncios reais testados juntos com a extensão 0.14.0. Corrijo o que aparecer.
 

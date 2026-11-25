@@ -1428,12 +1428,18 @@
       return;
     }
     const facts = response.body.identity || {};
+    const signals = Array.isArray(response.body.signals) ? response.body.signals : [];
     const rows = [
       ["Marca", facts.brand],
       ["Modelo", facts.model],
       ["GTIN/EAN", facts.gtin],
       ["Unidades por anúncio", facts.packQuantity],
       ["Preço de referência", facts.referencePrice == null ? null : brl(facts.referencePrice)],
+      // Sinais oficiais do anúncio (preço por quantidade, vendedor, perguntas, ficha).
+      ...signals
+        .filter((row) => row && typeof row.label === "string" && typeof row.value === "string")
+        .slice(0, 6)
+        .map((row) => [row.label.slice(0, 40), row.value.slice(0, 160)]),
     ];
     $("supplierIdentity").replaceChildren(
       ...rows.map(([label, value]) => {

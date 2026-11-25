@@ -1100,6 +1100,11 @@ try {
               notes: ["Produto de usuário (MLBU): identidade lida pelo título."],
               url: "https://outro-servidor.invalid/onde-comprar/opp1",
               identity: { brand: null, model: null, gtin: null, packQuantity: null, referencePrice: 19.9 },
+              signals: [
+                { label: "Compra em volume", value: "R$ 15,00 cada a partir de 10" },
+                { label: "<img src=x onerror=alert(1)>", value: "texto, não HTML" },
+                { label: 42, value: "ignorado" },
+              ],
             });
           if (message.path === "/api/extension/watchlist")
             return ok({
@@ -1682,6 +1687,9 @@ try {
       const facts = await page.locator("#supplierIdentity").innerText();
       assert.match(facts, /Marca\s+não informado/);
       assert.match(facts, /R\$\s?19,90/);
+      assert.match(facts, /Compra em volume\s+R\$ 15,00 cada a partir de 10/);
+      assert.equal(await page.locator("#supplierIdentity img").count(), 0, "signals render as text");
+      assert.doesNotMatch(facts, /ignorado/);
       assert.equal(await page.locator("#supplierLink").isHidden(), true);
       assert.match(await page.locator("#supplierStatus").innerText(), /Produto salvo/);
       if (artifacts)

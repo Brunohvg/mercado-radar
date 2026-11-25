@@ -5,6 +5,9 @@ import { opportunitySchema } from "@/lib/sourcing/service";
 import { createOpportunity } from "@/lib/sourcing/create";
 import { getPublicOrigin } from "@/lib/public-url";
 import { prisma } from "@/lib/prisma";
+import { summarizeInsights } from "@/lib/marketplaces/summary";
+import { collectListingInsights, saveInsights } from "@/lib/sourcing/insights";
+import type { ListingInsights } from "@/lib/marketplaces/types";
 
 export const dynamic = "force-dynamic";
 
@@ -53,8 +56,15 @@ export async function POST(request: Request) {
         data: { referencePrice: input.price, referenceSource: "ANUNCIO", referenceAt: new Date() },
       });
     }
+    let insights = opportunity.marketInsights as ListingInsights | null;
+    // Estudo reaberto sem sinais (criado antes desta versão ou sem conexão na época).
+    if (!insights && result.reused && session.ml.accessToken && /^MLB\d/.test(opportunity.mlItemId ?? "")) {
+      insights = await collectListingInsights(opportunity.mlItemId!, session.ml.accessToken).catch(() => null);
+      if (insights) await saveInsights(opportunity.id, session.account.workspaceId, insights);
+    }
     return NextResponse.json({
       id: opportunity.id,
+      signals: summarizeInsights(insights),
       reused: result.reused,
       notes: result.notes,
       url: `${getPublicOrigin(request)}/onde-comprar/${opportunity.id}`,

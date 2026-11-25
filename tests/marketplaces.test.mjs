@@ -174,3 +174,22 @@ test("leitura de página bloqueia endereços internos", () => {
     assert.equal(isAllowedPublicUrl(url), false, url);
   assert.equal(isAllowedPublicUrl("https://www.baxmann.com.br/contato"), true);
 });
+
+const { summarizeInsights } = await loadTs("../lib/marketplaces/summary.ts");
+
+test("resumo para a extensão: só o que veio da API, sem inventar", () => {
+  assert.deepEqual(summarizeInsights(null), []);
+  const ok = (data) => ({ status: "OK", data, reason: null });
+  const off = { status: "INDISPONIVEL", data: null, reason: "x" };
+  const rows = summarizeInsights({
+    marketplace: "MERCADO_LIVRE", listingId: "MLB1", collectedAt: "",
+    price: ok({ currency: "BRL", consumerPrice: 100, regularPrice: null, promotion: false, businessPrice: null, tiers: [{ minUnits: 10, unitPrice: 82, businessOnly: false }, { minUnits: 50, unitPrice: 75, businessOnly: true }] }),
+    seller: ok({ nickname: "LOJA", medal: "MercadoLíder Gold", state: "MG" }),
+    questions: ok({ topics: [{ topic: "NOTA_FISCAL", label: "Nota fiscal", count: 2 }] }),
+    reviews: off,
+    category: ok({ requiredAttributes: [{ id: "GTIN", name: "Código universal" }] }),
+  });
+  assert.deepEqual(rows.map((r) => r.label), ["Compra em volume", "Vendedor", "Compradores perguntam", "Peça ao fornecedor"]);
+  assert.match(rows[0].value, /82,00 cada a partir de 10 · \+1 faixa/);
+  assert.equal(rows[1].value, "LOJA · MercadoLíder Gold · MG");
+});

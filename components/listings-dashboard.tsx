@@ -645,6 +645,10 @@ export function ListingsDashboard() {
                                 {isLoadingInsight ? "Abrindo…" : isOpen ? "Fechar" : "Analisar e editar"}
                               </button>
 
+                              <a className="row-improve-link" href={"/melhorar-anuncio?item=" + item.mlItemId} title="Título, ficha técnica e descrição com IA">
+                                Melhorar
+                              </a>
+
                               {item.permalink && (
                                 <a
                                   className="row-external-link"

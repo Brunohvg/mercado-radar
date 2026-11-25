@@ -1190,6 +1190,12 @@ export async function getItemFullDetails(input: {
       dimensions?: string | null;
       free_shipping?: boolean;
     };
+    price?: number;
+    status?: string;
+    thumbnail?: string;
+    pictures?: Array<{ id?: string; secure_url?: string; url?: string }>;
+    sale_terms?: Array<{ id?: string; value_name?: string | null }>;
+    warranty?: string | null;
   }>(
     `${API}/items/${input.itemId}?include_attributes=all`,
     { headers: { Authorization: `Bearer ${input.accessToken}` } },
@@ -2005,11 +2011,28 @@ export type MlRawCategoryAttribute = {
   value_type?: string;
   tags?: Record<string, boolean | undefined>;
   hint?: string;
+  values?: Array<{ id?: string; name?: string }>;
 };
 
 /** Ficha técnica da categoria: quais atributos são obrigatórios para anunciar. */
 export async function getCategoryAttributes(input: { accessToken: string; categoryId: string }) {
   return jsonFetch<MlRawCategoryAttribute[]>(`${API}/categories/${input.categoryId}/attributes`, {
     headers: { Authorization: `Bearer ${input.accessToken}` },
+  });
+}
+
+/** Descrição em texto do anúncio. 404 quando o anúncio não tem descrição. */
+export async function getItemDescription(input: { accessToken: string; itemId: string }) {
+  return jsonFetch<{ plain_text?: string; text?: string }>(`${API}/items/${input.itemId}/description`, {
+    headers: { Authorization: `Bearer ${input.accessToken}` },
+  });
+}
+
+/** ESCRITA: troca a descrição do anúncio. Só chamar após confirmação do vendedor. */
+export async function updateItemDescription(input: { accessToken: string; itemId: string; plainText: string }) {
+  return jsonFetch<{ plain_text?: string }>(`${API}/items/${input.itemId}/description?api_version=2`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${input.accessToken}`, "content-type": "application/json" },
+    body: JSON.stringify({ plain_text: input.plainText }),
   });
 }

@@ -148,6 +148,10 @@ globalThis.fetch = async (input, init) => {
     return json({ results: [{ id: item, status: "candidate", price: 92, original_price: 100 }, { id: "MLB999000002", status: "candidate", price: 50, original_price: 100 }] });
   if (url.pathname === `/seller-promotions/items/${item}` && init?.method === "POST")
     return json({ ...JSON.parse(String(init.body)), status: "pending" });
+  if (url.pathname === `/items/${item}/description` && init?.method === "PUT")
+    return json({ ...JSON.parse(String(init.body)) });
+  if (url.pathname === `/items/${item}/description`)
+    return json({ plain_text: "Ilhós dourado." });
   if (url.pathname === `/items/${item}` && init?.method === "PUT")
     return json({ id: item, ...JSON.parse(String(init.body)) });
   if (url.pathname === "/items" || url.pathname === "/items/bulk")

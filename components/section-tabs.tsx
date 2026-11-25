@@ -9,6 +9,7 @@ export const SECTION_TABS = {
   ],
   anuncios: [
     { href: "/anuncios", label: "Anúncios" },
+    { href: "/melhorar-anuncio", label: "Melhorar com IA" },
     { href: "/promocoes", label: "Promoções" },
     { href: "/produtos", label: "Produtos" },
     { href: "/fornecedores", label: "Fornecedores" },

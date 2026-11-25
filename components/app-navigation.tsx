@@ -36,7 +36,7 @@ const mainItems: MenuItem[] = [
   { href: "/", label: "Início", icon: "dashboard", also: ["/onboarding"] },
   { href: "/onde-comprar", label: "Onde comprar", icon: "suppliers" },
   { href: "/vendas", label: "Vendas e lucro", icon: "sales" },
-  { href: "/anuncios", label: "Meus anúncios e custos", icon: "listings", also: ["/produtos", "/fornecedores", "/promocoes", "/reposicao"] },
+  { href: "/anuncios", label: "Meus anúncios e custos", icon: "listings", also: ["/produtos", "/fornecedores", "/promocoes", "/reposicao", "/melhorar-anuncio"] },
   { href: "/monitoramento", label: "Monitoramento", icon: "monitoring" },
   { href: "/configuracoes", label: "Configurações", icon: "integrations", also: ["/integracoes", "/extensao"] },
 ];

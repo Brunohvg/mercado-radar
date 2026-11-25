@@ -212,7 +212,8 @@ export async function runBrowserChecks({ base, cookie }) {
     checks++;
     await page.setViewportSize({ width: 390, height: 960 });
     await page.getByRole("button", { name: "Abrir menu", exact: true }).click();
-    await page.locator(".sidebar summary").filter({ hasText: "Mais ferramentas" }).click();
+    const more = page.locator(".sidebar details.nav-more");
+    if (!(await more.evaluate(el => el.open))) await more.locator("summary").click();
     await page.getByRole("link", { name: "Concorrentes", exact: true }).click();
     await page
       .getByRole("heading", { name: "Compare o produto certo" })

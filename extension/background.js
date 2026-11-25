@@ -149,7 +149,7 @@ async function doFetch(message, accessToken) {
 
 async function radarRequest(message) {
   if (
-    !/^\/api\/extension\/(?:item|items|market|observations|profitability|search-profitability|search|watchlist|publication-capabilities)(?:[?]|$)/.test(
+    !/^\/api\/extension\/(?:item|items|market|observations|profitability|search-profitability|search|watchlist|publication-capabilities|sourcing)(?:[?]|$)/.test(
       message.path || "",
     ) ||
     !["GET", "POST", "DELETE"].includes(message.method || "GET")
@@ -163,7 +163,7 @@ async function radarRequest(message) {
       status: 401,
       body: {
         error: "AUTH_REQUIRED",
-        message: "Entre no Mercado Radar para usar a extensão.",
+        message: "Entre no Vidalys Radar para usar a extensão.",
       },
     };
   }

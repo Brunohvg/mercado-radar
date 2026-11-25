@@ -575,6 +575,7 @@ model SourcingOpportunity {
   notes             String?
   identity          Json?
   searchSnapshot    Json?
+  supplierIds       String[] @default([])
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   workspace         RadarWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)

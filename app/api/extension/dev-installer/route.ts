@@ -92,7 +92,7 @@ export async function GET(request: Request) {
       "}",
       "",
       'Write-Host ""',
-      'Write-Host "Mercado Radar preparado em:" -ForegroundColor Green',
+      'Write-Host "Vidalys Radar preparado em:" -ForegroundColor Green',
       "Write-Host $installDir -ForegroundColor Cyan",
       'Write-Host ""',
       "",
@@ -112,7 +112,7 @@ export async function GET(request: Request) {
       "Add-Type -AssemblyName PresentationFramework",
       "$nl = [Environment]::NewLine",
       '$message = "Arquivos instalados em:" + $nl + $installDir + $nl + $nl + "Agora no Chrome:" + $nl + "1. Ative Modo do desenvolvedor." + $nl + "2. Clique em Carregar sem compactacao." + $nl + "3. Selecione a pasta ExtensionDev que acabou de abrir." + $nl + $nl + "O Chrome exige estes cliques por seguranca enquanto a extensao nao estiver publicada na Chrome Web Store."',
-      '[System.Windows.MessageBox]::Show($message, "Mercado Radar - Instalacao") | Out-Null',
+      '[System.Windows.MessageBox]::Show($message, "Vidalys Radar - Instalacao") | Out-Null',
       "",
     ].join("\r\n");
 

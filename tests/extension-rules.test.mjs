@@ -124,8 +124,8 @@ test("beta e versão de extensão são iguais no Chrome, painel e instalador", a
   const injected = await read("../extension/content.js");
   const installPage = await read("../app/extensao/page.tsx");
   assert.equal(production.version, development.version);
-  assert.ok(panel.includes("Decida com margem · " + development.version));
-  assert.ok(injected.includes("Mercado Radar · " + development.version));
+  assert.ok(panel.includes("Inteligência para revender · " + development.version));
+  assert.ok(injected.includes("Vidalys Radar · " + development.version));
   assert.ok(installPage.includes("Beta " + development.version));
 });
 test("instalador da homologação serve os próprios arquivos e Docker inclui extensão", async () => {

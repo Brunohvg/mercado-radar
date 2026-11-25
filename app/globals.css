@@ -1,5 +1,5 @@
 /*
- * Mercado Radar — folha de estilo do painel.
+ * Vidalys Radar — folha de estilo do painel.
  * Ordem: fontes → tokens → base → estrutura → primitivas → telas.
  * Cada tela tem um arquivo em styles/modules e só usa tokens e primitivas.
  */
@@ -28,3 +28,4 @@
 
 @import "./styles/modules/settings.css";
 @import "./styles/modules/intelligence.css";
+@import "./styles/modules/sourcing.css";

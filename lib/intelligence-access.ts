@@ -18,7 +18,7 @@ export async function intelligenceUser() {
   const user = await getUserSession();
   if (!user)
     throw new IntelligenceError(
-      "Entre novamente no Mercado Radar.",
+      "Entre novamente no Vidalys Radar.",
       401,
       "SESSION_REQUIRED",
     );

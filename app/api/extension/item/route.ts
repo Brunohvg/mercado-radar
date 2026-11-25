@@ -39,7 +39,7 @@ export async function GET(request: Request) {
   }
   if (!session)
     return NextResponse.json(
-      { error: "Entre no Mercado Radar." },
+      { error: "Entre no Vidalys Radar." },
       { status: 401 },
     );
   const url = new URL(request.url);

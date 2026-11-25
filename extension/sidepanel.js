@@ -639,8 +639,13 @@
       "marketButton",
       "retryApi",
       "watchButton",
+      "findSuppliers",
     ])
       $(id).disabled = false;
+    $("supplierIdentity").hidden = true;
+    $("supplierIdentity").replaceChildren();
+    $("supplierLink").hidden = true;
+    $("supplierStatus").textContent = "";
     state.candidates = [];
     state.selected.clear();
     $("calcResult").hidden = true;
@@ -1398,6 +1403,61 @@
       state.selected.add(input.value);
     }
     renderSample();
+  });
+  $("findSuppliers").addEventListener("click", async () => {
+    const obs = current();
+    if (!obs || !usable()) return;
+    if (!/^MLB\d{5,}$/i.test(obs.id || "")) {
+      $("supplierStatus").textContent =
+        "Abra a página de um anúncio (código MLB) para buscar fornecedores.";
+      return;
+    }
+    const revision = state.revision;
+    $("findSuppliers").disabled = true;
+    $("supplierStatus").textContent = "Identificando o produto…";
+    const response = await request("/api/extension/sourcing", "POST", {
+      itemId: obs.id,
+      title: obs.title,
+      price: obs.price || null,
+      permalink: safeLink(obs.url || "") || undefined,
+    });
+    if (revision !== state.revision) return;
+    $("findSuppliers").disabled = false;
+    if (!response?.ok) {
+      $("supplierStatus").textContent = errorText(response);
+      return;
+    }
+    const facts = response.body.identity || {};
+    const rows = [
+      ["Marca", facts.brand],
+      ["Modelo", facts.model],
+      ["GTIN/EAN", facts.gtin],
+      ["Unidades por anúncio", facts.packQuantity],
+      ["Preço de referência", facts.referencePrice == null ? null : brl(facts.referencePrice)],
+    ];
+    $("supplierIdentity").replaceChildren(
+      ...rows.map(([label, value]) => {
+        const row = node("div");
+        row.append(node("dt", label), node("dd", value == null ? "não informado" : String(value)));
+        return row;
+      }),
+    );
+    $("supplierIdentity").hidden = false;
+    const link = $("supplierLink");
+    try {
+      const target = new URL(response.body.url);
+      const server = new URL(state.server);
+      if (target.origin === server.origin) {
+        link.href = target.href;
+        link.hidden = false;
+        window.open(target.href, "_blank", "noopener,noreferrer");
+      }
+    } catch {
+      link.hidden = true;
+    }
+    const notes = (response.body.notes || []).join(" ");
+    $("supplierStatus").textContent =
+      (response.body.reused ? "Produto já estava em estudo. " : "Produto salvo no seu painel. ") + notes;
   });
   $("watchButton").addEventListener("click", async () => {
     const obs = current();

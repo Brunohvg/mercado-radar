@@ -3,13 +3,13 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://radar.optarys.com.br"),
-  applicationName: "Mercado Radar",
+  applicationName: "Vidalys Radar",
   title: {
-    default: "Mercado Radar",
-    template: "%s · Mercado Radar",
+    default: "Vidalys Radar",
+    template: "%s · Vidalys Radar",
   },
   description:
-    "Inteligência de oportunidade, preço, margem, anúncios e publicidade para vendedores do Mercado Livre.",
+    "Encontre o produto, encontre o fornecedor, descubra sua margem. Inteligência para revender no Mercado Livre.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -20,30 +20,30 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "pt_BR",
-    siteName: "Mercado Radar",
-    title: "Mercado Radar",
+    siteName: "Vidalys Radar",
+    title: "Vidalys Radar",
     description:
-      "Inteligência para vender melhor no Mercado Livre.",
+      "Encontre o produto, encontre o fornecedor, descubra sua margem.",
     images: [
       {
         url: "/brand/social-card.svg",
         width: 1200,
         height: 630,
-        alt: "Mercado Radar — Seller Intelligence",
+        alt: "Vidalys Radar — Inteligência para revender",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Mercado Radar",
+    title: "Vidalys Radar",
     description:
-      "Inteligência para vender melhor no Mercado Livre.",
+      "Encontre o produto, encontre o fornecedor, descubra sua margem.",
     images: ["/brand/social-card.svg"],
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0A231E",
+  themeColor: "#16181D",
   colorScheme: "light",
 };
 

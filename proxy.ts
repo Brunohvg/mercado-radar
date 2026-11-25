@@ -66,7 +66,7 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith("/api/")) {
     return NextResponse.json(
       {
-        error: "Não autorizado. Entre no Mercado Radar.",
+        error: "Não autorizado. Entre no Vidalys Radar.",
       },
       { status: 401, headers: { "Cache-Control": "no-store" } },
     );

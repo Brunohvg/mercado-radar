@@ -41,7 +41,7 @@ export async function getUserSession(token?: string | null) {
 export async function requireUser() {
   const user = await getUserSession();
   if (!user)
-    throw new Error("Sessão expirada. Entre novamente no Mercado Radar.");
+    throw new Error("Sessão expirada. Entre novamente no Vidalys Radar.");
   return user;
 }
 

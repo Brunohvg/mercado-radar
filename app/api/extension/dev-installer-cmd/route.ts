@@ -16,9 +16,9 @@ export async function GET(request: Request) {
   const script = [
     "@echo off",
     "setlocal",
-    "title Mercado Radar - Instalador",
+    "title Vidalys Radar - Instalador",
     "echo.",
-    "echo Preparando Mercado Radar...",
+    "echo Preparando Vidalys Radar...",
     "echo.",
     'set "URL=' + origin + '/api/extension/dev-installer"',
     'set "PS1=%TEMP%\\MercadoRadar-Instalar.ps1"',

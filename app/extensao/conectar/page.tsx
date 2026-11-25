@@ -59,7 +59,7 @@ export default function ConnectExtensionPage() {
       <section className="rd-auth__card" style={{ width: "min(540px, 94vw)" }}>
         <div className="rd-auth__brand">
           <img src="/brand/mark.svg" alt="" aria-hidden="true" />
-          <div><strong>Mercado Radar</strong><small>Vincular extensão ao navegador</small></div>
+          <div><strong>Vidalys Radar</strong><small>Vincular extensão ao navegador</small></div>
         </div>
         <h1>Conectar extensão</h1>
         <p>A extensão vai usar a conta Radar que já está aberta neste navegador. Nenhuma senha ou chave do Mercado Livre será enviada à extensão.</p>

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Mercado Radar</title>
+    <title>Vidalys Radar</title>
     <link rel="stylesheet" href="ui/tokens.css" />
     <link rel="stylesheet" href="ui/sidepanel.css" />
   </head>
@@ -13,8 +13,8 @@
         <div class="brand-copy">
           <img src="icons/icon48.png" alt="" />
           <div>
-            <strong>Mercado Radar</strong
-            ><small>Decida com margem · 0.12.4</small>
+            <strong>Vidalys Radar</strong
+            ><small>Inteligência para revender · 0.13.0</small>
           </div>
         </div>
         <div class="brand-actions">
@@ -29,6 +29,9 @@
               </button>
               <button type="button" data-tool="market">
                 Pesquisa e comparação
+              </button>
+              <button type="button" data-tool="suppliers">
+                Onde comprar este produto
               </button>
               <button type="button" id="menuPrepareDraft">Preparar anúncio no Radar</button>
               <a
@@ -85,7 +88,8 @@
       <nav class="tabs" aria-label="Ferramentas do Radar">
         <button data-tab="summary" aria-current="page">Análise</button
         ><button data-tab="calculator">Lucro</button
-        ><button data-tab="market">Preços</button>
+        ><button data-tab="market">Preços</button
+        ><button data-tab="suppliers">Fornecedores</button>
       </nav>
       <section id="summary" class="tab-page">
         <div id="searchActions" class="card quick-actions" hidden>
@@ -155,6 +159,22 @@
           <div id="apiFacts" class="facts"></div>
           <p id="apiStatus" class="muted" role="status"></p>
         </details>
+      </section>
+      <section id="suppliers" class="tab-page" hidden>
+        <div class="card supplier-card">
+          <h2>Onde comprar este produto?</h2>
+          <p class="muted">
+            O Radar identifica marca, modelo e GTIN do anúncio, salva o produto
+            no seu painel e procura fabricantes, distribuidores e atacadistas.
+            Candidatos não são fornecedores confirmados.
+          </p>
+          <dl id="supplierIdentity" class="facts" hidden></dl>
+          <button id="findSuppliers" type="button">Encontrar fornecedores</button>
+          <p id="supplierStatus" class="muted" role="status"></p>
+          <a id="supplierLink" class="text-link" target="_blank" rel="noopener" hidden
+            >Abrir fornecedores, margem e plano no Radar ↗</a
+          >
+        </div>
       </section>
       <section id="calculator" class="tab-page" hidden>
         <div id="calcEmpty" class="card" hidden>
@@ -537,7 +557,7 @@
           Modo público sem login. Conecte sua conta apenas para tarifas e frete oficiais, histórico e dados privados.
         </p>
         <div class="auth-actions">
-          <button id="loginButton">Entrar no Mercado Radar</button
+          <button id="loginButton">Entrar no Vidalys Radar</button
           ><button id="logoutButton" class="secondary" hidden>Sair</button>
         </div>
         <p id="authStatus" class="muted" role="status"></p>

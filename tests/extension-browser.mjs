@@ -519,7 +519,7 @@ try {
       const launcher = host.locator('[data-radar-owned="launcher"]');
       await launcher
         .getByRole("button", {
-          name: "Abrir menu do Mercado Radar",
+          name: "Abrir menu do Vidalys Radar",
           exact: true,
         })
         .click();
@@ -528,10 +528,10 @@ try {
         .waitFor();
       await host.keyboard.press("Escape");
       assert.equal(await launcher.locator("nav").isVisible(), false);
-      await launcher.getByRole("button", { name: "Abrir menu do Mercado Radar" }).click();
+      await launcher.getByRole("button", { name: "Abrir menu do Vidalys Radar" }).click();
       await launcher.getByRole("button", { name: "Mover botão do Radar para esquerda" }).click();
       assert.equal(await launcher.evaluate(el => el.style.left), "20px");
-      await launcher.getByRole("button", { name: "Abrir menu do Mercado Radar" }).click();
+      await launcher.getByRole("button", { name: "Abrir menu do Vidalys Radar" }).click();
       await launcher.getByRole("button", { name: "Mover botão do Radar para direita" }).click();
       assert.equal(await launcher.evaluate(el => el.style.right), "20px");
       await product
@@ -543,7 +543,7 @@ try {
       );
       await launcher
         .getByRole("button", {
-          name: "Abrir menu do Mercado Radar",
+          name: "Abrir menu do Vidalys Radar",
           exact: true,
         })
         .click();
@@ -751,7 +751,7 @@ try {
       const launcher = searchPage.locator('[data-radar-owned="launcher"]');
       await launcher
         .getByRole("button", {
-          name: "Abrir menu do Mercado Radar",
+          name: "Abrir menu do Vidalys Radar",
           exact: true,
         })
         .click();
@@ -771,7 +771,7 @@ try {
       assert.equal(await calls(), 1);
       await launcher
         .getByRole("button", {
-          name: "Abrir menu do Mercado Radar",
+          name: "Abrir menu do Vidalys Radar",
           exact: true,
         })
         .click();
@@ -841,7 +841,7 @@ try {
       const launcher = searchPage.locator('[data-radar-owned="launcher"]');
       await launcher
         .getByRole("button", {
-          name: "Abrir menu do Mercado Radar",
+          name: "Abrir menu do Vidalys Radar",
           exact: true,
         })
         .click();

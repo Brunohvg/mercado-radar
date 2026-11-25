@@ -62,7 +62,7 @@ export async function GET(request: Request) {
     }
     lines.push(
       "",
-      'printf "\\nExtensão Mercado Radar preparada em:\\n%s\\n\\n" "$install_dir"',
+      'printf "\\nExtensão Vidalys Radar preparada em:\\n%s\\n\\n" "$install_dir"',
       'printf "Chrome/Chromium: abra chrome://extensions, habilite o modo desenvolvedor e escolha Carregar sem compactação.\\n"',
       'printf "Selecione a pasta exibida acima. Recarregue as abas do Mercado Livre após instalar.\\n\\n"',
       'if command -v xdg-open >/dev/null 2>&1; then xdg-open "$install_dir" >/dev/null 2>&1 || true; fi',

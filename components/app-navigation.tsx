@@ -30,6 +30,12 @@ type MenuItem = {
 
 const groups: Array<{ label: string; items: MenuItem[] }> = [
   {
+    label: "Revender",
+    items: [
+      { href: "/onde-comprar", label: "Onde comprar", icon: "suppliers", badge: "Novo" },
+    ],
+  },
+  {
     label: "Operação",
     items: [
       { href: "/", label: "Dashboard", icon: "dashboard" },
@@ -38,7 +44,7 @@ const groups: Array<{ label: string; items: MenuItem[] }> = [
       { href: "/produtos", label: "Produtos", icon: "products" },
       { href: "/vendas", label: "Vendas e lucro", icon: "sales" },
       { href: "/publicidade", label: "Publicidade", icon: "ads" },
-      { href: "/fornecedores", label: "Fornecedores", icon: "suppliers" },
+      { href: "/fornecedores", label: "Custos por fornecedor", icon: "suppliers" },
     ],
   },
   {
@@ -320,8 +326,8 @@ export function AppNavigation() {
               <img src="/brand/mark.svg" alt="" aria-hidden="true" />
             </span>
             <div className="brand-copy">
-              <strong>Mercado Radar</strong>
-              <small>Inteligência de mercado</small>
+              <strong>Vidalys Radar</strong>
+              <small>Inteligência para revender</small>
             </div>
           </Link>
 

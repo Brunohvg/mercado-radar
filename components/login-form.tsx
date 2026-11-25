@@ -73,7 +73,7 @@ export function LoginForm({ configured }: { configured: boolean }) {
         <div className="rd-auth__brand">
           <img src="/brand/mark.svg" alt="" aria-hidden="true" />
           <div>
-            <strong>Mercado Radar</strong>
+            <strong>Vidalys Radar</strong>
             <small>Inteligência para vender no Mercado Livre</small>
           </div>
         </div>

@@ -845,3 +845,29 @@ summary {
 .calc-assumptions li { font-size: 11px; line-height: 1.4; padding: 6px 8px; border-radius: 8px; background: var(--paper, #f3f5f9); color: var(--ink-700, #2b3242); overflow-wrap: anywhere; }
 .calc-assumptions li.material { background: var(--warn-tint, #fef3e2); color: var(--warn-ink, #6b4500); }
 #costField label small { font-weight: 400; color: var(--ink-500, #5b6475); }
+
+/* Revisão de clareza (v0.15): letras legíveis, abas como controle segmentado,
+   explicações técnicas recolhidas. */
+.metric small { font-size: 11px; }
+.eyebrow { font-size: 11px; letter-spacing: 0.06em; color: var(--brand, #1263ff); }
+.text-action { font-size: 12px; font-weight: 600; }
+.prepare-link { display: block; margin-top: 10px; }
+.tabs {
+  background: #e9edf4;
+  border-radius: 12px;
+  padding: 4px;
+  margin: 0 0 12px;
+  gap: 2px;
+  top: 6px;
+  box-shadow: 0 0 0 6px #f3f5f9;
+}
+.tabs button { border-radius: 9px; font-size: 12px; font-weight: 600; min-height: 34px; box-shadow: none; }
+.tabs button[aria-current="page"] {
+  background: #fff;
+  color: var(--brand, #1263ff);
+  box-shadow: 0 1px 2px rgba(11, 17, 32, 0.12), 0 0 0 1px rgba(18, 99, 255, 0.18);
+}
+.explain { margin: 6px 0 2px; }
+.explain summary { cursor: pointer; font-size: 12px; font-weight: 600; color: #4d5462; }
+.explain p { margin: 6px 0 0; }
+.card { border-radius: 14px; }

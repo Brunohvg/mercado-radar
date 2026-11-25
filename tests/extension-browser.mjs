@@ -1292,7 +1292,7 @@ try {
       );
       await page.locator("#autoDemand").filter({ hasText: "estimativa" }).waitFor();
       assert.match(await page.locator("#autoDemand").innerText(), /7 a 30 vendas\/mês · estimativa/);
-      assert.match(await page.locator("#autoEvidence").innerText(), /600 visitas em 30 dias .* × conversão de 1,2% a 5%/);
+      assert.match(await page.locator("#autoEvidence").textContent(), /600 visitas em 30 dias .* × conversão de 1,2% a 5%/);
       assert.match(await page.locator("#autoMetrics").innerText(), /Vendas\/mês · estimativa\s+7 a 30/);
       await show({ method: "OUTRO", salesPer30Days: { low: 1, high: 2 }, formula: "x" }, "MLBU5074600651");
       await page.waitForFunction(() => !document.querySelector("#autoDemand")?.textContent.includes("estimativa"));

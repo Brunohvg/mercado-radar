@@ -14,7 +14,7 @@
           <img src="icons/icon48.png" alt="" />
           <div>
             <strong>Vidalys Radar</strong
-            ><small>Inteligência para revender · 0.14.0</small>
+            ><small>Inteligência para revender · 0.15.0</small>
           </div>
         </div>
         <div class="brand-actions">
@@ -81,14 +81,14 @@
           <div id="pageFacts" class="grid"></div>
           <p id="pageNote" class="muted"></p>
         </details>
-        <button id="prepareDraft" type="button" class="secondary" style="margin-top: 12px; width: 100%">
-          Preparar anúncio com este produto no Radar
+        <button id="prepareDraft" type="button" class="text-action prepare-link">
+          Preparar anúncio com este produto no Radar →
         </button>
       </section>
       <nav class="tabs" aria-label="Ferramentas do Radar">
-        <button data-tab="summary" aria-current="page">Análise</button
+        <button data-tab="summary" aria-current="page">Resumo</button
         ><button data-tab="calculator">Lucro</button
-        ><button data-tab="market">Preços</button
+        ><button data-tab="market">Concorrentes</button
         ><button data-tab="suppliers">Fornecedor</button>
       </nav>
       <section id="summary" class="tab-page">
@@ -107,7 +107,10 @@
           </div>
           <p id="autoVerdict" class="analysis-verdict"></p>
           <div id="autoMetrics" class="grid"></div>
-          <p id="autoEvidence" class="muted"></p>
+          <details class="explain">
+            <summary>Como chegamos nesses números</summary>
+            <p id="autoEvidence" class="muted"></p>
+          </details>
           <div class="payout-card">
             <small id="autoPayoutLabel">Após tarifas, antes do frete</small
             ><strong id="autoPayout">—</strong>

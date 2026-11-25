@@ -18,7 +18,7 @@ export default function ExtensionPage() {
               </p>
             </div>
             <span className="status-chip attention extension-install-beta">
-              Beta 0.14.0
+              Beta 0.15.0
             </span>
           </header>
 

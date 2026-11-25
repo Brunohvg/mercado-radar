@@ -61,3 +61,29 @@ test("título da IA: limite de 60 e nada de número inventado", () => {
   assert.equal(checkSuggestedTitle("Ilhós Nº54 Dourado Pacote 1000 Unidades", ["Ilhós nº54 dourado"]).ok, false);
   assert.equal(checkSuggestedTitle("x".repeat(61), []).ok, false);
 });
+
+const { normalizePerformance, normalizePriceSuggestion } = await loadTs("../lib/listing-quality.ts");
+
+test("nota oficial do ML: pendências com link, avisos primeiro", () => {
+  const raw = {
+    score: 62.4, level: "Average", level_wording: "Satisfatória", calculated_at: "2026-11-20T10:00:00Z",
+    buckets: {
+      CHARACTERISTICS: { variables: {
+        GTIN: { title: "Informe o código", rules: { HAS_GTIN: { status: "PENDING", mode: "OPPORTUNITY", wordings: { title: "Informe o código universal", label: "Ajuda a aparecer no catálogo", link: "https://www.mercadolivre.com.br/anuncios/MLB1/modificar" } } } },
+        PICTURES: { rules: { PICTURES_QUANTITY_MIN: { status: "PENDING", mode: "WARNING", wordings: { title: "Adicione fotos" } } } },
+      } },
+      OFFER: { variables: { FREE_SHIPPING: { rules: { X: { status: "COMPLETED", wordings: { title: "ok" } } } } } },
+    },
+  };
+  const r = normalizePerformance(raw);
+  assert.equal(r.score, 62);
+  assert.equal(r.level, "Satisfatória");
+  assert.deepEqual(r.pending.map((p) => p.title), ["Adicione fotos", "Informe o código universal"]);
+  assert.match(r.pending[1].link, /mercadolivre/);
+  assert.equal(normalizePerformance({ error: "not_found" }), null);
+});
+
+test("sugestão de preço do ML lida de forma defensiva", () => {
+  assert.deepEqual(normalizePriceSuggestion({ suggested_price: { amount: 39.9 }, lowest_price: { amount: 35 }, current_price: { amount: 42.9 } }), { suggested: 39.9, lowest: 35, current: 42.9 });
+  assert.equal(normalizePriceSuggestion({ status: "no_suggestion" }), null);
+});

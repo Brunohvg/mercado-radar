@@ -151,3 +151,60 @@ export function checkSuggestedTitle(suggested: string, sources: string[]) {
   if (invented.length) return { ok: false as const, reason: `A IA colocou número que não está no anúncio: ${invented.join(", ")}.` };
   return { ok: true as const, title };
 }
+
+export type OfficialQuality = {
+  score: number;
+  level: string | null;
+  pending: Array<{ title: string; detail: string | null; link: string | null; warning: boolean }>;
+  calculatedAt: string | null;
+};
+
+type Obj = Record<string, unknown>;
+const obj = (v: unknown): Obj | null => (v && typeof v === "object" && !Array.isArray(v) ? (v as Obj) : null);
+const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+
+/**
+ * Lê a resposta de /item/{id}/performance de forma defensiva: nota 0–100, nível
+ * (Básica, Satisfatória, Profissional) e as regras ainda pendentes com o link do ML.
+ */
+export function normalizePerformance(raw: unknown): OfficialQuality | null {
+  const root = obj(raw);
+  const score = Number(root?.score);
+  if (!root || !Number.isFinite(score)) return null;
+  const pending: OfficialQuality["pending"] = [];
+  for (const bucket of Object.values(obj(root.buckets) ?? {})) {
+    for (const variable of Object.values(obj(obj(bucket)?.variables) ?? {})) {
+      const v = obj(variable);
+      for (const rule of Object.values(obj(v?.rules) ?? {})) {
+        const r = obj(rule);
+        if (!r || r.status === "COMPLETED") continue;
+        const w = obj(r.wordings);
+        const title = str(w?.title) ?? str(v?.title);
+        if (!title) continue;
+        pending.push({ title, detail: str(w?.label), link: str(w?.link), warning: r.mode === "WARNING" });
+      }
+    }
+  }
+  pending.sort((a, b) => Number(b.warning) - Number(a.warning));
+  return {
+    score: Math.round(Math.max(0, Math.min(100, score))),
+    level: str(root.level_wording) ?? str(root.level),
+    pending: pending.slice(0, 12),
+    calculatedAt: str(root.calculated_at),
+  };
+}
+
+export type PriceSuggestion = { suggested: number; lowest: number | null; current: number | null };
+
+const amount = (v: unknown) => {
+  const n = Number(obj(v)?.amount ?? v);
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
+/** Sugestão de preço do ML (/suggestions/items/{id}/details). Null quando não há sugestão. */
+export function normalizePriceSuggestion(raw: unknown): PriceSuggestion | null {
+  const root = obj(raw);
+  const suggested = amount(root?.suggested_price);
+  if (!root || suggested == null) return null;
+  return { suggested, lowest: amount(root.lowest_price), current: amount(root.current_price) };
+}

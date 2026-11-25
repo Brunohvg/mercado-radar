@@ -2036,3 +2036,17 @@ export async function updateItemDescription(input: { accessToken: string; itemId
     body: JSON.stringify({ plain_text: input.plainText }),
   });
 }
+
+/** Nota oficial de qualidade do anúncio (substitui o antigo /health). 404 enquanto o ML não calculou. */
+export async function getItemPerformance(input: { accessToken: string; itemId: string }) {
+  return jsonFetch<Record<string, unknown>>(`${API}/item/${input.itemId}/performance`, {
+    headers: { Authorization: `Bearer ${input.accessToken}` },
+  });
+}
+
+/** Sugestão de preço que o próprio ML calcula para o anúncio (referências de preço). */
+export async function getItemPriceSuggestion(input: { accessToken: string; itemId: string }) {
+  return jsonFetch<Record<string, unknown>>(`${API}/suggestions/items/${input.itemId}/details`, {
+    headers: { Authorization: `Bearer ${input.accessToken}` },
+  });
+}

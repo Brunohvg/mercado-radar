@@ -3,12 +3,14 @@ import {
   getCategoryAttributes,
   getItemDescription,
   getItemFullDetails,
+  getItemPerformance,
+  getItemPriceSuggestion,
   getItemsBulk,
   getItemVisitWindow,
   MlApiError,
   searchMarketplaceWithSource,
 } from "@/lib/mercado-livre";
-import { diagnoseListing, type CategoryAttribute, type QualityItem } from "@/lib/listing-quality";
+import { diagnoseListing, normalizePerformance, normalizePriceSuggestion, type CategoryAttribute, type QualityItem } from "@/lib/listing-quality";
 import { loadPilotData, PILOT_DAYS } from "@/lib/pilot/load";
 
 type Session = { ml: { accessToken: string }; sellerId: string; workspaceId: string };
@@ -26,12 +28,14 @@ export async function loadListingQuality(s: Session, mlItemId: string) {
       .catch((e) => (e instanceof MlApiError && e.status === 404 ? "" : null)),
   ]);
   const categoryId = full?.category_id ?? live.categoryId ?? null;
-  const [categoryInfo, rawAttributes, market, visits, pilot] = await Promise.all([
+  const [categoryInfo, rawAttributes, market, visits, pilot, performance, suggestion] = await Promise.all([
     categoryId ? getCategory({ accessToken, categoryId }).catch(() => null) : Promise.resolve(null),
     categoryId ? getCategoryAttributes({ accessToken, categoryId }).catch(() => []) : Promise.resolve([]),
     searchMarketplaceWithSource({ accessToken, query: live.title, categoryId: categoryId ?? undefined, limit: 20 }).catch(() => null),
     getItemVisitWindow({ accessToken, itemId: mlItemId, ending: new Date().toISOString().slice(0, 10) }).catch(() => null),
     loadPilotData({ workspaceId: s.workspaceId, sellerId: s.sellerId, mlItemId }).catch(() => null),
+    getItemPerformance({ accessToken, itemId: mlItemId }).catch(() => null),
+    getItemPriceSuggestion({ accessToken, itemId: mlItemId }).catch(() => null),
   ]);
 
   const attributes = (full?.attributes ?? [])
@@ -85,6 +89,8 @@ export async function loadListingQuality(s: Session, mlItemId: string) {
       attributes,
     },
     diagnosis,
+    official: normalizePerformance(performance),
+    priceSuggestion: normalizePriceSuggestion(suggestion),
     category,
     competitorTitles: competitorTitles.slice(0, 10),
     performance: {

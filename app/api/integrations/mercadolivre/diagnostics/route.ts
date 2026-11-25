@@ -183,6 +183,20 @@ export async function GET() {
         "Opiniões · leitura pública",
       ),
       add(
+        "itemPerformance",
+        "Qualidade do anúncio (nota oficial do ML)",
+        true,
+        itemId ? `/item/${itemId}/performance` : null,
+        "Qualidade das publicações · leitura",
+      ),
+      add(
+        "priceSuggestion",
+        "Sugestão de preço do Mercado Livre",
+        true,
+        itemId ? `/suggestions/items/${itemId}/details` : null,
+        "Referências de preço · leitura",
+      ),
+      add(
         "sellerPromotions",
         "Promoções e campanhas do vendedor",
         true,

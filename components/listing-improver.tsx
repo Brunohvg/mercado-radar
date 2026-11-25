@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ListingInsightPanel, type EditableListing, type InsightData } from "@/components/listing-insight-panel";
-import type { MissingAttribute, QualityCheck } from "@/lib/listing-quality";
+import type { MissingAttribute, OfficialQuality, PriceSuggestion, QualityCheck } from "@/lib/listing-quality";
 
 type Pick = { mlItemId: string; title: string; thumbnail: string | null; currentPrice: number | null; status: string };
 type Quality = {
@@ -21,6 +21,8 @@ type Quality = {
   };
   diagnosis: { score: number; checks: QualityCheck[]; missingAttributes: MissingAttribute[]; titleMax: number; competitorTerms: string[] };
   performance: { days: number; unitsSold: number | null; visits: number | null; conversionPercent: number | null };
+  official: OfficialQuality | null;
+  priceSuggestion: PriceSuggestion | null;
   ai: { configured: boolean; message: string };
   error?: string;
 };
@@ -106,7 +108,8 @@ function Improver({ data, onChanged }: { data: Quality; onChanged: () => void })
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState("");
-  const tone = diagnosis.score >= 80 ? "good" : diagnosis.score >= 50 ? "warn" : "risk";
+  const shown = data.official?.score ?? diagnosis.score;
+  const tone = shown >= 80 ? "good" : shown >= 50 ? "warn" : "risk";
 
   async function suggest() {
     setAiBusy(true);
@@ -139,14 +142,40 @@ function Improver({ data, onChanged }: { data: Quality; onChanged: () => void })
             <div><dt>Conversão</dt><dd>{performance.conversionPercent == null ? "—" : `${performance.conversionPercent.toLocaleString("pt-BR")}%`}</dd></div>
           </dl>
         </div>
-        <div className={`improve-score tone-${tone}`}>
-          <strong>{diagnosis.score}</strong>
-          <span>de 100</span>
+        <div className="improve-score-wrap">
+          <div className={`improve-score tone-${tone}`}>
+            <strong>{shown}</strong>
+            <span>de 100</span>
+          </div>
+          <small>{data.official ? `Nota do Mercado Livre${data.official.level ? ` · ${data.official.level}` : ""}` : "Nota do Radar"}</small>
         </div>
       </section>
 
+      {data.official && data.official.pending.length > 0 && (
+        <section className="clean-panel improve-checks">
+          <header>
+            <div>
+              <strong>O que o Mercado Livre pede</strong>
+              <small>Itens pendentes na nota oficial de qualidade do anúncio.</small>
+            </div>
+          </header>
+          <ul>
+            {data.official.pending.map((p) => (
+              <li key={p.title + (p.detail ?? "")} className={`improve-check is-${p.warning ? "bad" : "warn"}`}>
+                <span className="improve-check-icon" aria-hidden="true">{p.warning ? ICON.bad : ICON.warn}</span>
+                <div>
+                  <strong>{p.title}</strong>
+                  {p.detail && <p>{p.detail}</p>}
+                  {p.link && /^https:\/\/[\w.-]*mercadoli(?:vre|bre)\.com/.test(p.link) && <a href={p.link} target="_blank" rel="noreferrer">Resolver no Mercado Livre</a>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="clean-panel improve-checks">
-        <header><strong>O que melhorar</strong></header>
+        <header><strong>{data.official ? "O que mais o Radar viu" : "O que melhorar"}</strong></header>
         <ul>
           {[...diagnosis.checks].sort((a, b) => "bwo".indexOf(a.status[0]) - "bwo".indexOf(b.status[0])).map((c) => (
             <li key={c.id} className={`improve-check is-${c.status}`}>
@@ -182,7 +211,7 @@ function Improver({ data, onChanged }: { data: Quality; onChanged: () => void })
         <AttributesEditor item={item} missing={diagnosis.missingAttributes} onDone={onChanged} />
       )}
 
-      <PriceSection item={item} />
+      <PriceSection item={item} suggestion={data.priceSuggestion} />
     </div>
   );
 }
@@ -321,7 +350,7 @@ function AttributesEditor({ item, missing, onDone }: { item: Quality["item"]; mi
   );
 }
 
-function PriceSection({ item }: { item: Quality["item"] }) {
+function PriceSection({ item, suggestion }: { item: Quality["item"]; suggestion: PriceSuggestion | null }) {
   const [insight, setInsight] = useState<InsightData | null>(null);
   const [error, setError] = useState("");
   const [listing, setListing] = useState<EditableListing>({ mlItemId: item.mlItemId, currentPrice: item.price, availableQuantity: item.availableQuantity, status: item.status, permalink: item.permalink });
@@ -340,6 +369,13 @@ function PriceSection({ item }: { item: Quality["item"] }) {
         <strong>Preço pelos concorrentes</strong>
         <small>Mediana e faixa das ofertas, seu piso de margem e, no catálogo, o preço que ganha a vitrine.</small>
       </header>
+      {suggestion && (
+        <p className="improve-ml-price">
+          Sugestão de preço do Mercado Livre: <b>{money.format(suggestion.suggested)}</b>
+          {suggestion.lowest != null && <> · menor preço entre os concorrentes {money.format(suggestion.lowest)}</>}
+          . Confira se ele cabe no seu piso de margem abaixo antes de usar.
+        </p>
+      )}
       {error && <p className="improve-muted">{error}</p>}
       {!insight && !error && <p className="improve-muted">Comparando com os concorrentes...</p>}
       {insight && <ListingInsightPanel item={listing} insight={insight} onEdited={(patch) => setListing((l) => ({ ...l, ...patch }))} />}

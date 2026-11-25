@@ -882,7 +882,7 @@ function MarginTab({ view, onMarket, onSuppliers }: { view: View; onMarket: () =
       <div className="vr-card">
         <h2>Comparar fornecedores</h2>
         <div className="vr-table-wrap">
-          <table className="vr-table">
+          <table className="vr-table is-labeled">
             <thead>
               <tr><th>Fornecedor</th><th className="num">Lote mínimo</th><th className="num">Total no mínimo</th><th>Condições</th><th className="num">Custo entregue/peça</th><th className="num">Lucro estimado/venda</th><th className="num">Margem estimada</th></tr>
             </thead>
@@ -892,7 +892,7 @@ function MarginTab({ view, onMarket, onSuppliers }: { view: View; onMarket: () =
                 const supplier = view.suppliers.find((item) => item.id === quote.supplierId);
                 return (
                   <tr key={quote.id}>
-                    <td>
+                    <td data-label="">
                       {v.supplierName}
                       <small className="vr-table-detail">{SOURCE_LABEL[v.source]} · {dateBr(quote.quotedAt)}</small>
                       {v.purchasePending.length > 0 && <small className="vr-table-detail">Confirme: {v.purchasePending.join(", ")}.</small>}

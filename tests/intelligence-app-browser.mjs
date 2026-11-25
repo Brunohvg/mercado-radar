@@ -97,9 +97,10 @@ export async function runBrowserChecks({ base, cookie }) {
     await page.getByText(/R\$\s*19,99 \/ 1.000 un/).waitFor();
     await page.getByRole("tab", { name: "Comparar cotações" }).click();
     await page.getByText("+ frete a confirmar", { exact: true }).waitFor();
+    await page.locator(".vr-table.is-labeled tbody tr").first().waitFor();
     for (const width of [390, 1366]) {
       await page.setViewportSize({ width, height: 960 });
-      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `Comparação de cotações a ${width}px`);
+      await page.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth, undefined, { timeout: 5000 });
       if (width === 390) {
         const column = page.locator(".vr-table td[data-label='Condições']").first();
         assert.equal(await column.evaluate((cell) => getComputedStyle(cell, "::before").position), "static");

@@ -276,4 +276,4 @@
   .vr-study-next { grid-row: auto; }
 }
 
-.vr-table-detail { display: block; margin-top: var(--s-1); color: var(--ink-500); font-size: var(--fs-12); white-space: normal; }
+.vr-table-detail { display: block; overflow-wrap: anywhere; margin-top: var(--s-1); color: var(--ink-500); font-size: var(--fs-12); white-space: normal; }

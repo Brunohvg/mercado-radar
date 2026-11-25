@@ -346,3 +346,28 @@
     font-size: var(--fs-22);
   }
 }
+
+/* Deixe o Radar pronto */
+.setup-card { display: grid; gap: 12px; border-top: 3px solid var(--brand); }
+.setup-card > header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.setup-card > header > div { display: grid; gap: 2px; }
+.setup-card > header strong { font-size: var(--fs-16, 16px); }
+.setup-card > header small { color: var(--ink-500); font-size: var(--fs-13, 13px); }
+.setup-hide, .setup-reopen { font: inherit; font-size: var(--fs-13, 13px); background: none; border: 0; color: var(--brand); cursor: pointer; padding: 4px 0; min-height: 0; }
+.setup-reopen { justify-self: start; margin-bottom: 8px; }
+.setup-bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.setup-bar span { display: block; height: 100%; background: var(--brand); border-radius: 3px; }
+.setup-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.setup-list li { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 4px; border-radius: var(--r-sm); }
+.setup-list li.is-next { background: var(--brand-tint, #e8efff); padding: 10px 8px; }
+.setup-list li > div { display: grid; gap: 2px; min-width: 0; }
+.setup-list li strong { font-size: var(--fs-14, 14px); font-weight: 600; }
+.setup-list li.is-done strong { color: var(--ink-500); font-weight: 500; text-decoration: line-through; text-decoration-color: var(--line); }
+.setup-list li small { color: var(--ink-500); font-size: var(--fs-13, 13px); }
+.setup-mark { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.setup-list li.is-done .setup-mark { background: var(--good-tint, #d1fadf); border-color: transparent; color: var(--good-ink, #027a48); }
+.setup-list li.is-next .setup-mark { border-color: var(--brand); }
+@media (max-width: 640px) {
+  .setup-list li { grid-template-columns: 24px minmax(0, 1fr); }
+  .setup-list li .vr-btn { grid-column: 2; justify-self: start; }
+}

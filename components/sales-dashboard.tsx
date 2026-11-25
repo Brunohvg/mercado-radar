@@ -346,6 +346,10 @@ function ProductTable({
   onSaved: () => void;
 }) {
   const [filter, setFilter] = useState<RowStatus | "ALL">("ALL");
+  // Atalho do Início: /vendas?filtro=sem-custo abre já nos produtos sem custo.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("filtro") === "sem-custo") setFilter("NO_COST");
+  }, []);
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [messages, setMessages] = useState<Record<string, string>>({});

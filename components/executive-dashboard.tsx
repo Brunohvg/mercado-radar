@@ -1,5 +1,6 @@
 "use client";
 
+import { SetupChecklist } from "@/components/setup-checklist";
 import { PilotBriefing } from "@/components/pilot-briefing";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -155,6 +156,7 @@ export function ExecutiveDashboard() {
           </button>
         </div>
       </header>
+      <SetupChecklist />
       <PilotBriefing />
       {error && (
         <div className="error" role="alert">

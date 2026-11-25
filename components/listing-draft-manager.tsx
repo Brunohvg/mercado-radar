@@ -23,7 +23,10 @@ export type DraftValues = {
 };
 
 type DraftSummary = { id: string; status: string; name: string; updatedAt: string };
-type Saved = { id: string; data: DraftValues; status: string; mlItemId?: string | null };
+type Saved = {
+  id: string; data: DraftValues; status: string; mlItemId?: string | null;
+  publicationResult?: { permalink: string | null; message: string } | null;
+};
 
 export function ListingDraftManager({
   data, onRestore,
@@ -54,6 +57,8 @@ export function ListingDraftManager({
   const [publishConfirmed, setPublishConfirmed] = useState(false);
   const [publishedId, setPublishedId] = useState("");
   const [publishedLink, setPublishedLink] = useState("");
+  const [publicationUncertain, setPublicationUncertain] = useState(false);
+  const [publicationResult, setPublicationResult] = useState("");
   const [requiresSave, setRequiresSave] = useState(true);
   const lastInputs = useRef("");
   useEffect(() => {
@@ -126,8 +131,11 @@ export function ListingDraftManager({
       setRequiresSave(false);
       setPublishConfirmed(false);
       setPublishedId(saved.mlItemId || "");
+      setPublishedLink(saved.publicationResult?.permalink || "");
+      setPublicationResult(saved.publicationResult?.message || "");
+      setPublicationUncertain(saved.status === "PUBLISHING");
       onRestore(saved.data);
-      setMessage("Rascunho recuperado. Calcule novamente as tarifas antes de publicar.");
+      if (!saved.mlItemId && saved.status !== "PUBLISHING") setMessage("Rascunho recuperado. Calcule novamente as tarifas antes de publicar.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Falha ao reabrir rascunho.");
     } finally { setPending(false); }
@@ -228,32 +236,62 @@ export function ListingDraftManager({
     } finally { setPending(false); }
   }
 
+  async function checkPublication() {
+    if (!draftId) return;
+    setPending(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/listing-drafts?id=" + encodeURIComponent(draftId), { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Falha ao consultar o envio.");
+      const draft = result.draft as Saved;
+      if (draft.mlItemId) {
+        setPublishedId(draft.mlItemId);
+        setPublishedLink(draft.publicationResult?.permalink || "");
+        setPublicationResult(draft.publicationResult?.message || "");
+        setPublicationUncertain(false);
+      } else if (draft.status !== "PUBLISHING" && draft.status !== "PUBLISHED") {
+        setPublicationUncertain(false);
+        setMessage("Nenhum envio registrado. Valide o rascunho para continuar.");
+      } else {
+        setMessage("O envio segue sem confirmação. Confira seus anúncios na conta vendedora.");
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Falha ao consultar o envio.");
+    } finally { setPending(false); }
+  }
+
   async function publication(action: "validate" | "publish") {
     if (!draftId) { setMessage("Salve o rascunho primeiro."); return; }
     setPending(true);
     setMessage("");
+    let receivedResult = false;
     try {
       const response = await fetch("/api/listing-drafts/publication", {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ id: draftId, action, confirmed: action === "publish" && publishConfirmed }),
       });
       const result = await response.json();
+      receivedResult = true;
       if (!response.ok) {
+        if (action === "publish" && (result.publicationUncertain || response.status >= 500 || response.status === 409)) setPublicationUncertain(true);
         const details = Array.isArray(result.causes) && result.causes.length
           ? " " + result.causes.map((c: {message?: string}) => c.message).join("; ")
           : "";
         throw new Error((result.error || "Falha na validação.") + details);
       }
-      setMessage(result.message);
-      if (action === "validate") setValidated(true);
+      if (action === "validate") { setMessage(result.message); setValidated(true); }
       if (action === "publish") {
         setPublishedId(result.mlItemId || "");
         setPublishedLink(result.permalink || "");
+        setPublicationResult(result.message || "Anúncio criado. Confira os detalhes no Mercado Livre.");
         setValidated(false);
       }
       await refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Falha na publicação.");
+      if (action === "publish" && !receivedResult) setPublicationUncertain(true);
+      setPublishConfirmed(false);
       setValidated(false);
     } finally { setPending(false); }
   }
@@ -267,6 +305,8 @@ export function ListingDraftManager({
         </div>
         <button type="button" className="secondary" disabled={pending} onClick={() => {
           setDraftId(""); setStock("0"); setPhotos("");
+          setValidated(false); setPublishConfirmed(false); setRequiresSave(true);
+          setPublishedId(""); setPublishedLink(""); setPublicationResult(""); setPublicationUncertain(false);
           setIssues([]); setMessage("Novo rascunho iniciado.");
         }}>Novo</button>
       </div>
@@ -403,10 +443,10 @@ export function ListingDraftManager({
           <ul>{issues.map(x => <li key={x}>{x}</li>)}</ul>
         </div>
       )}
-      <button type="button" className="primary listing-assistant__button" disabled={pending || uploading || Boolean(publishedId)} onClick={() => void save()}>
+      <button type="button" className="primary listing-assistant__button" disabled={pending || uploading || publicationUncertain || Boolean(publishedId)} onClick={() => void save()}>
         {pending ? "Salvando…" : draftId ? "Salvar alterações do rascunho" : "Salvar rascunho"}
       </button>
-      {!publishedId && draftId && !requiresSave && (
+      {!publishedId && !publicationUncertain && draftId && !requiresSave && (
         <div className="listing-draft-workspace__publication">
           <strong>Etapa final — Mercado Livre</strong>
           <p className="listing-assistant__helper">A pré-validação consulta regras reais do Mercado Livre e verifica novamente tarifas e frete.</p>
@@ -424,8 +464,17 @@ export function ListingDraftManager({
           </>}
         </div>
       )}
-      {publishedId && <p className="listing-draft-workspace__message">Anúncio criado pausado: <strong>{publishedId}</strong>.
-        {publishedLink.startsWith("https://") && <a href={publishedLink} target="_blank" rel="noopener noreferrer"> Abrir no Mercado Livre</a>}
+      {publicationUncertain && !publishedId && (
+        <div className="listing-draft-workspace__publication" role="status">
+          <strong>Envio aguardando confirmação</strong>
+          <p className="listing-assistant__helper">Consulte o estado registrado no Radar e confira sua lista de anúncios no Mercado Livre antes de repetir o envio.</p>
+          <button type="button" className="secondary listing-assistant__button" disabled={pending} onClick={() => void checkPublication()}>Consultar resultado</button>
+          <a href="https://www.mercadolivre.com.br/anuncios/lista" target="_blank" rel="noopener noreferrer">Abrir meus anúncios no Mercado Livre</a>
+        </div>
+      )}
+      {publishedId && <p className="listing-draft-workspace__message" role="status">
+        <strong>{publishedId}</strong> · {publicationResult || "Envio registrado. Confira o status no Mercado Livre."}{" "}
+        <a href={publishedLink.startsWith("https://") ? publishedLink : "https://www.mercadolivre.com.br/anuncios/lista"} target="_blank" rel="noopener noreferrer">Abrir no Mercado Livre</a>
       </p>}
       <p className="listing-assistant__note">
         Salvar não publica no Mercado Livre. Antes da publicação, será preciso validar

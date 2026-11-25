@@ -355,12 +355,12 @@ export function ListingsDashboard() {
           <p className="page-kicker">Vender</p>
           <h1>Anúncios</h1>
           <p>
-            Veja qual anúncio pede ajuste de preço, estoque ou atenção — e qual
-            está prendendo capital sem retorno.
+            Crie anúncios ou atualize preço, estoque e conteúdo dos anúncios existentes.
           </p>
         </div>
 
         <div className="page-header-actions">
+          <a className="vr-btn" href="/assistente-anuncios">Criar anúncio</a>
           <select
             className="clean-select"
             value={days}
@@ -640,13 +640,13 @@ export function ListingsDashboard() {
                                 onClick={() => void toggleInsight(item)}
                                 aria-expanded={isOpen}
                                 disabled={isLoadingInsight}
-                                title="Analisar posição, mercado e preço"
+                                title="Editar preço, estoque e status"
                               >
-                                {isLoadingInsight ? "Abrindo…" : isOpen ? "Fechar" : "Analisar e editar"}
+                                {isLoadingInsight ? "Abrindo…" : isOpen ? "Fechar" : "Editar"}
                               </button>
 
                               <a className="row-improve-link" href={"/melhorar-anuncio?item=" + item.mlItemId} title="Título, ficha técnica e descrição com IA">
-                                Melhorar
+                                Editar conteúdo
                               </a>
 
                               {item.permalink && (
@@ -678,10 +678,9 @@ export function ListingsDashboard() {
                                   <div className="error">{insightError}</div>
                                 )}
 
-                                {!isLoadingInsight && insight && (
                                   <ListingInsightPanel
                                     item={item}
-                                    insight={insight}
+                                    insight={insight ?? null}
                                     onEdited={(patch) =>
                                       setData((current) =>
                                         current
@@ -690,7 +689,6 @@ export function ListingsDashboard() {
                                       )
                                     }
                                   />
-                                )}
                               </div>
                             </td>
                           </tr>

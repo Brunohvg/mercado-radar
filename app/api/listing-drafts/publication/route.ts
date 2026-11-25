@@ -286,7 +286,7 @@ export async function POST(request: Request) {
       }
       const result: Validation = { hash, pictures: built.body.pictures, checkedAt: new Date().toISOString() };
       const updated = await prisma.listingDraft.updateMany({
-        where: { id: row.id, workspaceId: user.workspaceId, status: { in: ["DRAFT", "REVIEW", "VALIDATED"] } },
+        where: { id: row.id, workspaceId: user.workspaceId, updatedAt: row.updatedAt, status: { in: ["DRAFT", "REVIEW", "VALIDATED"] } },
         data: { validation: result, validatedAt: new Date(), status: "VALIDATED" },
       });
       if (!updated.count) return responseError("O rascunho mudou durante a validação. Revise novamente.", 409);
@@ -306,21 +306,30 @@ export async function POST(request: Request) {
         !Array.isArray(last.pictures)) {
       return responseError("Validação desatualizada. Faça a pré-validação novamente.", 409);
     }
+    const prepared = await prepare(data.data, session.accessToken, sellerId, user.workspaceId, last.pictures, model);
     const updated = await prisma.listingDraft.updateMany({
-      where: { id: row.id, workspaceId: user.workspaceId, status: "VALIDATED" },
+      where: { id: row.id, workspaceId: user.workspaceId, status: "VALIDATED", updatedAt: row.updatedAt },
       data: { status: "PUBLISHING" },
     });
-    if (!updated.count) return responseError("Outro processo está publicando este anúncio.", 409);
+    if (!updated.count) return responseError("O rascunho mudou ou já está sendo enviado. Consulte o estado atual.", 409);
     // No automatic retry after reaching the external API: a timeout may have created an item.
     let response;
     try {
-      const prepared = await prepare(data.data, session.accessToken, sellerId, user.workspaceId, last.pictures, model);
       response = await mlJson("https://api.mercadolibre.com/items", session.accessToken, "POST", prepared.body);
     } catch (error) {
       console.error("[listing-publish] indeterminate external result", error instanceof Error ? error.message : "unknown");
-      return responseError("Não foi possível confirmar se o Mercado Livre recebeu a publicação. Não repita; confira a conta e os logs.", 502);
+      return NextResponse.json({
+        error: "O envio ainda não pôde ser confirmado.",
+        publicationUncertain: true,
+      }, { status: 502 });
     }
     if (!response.response.ok) {
+      if (response.response.status >= 500 || response.response.status === 408) {
+        return NextResponse.json({
+          error: "O Mercado Livre não confirmou o envio.",
+          publicationUncertain: true,
+        }, { status: 502 });
+      }
       await prisma.listingDraft.updateMany({
         where: { id: row.id, workspaceId: user.workspaceId, status: "PUBLISHING" },
         data: { status: "REVIEW", validation: {}, validatedAt: null },
@@ -329,7 +338,10 @@ export async function POST(request: Request) {
     }
     const product = response.payload as { id?: string; permalink?: string; status?: string } | null;
     if (!product?.id || !/^MLB\d+$/.test(product.id)) {
-      return responseError("A resposta foi inconclusiva. Não tente publicar novamente sem conferir os anúncios.", 502);
+      return NextResponse.json({
+        error: "O envio ainda não pôde ser confirmado.",
+        publicationUncertain: true,
+      }, { status: 502 });
     }
     // Preserve the created ID before any later action, so a retry cannot duplicate it.
     await prisma.listingDraft.updateMany({
@@ -351,15 +363,21 @@ export async function POST(request: Request) {
         session.accessToken, "POST", { plain_text: data.data.description });
       descriptionAdded = desc.response.ok;
     } catch { /* Leave item paused; user can fix description in seller center. */ }
-    return NextResponse.json({
-      published: true, paused, mlItemId: product.id,
-      permalink: product.permalink ?? null, descriptionAdded,
+    const publicationResult = {
+      paused,
+      descriptionAdded,
+      permalink: product.permalink ?? null,
       message: !paused
-        ? "Anúncio criado, mas não foi possível confirmar a pausa. VERIFIQUE IMEDIATAMENTE o status no Mercado Livre."
+        ? "Anúncio criado. A pausa não foi confirmada. Confira o status no Mercado Livre."
         : descriptionAdded
-          ? "Anúncio criado PAUSADO. Revise no Mercado Livre antes de ativar."
-          : "Anúncio criado PAUSADO, mas a descrição não foi confirmada. Revise no Mercado Livre.",
-    });
+          ? "Anúncio criado pausado. Revise antes de ativar."
+          : "Anúncio criado pausado. A descrição ficou pendente no Mercado Livre.",
+    };
+    await prisma.listingDraft.updateMany({
+      where: { id: row.id, workspaceId: user.workspaceId, status: "PUBLISHED", mlItemId: product.id },
+      data: { validation: { ...last, publicationResult } },
+    }).catch((error: unknown) => console.error("[listing-publish] outcome not saved", error));
+    return NextResponse.json({ published: true, mlItemId: product.id, ...publicationResult });
   } catch (error) {
     console.error("[listing-publish] error", error instanceof Error ? error.message : "unknown");
     return responseError(error instanceof Error ? error.message : "Não foi possível validar o anúncio.", 502);

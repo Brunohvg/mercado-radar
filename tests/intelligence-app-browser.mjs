@@ -73,6 +73,69 @@ export async function runBrowserChecks({ base, cookie }) {
         console.log(`PASS app-browser ${path} at ${width}`);
       }
     }
+    await page.goto(base + "/anuncios");
+    await page.route("**/api/ml/listing-insights?*", (route) =>
+      route.fulfill({ status: 503, json: { error: "Análise temporariamente indisponível" } }));
+    const createListing = page.getByRole("link", { name: "Criar anúncio", exact: true }).filter({ visible: true }).last();
+    assert.equal(await createListing.getAttribute("href"), "/assistente-anuncios");
+    await page.getByRole("button", { name: "Editar", exact: true }).first().click();
+    const editor = page.getByRole("region", { name: "Editar anúncio" });
+    const stock = editor.getByLabel("Estoque", { exact: true });
+    await stock.fill("");
+    assert.equal(await stock.getAttribute("aria-invalid"), "true");
+    assert.equal(await editor.getByRole("button", { name: "Revisar alteração" }).isDisabled(), true);
+    await page.getByText("Análise temporariamente indisponível").waitFor();
+    await stock.fill("0");
+    assert.equal(await stock.getAttribute("aria-invalid"), "false");
+    const status = editor.getByLabel("Status", { exact: false });
+    await status.selectOption((await status.inputValue()) === "active" ? "paused" : "active");
+    await page.route("**/api/ml/products/edit", async (route) => {
+      const change = route.request().postDataJSON();
+      assert.equal(change.availableQuantity, 0);
+      assert.equal(change.confirm, true);
+      await route.fulfill({ status: 502, json: { error: "Estoque alterado, mas o status ficou pendente", applied: { availableQuantity: 0 } } });
+    });
+    await editor.getByRole("button", { name: "Revisar alteração" }).click();
+    await editor.getByRole("button", { name: "Sim, aplicar" }).click();
+    await editor.getByRole("alert").getByText("Estoque alterado, mas o status ficou pendente").waitFor();
+    await editor.getByRole("button", { name: "Revisar alteração" }).click();
+    assert.doesNotMatch(await editor.locator(".insight2-confirm").innerText(), /estoque.*→/i);
+    await page.unroute("**/api/ml/products/edit");
+    await page.unroute("**/api/ml/listing-insights?*");
+    console.log("PASS app-browser listing editor tolerates unavailable insights, distinguishes blank from zero and handles partial edits");
+    checks++;
+    const savedDraft = {
+      id: "draft-qa-unconfirmed", status: "PUBLISHING", mlItemId: null,
+      data: {
+        name: "Produto em confirmação", title: "Produto em confirmação", description: "Descrição",
+        brand: "", sku: "", categoryId: "", categoryName: "", confirmedFacts: "", missingFacts: [],
+        stock: 1, imageUrls: [], attributes: {}, kitQuantity: 1, discountPercent: 0,
+        operatingCost: 0, listingType: "CLASSIC", logisticType: "", freeShipping: null,
+        barcode: null, catalogProductId: null, costPerUnit: null, weightGrams: null,
+        heightCm: null, widthCm: null, lengthCm: null, suggestedPrice: null,
+        publicationChannel: "TRADITIONAL", catalogExactMatchConfirmed: false,
+      },
+    };
+    let checkedDraft = false;
+    await page.route("**/api/listing-drafts**", (route) => {
+      if (!new URL(route.request().url()).searchParams.has("id"))
+        return route.fulfill({ json: { drafts: [{ id: savedDraft.id, name: savedDraft.data.name, status: savedDraft.status }] } });
+      const draft = checkedDraft ? {
+        ...savedDraft, status: "PUBLISHED", mlItemId: "MLB999000003",
+        publicationResult: { permalink: null, message: "Anúncio criado. A pausa não foi confirmada." },
+      } : savedDraft;
+      checkedDraft = true;
+      return route.fulfill({ json: { draft } });
+    });
+    await page.goto(base + "/assistente-anuncios");
+    await page.getByLabel("Meus rascunhos").selectOption(savedDraft.id);
+    await page.getByText("Envio aguardando confirmação").waitFor();
+    assert.equal(await page.getByRole("button", { name: "Validar anúncio na API do Mercado Livre" }).count(), 0);
+    await page.getByRole("button", { name: "Consultar resultado" }).click();
+    await page.getByText(/MLB999000003.*pausa não foi confirmada/).waitFor();
+    await page.unroute("**/api/listing-drafts**");
+    console.log("PASS app-browser draft reconciliation preserves an uncertain pause result");
+    checks++;
     const supplier = await context.request.post(base + "/api/sourcing/suppliers", {
       data: { name: "Aviamentos do teste de navegação", kind: "ATACADISTA" },
     });

@@ -18,6 +18,7 @@ const schema = z.object({
   expected: z.object({ price: z.number(), availableQuantity: z.number().int(), status: z.string() }),
   allowBelowFloor: z.boolean().default(false),
   confirm: z.literal(true),
+  confirmVariationPrice: z.boolean().optional(),
 });
 
 // ESCRITA: edita preço, estoque e status do anúncio no Mercado Livre. Só com confirm=true,
@@ -44,6 +45,11 @@ export async function POST(request: Request) {
     }
     const variations = ((live.raw as { variations?: Array<{ id?: string | number }> })?.variations ?? [])
       .map((v) => v.id).filter((id): id is string | number => id != null);
+    if (parsed.data.price != null && variations.length && !parsed.data.confirmVariationPrice)
+      return NextResponse.json({
+        error: `O novo preço será aplicado às ${variations.length} variações deste anúncio.`,
+        variationCount: variations.length,
+      }, { status: 422 });
     const plan = planListingEdit({
       live: { price: live.currentPrice, availableQuantity: live.availableQuantity, status: live.status, variationIds: variations },
       change: { price: parsed.data.price, availableQuantity: parsed.data.availableQuantity, status: parsed.data.status },
@@ -75,7 +81,13 @@ export async function POST(request: Request) {
       const message = fieldsDone ? `Preço/estoque alterados, mas o status não: ${reason}` : reason;
       if (fieldsDone) await saveLocal(false);
       await logPilotAction({ ...base, status: "FAILED", error: message });
-      return NextResponse.json({ error: message }, { status: 502 });
+      return NextResponse.json({
+        error: message,
+        applied: fieldsDone ? {
+          ...(parsed.data.price != null ? { currentPrice: parsed.data.price } : {}),
+          ...(parsed.data.availableQuantity != null ? { availableQuantity: parsed.data.availableQuantity } : {}),
+        } : undefined,
+      }, { status: 502 });
     }
     await saveLocal(true);
     await logPilotAction({ ...base, status: "DONE" });

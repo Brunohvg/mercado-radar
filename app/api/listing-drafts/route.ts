@@ -64,8 +64,10 @@ function review(data: ListingData) {
   // A draft is never described as ready to publish without those checks.
   return issues;
 }
-function publicRow(row: { id: string; status: string; name: string; createdAt: Date; updatedAt: Date; content: unknown; mlItemId?: string | null }) {
-  return { id: row.id, status: row.status, mlItemId: row.mlItemId ?? null, name: row.name, createdAt: row.createdAt, updatedAt: row.updatedAt, data: row.content };
+function publicRow(row: { id: string; status: string; name: string; createdAt: Date; updatedAt: Date; content: unknown; mlItemId?: string | null; validation?: unknown }) {
+  const validation = row.validation as { publicationResult?: unknown } | null;
+  return { id: row.id, status: row.status, mlItemId: row.mlItemId ?? null,
+    publicationResult: row.mlItemId ? validation?.publicationResult ?? null : null, name: row.name, createdAt: row.createdAt, updatedAt: row.updatedAt, data: row.content };
 }
 
 export async function GET(request: Request) {

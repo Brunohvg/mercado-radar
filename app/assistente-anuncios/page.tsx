@@ -21,6 +21,7 @@ export default async function ListingAssistantPage({
     <main className="shell">
       <AppNavigation />
       <section className="content routed-content">
+        <a className="inline-link-button" href="/anuncios">Voltar para anúncios</a>
         <ListingDraftAssistant
           initialName={single(params.produto)}
           initialReference={single(params.referencia)}

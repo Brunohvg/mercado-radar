@@ -35,7 +35,13 @@ export type EditableListing = {
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const pct = (v: number) => `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
-const num = (raw: string) => Number(raw.replace(/\./g, "").replace(",", "."));
+function parsePrice(raw: string) {
+  const text = raw.trim();
+  if (/^\d+(?:\.\d{1,2})?$/.test(text)) return Number(text);
+  if (/^(?:\d+|\d{1,3}(?:\.\d{3})+),\d{1,2}$/.test(text))
+    return Number(text.replace(/\./g, "").replace(",", "."));
+  return NaN;
+}
 
 const SOURCE: Record<NonNullable<InsightMarket["source"]>, string> = {
   EXTENSAO: "capturado pela extensão na busca do ML",
@@ -57,15 +63,17 @@ export function ListingInsightPanel({
   onEdited,
 }: {
   item: EditableListing;
-  insight: InsightData;
+  insight: InsightData | null;
   onEdited: (patch: Partial<EditableListing>) => void;
 }) {
-  const m = insight.market;
+  const m = insight?.market;
   const price = item.currentPrice;
   const [draftPrice, setDraftPrice] = useState<string | null>(null);
 
   return (
     <div className="insight2">
+      <ListingEditor item={item} presetPrice={draftPrice} onEdited={onEdited} />
+      {insight && m && <>
       <section className="insight2-market" aria-label="Seu preço no mercado">
         <header>
           <strong>Seu preço no mercado</strong>
@@ -134,8 +142,6 @@ export function ListingInsightPanel({
         )}
       </section>
 
-      <ListingEditor item={item} presetPrice={draftPrice} onEdited={onEdited} />
-
       {insight.competitors.length > 0 && (
         <section className="insight2-competitors" aria-label="Concorrentes">
           <header><strong>Concorrentes mais baratos</strong></header>
@@ -160,6 +166,7 @@ export function ListingInsightPanel({
           </ol>
         </section>
       )}
+      </>}
     </div>
   );
 }
@@ -202,6 +209,8 @@ function ListingEditor({
   const [status, setStatus] = useState(item.status === "paused" ? "paused" : "active");
   const [confirming, setConfirming] = useState(false);
   const [belowFloor, setBelowFloor] = useState(false);
+  const [variationCount, setVariationCount] = useState<number | null>(null);
+  const [variationConfirmed, setVariationConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
@@ -210,20 +219,31 @@ function ListingEditor({
   if (presetPrice && presetPrice !== lastPreset) {
     setLastPreset(presetPrice);
     setPrice(presetPrice);
-    setConfirming(false);
+    resetReview();
   }
 
   const editable = item.status === "active" || item.status === "paused";
-  const priceValue = num(price);
-  const stockValue = Number(stock);
+  const priceValue = parsePrice(price);
+  const stockValue = /^\d+$/.test(stock.trim()) ? Number(stock) : null;
+  const stockValid = stockValue !== null && Number.isSafeInteger(stockValue) && stockValue <= 99_999;
   const changes: string[] = [];
   if (item.currentPrice != null && Number.isFinite(priceValue) && Math.abs(priceValue - item.currentPrice) >= 0.005)
     changes.push(`preço ${money.format(item.currentPrice)} → ${money.format(priceValue)}`);
-  if (Number.isInteger(stockValue) && stockValue !== item.availableQuantity) changes.push(`estoque ${item.availableQuantity} → ${stockValue}`);
+  if (stockValid && stockValue !== item.availableQuantity) changes.push(`estoque ${item.availableQuantity} → ${stockValue}`);
   if (status !== item.status) changes.push(status === "paused" ? "pausar" : "reativar");
-  const valid = priceValue > 0 && Number.isInteger(stockValue) && stockValue >= 0;
+  const valid = priceValue > 0 && priceValue <= 1_000_000 && stockValid;
+
+  function resetReview() {
+    setConfirming(false);
+    setBelowFloor(false);
+    setVariationCount(null);
+    setVariationConfirmed(false);
+    setError("");
+    setDone("");
+  }
 
   async function apply(allowBelowFloor = false) {
+    if (busy || !valid || !changes.length) return;
     setBusy(true);
     setError("");
     const body: Record<string, unknown> = {
@@ -231,6 +251,7 @@ function ListingEditor({
       expected: { price: item.currentPrice, availableQuantity: item.availableQuantity, status: item.status },
       confirm: true,
       allowBelowFloor,
+      confirmVariationPrice: variationConfirmed,
     };
     if (item.currentPrice != null && Math.abs(priceValue - item.currentPrice) >= 0.005) body.price = priceValue;
     if (stockValue !== item.availableQuantity) body.availableQuantity = stockValue;
@@ -244,11 +265,22 @@ function ListingEditor({
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         setBelowFloor(response.status === 422 && data.floor != null);
+        if (response.status === 422 && Number.isInteger(data.variationCount)) setVariationCount(data.variationCount);
+        if (response.status === 409 && data.live) {
+          onEdited({ currentPrice: data.live.price, availableQuantity: data.live.availableQuantity, status: data.live.status });
+          resetReview();
+        }
+        if (data.applied) {
+          onEdited(data.applied);
+          resetReview();
+        }
         throw new Error(data.error ?? "Não foi possível alterar.");
       }
       setDone(`Alterado no Mercado Livre: ${(data.summary as string[]).join(", ")}.`);
       setConfirming(false);
       setBelowFloor(false);
+      setVariationCount(null);
+      setVariationConfirmed(false);
       onEdited({
         ...(body.price != null ? { currentPrice: priceValue } : {}),
         ...(body.availableQuantity != null ? { availableQuantity: stockValue } : {}),
@@ -278,20 +310,21 @@ function ListingEditor({
       <div className="insight2-edit-grid">
         <label>
           <span>Preço (R$)</span>
-          <input inputMode="decimal" value={price} onChange={(e) => { setPrice(e.target.value); setConfirming(false); setDone(""); }} />
+          <input inputMode="decimal" disabled={busy} value={price} onChange={(e) => { setPrice(e.target.value); resetReview(); }} />
         </label>
         <label>
           <span>Estoque</span>
-          <input inputMode="numeric" value={stock} onChange={(e) => { setStock(e.target.value.replace(/\D/g, "")); setConfirming(false); setDone(""); }} />
+          <input inputMode="numeric" disabled={busy} aria-invalid={!stockValid} value={stock} onChange={(e) => { setStock(e.target.value); resetReview(); }} />
         </label>
         <label>
           <span>Status</span>
-          <select value={status} onChange={(e) => { setStatus(e.target.value); setConfirming(false); setDone(""); }}>
+          <select value={status} disabled={busy} onChange={(e) => { setStatus(e.target.value); resetReview(); }}>
             <option value="active">Ativo</option>
             <option value="paused">Pausado</option>
           </select>
         </label>
       </div>
+      {!stockValid && <p className="insight2-empty">Informe um estoque inteiro. Use 0 para zerar.</p>}
       {!confirming ? (
         <button type="button" className="vr-btn vr-btn--small" disabled={!valid || !changes.length || busy} onClick={() => setConfirming(true)}>
           Revisar alteração
@@ -299,17 +332,22 @@ function ListingEditor({
       ) : (
         <div className="insight2-confirm">
           <span>Aplicar no Mercado Livre: {changes.join(", ")}?</span>
-          <button type="button" className="vr-btn vr-btn--small" disabled={busy} onClick={() => void apply(false)}>
+          {variationCount != null && (
+            <label><input type="checkbox" checked={variationConfirmed} disabled={busy} onChange={(event) => setVariationConfirmed(event.target.checked)} />
+              Aplicar o mesmo preço às {variationCount} variações
+            </label>
+          )}
+          <button type="button" className="vr-btn vr-btn--small" disabled={busy || (variationCount != null && !variationConfirmed)} onClick={() => void apply(false)}>
             {busy ? "Aplicando..." : "Sim, aplicar"}
           </button>
-          <button type="button" className="vr-btn vr-btn--ghost vr-btn--small" disabled={busy} onClick={() => setConfirming(false)}>Voltar</button>
+          <button type="button" className="vr-btn vr-btn--ghost vr-btn--small" disabled={busy} onClick={resetReview}>Voltar</button>
         </div>
       )}
       {error && (
         <p className="pilot-exec-error" role="alert">
           {error}{" "}
           {belowFloor && (
-            <button type="button" className="inline-link-button" disabled={busy} onClick={() => void apply(true)}>
+            <button type="button" className="inline-link-button" disabled={busy || !valid || (variationCount != null && !variationConfirmed)} onClick={() => void apply(true)}>
               Aplicar mesmo assim
             </button>
           )}

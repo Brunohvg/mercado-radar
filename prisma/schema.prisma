@@ -575,6 +575,8 @@ model SourcingOpportunity {
   notes             String?
   identity          Json?
   searchSnapshot    Json?
+  marketInsights    Json?
+  marketInsightsAt  DateTime?
   supplierIds       String[] @default([])
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

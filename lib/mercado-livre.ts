@@ -78,6 +78,11 @@ const CACHE_RULES: Array<{ test: RegExp; ttlMs: number }> = [
   { test: /\/products\/[A-Z0-9]+(\?|$)/, ttlMs: 5 * 60_000 },
   { test: /\/visits\/items\?/, ttlMs: 5 * 60_000 },
   { test: /\/items(\/bulk)?\?ids=/, ttlMs: 60_000 },
+  { test: /\/items\/MLB\d+\?include_attributes=all$/, ttlMs: 60_000 },
+  { test: /\/categories\/[A-Z0-9]+(\/attributes)?$/, ttlMs: 60 * 60_000 },
+  { test: /\/users\/\d+$/, ttlMs: 30 * 60_000 },
+  { test: /\/reviews\/item\//, ttlMs: 30 * 60_000 },
+  { test: /\/questions\/search\?/, ttlMs: 10 * 60_000 },
 ];
 const CACHE_MAX_ENTRIES = 500;
 const responseCache = new Map<string, { expiresAt: number; body: unknown }>();
@@ -1069,6 +1074,8 @@ export async function getItemFullDetails(input: {
     id?: string;
     title?: string;
     category_id?: string;
+    seller_id?: number | string;
+    permalink?: string;
     attributes?: Array<{
       id?: string;
       name?: string;
@@ -1670,4 +1677,135 @@ export async function getProductAdsAdGroups(input: {
       },
     },
   );
+}
+
+
+/* ---------- Sinais públicos do anúncio (Radar 2.0) ----------
+ * Endpoints de leitura usados para inteligência de compra e revenda.
+ * Os tipos são parciais de propósito: só o que o produto usa. A normalização
+ * (e a regra "sem dado não vira zero") fica em lib/marketplaces/mercado-livre.
+ */
+
+export type MlRawPrice = {
+  id?: string;
+  type?: string;
+  amount?: number;
+  regular_amount?: number | null;
+  currency_id?: string;
+  conditions?: {
+    context_restrictions?: string[];
+    min_purchase_unit?: number;
+    start_time?: string | null;
+    end_time?: string | null;
+  };
+};
+
+/** Todos os preços do item, inclusive faixas por quantidade e preço para CNPJ. */
+export async function getItemPrices(input: { accessToken: string; itemId: string }) {
+  const raw = await jsonFetch<{ prices?: MlRawPrice[] }>(
+    `${API}/items/${input.itemId}/prices`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+  return raw.prices ?? [];
+}
+
+export type MlRawUser = {
+  id?: number;
+  nickname?: string;
+  registration_date?: string;
+  user_type?: string;
+  permalink?: string;
+  tags?: string[];
+  address?: { city?: string | null; state?: string | null };
+  seller_reputation?: {
+    level_id?: string | null;
+    power_seller_status?: string | null;
+    transactions?: {
+      total?: number;
+      completed?: number;
+      canceled?: number;
+      period?: string;
+      ratings?: { positive?: number; negative?: number; neutral?: number };
+    };
+    metrics?: {
+      sales?: { period?: string; completed?: number };
+      claims?: { rate?: number };
+      delayed_handling_time?: { rate?: number };
+      cancellations?: { rate?: number };
+    };
+  };
+};
+
+/** Perfil público do vendedor (reputação, cidade/UF, medalha). */
+export async function getPublicUser(input: { accessToken: string; userId: string | number }) {
+  return jsonFetch<MlRawUser>(`${API}/users/${input.userId}`, {
+    headers: { Authorization: `Bearer ${input.accessToken}` },
+  });
+}
+
+export type MlRawQuestion = {
+  id?: number;
+  text?: string;
+  status?: string;
+  date_created?: string;
+  answer?: { text?: string; date_created?: string } | null;
+};
+
+/** Perguntas públicas do anúncio, mais recentes primeiro. */
+export async function getItemQuestions(input: { accessToken: string; itemId: string; limit?: number }) {
+  const params = new URLSearchParams({
+    item: input.itemId,
+    sort_fields: "date_created",
+    sort_types: "DESC",
+    limit: String(Math.min(Math.max(input.limit ?? 20, 1), 50)),
+    api_version: "4",
+  });
+  return jsonFetch<{ total?: number; questions?: MlRawQuestion[] }>(
+    `${API}/questions/search?${params}`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+}
+
+export type MlRawReviews = {
+  paging?: { total?: number };
+  rating_average?: number;
+  rating_levels?: Record<string, number>;
+  reviews?: Array<{ id?: number; title?: string; content?: string; rate?: number; date_created?: string }>;
+};
+
+/** Opiniões do produto (nota média, distribuição e textos recentes). */
+export async function getItemReviews(input: { accessToken: string; itemId: string; limit?: number }) {
+  const params = new URLSearchParams({ limit: String(Math.min(Math.max(input.limit ?? 10, 1), 50)) });
+  return jsonFetch<MlRawReviews>(`${API}/reviews/item/${input.itemId}?${params}`, {
+    headers: { Authorization: `Bearer ${input.accessToken}` },
+  });
+}
+
+export type MlRawCategory = {
+  id?: string;
+  name?: string;
+  total_items_in_this_category?: number;
+  path_from_root?: Array<{ id?: string; name?: string }>;
+  settings?: { catalog_domain?: string; listing_allowed?: boolean; buying_modes?: string[] };
+};
+
+export async function getCategory(input: { accessToken: string; categoryId: string }) {
+  return jsonFetch<MlRawCategory>(`${API}/categories/${input.categoryId}`, {
+    headers: { Authorization: `Bearer ${input.accessToken}` },
+  });
+}
+
+export type MlRawCategoryAttribute = {
+  id?: string;
+  name?: string;
+  value_type?: string;
+  tags?: Record<string, boolean | undefined>;
+  hint?: string;
+};
+
+/** Ficha técnica da categoria: quais atributos são obrigatórios para anunciar. */
+export async function getCategoryAttributes(input: { accessToken: string; categoryId: string }) {
+  return jsonFetch<MlRawCategoryAttribute[]>(`${API}/categories/${input.categoryId}/attributes`, {
+    headers: { Authorization: `Bearer ${input.accessToken}` },
+  });
 }

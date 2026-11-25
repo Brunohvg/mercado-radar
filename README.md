@@ -7,6 +7,7 @@
 Nova área `/onde-comprar` e aba Fornecedor na extensão: identidade do produto, busca de fornecedores sem varejo, ficha com CNPJ verificado, cotações com origem explícita, custo entregue ligado ao motor de margem, plano de compra e radar por capital. Detalhes em [docs/vidalys-radar-2](docs/vidalys-radar-2/).
 
 Variável opcional: `BRAVE_SEARCH_API_KEY` (busca web de fornecedores; sem ela a busca mostra links manuais).
+Opcional: `RADAR_AI_SUPPLIER_SEARCH=1` com o Gemini configurado liga a pesquisa de fornecedores com IA + Google Search (só fica fornecedor com fonte; preço nunca vem da IA). Sinais do Mercado Livre (preço por quantidade, vendedor, perguntas, opiniões, ficha da categoria) e a camada de marketplaces estão em `docs/vidalys-radar-2/06-API-E-IA.md`.
 
 ## Direção do produto
 

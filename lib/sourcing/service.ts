@@ -280,6 +280,8 @@ export function serializeOpportunity(row: OpportunityRow) {
     notes: row.notes,
     identity: row.identity,
     searchSnapshot: row.searchSnapshot,
+    marketInsights: row.marketInsights,
+    marketInsightsAt: row.marketInsightsAt,
     supplierIds: row.supplierIds,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,

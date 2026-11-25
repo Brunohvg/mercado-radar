@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { MarketSignals } from "./market-signals";
+import type { ListingInsights } from "@/lib/marketplaces/types";
 import {
   api,
   brl,
@@ -59,10 +61,21 @@ type Quote = {
   freightCost: number | null; otherCosts: number | null; exactMatch: boolean | null; source: string;
   evidenceUrl: string | null; quotedAt: string; validUntil: string | null; notes: string | null; viability: Viability;
 };
-type Candidate = { name: string; url: string; domain: string; kind: string; reasons: string[]; snippet: string | null };
+type AiContact = { value: string; verified: boolean } | null;
+type Candidate = {
+  name: string; url: string; domain: string; kind: string; reasons: string[]; snippet: string | null;
+  origin?: "IA"; sources?: Array<{ title: string; url: string }>;
+  phone?: AiContact; email?: AiContact; cnpj?: AiContact; city?: string | null; state?: string | null;
+  sellsToCpf?: boolean | null; minimumOrder?: string | null;
+};
+type AiResearch = {
+  status: string; message: string | null; model: string | null; webQueries: string[];
+  searchEntryPointHtml: string | null; sources: Array<{ title: string; url: string }>; rejected: number;
+};
 type SearchOutcome = {
   status: string; message: string | null; candidates: Candidate[]; discarded: number;
   queries: Array<{ intent: string; query: string }>; manualLinks: Array<{ label: string; url: string }>; searchedAt: string;
+  ai?: AiResearch | null;
 };
 type View = {
   opportunity: {
@@ -73,6 +86,8 @@ type View = {
     monthlyDemand: number | null; status: string; notes: string | null;
     identity: { facts?: Array<{ label: string; value: string; source: string }>; sourceNotes?: string[]; gtinValid?: boolean | null } | null;
     searchSnapshot: SearchOutcome | null;
+    marketInsights: ListingInsights | null;
+    marketInsightsAt: string | null;
   };
   sale: { targetMarginPercent: number; taxPercent: number | null; operatingCost: number | null };
   suppliers: Supplier[];
@@ -167,7 +182,17 @@ export function SourcingWorkspace({ id }: { id: string }) {
       {error && <p className="vr-alert" role="alert">{error}</p>}
       {notice && !error && <p className="vr-notice" role="status">{notice}</p>}
 
-      {tab === "mercado" && <MarketTab view={view} onSave={patch} />}
+      {tab === "mercado" && (
+        <MarketTab
+          view={view}
+          onSave={patch}
+          onSignals={async (message) => {
+            await load();
+            setNotice(message);
+          }}
+          setError={setError}
+        />
+      )}
       {tab === "fornecedores" && (
         <SuppliersTab view={view} reload={load} setError={setError} setNotice={setNotice} setView={setView} />
       )}
@@ -181,7 +206,14 @@ function numField(form: FormData, name: string) {
   return parseNumber(String(form.get(name) ?? ""));
 }
 
-function MarketTab({ view, onSave }: { view: View; onSave: (data: Record<string, unknown>, message?: string) => void }) {
+function MarketTab({
+  view, onSave, onSignals, setError,
+}: {
+  view: View;
+  onSave: (data: Record<string, unknown>, message?: string) => void;
+  onSignals: (message: string) => Promise<unknown>;
+  setError: (value: string) => void;
+}) {
   const o = view.opportunity;
   const facts = o.identity?.facts ?? [];
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -258,6 +290,16 @@ function MarketTab({ view, onSave }: { view: View; onSave: (data: Record<string,
           <button className="vr-btn">Salvar</button>
         </form>
       </div>
+      <MarketSignals
+        opportunityId={o.id}
+        mlItemId={o.mlItemId}
+        permalink={o.permalink}
+        packQuantity={o.packQuantity}
+        insights={o.marketInsights}
+        insightsAt={o.marketInsightsAt}
+        onChanged={onSignals}
+        setError={setError}
+      />
     </section>
   );
 }
@@ -417,11 +459,27 @@ function SuppliersTab({
                       <strong>{candidate.name}</strong>
                       <a href={candidate.url} target="_blank" rel="noopener noreferrer">{candidate.domain} ↗</a>
                       <small>{candidate.reasons.join(" · ")}</small>
+                      {candidate.origin === "IA" && <AiDetails candidate={candidate} />}
                     </div>
                     <button
                       className="vr-btn vr-btn--ghost vr-btn--small"
                       disabled={known.has(candidate.url)}
-                      onClick={() => setAdding({ name: candidate.name, kind: candidate.kind, website: candidate.url, origin: "BUSCA_WEB", originUrl: candidate.url })}
+                      onClick={() =>
+                        setAdding({
+                          name: candidate.name,
+                          kind: candidate.kind,
+                          website: candidate.url,
+                          origin: "BUSCA_WEB",
+                          originUrl: candidate.url,
+                          // Só entra no cadastro o contato confirmado na página; CNPJ é conferido na Receita depois.
+                          phone: candidate.phone?.verified ? candidate.phone.value : null,
+                          email: candidate.email?.verified ? candidate.email.value : null,
+                          cnpj: candidate.cnpj?.value ?? null,
+                          city: candidate.city ?? null,
+                          state: candidate.state ?? null,
+                          sellsToCpf: candidate.sellsToCpf ?? null,
+                        })
+                      }
                     >
                       {known.has(candidate.url) ? "Já adicionado" : "Adicionar"}
                     </button>
@@ -429,6 +487,7 @@ function SuppliersTab({
                 ))}
               </ul>
             )}
+            {search.ai && <AiResearchNote research={search.ai} />}
             <div className="vr-manual">
               <span>Pesquise no seu navegador:</span>
               {search.manualLinks.map((link) => (
@@ -723,5 +782,54 @@ function PlanTab({ view, onSave }: { view: View; onSave: (data: Record<string, u
         </form>
       </div>
     </section>
+  );
+}
+
+function ContactLine({ label, contact }: { label: string; contact: AiContact | undefined }) {
+  if (!contact) return null;
+  return (
+    <span className={contact.verified ? "vr-contact is-verified" : "vr-contact"}>
+      {label}: {contact.value} <em>{contact.verified ? "confirmado na página" : "a confirmar"}</em>
+    </span>
+  );
+}
+
+function AiDetails({ candidate }: { candidate: Candidate }) {
+  return (
+    <div className="vr-ai">
+      <ContactLine label="Telefone" contact={candidate.phone} />
+      <ContactLine label="E-mail" contact={candidate.email} />
+      <ContactLine label="CNPJ" contact={candidate.cnpj} />
+      {(candidate.city || candidate.state) && <span className="vr-contact">{[candidate.city, candidate.state].filter(Boolean).join(" / ")}</span>}
+      {candidate.minimumOrder && <span className="vr-contact">Pedido mínimo: {candidate.minimumOrder} <em>a confirmar</em></span>}
+      {candidate.sources?.length ? (
+        <span className="vr-sources">
+          Fonte:{" "}
+          {candidate.sources.map((source) => (
+            <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer nofollow">{source.title} ↗</a>
+          ))}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function AiResearchNote({ research }: { research: AiResearch }) {
+  return (
+    <div className="vr-ai-note">
+      <p className="vr-hint">
+        Pesquisa com IA ({research.model ?? "Gemini"} + Google Search): só ficam fornecedores com site entre as fontes do Google
+        {research.rejected ? `; ${research.rejected} sugestão(ões) sem fonte ou de varejo descartada(s)` : ""}. Preço nunca vem da IA.
+      </p>
+      {research.status !== "OK" && research.message && <p className="vr-warn">{research.message}</p>}
+      {research.searchEntryPointHtml && (
+        <iframe
+          className="vr-search-entry"
+          title="Sugestões de pesquisa do Google"
+          sandbox="allow-popups allow-popups-to-escape-sandbox"
+          srcDoc={research.searchEntryPointHtml}
+        />
+      )}
+    </div>
   );
 }

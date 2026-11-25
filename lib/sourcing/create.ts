@@ -3,6 +3,7 @@ import type { z } from "zod";
 import type { opportunitySchema } from "@/lib/sourcing/service";
 import { extractIdentity } from "@/lib/sourcing/identity";
 import { enrichFromMercadoLivre } from "@/lib/sourcing/ml-enrichment";
+import { collectListingInsights } from "@/lib/sourcing/insights";
 import type { Prisma } from "@/generated/prisma/client";
 
 type Input = z.infer<typeof opportunitySchema>;
@@ -23,10 +24,13 @@ export async function createOpportunity(
   }
   const listingType = input.listingType ?? "CLASSIC";
   // Produto de usuário (MLBU) não tem /items; a página informa título e preço.
-  const enrichment =
-    mlItemId && /^MLB\d/.test(mlItemId) && accessToken
-      ? await enrichFromMercadoLivre({ accessToken, itemId: mlItemId, listingType, fallbackTitle: input.title })
-      : null;
+  const canEnrich = Boolean(mlItemId && /^MLB\d/.test(mlItemId) && accessToken);
+  const [enrichment, insights] = canEnrich
+    ? await Promise.all([
+        enrichFromMercadoLivre({ accessToken: accessToken!, itemId: mlItemId!, listingType, fallbackTitle: input.title }),
+        collectListingInsights(mlItemId!, accessToken).catch(() => null),
+      ])
+    : [null, null];
   const notes =
     enrichment?.notes ??
     (!mlItemId
@@ -66,6 +70,12 @@ export async function createOpportunity(
       monthlyDemand: input.monthlyDemand ?? null,
       notes: input.notes ?? null,
       identity: JSON.parse(JSON.stringify({ ...identity, sourceNotes: notes })) as Prisma.InputJsonValue,
+      ...(insights
+        ? {
+            marketInsights: JSON.parse(JSON.stringify(insights)) as Prisma.InputJsonValue,
+            marketInsightsAt: new Date(insights.collectedAt),
+          }
+        : {}),
     },
   });
   return { opportunity, reused: false, notes };

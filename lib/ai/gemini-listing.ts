@@ -97,7 +97,7 @@ function mapGeminiError(status: number, raw: unknown) {
   );
 }
 
-async function requestGemini(url: string, init: RequestInit, timeoutMs: number) {
+export async function requestGemini(url: string, init: RequestInit, timeoutMs: number) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {

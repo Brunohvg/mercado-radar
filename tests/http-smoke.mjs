@@ -426,6 +426,31 @@ try {
       assert.equal((await req("/api/sourcing/opportunities")).status, 401);
     },
   );
+  await check("market signals: quantity tiers, seller, questions and category from official API", async () => {
+    const created = await req("/api/sourcing/opportunities", cookieA, "POST", {
+      title: "Kit ilhós nº54 dourado e prata",
+      mlItemId: "MLB999000001",
+    });
+    assert.equal(created.status, 201, created.text);
+    const id = created.json.opportunity.id;
+    const signals = created.json.opportunity.marketInsights;
+    assert.equal(signals.marketplace, "MERCADO_LIVRE");
+    assert.deepEqual(signals.price.data.tiers, [
+      { minUnits: 10, unitPrice: 82, businessOnly: false },
+      { minUnits: 50, unitPrice: 75, businessOnly: true },
+    ]);
+    assert.equal(signals.seller.data.state, "MG");
+    assert.equal(signals.seller.data.medal, "MercadoLíder Gold");
+    assert.equal(signals.questions.data.total, 31);
+    assert.equal(signals.reviews.status, "SEM_DADOS", "no reviews must not become a zero rating");
+    assert.deepEqual(signals.category.data.missingInReference.map((a) => a.id), ["GTIN"]);
+    const refreshed = await req(`/api/sourcing/opportunities/${id}/insights`, cookieA, "POST");
+    assert.equal(refreshed.status, 200, refreshed.text);
+    assert.equal(refreshed.json.insights.price.data.consumerPrice, 100);
+    assert.equal((await req(`/api/sourcing/opportunities/${id}/insights`, cookieB, "POST")).status, 404);
+    const manual = await req("/api/sourcing/opportunities", cookieA, "POST", { title: "Produto sem anúncio" });
+    assert.equal((await req(`/api/sourcing/opportunities/${manual.json.opportunity.id}/insights`, cookieA, "POST")).status, 422);
+  });
   await check("sales never leak another client", async () => {
     const r = await req("/api/ml/sales?days=30", cookieB);
     assert.equal(r.json.summary.grossRevenue, 10000);

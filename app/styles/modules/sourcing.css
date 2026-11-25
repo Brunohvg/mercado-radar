@@ -173,3 +173,28 @@
   .vr-wf-bar { grid-column: 1 / -1; grid-row: 2; }
   .vr-candidates li { flex-direction: column; align-items: stretch; }
 }
+
+/* Sinais do marketplace */
+.vr-signals { margin-top: var(--s-4); }
+.vr-signals-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s-3); }
+.vr-signals-head h2 { margin: 0; }
+.vr-signals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--s-4); }
+.vr-signals-grid article { min-width: 0; display: flex; flex-direction: column; gap: var(--s-2); padding-top: var(--s-3); border-top: 1px solid var(--line); }
+.vr-signals-grid h3 { margin: 0; font-size: var(--fs-14); color: var(--ink-700); }
+.vr-signals-wide { grid-column: 1 / -1; }
+.vr-signal-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.vr-signal-list li { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-2); flex-wrap: wrap; font-size: var(--fs-14); }
+.vr-signal-list .vr-link { color: var(--brand); font-weight: 600; }
+.vr-signal-list small, .vr-facts small { color: var(--ink-400); margin-left: 4px; }
+.vr-tags { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.vr-tags span { font-size: var(--fs-12); padding: 3px 10px; border-radius: var(--r-pill); background: var(--brand-tint); color: var(--brand-700); }
+.vr-tags span.is-missing { background: var(--warn-tint); color: var(--warn-ink); font-weight: 600; }
+.vr-quotes { margin: 0; padding-left: var(--s-4); display: grid; gap: 4px; font-size: var(--fs-13); color: var(--ink-500); overflow-wrap: anywhere; }
+
+/* Pesquisa com IA */
+.vr-ai { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; font-size: var(--fs-12); color: var(--ink-500); }
+.vr-contact em { font-style: normal; color: var(--warn-ink); }
+.vr-contact.is-verified em { color: var(--ok); font-weight: 600; }
+.vr-sources { display: flex; flex-wrap: wrap; gap: 6px; overflow-wrap: anywhere; }
+.vr-ai-note { display: grid; gap: var(--s-2); }
+.vr-search-entry { width: 100%; height: 72px; border: 0; background: transparent; }

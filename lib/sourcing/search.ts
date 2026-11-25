@@ -37,7 +37,7 @@ export type SupplierCandidate = {
 };
 
 export type SearchOutcome = {
-  provider: "BRAVE" | "DESLIGADO";
+  provider: "BRAVE" | "DESLIGADO" | "IA" | "BRAVE_IA";
   status: "OK" | "DESLIGADO" | "INDISPONIVEL";
   message: string | null;
   candidates: SupplierCandidate[];
@@ -45,7 +45,40 @@ export type SearchOutcome = {
   queries: SearchQuery[];
   manualLinks: Array<{ label: string; url: string }>;
   searchedAt: string;
+  /** Pesquisa com IA (Gemini + Google Search), quando ligada. */
+  ai?: import("@/lib/sourcing/ai-research").AiResearch | null;
 };
+
+/** Junta a busca web com a pesquisa da IA. A IA entra só com fonte verificada. */
+export function withAiResearch(
+  outcome: SearchOutcome,
+  research: import("@/lib/sourcing/ai-research").AiResearch,
+  aiCandidates: SupplierCandidate[],
+): SearchOutcome {
+  const byDomain = new Map(outcome.candidates.map((c) => [c.domain, c]));
+  const merged = [...outcome.candidates];
+  for (const candidate of aiCandidates) {
+    const existing = byDomain.get(candidate.domain);
+    if (existing) {
+      Object.assign(existing, { ...candidate, reasons: [...new Set([...existing.reasons, ...candidate.reasons])] });
+    } else {
+      merged.unshift(candidate);
+      byDomain.set(candidate.domain, candidate);
+    }
+  }
+  const aiOk = research.status === "OK";
+  const webOk = outcome.status === "OK";
+  return {
+    ...outcome,
+    provider: outcome.provider === "BRAVE" ? "BRAVE_IA" : "IA",
+    status: aiOk || webOk ? "OK" : outcome.status === "DESLIGADO" ? "INDISPONIVEL" : outcome.status,
+    message: merged.length
+      ? null
+      : research.message ?? outcome.message,
+    candidates: merged.slice(0, 20),
+    ai: research,
+  };
+}
 
 /** Varejo e marketplaces de consumidor final: não são fornecedores para revenda. */
 export const RETAIL_DOMAINS = [

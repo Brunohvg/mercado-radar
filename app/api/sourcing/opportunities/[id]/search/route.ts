@@ -3,7 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { consumeIntelligenceRequest } from "@/lib/intelligence-access";
 import { sourcingUser, sourcingError, SourcingError, noStore } from "@/lib/sourcing/service";
 import { extractIdentity, type ProductIdentity } from "@/lib/sourcing/identity";
-import { braveProvider, searchSuppliers } from "@/lib/sourcing/search";
+import { braveProvider, searchSuppliers, withAiResearch } from "@/lib/sourcing/search";
+import { aiSupplierSearchEnabled, runAiSupplierResearch } from "@/lib/sourcing/ai-research-run";
+import type { ListingInsights } from "@/lib/marketplaces/types";
 import type { Prisma } from "@/generated/prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -26,8 +28,16 @@ export async function POST(_request: Request, { params }: Params) {
       gtin: opportunity.gtin,
     };
     const key = process.env.BRAVE_SEARCH_API_KEY?.trim();
-    if (key) await consumeIntelligenceRequest(user.workspaceId, user.workspace.dailyRequestLimit);
-    const outcome = await searchSuppliers(identity, key ? braveProvider(key) : null);
+    const useAi = aiSupplierSearchEnabled();
+    if (key || useAi) await consumeIntelligenceRequest(user.workspaceId, user.workspace.dailyRequestLimit);
+    let outcome = await searchSuppliers(identity, key ? braveProvider(key) : null);
+    if (useAi) {
+      const insights = opportunity.marketInsights as ListingInsights | null;
+      const { research, candidates } = await runAiSupplierResearch(identity, {
+        categoryPath: insights?.category?.data?.path ?? [],
+      });
+      outcome = withAiResearch(outcome, research, candidates);
+    }
     await prisma.sourcingOpportunity.update({
       where: { id: opportunity.id },
       data: {

@@ -163,6 +163,41 @@ globalThis.fetch = async (input, init) => {
             : { code: 403, body: { id } },
       ),
     );
+  // Radar 2.0: sinais públicos do anúncio de referência.
+  if (url.pathname === `/items/${item}` && url.searchParams.get("include_attributes") === "all")
+    return json({
+      id: item,
+      title: "Kit ilhós nº54 dourado e prata",
+      category_id: "MLB1234",
+      seller_id: 555001,
+      attributes: [{ id: "BRAND", name: "Marca", value_name: "Baxmann" }],
+    });
+  if (url.pathname === `/items/${item}/prices`)
+    return json({
+      prices: [
+        { type: "standard", amount: 100, currency_id: "BRL", conditions: { context_restrictions: [], min_purchase_unit: 1 } },
+        { type: "standard", amount: 82, currency_id: "BRL", conditions: { context_restrictions: [], min_purchase_unit: 10 } },
+        { type: "standard", amount: 75, currency_id: "BRL", conditions: { context_restrictions: ["user_type_business"], min_purchase_unit: 50 } },
+      ],
+    });
+  if (url.pathname === "/users/555001")
+    return json({
+      id: 555001,
+      nickname: "ATACADO TESTE",
+      address: { city: "Belo Horizonte", state: "BR-MG" },
+      seller_reputation: { level_id: "4_light_green", power_seller_status: "gold", metrics: { sales: { period: "60 days", completed: 410 }, claims: { rate: 0.01 } } },
+    });
+  if (url.pathname === "/questions/search" && url.searchParams.get("item") === item)
+    return json({ total: 31, questions: [{ text: "Vende no atacado? Quero 200 unidades", status: "UNANSWERED" }, { text: "Emite nota fiscal?", answer: { text: "Sim" } }] });
+  if (url.pathname === `/reviews/item/${item}`)
+    return json({ paging: { total: 0 }, rating_average: 0, reviews: [] });
+  if (url.pathname === "/categories/MLB1234")
+    return json({ id: "MLB1234", name: "Ilhoses", path_from_root: [{ id: "MLB1", name: "Arte" }, { id: "MLB1234", name: "Ilhoses" }] });
+  if (url.pathname === "/categories/MLB1234/attributes")
+    return json([
+      { id: "BRAND", name: "Marca", tags: { required: true } },
+      { id: "GTIN", name: "Código universal de produto", tags: { catalog_required: true } },
+    ]);
   if (url.pathname === "/sites/MLB/listing_prices") {
     const rate =
       url.searchParams.get("listing_type_id") === "gold_pro" ? 0.165 : 0.12;

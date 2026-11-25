@@ -108,6 +108,31 @@ export async function getSalesReport(sellerUserId: string, days: number) {
         grossRevenue > 0 ? (knownRevenue / grossRevenue) * 100 : null,
       averageTicket: orders.length ? grossRevenue / orders.length : 0,
     },
+    // Uma linha por produto: o que vendeu, quanto lucrou e se a margem é conhecida.
+    productRows: [...items
+      .reduce((map, i) => {
+        const row = map.get(i.mlItemId) ?? { mlItemId: i.mlItemId, title: i.title, units: 0, revenue: 0, knownRevenue: 0, profit: 0, unitsWithoutCost: 0, unitCost: null as number | null };
+        row.units += i.quantity;
+        row.revenue += Number(i.unitPrice) * i.quantity;
+        if (i.unitCost == null) row.unitsWithoutCost += i.quantity;
+        else row.unitCost = Number(i.unitCost);
+        const ready = i.profit != null && i.order.economicsVersion === ECONOMICS_VERSION && i.order.profitabilityStatus === "REALIZED";
+        if (ready) {
+          row.knownRevenue += Number(i.unitPrice) * i.quantity;
+          row.profit += Number(i.profit);
+        }
+        return map.set(i.mlItemId, row);
+      }, new Map<string, { mlItemId: string; title: string; units: number; revenue: number; knownRevenue: number; profit: number; unitsWithoutCost: number; unitCost: number | null }>())
+      .values()]
+      .map((row) => ({
+        ...row,
+        revenue: Math.round(row.revenue * 100) / 100,
+        profit: row.knownRevenue > 0 ? Math.round(row.profit * 100) / 100 : null,
+        marginPercent: row.knownRevenue > 0 ? Math.round((row.profit / row.knownRevenue) * 1000) / 10 : null,
+        /** Parte da receita do produto com lucro apurado (0 a 100). */
+        coveragePercent: row.revenue > 0 ? Math.round((row.knownRevenue / row.revenue) * 100) : 0,
+      }))
+      .sort((a, b) => b.revenue - a.revenue),
     // Produtos vendidos no período sem custo cadastrado: é o que trava o lucro.
     missingCosts: [...items
       .filter((i) => i.unitCost == null)

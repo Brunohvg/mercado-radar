@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getMlSession } from "@/lib/mercado-livre";
 import { syncMercadoLivreOrders } from "@/lib/ml-sync";
+import { getWorkspaceSettings } from "@/lib/workspace-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -53,12 +54,12 @@ export async function GET(request: Request) {
       take: limit,
     });
 
-    const report = await getSalesReport(sellerUserId, days);
+    const [report, settings] = await Promise.all([getSalesReport(sellerUserId, days), getWorkspaceSettings(session.account.workspaceId)]);
     const lastSync = await prisma.syncRun.findFirst({ where: { workspaceId: session.account.workspaceId, kind: "ML_ORDERS", status: "SUCCESS" }, orderBy: { finishedAt: "desc" } });
     const metadata = lastSync?.metadata as { days?: number; truncated?: boolean } | null;
     return NextResponse.json({
       sellerUserId, nickname: session.account.nickname, days, sync,
-      summary: report.summary, topProducts: report.topProducts, missingCosts: report.missingCosts,
+      summary: report.summary, topProducts: report.topProducts, missingCosts: report.missingCosts, productRows: report.productRows, targetMarginPercent: Number(settings.targetMarginPercent),
       pagination: { page, limit, total: count, pages: Math.ceil(count / limit) },
       dataQuality: { syncedAt: lastSync?.finishedAt ?? null, reportComplete: Boolean(lastSync?.finishedAt && Date.now() - lastSync.finishedAt.getTime() < 36 * 60 * 60 * 1000 && (metadata?.days ?? 0) >= days && metadata?.truncated === false) },
       orders: orders.map((order) => ({

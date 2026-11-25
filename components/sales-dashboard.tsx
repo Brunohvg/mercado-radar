@@ -21,6 +21,11 @@ type SalesPayload = {
     averageTicket: number;
   };
   missingCosts?: Array<{ mlItemId: string; title: string; units: number; revenue: number }>;
+  targetMarginPercent?: number;
+  productRows?: Array<{
+    mlItemId: string; title: string; units: number; revenue: number; profit: number | null;
+    marginPercent: number | null; coveragePercent: number; unitsWithoutCost: number; unitCost: number | null;
+  }>;
   topProducts: Array<{
     mlItemId: string;
     title: string;
@@ -199,42 +204,18 @@ export function SalesDashboard() {
             </article>
           </div>
 
-          {!!data.missingCosts?.length && (
-            <MissingCosts rows={data.missingCosts} onSaved={() => void load(false, days)} />
+          {data.productRows && (
+            <ProductTable rows={data.productRows} targetMargin={data.targetMarginPercent ?? 20} onSaved={() => void load(false, days)} />
           )}
 
-          {data.topProducts.length > 0 && (
-            <section className="clean-panel sales-top-products">
-              <div className="module-subhead">
-                <strong>Produtos que mais saíram</strong>
-                <small>Por unidades no período selecionado</small>
-              </div>
-              <div className="top-product-grid">
-                {data.topProducts.slice(0, 4).map((product, index) => (
-                  <article key={product.mlItemId}>
-                    <span>#{index + 1}</span>
-                    <div>
-                      <strong>{product.title}</strong>
-                      <small>{product.mlItemId}</small>
-                    </div>
-                    <div className="top-product-number">
-                      <strong>{product.quantity} un.</strong>
-                      <small>{money.format(product.revenue)}</small>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-          )}
-
-          <section className="clean-panel sales-order-list">
-            <div className="module-subhead">
-              <strong>Pedidos recentes</strong>
+          <details className="clean-panel sales-order-list sales-orders-details">
+            <summary className="module-subhead">
+              <strong>Ver pedidos um a um ({data.summary.orders})</strong>
               <small>
                 O Radar só chama de lucro real quando custo do produto, imposto, operação, tarifa e
                 frete realizado estiverem completos.
               </small>
-            </div>
+            </summary>
 
             {data.orders.length === 0 ? (
               <div className="module-empty">
@@ -322,7 +303,7 @@ export function SalesDashboard() {
                   : `Mostrar mais ${data.orders.length - 8} pedido(s)`}
               </button>
             )}
-          </section>
+          </details>
           <div className="page-header-actions">
             <button className="secondary" disabled={loading || page <= 1} onClick={() => { setShowAllOrders(false); setPage((p) => p - 1); }}>Anterior</button>
             <span>Página {page} de {Math.max(1, data.pagination.pages)} · {data.pagination.total} pedidos importados</span>
@@ -335,73 +316,150 @@ export function SalesDashboard() {
   );
 }
 
-function MissingCosts({
+type ProductRow = NonNullable<SalesPayload["productRows"]>[number];
+type RowStatus = "GOOD" | "LOW" | "LOSS" | "NO_COST" | "PENDING";
+
+const STATUS: Record<RowStatus, { label: string; tone: string }> = {
+  GOOD: { label: "Com margem", tone: "good" },
+  LOW: { label: "Margem baixa", tone: "warn" },
+  LOSS: { label: "Prejuízo", tone: "risk" },
+  NO_COST: { label: "Sem custo", tone: "muted" },
+  PENDING: { label: "Aguardando frete", tone: "info" },
+};
+
+function rowStatus(row: ProductRow, targetMargin: number): RowStatus {
+  if (row.unitCost == null && row.profit == null) return "NO_COST";
+  if (row.profit == null || row.marginPercent == null) return "PENDING";
+  if (row.profit < 0) return "LOSS";
+  if (row.marginPercent < targetMargin) return "LOW";
+  return "GOOD";
+}
+
+function ProductTable({
   rows,
+  targetMargin,
   onSaved,
 }: {
-  rows: NonNullable<SalesPayload["missingCosts"]>;
+  rows: ProductRow[];
+  targetMargin: number;
   onSaved: () => void;
 }) {
+  const [filter, setFilter] = useState<RowStatus | "ALL">("ALL");
   const [values, setValues] = useState<Record<string, string>>({});
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Record<string, string>>({});
 
-  async function save(event: React.FormEvent) {
-    event.preventDefault();
-    const entries = Object.entries(values)
-      .map(([mlItemId, raw]) => [mlItemId, Number(raw.replace(/\./g, "").replace(",", "."))] as const)
-      .filter(([, value]) => Number.isFinite(value) && value > 0);
-    if (!entries.length) { setMessage("Informe o custo de pelo menos um produto."); return; }
-    setSaving(true);
-    setMessage("");
-    const failed: string[] = [];
-    let recalculated = 0;
-    for (const [mlItemId, supplierPrice] of entries) {
-      const response = await fetch("/api/ml/products/cost", {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ mlItemId, supplierPrice }),
-      }).catch(() => null);
-      const body = await response?.json().catch(() => null);
-      if (!response?.ok) failed.push(`${mlItemId}: ${body?.error ?? "não salvou"}`);
-      else recalculated += Number(body?.ordersRecalculated ?? 0);
+  const withStatus = rows.map((row) => ({ row, status: rowStatus(row, targetMargin) }));
+  const counts = withStatus.reduce<Record<string, number>>((acc, { status }) => {
+    acc[status] = (acc[status] ?? 0) + 1;
+    return acc;
+  }, {});
+  const visible = filter === "ALL" ? withStatus : withStatus.filter((r) => r.status === filter);
+  const order: RowStatus[] = ["GOOD", "LOW", "LOSS", "NO_COST", "PENDING"];
+
+  async function saveCost(row: ProductRow) {
+    const value = Number((values[row.mlItemId] ?? "").replace(/\./g, "").replace(",", "."));
+    if (!Number.isFinite(value) || value <= 0) {
+      setMessages((m) => ({ ...m, [row.mlItemId]: "Informe o custo por unidade." }));
+      return;
     }
-    setSaving(false);
-    setMessage(
-      failed.length
-        ? `Não salvou: ${failed.join(" · ")}`
-        : `Custos salvos. ${recalculated} pedido(s) recalculado(s).`,
-    );
-    if (entries.length > failed.length) onSaved();
+    setSaving(row.mlItemId);
+    const response = await fetch("/api/ml/products/cost", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ mlItemId: row.mlItemId, supplierPrice: value }),
+    }).catch(() => null);
+    const body = await response?.json().catch(() => null);
+    setSaving(null);
+    if (!response?.ok) {
+      setMessages((m) => ({ ...m, [row.mlItemId]: body?.error ?? "Não salvou." }));
+      return;
+    }
+    setMessages((m) => ({ ...m, [row.mlItemId]: `Salvo. ${Number(body?.ordersRecalculated ?? 0)} pedido(s) recalculado(s).` }));
+    onSaved();
   }
 
+  if (!rows.length) return null;
   return (
-    <section className="clean-panel missing-costs" aria-labelledby="missing-costs-title">
-      <div>
-        <h3 id="missing-costs-title">Falta o custo de {rows.length} produto(s) para fechar o lucro</h3>
-        <p>Informe quanto você paga por unidade. O Radar recalcula os pedidos do período na hora.</p>
+    <section className="clean-panel product-table" aria-labelledby="product-table-title">
+      <header className="product-table-head">
+        <div>
+          <h3 id="product-table-title">Produtos vendidos no período</h3>
+          <p>Do que mais faturou para o que menos. Margem boa é a partir de {targetMargin}% (sua meta em Configurações).</p>
+        </div>
+        <div className="product-table-filters" role="group" aria-label="Filtrar produtos">
+          <button type="button" aria-pressed={filter === "ALL"} onClick={() => setFilter("ALL")}>
+            Todos <b>{rows.length}</b>
+          </button>
+          {order.filter((s) => counts[s]).map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={`tone-${STATUS[s].tone}`}
+              aria-pressed={filter === s}
+              onClick={() => setFilter(filter === s ? "ALL" : s)}
+            >
+              {STATUS[s].label} <b>{counts[s]}</b>
+            </button>
+          ))}
+        </div>
+      </header>
+
+      <div className="product-table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Produto</th>
+              <th scope="col" className="num">Vendidas</th>
+              <th scope="col" className="num">Faturamento</th>
+              <th scope="col" className="num">Lucro</th>
+              <th scope="col" className="num">Margem</th>
+              <th scope="col">Situação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map(({ row, status }) => (
+              <tr key={row.mlItemId} className={`row-${STATUS[status].tone}`}>
+                <td className="product-cell">
+                  <strong title={row.title}>{row.title}</strong>
+                  <small>
+                    {row.mlItemId}
+                    {row.unitCost != null && ` · custo ${money.format(row.unitCost)}/un.`}
+                    {row.profit != null && row.coveragePercent < 100 && ` · lucro em ${Math.round(row.coveragePercent)}% das vendas`}
+                  </small>
+                </td>
+                <td className="num">{row.units}</td>
+                <td className="num">{money.format(row.revenue)}</td>
+                <td className={`num ${row.profit == null ? "is-pending" : row.profit < 0 ? "danger-value" : "good-value"}`}>
+                  {row.profit == null ? "—" : money.format(row.profit)}
+                </td>
+                <td className="num">{row.marginPercent == null ? "—" : `${row.marginPercent.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`}</td>
+                <td>
+                  <span className={`product-status tone-${STATUS[status].tone}`}>{STATUS[status].label}</span>
+                  {status === "NO_COST" && (
+                    <form
+                      className="product-cost-form"
+                      onSubmit={(e) => { e.preventDefault(); void saveCost(row); }}
+                    >
+                      <input
+                        inputMode="decimal"
+                        placeholder="Custo R$/un."
+                        aria-label={`Custo por unidade de ${row.title}`}
+                        value={values[row.mlItemId] ?? ""}
+                        onChange={(e) => setValues((v) => ({ ...v, [row.mlItemId]: e.target.value }))}
+                      />
+                      <button type="submit" className="vr-btn vr-btn--small" disabled={saving === row.mlItemId}>
+                        {saving === row.mlItemId ? "..." : "Salvar"}
+                      </button>
+                    </form>
+                  )}
+                  {messages[row.mlItemId] && <small className="product-cost-msg" role="status">{messages[row.mlItemId]}</small>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      <form onSubmit={save}>
-        {rows.map((row) => (
-          <label key={row.mlItemId}>
-            <span>
-              <strong>{row.title}</strong>
-              <small>{row.mlItemId} · {row.units} un. vendidas · {money.format(row.revenue)}</small>
-            </span>
-            <input
-              inputMode="decimal"
-              placeholder="Custo R$"
-              aria-label={`Custo por unidade de ${row.title}`}
-              value={values[row.mlItemId] ?? ""}
-              onChange={(e) => setValues((v) => ({ ...v, [row.mlItemId]: e.target.value }))}
-            />
-          </label>
-        ))}
-        <button type="submit" className="vr-btn" disabled={saving}>
-          {saving ? "Salvando..." : "Salvar custos e recalcular"}
-        </button>
-        {message && <p role="status">{message}</p>}
-      </form>
     </section>
   );
 }

@@ -53,7 +53,7 @@ const menuGroups: MenuGroup[] = [
   {
     label: "Mercado",
     items: [
-      { href: "/monitoramento", label: "Concorrência", icon: "monitoring", also: ["/mercado", "/oportunidades", "/concorrentes"] },
+      { href: "/monitoramento", label: "Concorrência", icon: "monitoring", also: ["/mercado", "/oportunidades"] },
     ],
   },
   { label: null, items: [{ href: "/configuracoes", label: "Configurações", icon: "integrations", also: ["/integracoes", "/extensao"] }] },
@@ -389,6 +389,7 @@ export function AppNavigation() {
             <summary className="nav-group-label">Mais ferramentas</summary>
             <div className="nav-group-items">
               {[...moreItems, ...(intelligenceEnabled ? [
+                { href: "/concorrentes", label: "Concorrentes", icon: "market" as const },
                 { href: "/kits", label: "Simulador de kits", icon: "products" as const },
               ] : [])].map((item) => renderItem(item, isActive(item.href)))}
             </div>

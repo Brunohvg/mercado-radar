@@ -21,6 +21,7 @@ type ProductRow = {
   supplierPrice: number | null;
   discountPercent: number;
   netUnitCost: number | null;
+  costSuggestion?: { supplierPrice: number; reason: string } | null;
   lastSyncedAt: string;
   economics: {
     saleFee: number;
@@ -397,7 +398,7 @@ export function ProductsDashboard() {
                                 className="inline-link-button"
                                 onClick={() => openCostEditor(product)}
                               >
-                                Vincular
+                                {product.costSuggestion ? `Custo sugerido ${money.format(product.costSuggestion.supplierPrice)}` : "Vincular"}
                               </button>
                             )}
                           </td>
@@ -476,6 +477,24 @@ export function ProductsDashboard() {
                                   )}
                                 </div>
 
+                                {product.costSuggestion && (
+                                  <p className="product-cost-suggestion">
+                                    Custo sugerido {money.format(product.costSuggestion.supplierPrice)}: {product.costSuggestion.reason}.{" "}
+                                    <button
+                                      type="button"
+                                      className="inline-link-button"
+                                      onClick={() =>
+                                        setCostDraft((current) => ({
+                                          ...current,
+                                          supplierPrice: String(product.costSuggestion!.supplierPrice),
+                                          discountPercent: "0",
+                                        }))
+                                      }
+                                    >
+                                      Usar este valor
+                                    </button>
+                                  </p>
+                                )}
                                 <div className="product-inline-editor-grid">
                                   <label>
                                     <span>Fornecedor</span>

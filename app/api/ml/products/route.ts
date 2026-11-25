@@ -7,6 +7,7 @@ import {
   getMlSession,
 } from "@/lib/mercado-livre";
 import { syncMercadoLivreProducts } from "@/lib/ml-sync";
+import { suggestCosts } from "@/lib/cost-family";
 
 export const dynamic = "force-dynamic";
 
@@ -111,6 +112,11 @@ export async function GET(request: Request) {
         { updatedAt: "desc" },
       ],
     });
+
+    const costSuggestions = suggestCosts(products.map((p) => ({
+      mlItemId: p.mlItemId, title: p.title, catalogProductId: p.catalogProductId, userProductId: p.userProductId,
+      netCost: p.supplierPrice == null ? null : Number(p.supplierPrice) * (1 - Number(p.discountPercent) / 100),
+    })));
 
     const recentFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const recentItems = await prisma.mercadoLivreOrderItem.findMany({
@@ -368,6 +374,7 @@ export async function GET(request: Request) {
             item.supplierPrice == null ? null : Number(item.supplierPrice),
           discountPercent: Number(item.discountPercent),
           netUnitCost: unitCost,
+          costSuggestion: unitCost == null ? costSuggestions.get(item.mlItemId) ?? null : null,
           lastSyncedAt: item.lastSyncedAt,
           score,
           economics: estimatedEconomics,

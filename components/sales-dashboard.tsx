@@ -25,6 +25,7 @@ type SalesPayload = {
   productRows?: Array<{
     mlItemId: string; title: string; units: number; revenue: number; profit: number | null;
     marginPercent: number | null; coveragePercent: number; unitsWithoutCost: number; unitCost: number | null;
+    costSuggestion?: { supplierPrice: number; reason: string; fromMlItemId: string } | null;
   }>;
   topProducts: Array<{
     mlItemId: string;
@@ -348,6 +349,7 @@ function ProductTable({
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [messages, setMessages] = useState<Record<string, string>>({});
+  const batch = useRef(false);
 
   const withStatus = rows.map((row) => ({ row, status: rowStatus(row, targetMargin) }));
   const counts = withStatus.reduce<Record<string, number>>((acc, { status }) => {
@@ -357,8 +359,8 @@ function ProductTable({
   const visible = filter === "ALL" ? withStatus : withStatus.filter((r) => r.status === filter);
   const order: RowStatus[] = ["GOOD", "LOW", "LOSS", "NO_COST", "PENDING"];
 
-  async function saveCost(row: ProductRow) {
-    const value = Number((values[row.mlItemId] ?? "").replace(/\./g, "").replace(",", "."));
+  async function saveCost(row: ProductRow, override?: number) {
+    const value = override ?? Number((values[row.mlItemId] ?? "").replace(/\./g, "").replace(",", "."));
     if (!Number.isFinite(value) || value <= 0) {
       setMessages((m) => ({ ...m, [row.mlItemId]: "Informe o custo por unidade." }));
       return;
@@ -376,6 +378,14 @@ function ProductTable({
       return;
     }
     setMessages((m) => ({ ...m, [row.mlItemId]: `Salvo. ${Number(body?.ordersRecalculated ?? 0)} pedido(s) recalculado(s).` }));
+    if (!batch.current) onSaved();
+  }
+
+  const suggested = rows.filter((r) => r.unitCost == null && r.costSuggestion);
+  async function applyAll() {
+    batch.current = true;
+    for (const row of suggested) await saveCost(row, row.costSuggestion!.supplierPrice);
+    batch.current = false;
     onSaved();
   }
 
@@ -386,6 +396,14 @@ function ProductTable({
         <div>
           <h3 id="product-table-title">Produtos vendidos no período</h3>
           <p>Do que mais faturou para o que menos. Margem boa é a partir de {targetMargin}% (sua meta em Configurações).</p>
+          {suggested.length > 0 && (
+            <p className="product-suggest-all">
+              {suggested.length} produto(s) sem custo são kit, pacote ou cor de outro que já tem custo.{" "}
+              <button type="button" className="vr-btn vr-btn--small" disabled={saving != null} onClick={() => void applyAll()}>
+                Usar os custos sugeridos
+              </button>
+            </p>
+          )}
         </div>
         <div className="product-table-filters" role="group" aria-label="Filtrar produtos">
           <button type="button" aria-pressed={filter === "ALL"} onClick={() => setFilter("ALL")}>
@@ -436,6 +454,19 @@ function ProductTable({
                 <td className="num">{row.marginPercent == null ? "—" : `${row.marginPercent.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`}</td>
                 <td>
                   <span className={`product-status tone-${STATUS[status].tone}`}>{STATUS[status].label}</span>
+                  {status === "NO_COST" && row.costSuggestion && (
+                    <div className="product-suggest">
+                      <small>{row.costSuggestion.reason}</small>
+                      <button
+                        type="button"
+                        className="vr-btn vr-btn--small"
+                        disabled={saving === row.mlItemId}
+                        onClick={() => void saveCost(row, row.costSuggestion!.supplierPrice)}
+                      >
+                        Usar {money.format(row.costSuggestion.supplierPrice)}
+                      </button>
+                    </div>
+                  )}
                   {status === "NO_COST" && (
                     <form
                       className="product-cost-form"

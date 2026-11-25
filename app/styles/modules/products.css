@@ -443,3 +443,5 @@
     margin: var(--s-4);
   }
 }
+
+.products-page .product-cost-suggestion { margin: 0 0 var(--s-2, 8px); padding: 8px 12px; border-radius: var(--r-sm); background: var(--info-tint); font-size: var(--fs-13, 13px); }

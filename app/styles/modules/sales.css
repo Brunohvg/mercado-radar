@@ -421,6 +421,10 @@
 .sales-page .tone-warn.product-status { background: var(--warn-tint); color: var(--warn-ink); }
 .sales-page .tone-risk.product-status { background: var(--risk-tint); color: var(--risk-ink); }
 .sales-page .tone-info.product-status { background: var(--info-tint); color: var(--info); }
+.sales-page .product-suggest { display: grid; gap: 4px; margin-top: 6px; max-width: 260px; }
+.sales-page .product-suggest small { color: var(--ink-500); font-size: var(--fs-12, 12px); }
+.sales-page .product-suggest .vr-btn { justify-self: start; }
+.sales-page .product-suggest-all { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px !important; padding: 8px 12px; border-radius: var(--r-sm); background: var(--info-tint); color: var(--ink-700, inherit) !important; }
 .sales-page .product-cost-form { display: flex; gap: 6px; margin-top: 6px; }
 .sales-page .product-cost-form input { font: inherit; width: 110px; padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--r-sm); }
 .sales-page .sales-orders-details > summary { cursor: pointer; list-style: none; }

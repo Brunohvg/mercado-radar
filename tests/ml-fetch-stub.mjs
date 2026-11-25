@@ -141,6 +141,13 @@ globalThis.fetch = async (input, init) => {
     return json({ id: 9002, item_id: item, seller_id: "foreign-seller", status: "UNANSWERED", text: "x", date_created: now });
   if (url.pathname === "/answers" && init?.method === "POST")
     return json({ id: 9001, status: "ANSWERED" });
+  // Central de promoções: uma campanha com o anúncio do teste como candidato.
+  if (url.pathname === `/seller-promotions/users/${seller}`)
+    return json({ results: [{ id: "P-MLB1", type: "DEAL", status: "started", name: "Campanha teste", deadline_date: "2026-12-20T00:00:00Z" }] });
+  if (url.pathname === "/seller-promotions/promotions/P-MLB1/items")
+    return json({ results: [{ id: item, status: "candidate", price: 92, original_price: 100 }, { id: "MLB999000002", status: "candidate", price: 50, original_price: 100 }] });
+  if (url.pathname === `/seller-promotions/items/${item}` && init?.method === "POST")
+    return json({ ...JSON.parse(String(init.body)), status: "pending" });
   if (url.pathname === `/items/${item}` && init?.method === "PUT")
     return json({ id: item, ...JSON.parse(String(init.body)) });
   if (url.pathname === "/items" || url.pathname === "/items/bulk")

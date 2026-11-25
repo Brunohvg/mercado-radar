@@ -183,6 +183,13 @@ export async function GET() {
         "Opiniões · leitura pública",
       ),
       add(
+        "sellerPromotions",
+        "Promoções e campanhas do vendedor",
+        true,
+        `/seller-promotions/users/${seller}?app_version=v2`,
+        "Promoções, cupons e descontos · leitura",
+      ),
+      add(
         "publicUser",
         "Reputação pública de vendedor",
         true,

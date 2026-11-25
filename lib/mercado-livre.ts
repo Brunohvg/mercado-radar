@@ -1915,6 +1915,61 @@ export async function updateItem(input: { accessToken: string; itemId: string; b
   });
 }
 
+// Central de promoções (seller-promotions, app_version=v2). Os campos variam por
+// tipo de campanha, então quem chama lê tudo de forma defensiva.
+export type MlRawPromotion = {
+  id?: string;
+  type?: string;
+  status?: string;
+  name?: string;
+  start_date?: string;
+  finish_date?: string;
+  deadline_date?: string;
+  benefits?: { type?: string; meli_percent?: number; seller_percent?: number } | null;
+};
+export type MlRawPromotionItem = {
+  id?: string;
+  status?: string;
+  price?: number;
+  original_price?: number;
+  deal_price?: number;
+  suggested_discounted_price?: number;
+  max_discounted_price?: number;
+  min_discounted_price?: number;
+  meli_percentage?: number;
+  seller_percentage?: number;
+  offer_id?: string;
+  start_date?: string;
+  end_date?: string;
+};
+
+export async function getSellerPromotions(input: { accessToken: string; userId: string }) {
+  const raw = await jsonFetch<{ results?: MlRawPromotion[] } | MlRawPromotion[]>(
+    `${API}/seller-promotions/users/${input.userId}?app_version=v2`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+  return Array.isArray(raw) ? raw : (raw?.results ?? []);
+}
+
+export async function getPromotionItems(input: { accessToken: string; promotionId: string; promotionType: string; status?: string; limit?: number }) {
+  const params = new URLSearchParams({ promotion_type: input.promotionType, app_version: "v2", limit: String(input.limit ?? 50) });
+  if (input.status) params.set("status", input.status);
+  const raw = await jsonFetch<{ results?: MlRawPromotionItem[] } | MlRawPromotionItem[]>(
+    `${API}/seller-promotions/promotions/${encodeURIComponent(input.promotionId)}/items?${params}`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+  return Array.isArray(raw) ? raw : (raw?.results ?? []);
+}
+
+/** ESCRITA: coloca o anúncio na promoção. Corpo depende do tipo (ver lib/promotions). */
+export async function joinPromotion(input: { accessToken: string; itemId: string; body: Record<string, unknown> }) {
+  return jsonFetch<Record<string, unknown>>(`${API}/seller-promotions/items/${input.itemId}?app_version=v2`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${input.accessToken}`, "content-type": "application/json" },
+    body: JSON.stringify(input.body),
+  });
+}
+
 export type MlRawReviews = {
   paging?: { total?: number };
   rating_average?: number;

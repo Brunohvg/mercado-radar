@@ -371,6 +371,21 @@ try {
       assert.deepEqual([editedRow.status, editedRow.availableQuantity], ["paused", 12]);
       assert.equal((await db.query(`SELECT count(*)::int AS n FROM "PilotActionLog" WHERE kind='EDIT_LISTING' AND status='DONE'`)).rows[0].n, 1);
       await db.query('UPDATE "MercadoLivreProduct" SET status = $2, "availableQuantity" = 5 WHERE "mlItemId" = $1', ["MLB999000001", "active"]);
+      // Promoções: lucro no preço da campanha, só anúncios próprios, aceite com confirmação.
+      const promos = await req("/api/promotions", cookieA);
+      assert.equal(promos.status, 200, promos.text);
+      assert.deepEqual(promos.json.invites.map((i) => i.mlItemId), ["MLB999000001"]);
+      const promo = promos.json.invites[0];
+      assert.equal(promo.dealPrice, 92);
+      assert.ok(["ACEITAR", "APERTADO", "RECUSAR", "SEM_DADOS"].includes(promo.verdict));
+      const joinReq = { mlItemId: "MLB999000001", promotionId: "P-MLB1", promotionType: "DEAL" };
+      assert.equal((await req("/api/promotions/join", cookieA, "POST", joinReq)).status, 400);
+      assert.equal((await req("/api/promotions/join", cookieA, "POST", { ...joinReq, mlItemId: "MLB999000002", confirm: true })).status, 404);
+      const join = await req("/api/promotions/join", cookieA, "POST", { ...joinReq, allowTight: true, confirm: true });
+      if (promo.verdict === "ACEITAR" || promo.verdict === "APERTADO") {
+        assert.equal(join.status, 200, join.text);
+        assert.equal((await db.query(`SELECT count(*)::int AS n FROM "PilotActionLog" WHERE kind='JOIN_PROMOTION' AND status='DONE'`)).rows[0].n, 1);
+      } else assert.equal(join.status, 422, join.text);
       await db.query('UPDATE "MercadoLivreProduct" SET "currentPrice" = 100 WHERE "mlItemId" = $1', ["MLB999000001"]);
       await db.query('UPDATE "MercadoLivreProduct" SET "categoryId" = $2 WHERE "mlItemId" = $1', ["MLB999000001", "MLB1234"]);
       const hunter = await req("/api/hunter?refresh=1", cookieA);

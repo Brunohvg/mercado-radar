@@ -7,7 +7,7 @@ import {
   getListingPriceQuote,
   getMlSession,
   getShippingQuote,
-  searchMarketplace,
+  searchMarketplaceWithSource,
 } from "@/lib/mercado-livre";
 import { analyzeProfitability } from "@/lib/profitability";
 
@@ -194,12 +194,13 @@ export async function POST(request: Request) {
     if (input.taxPercent == null && settings.taxPercent == null) return NextResponse.json({ error: "Confirme seu imposto em Metas e configurações." }, { status: 422 });
     const taxPercent = input.taxPercent ?? Number(settings.taxPercent);
 
-    const searchResults = await searchMarketplace({
+    const search = await searchMarketplaceWithSource({
       accessToken: session.accessToken,
       query: input.productName,
       categoryId: input.categoryId,
       limit: 35,
     });
+    const searchResults = search.items;
 
     const ranked = searchResults
       .filter(
@@ -243,8 +244,9 @@ export async function POST(request: Request) {
     if (comparable.length === 0) {
       return NextResponse.json(
         {
-          error:
+          error: search.notice ??
             "Não encontrei anúncios comparáveis suficientes para esse produto.",
+          marketSource: search.source,
         },
         { status: 422 },
       );
@@ -460,6 +462,8 @@ export async function POST(request: Request) {
         comparableCount: comparable.length,
       },
       competitors,
+      marketSource: search.source,
+      marketNotice: search.notice,
     });
   } catch (error) {
     const message =

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, brl, dateBr, parseNumber, pct, STATUS_LABEL } from "./format";
 
 type OpportunityRow = {
@@ -41,6 +41,17 @@ export function SourcingHome() {
   const [rows, setRows] = useState<OpportunityRow[] | null>(null);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
+  const linkRef = useRef<HTMLInputElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+
+  // Vem do "O que você quer revender?" do Início: link vai no campo de link,
+  // texto livre no nome do produto.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("q")?.trim();
+    if (!q) return;
+    const target = /mercadoli[bv]re|MLB-?\d{5,}/i.test(q) ? linkRef.current : titleRef.current;
+    if (target) { target.value = q.slice(0, 300); target.focus(); }
+  }, []);
 
   useEffect(() => {
     api<{ opportunities: OpportunityRow[] }>("/api/sourcing/opportunities")
@@ -98,11 +109,11 @@ export function SourcingHome() {
           <form className="vr-form" onSubmit={create}>
             <label>
               Link do anúncio
-              <input name="link" placeholder="https://produto.mercadolivre.com.br/MLB-..." inputMode="url" />
+              <input ref={linkRef} name="link" placeholder="https://produto.mercadolivre.com.br/MLB-..." inputMode="url" />
             </label>
             <label>
               Nome do produto
-              <input name="title" placeholder="Ex.: Ilhós nº 54 Baxmann 1000 un." />
+              <input ref={titleRef} name="title" placeholder="Ex.: Ilhós nº 54 Baxmann 1000 un." />
             </label>
             <label>
               Preço de venda no mercado (opcional)

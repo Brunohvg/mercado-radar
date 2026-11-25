@@ -7,7 +7,7 @@ import {
   getMlSession,
   predictCategory,
   searchCatalogProducts,
-  searchMarketplace,
+  searchMarketplaceWithSource,
 } from "@/lib/mercado-livre";
 import { DIMENSION_IDS, numberFromAttribute } from "@/lib/ml-physical-measures";
 
@@ -233,7 +233,7 @@ export async function POST(request: Request) {
     const winnerPrice = Number(catalogDetails?.buy_box_winner?.price ?? 0);
 
     let marketAccessBlocked = false;
-    const market = await searchMarketplace({
+    const marketSearch = await searchMarketplaceWithSource({
       accessToken: session.accessToken,
       query: searchTitle,
       categoryId:
@@ -241,10 +241,9 @@ export async function POST(request: Request) {
         catalogDetails?.buy_box_winner?.category_id ??
         undefined,
       limit: 24,
-    }).catch((error) => {
-      marketAccessBlocked = true;
-      return [];
-    });
+    }).catch(() => null);
+    if (!marketSearch || marketSearch.source === "BLOQUEADA") marketAccessBlocked = true;
+    const market = marketSearch?.items ?? [];
 
     const winnerFallback =
       market.length === 0 && winnerItemId
@@ -417,11 +416,12 @@ export async function POST(request: Request) {
             : null,
         source:
           market.length > 0
-            ? "MARKETPLACE_SEARCH"
+            ? marketSearch?.source === "CATALOGO" ? "CATALOG_OFFERS" : "MARKETPLACE_SEARCH"
             : catalogPeerPrices.length > 0
               ? "CATALOG_WINNER"
               : "UNAVAILABLE",
         accessBlocked: marketAccessBlocked,
+        notice: marketSearch?.notice ?? null,
       },
       dimensions: inferredDimensions
         ? {

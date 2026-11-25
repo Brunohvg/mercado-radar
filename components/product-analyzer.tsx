@@ -91,8 +91,9 @@ type DiscoveryPayload = {
     averagePrice: number | null;
     medianPrice: number | null;
     maximumPrice: number | null;
-    source: "MARKETPLACE_SEARCH" | "CATALOG_WINNER" | "UNAVAILABLE";
+    source: "MARKETPLACE_SEARCH" | "CATALOG_OFFERS" | "CATALOG_WINNER" | "UNAVAILABLE";
     accessBlocked: boolean;
+    notice?: string | null;
   };
   dimensions: {
     heightCm: number;
@@ -158,6 +159,7 @@ type MarketScan = {
     listingTypeId: string | null;
     priceSource: string;
   }>;
+  marketNotice?: string | null;
 };
 
 const initial: FormState = {
@@ -1253,12 +1255,13 @@ export function ProductAnalyzer() {
                 </div>
               </div>
 
-              {discovery.market.accessBlocked && (
+              {(discovery.market.accessBlocked || discovery.market.notice) && (
                 <div className="discovery-warning">
-                  <strong>Comparação ampla de mercado indisponível nesta conexão.</strong>
+                  <strong>{discovery.market.accessBlocked
+                    ? "Fonte bloqueada: o Mercado Livre não libera a busca aberta para apps."
+                    : "Comparação feita só com produtos de catálogo."}</strong>
                   <small>
-                    A análise financeira continua normalmente com os dados disponíveis.
-                    O diagnóstico detalhado fica em Integrações.
+                    {discovery.market.notice ?? "A análise financeira continua com os dados disponíveis."}
                   </small>
                 </div>
               )}
@@ -1981,6 +1984,7 @@ export function ProductAnalyzer() {
               </small>
             </div>
           </div>
+          {marketScan.marketNotice && <div className="discovery-warning"><strong>Comparação feita só com produtos de catálogo.</strong><small>{marketScan.marketNotice}</small></div>}
 
           <div className="competitor-grid">
             {marketScan.competitors.map((item) => (

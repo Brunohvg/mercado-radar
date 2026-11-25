@@ -6,6 +6,7 @@ import {
   getCatalogProductOffersSnapshot,
   getCatalogProductDetails,
   searchCompetitionPage,
+  MARKET_SEARCH_NOTICES,
   MlApiError,
 } from "@/lib/mercado-livre";
 import {
@@ -188,6 +189,8 @@ export async function researchCompetitors(input: {
             addIssue(error);
             return null;
           });
+          if (page && page.source !== "BUSCA")
+            notices.push({ code: "SEARCH_" + page.source, message: MARKET_SEARCH_NOTICES[page.source] });
           if (page) await details(page.items.map((i) => i.id));
         }
         apiSucceeded = true;
@@ -200,6 +203,8 @@ export async function researchCompetitors(input: {
           limit: 20,
         });
         apiSucceeded = true;
+        if (page.source !== "BUSCA")
+          notices.push({ code: "SEARCH_" + page.source, message: MARKET_SEARCH_NOTICES[page.source] });
         total = page.total;
         hasMore = page.hasMore;
         nextOffset = hasMore ? input.offset + 20 : null;

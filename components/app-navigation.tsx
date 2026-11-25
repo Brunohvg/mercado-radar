@@ -26,47 +26,34 @@ type MenuItem = {
   label: string;
   icon: IconName;
   badge?: string;
+  /** Outras rotas que acendem este item. */
+  also?: string[];
 };
 
-const groups: Array<{ label: string; items: MenuItem[] }> = [
-  {
-    label: "Revender",
-    items: [
-      { href: "/onde-comprar", label: "Onde comprar", icon: "suppliers", badge: "Novo" },
-    ],
-  },
-  {
-    label: "Operação",
-    items: [
-      { href: "/", label: "Dashboard", icon: "dashboard" },
-      { href: "/anuncios", label: "Anúncios", icon: "listings" },
-      { href: "/assistente-anuncios", label: "Criar anúncio", icon: "listings", badge: "Novo" },
-      { href: "/produtos", label: "Produtos", icon: "products" },
-      { href: "/vendas", label: "Vendas e lucro", icon: "sales" },
-      { href: "/publicidade", label: "Publicidade", icon: "ads" },
-      { href: "/fornecedores", label: "Custos por fornecedor", icon: "suppliers" },
-    ],
-  },
-  {
-    label: "Inteligência",
-    items: [
-      { href: "/mercado", label: "Mercado", icon: "market", badge: "Novo" },
-      { href: "/oportunidades", label: "Radar de oportunidades", icon: "radar" },
-      { href: "/monitoramento", label: "Monitoramento", icon: "monitoring" },
-      { href: "/analisar", label: "Análise de produto", icon: "analysis" },
-      { href: "/ean", label: "EAN em lote", icon: "ean" },
-      { href: "/historico", label: "Histórico de análises", icon: "history" },
-    ],
-  },
-  {
-    label: "Configuração",
-    items: [
-      { href: "/configuracoes", label: "Metas e configurações", icon: "analysis" },
-      { href: "/integracoes", label: "Integrações", icon: "integrations" },
-      { href: "/extensao", label: "Extensão", icon: "extension" },
-      { href: "/onboarding", label: "Primeiros passos", icon: "steps" },
-    ],
-  },
+// Menu enxuto (fase 1 da auditoria): seis telas principais. O resto continua
+// acessível em "Mais ferramentas"; nenhuma rota foi removida.
+const mainItems: MenuItem[] = [
+  { href: "/", label: "Início", icon: "dashboard", also: ["/onboarding"] },
+  { href: "/onde-comprar", label: "Onde comprar", icon: "suppliers" },
+  { href: "/vendas", label: "Vendas e lucro", icon: "sales" },
+  { href: "/anuncios", label: "Meus anúncios e custos", icon: "listings", also: ["/produtos", "/fornecedores"] },
+  { href: "/monitoramento", label: "Monitoramento", icon: "monitoring" },
+  { href: "/configuracoes", label: "Configurações", icon: "integrations", also: ["/integracoes", "/extensao"] },
+];
+
+const moreItems: MenuItem[] = [
+  { href: "/analisar", label: "Calculadora de lucro", icon: "analysis" },
+  { href: "/extensao", label: "Extensão", icon: "extension" },
+  { href: "/integracoes", label: "Integrações", icon: "integrations" },
+  { href: "/assistente-anuncios", label: "Criar anúncio", icon: "listings" },
+  { href: "/produtos", label: "Produtos", icon: "products" },
+  { href: "/fornecedores", label: "Custos por fornecedor", icon: "suppliers" },
+  { href: "/publicidade", label: "Publicidade", icon: "ads" },
+  { href: "/mercado", label: "Mercado", icon: "market" },
+  { href: "/oportunidades", label: "Radar de oportunidades", icon: "radar" },
+  { href: "/ean", label: "EAN em lote", icon: "ean" },
+  { href: "/historico", label: "Histórico de análises", icon: "history" },
+  { href: "/onboarding", label: "Primeiros passos", icon: "steps" },
 ];
 
 function MenuIcon({ name }: { name: IconName }) {
@@ -226,6 +213,7 @@ export function AppNavigation() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [intelligenceEnabled, setIntelligenceEnabled] = useState(false);
   const [account, setAccount] = useState<{
     loaded: boolean;
@@ -262,6 +250,11 @@ export function AppNavigation() {
 
   useEffect(() => { setOpen(false); }, [pathname]);
   useEffect(() => {
+    const inMore = moreItems.some((item) => pathname === item.href || pathname.startsWith(item.href + "/"))
+      || pathname.startsWith("/concorrentes") || pathname.startsWith("/kits");
+    if (inMore && !mainItems.some((item) => item.href !== "/" && (pathname === item.href || pathname.startsWith(item.href + "/")))) setMoreOpen(true);
+  }, [pathname]);
+  useEffect(() => {
     if (!open) return;
     const old = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -286,6 +279,29 @@ export function AppNavigation() {
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
     return pathname === href || pathname.startsWith(href + "/");
+  }
+
+  function isMainActive(item: MenuItem) {
+    return isActive(item.href) || (item.also ?? []).some(isActive);
+  }
+
+  function renderItem(item: MenuItem, active: boolean) {
+    return (
+      <Link
+        className={"nav-item " + (active ? "active" : "")}
+        href={item.href}
+        key={item.href}
+        onClick={() => setOpen(false)}
+        title={collapsed ? item.label : undefined}
+        aria-current={active ? "page" : undefined}
+      >
+        <span className="nav-item-icon">
+          <MenuIcon name={item.icon} />
+        </span>
+        <span className="nav-item-label">{item.label}</span>
+        {item.badge && <span className="nav-badge">{item.badge}</span>}
+      </Link>
+    );
   }
 
   return (
@@ -342,32 +358,20 @@ export function AppNavigation() {
         </div>
 
         <nav className="sidebar-nav" aria-label="Navegação principal">
-          {groups.map((group) => (
-            <div className="nav-group" key={group.label}>
-              <span className="nav-group-label">{group.label}</span>
-              <div className="nav-group-items">
-                {[...group.items, ...(group.label === "Inteligência" && intelligenceEnabled ? [
-                  { href: "/concorrentes", label: "Concorrentes", icon: "market" as const },
-                  { href: "/kits", label: "Simulador de kits", icon: "products" as const },
-                ] : [])].map((item) => (
-                  <Link
-                    className={"nav-item " + (isActive(item.href) ? "active" : "")}
-                    href={item.href}
-                    key={item.href}
-                    onClick={() => setOpen(false)}
-                    title={collapsed ? item.label : undefined}
-                    aria-current={isActive(item.href) ? "page" : undefined}
-                  >
-                    <span className="nav-item-icon">
-                      <MenuIcon name={item.icon} />
-                    </span>
-                    <span className="nav-item-label">{item.label}</span>
-                    {item.badge && <span className="nav-badge">{item.badge}</span>}
-                  </Link>
-                ))}
-              </div>
+          <div className="nav-group">
+            <div className="nav-group-items">
+              {mainItems.map((item) => renderItem(item, isMainActive(item)))}
             </div>
-          ))}
+          </div>
+          <details className="nav-group nav-more" open={moreOpen} onToggle={(event) => setMoreOpen((event.target as HTMLDetailsElement).open)}>
+            <summary className="nav-group-label">Mais ferramentas</summary>
+            <div className="nav-group-items">
+              {[...moreItems, ...(intelligenceEnabled ? [
+                { href: "/concorrentes", label: "Concorrentes", icon: "market" as const },
+                { href: "/kits", label: "Simulador de kits", icon: "products" as const },
+              ] : [])].map((item) => renderItem(item, isActive(item.href)))}
+            </div>
+          </details>
         </nav>
 
         <div className="sidebar-account">

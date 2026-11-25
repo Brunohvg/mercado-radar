@@ -1,3 +1,4 @@
+import { SectionTabs } from "@/components/section-tabs";
 import { AppNavigation } from "@/components/app-navigation";
 import { SuppliersDashboard } from "@/components/suppliers-dashboard";
 
@@ -6,6 +7,7 @@ export default function SuppliersPage() {
     <main className="shell">
       <AppNavigation />
       <section className="content routed-content">
+        <SectionTabs section="anuncios" current="/fornecedores" />
         <SuppliersDashboard />
       </section>
     </main>

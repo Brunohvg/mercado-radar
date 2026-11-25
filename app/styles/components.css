@@ -911,3 +911,32 @@
     flex: 1 1 auto;
   }
 }
+
+/* Calculadora única (web) */
+.quick-calc { display: grid; gap: var(--s-4); margin-bottom: var(--s-5); }
+.quick-calc header h1 { margin: 0 0 var(--s-1); font-size: var(--fs-20, 20px); }
+.quick-calc header p { margin: 0; color: var(--ink-500); }
+.quick-calc-form { display: grid; gap: var(--s-3); grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; }
+.quick-calc-form label { display: grid; gap: 4px; font-size: var(--fs-13); color: var(--ink-500); }
+.quick-calc-form input { font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); min-width: 0; }
+.quick-calc-wide { grid-column: 1 / -1; }
+.quick-calc-form button { justify-self: start; }
+.quick-calc-error { margin: 0; padding: var(--s-2) var(--s-3); border-radius: var(--r-sm); background: var(--warn-tint); color: var(--warn-ink); }
+.quick-calc-result { display: grid; gap: var(--s-3); }
+.quick-calc-item { margin: 0; }
+.quick-calc-big { display: grid; gap: 2px; padding: var(--s-3) var(--s-4); border-radius: var(--r-sm); background: var(--info-tint); }
+.quick-calc-big span { font-size: var(--fs-13); color: var(--ink-500); }
+.quick-calc-big strong { font-size: 28px; }
+.quick-calc-big .good-value { color: var(--ok); }
+.quick-calc-big .danger-value { color: var(--risk); }
+.quick-calc-fees { margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-2); }
+.quick-calc-fees div { display: grid; gap: 2px; }
+.quick-calc-fees dt { font-size: var(--fs-12); color: var(--ink-500); }
+.quick-calc-fees dd { margin: 0; font-weight: 600; }
+.quick-calc-assumptions { margin: 0; padding-left: 18px; font-size: var(--fs-13); color: var(--ink-500); }
+.quick-calc-assumptions .is-material { color: var(--warn-ink); font-weight: 600; }
+.advanced-analysis > summary { cursor: pointer; font-weight: 600; padding: var(--s-2) 0; }
+@media (max-width: 720px) {
+  .quick-calc-form { grid-template-columns: 1fr; }
+  .quick-calc-fees { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

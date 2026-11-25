@@ -44,7 +44,7 @@ test("medidas e foto de IA são estimativas não publicáveis sem confirmação"
 });
 
 test("MLBU resolve oferta do próprio vendedor sem confundir produto com anúncio", async () => {
-  const source = await readFile(new URL("../app/api/extension/profitability/route.ts", import.meta.url), "utf8");
+  const source = await readFile(new URL("../lib/profitability-request.ts", import.meta.url), "utf8");
   assert.ok(source.includes("getUserProductDetails"));
   assert.ok(source.includes("getItemsByUserProduct"));
   assert.ok(source.includes("String(product.user_id ??"));

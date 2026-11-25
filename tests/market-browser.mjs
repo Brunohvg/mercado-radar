@@ -375,7 +375,7 @@ try {
       await page.locator(".radar-discover").waitFor();
       assert.equal(
         await page.locator(".radar-discover form").getAttribute("action"),
-        "/oportunidades",
+        "/onde-comprar",
       );
       await page
         .getByText("Capital conhecido em estoque", { exact: true })

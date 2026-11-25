@@ -562,6 +562,13 @@ try {
           true,
         );
       }
+      const blocked = await req("/api/intelligence/competitors?q=qa-research-403", cookieA);
+      assert.match(blocked.json.notices.find((n) => n.code === "FORBIDDEN").message, /Fonte bloqueada/);
+      const viaCatalog = await req("/api/intelligence/competitors?q=qa-research-403-catalogo", cookieA);
+      assert.equal(viaCatalog.status, 200, viaCatalog.text);
+      assert.equal(viaCatalog.json.apiSucceeded, true);
+      assert.ok(viaCatalog.json.items.some((i) => i.id === "MLB880000001"), viaCatalog.text);
+      assert.ok(viaCatalog.json.notices.some((n) => n.code === "SEARCH_CATALOGO"));
     },
   );
   await check(
@@ -1553,6 +1560,12 @@ try {
       assert.equal(reverse.json.reverse.targetMarginPercent, 20);
       const saveReverse = await req("/api/extension/profitability", "", "POST", { ...withoutCost, save: true }, extensionHeaders());
       assert.equal(saveReverse.status, 422);
+      // A calculadora do site usa a mesma regra da extensão.
+      assert.equal((await req("/api/calculator", "", "POST", withoutCost)).status, 401);
+      const web = await req("/api/calculator", cookieA, "POST", withoutCost);
+      assert.equal(web.status, 200, web.text);
+      assert.equal(web.json.availability, "REVERSE");
+      assert.deepEqual(web.json.reverse, reverse.json.reverse);
     },
   );
   await check(

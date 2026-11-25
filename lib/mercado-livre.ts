@@ -137,6 +137,14 @@ function httpError(status: number, path: string, apiMessage: string): MlApiError
       "UNAUTHORIZED",
     );
   }
+  if (status === 403 && /^\/sites\/[A-Z]+\/search/.test(path)) {
+    return new MlApiError(
+      "Fonte bloqueada: o Mercado Livre não libera a busca aberta de anúncios para aplicativos, e nenhuma permissão do painel muda isso. Use a extensão no anúncio ou um produto de catálogo.",
+      status,
+      path,
+      "FORBIDDEN",
+    );
+  }
   if (status === 403) {
     return new MlApiError(
       "O Mercado Livre negou acesso a este recurso. A conta está conectada, mas o aplicativo precisa da permissão correspondente. Revise a integração do Mercado Livre.",
@@ -629,7 +637,81 @@ export type MarketplaceSearchItem = {
   freeShipping: boolean;
 };
 
+export type MarketSearchSource = "BUSCA" | "CATALOGO" | "BLOQUEADA";
+
+export type MarketSearchOutcome = {
+  items: MarketplaceSearchItem[];
+  source: MarketSearchSource;
+  /** Frase para a tela; null quando a busca normal respondeu. */
+  notice: string | null;
+};
+
+export const MARKET_SEARCH_NOTICES: Record<Exclude<MarketSearchSource, "BUSCA">, string> = {
+  CATALOGO: "A busca aberta do Mercado Livre está bloqueada para apps. Mostramos ofertas de produtos de catálogo, que cobrem só parte do mercado.",
+  BLOQUEADA: "A busca aberta do Mercado Livre está bloqueada para apps e não achamos produto de catálogo para esse termo. Abra um anúncio com a extensão para analisar.",
+};
+
+function listingPermalink(itemId: string) {
+  return `https://produto.mercadolivre.com.br/${itemId.replace(/^MLB/, "MLB-")}`;
+}
+
+/**
+ * Plano B quando /sites/MLB/search recusa o app: busca produtos de catálogo
+ * (/products/search) e lista as ofertas de cada um (/products/{id}/items).
+ * Só cobre anúncios de catálogo, por isso a tela avisa a fonte.
+ */
+async function searchViaCatalog(input: { accessToken: string; query: string; limit: number }) {
+  const products = await searchCatalogProducts({ accessToken: input.accessToken, query: input.query, limit: 5 });
+  const perProduct = Math.max(2, Math.ceil(input.limit / Math.max(1, products.length)));
+  const rows = await Promise.all(products.map(async (product) => {
+    const offers = await getCatalogProductOffers({ accessToken: input.accessToken, productId: product.id, limit: perProduct }).catch(() => []);
+    return offers.map<MarketplaceSearchItem>((offer) => ({
+      id: offer.itemId,
+      title: product.name,
+      price: offer.price,
+      currencyId: "BRL",
+      permalink: listingPermalink(offer.itemId),
+      thumbnail: product.pictures[0]?.url ?? null,
+      categoryId: null,
+      sellerId: offer.sellerId,
+      listingTypeId: null,
+      freeShipping: offer.freeShipping,
+    }));
+  }));
+  const seen = new Set<string>();
+  return rows.flat().filter((item) => !seen.has(item.id) && Boolean(seen.add(item.id))).slice(0, input.limit);
+}
+
+/** Busca com a fonte declarada. Nunca devolve lista vazia sem dizer por quê. */
+export async function searchMarketplaceWithSource(input: {
+  accessToken: string;
+  query: string;
+  categoryId?: string;
+  limit?: number;
+}): Promise<MarketSearchOutcome> {
+  try {
+    return { items: await searchMarketplaceDirect(input), source: "BUSCA", notice: null };
+  } catch (error) {
+    if (!(error instanceof MlApiError) || error.status !== 403) throw error;
+    const limit = Math.min(Math.max(input.limit ?? 30, 1), 50);
+    const items = await searchViaCatalog({ accessToken: input.accessToken, query: input.query, limit }).catch(() => []);
+    return items.length
+      ? { items, source: "CATALOGO", notice: MARKET_SEARCH_NOTICES.CATALOGO }
+      : { items: [], source: "BLOQUEADA", notice: MARKET_SEARCH_NOTICES.BLOQUEADA };
+  }
+}
+
+/** Compatível com os chamadores antigos: devolve só os itens, já com o plano B. */
 export async function searchMarketplace(input: {
+  accessToken: string;
+  query: string;
+  categoryId?: string;
+  limit?: number;
+}) {
+  return (await searchMarketplaceWithSource(input)).items;
+}
+
+async function searchMarketplaceDirect(input: {
   accessToken: string;
   query: string;
   categoryId?: string;
@@ -704,13 +786,25 @@ export async function searchCompetitionPage(input: { accessToken: string; query:
   const offset = Math.min(180, Math.max(0, input.offset));
   const params = new URLSearchParams({ q: input.query, limit: String(limit), offset: String(offset) });
   if (input.categoryId) params.set("category", input.categoryId);
-  const raw = await jsonFetch<{ results?: Array<Record<string, any>>; paging?: { total?: number } }>(
-    `${API}/sites/MLB/search?${params}`, { headers: { Authorization: `Bearer ${input.accessToken}` } },
-  );
+  let raw: { results?: Array<Record<string, any>>; paging?: { total?: number } };
+  try {
+    raw = await jsonFetch<{ results?: Array<Record<string, any>>; paging?: { total?: number } }>(
+      `${API}/sites/MLB/search?${params}`, { headers: { Authorization: `Bearer ${input.accessToken}` } },
+    );
+  } catch (error) {
+    if (!(error instanceof MlApiError) || error.status !== 403 || offset > 0) throw error;
+    const found = await searchViaCatalog({ accessToken: input.accessToken, query: input.query, limit }).catch(() => []);
+    if (!found.length) throw error;
+    const items = found.map((item) => ({
+      id: item.id, title: item.title, price: item.price, currency_id: item.currencyId, permalink: item.permalink,
+      thumbnail: item.thumbnail, seller: { id: item.sellerId }, shipping: { free_shipping: item.freeShipping },
+    }));
+    return { items, total: null, hasMore: false, source: "CATALOGO" as MarketSearchSource };
+  }
   const items = (raw.results ?? []).filter(row => /^MLB\d+$/.test(String(row.id)) && typeof row.title === "string");
   const reported = raw.paging?.total;
   const total = typeof reported === "number" && Number.isInteger(reported) && reported >= 0 ? reported : null;
-  return { items, total, hasMore: offset < 180 && items.length === limit && (total == null || offset + limit < total) };
+  return { items, total, hasMore: offset < 180 && items.length === limit && (total == null || offset + limit < total), source: "BUSCA" as MarketSearchSource };
 }
 
 export async function getItemCurrentPrice(input: {

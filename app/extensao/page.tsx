@@ -1,3 +1,4 @@
+import { SectionTabs } from "@/components/section-tabs";
 import { AppNavigation } from "@/components/app-navigation";
 
 export default function ExtensionPage() {
@@ -5,6 +6,7 @@ export default function ExtensionPage() {
     <main className="shell">
       <AppNavigation />
       <section className="content routed-content">
+        <SectionTabs section="configuracoes" current="/extensao" />
         <section className="extension-install-page">
           <header className="page-header clean-page-header">
             <div>

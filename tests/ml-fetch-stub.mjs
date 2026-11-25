@@ -243,6 +243,10 @@ globalThis.fetch = async (input, init) => {
       },
     });
   }
+  if (url.pathname === "/products/search" && (url.searchParams.get("q") ?? "").includes("catalogo"))
+    return json({
+      results: [{ id: "MLB88800001", name: "Caneta catálogo fixture", status: "active", pictures: [{ url: "https://http2.mlstatic.com/fixture.jpg" }] }],
+    });
   if (url.pathname === "/products/MLB88800001/items")
     return json({
       paging: { total: 52 },

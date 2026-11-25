@@ -178,11 +178,11 @@ export function ExecutiveDashboard() {
           <p className="page-kicker">Sua próxima oportunidade</p>
           <h2>O que você está pensando em vender?</h2>
           <p>
-            Pesquise produtos, compare ofertas e confira o custo antes de
-            investir.
+            Cole o link do anúncio ou digite o produto. Mostramos fornecedores
+            e quanto você pode pagar para ter lucro.
           </p>
         </div>
-        <form action="/oportunidades" method="GET">
+        <form action="/onde-comprar" method="GET">
           <label className="sr-only" htmlFor="dashboard-product-search">
             Produto para pesquisar
           </label>
@@ -191,15 +191,15 @@ export function ExecutiveDashboard() {
             type="search"
             name="q"
             minLength={2}
-            maxLength={120}
+            maxLength={300}
             required
-            placeholder="Ex.: kit ferramentas, prensa manual…"
+            placeholder="Link do anúncio ou nome do produto"
           />
           <button className="clean-primary" type="submit">
-            Pesquisar produtos →
+            Começar →
           </button>
         </form>
-        <Link href="/mercado">Comparar meus anúncios pesquisados →</Link>
+        <Link href="/analisar">Só quero calcular o lucro de um anúncio →</Link>
       </section>
       {error && (
         <div className="error" role="alert">
@@ -250,7 +250,7 @@ export function ExecutiveDashboard() {
               </Link>
             </div>
           )}
-          {!visible.reportComplete && (
+          {visible.configured && !visible.reportComplete && (
             <div className="radar-notice">
               <div>
                 <strong>Histórico parcial ou desatualizado</strong>

@@ -115,7 +115,7 @@
 .vr-ask { font-size: var(--fs-13); color: var(--brand-700); font-weight: 600; margin-right: auto; }
 .vr-quote { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-3); align-items: center; padding: var(--s-2) var(--s-3); border-radius: var(--r-sm); background: var(--surface-2); font-size: var(--fs-13); }
 .vr-quote-form { padding: var(--s-4); border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--line); }
-.vr-source { padding: 1px 8px; border-radius: var(--r-pill); font-size: var(--fs-11); font-weight: 700; }
+.vr-source { white-space: nowrap; padding: 1px 8px; border-radius: var(--r-pill); font-size: var(--fs-11); font-weight: 700; }
 .vr-source--cotacao_recebida { background: var(--night); color: #fff; }
 .vr-source--preco_publicado { background: var(--surface-3); color: var(--ink-700); }
 .vr-source--estimativa_usuario { background: transparent; color: var(--ink-500); border: 1px dashed var(--ink-400); }

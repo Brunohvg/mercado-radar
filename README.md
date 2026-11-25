@@ -1,6 +1,12 @@
-# Mercado Radar
+# Vidalys Radar
 
-**Copiloto de compra e rentabilidade para quem revende no Mercado Livre.** Decide o que comprar, quanto pagar, quanto cobrar, quanto realmente sobrou e onde vale colocar capital.
+**Encontre o produto, encontre o fornecedor, descubra sua margem.** Inteligência para o pequeno vendedor brasileiro decidir o que revender, onde comprar, quanto pagar e quanto investir.
+
+## 2.0: Onde comprar
+
+Nova área `/onde-comprar` e aba Fornecedor na extensão: identidade do produto, busca de fornecedores sem varejo, ficha com CNPJ verificado, cotações com origem explícita, custo entregue ligado ao motor de margem, plano de compra e radar por capital. Detalhes em [docs/vidalys-radar-2](docs/vidalys-radar-2/).
+
+Variável opcional: `BRAVE_SEARCH_API_KEY` (busca web de fornecedores; sem ela a busca mostra links manuais).
 
 ## Direção do produto
 

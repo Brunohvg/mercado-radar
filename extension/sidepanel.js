@@ -1407,7 +1407,7 @@
   $("findSuppliers").addEventListener("click", async () => {
     const obs = current();
     if (!obs || !usable()) return;
-    if (!/^MLB\d{5,}$/i.test(obs.id || "")) {
+    if (!/^MLBU?\d{5,}$/i.test(obs.id || "")) {
       $("supplierStatus").textContent =
         "Abra a página de um anúncio (código MLB) para buscar fornecedores.";
       return;

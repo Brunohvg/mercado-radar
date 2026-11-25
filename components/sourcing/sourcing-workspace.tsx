@@ -519,7 +519,7 @@ function SuppliersTab({
               <div key={quote.id} className="vr-quote">
                 <span className={`vr-source vr-source--${quote.source.toLowerCase()}`}>{SOURCE_LABEL[quote.source]}</span>
                 <span className="vr-num">{brl(quote.unitPrice)} / peça</span>
-                <span>mín. {quote.viability.order.minimumUnits} un. · frete {quote.freightCost == null ? "a confirmar" : brl(quote.freightCost)} · {dateBr(quote.quotedAt)}</span>
+                <span>mín. {quote.viability.order.minimumUnits.toLocaleString("pt-BR")} un. · frete {quote.freightCost == null ? "a confirmar" : brl(quote.freightCost)} · {dateBr(quote.quotedAt)}</span>
                 {quote.evidenceUrl && <a href={quote.evidenceUrl} target="_blank" rel="noopener noreferrer">evidência ↗</a>}
                 <button className="vr-link" onClick={() => removeQuote(quote.id)}>remover</button>
               </div>
@@ -607,7 +607,7 @@ function MarginTab({ view }: { view: View }) {
           </div>
           <Waterfall v={best} />
           <p className="vr-hint">
-            Custo entregue de {brl(best.landedUnitCost)} por peça (preço + frete e custos rateados no lote de {best.order.units} un.). Origem: {SOURCE_LABEL[best.source]}.
+            Custo entregue de {brl(best.landedUnitCost)} por peça (preço + frete e custos rateados no lote de {best.order.units.toLocaleString("pt-BR")} un.). Origem: {SOURCE_LABEL[best.source]}.
             {best.maxUnitCostForTarget != null && ` Para a meta de ${view.sale.targetMarginPercent}% de margem, o custo de compra pode ir até ${brl(best.maxUnitCostForTarget)} por peça.`}
           </p>
         </div>
@@ -692,7 +692,7 @@ function PlanTab({ view, onSave }: { view: View; onSave: (data: Record<string, u
           ) : (
             <>
               <dl className="vr-kpis">
-                <div><dt>Comprar</dt><dd className="vr-num">{best.order.units} un.</dd><small>limitado pelo {LIMIT_LABEL[best.order.limitedBy]}</small></div>
+                <div><dt>Comprar</dt><dd className="vr-num">{best.order.units.toLocaleString("pt-BR")} un.</dd><small>limitado pelo {LIMIT_LABEL[best.order.limitedBy]}</small></div>
                 <div><dt>Investimento</dt><dd className="vr-num">{brl(best.order.capital)}</dd><small>produto {brl(best.order.goodsCost)} + frete/outros {brl(best.order.extraCosts)}</small></div>
                 <div><dt>Anúncios vendáveis</dt><dd className="vr-num">{best.order.sellableListings}</dd><small>{o.packQuantity ?? 1} un. por venda</small></div>
                 <div><dt>Vendas para recuperar</dt><dd className="vr-num">{best.plan.salesToRecoverCapital ?? "—"}</dd><small>{best.plan.profitIfAllSold != null ? `lucro se vender tudo: ${brl(best.plan.profitIfAllSold)}` : "margem ainda não calculada"}</small></div>

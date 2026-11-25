@@ -22,11 +22,18 @@ export async function createOpportunity(
     if (existing) return { opportunity: existing, reused: true, notes: [] as string[] };
   }
   const listingType = input.listingType ?? "CLASSIC";
+  // Produto de usuário (MLBU) não tem /items; a página informa título e preço.
   const enrichment =
-    mlItemId && accessToken
+    mlItemId && /^MLB\d/.test(mlItemId) && accessToken
       ? await enrichFromMercadoLivre({ accessToken, itemId: mlItemId, listingType, fallbackTitle: input.title })
       : null;
-  const notes = enrichment?.notes ?? (mlItemId ? ["Mercado Livre não conectado; dados preenchidos só pela página."] : []);
+  const notes =
+    enrichment?.notes ??
+    (!mlItemId
+      ? []
+      : /^MLBU/.test(mlItemId)
+        ? ["Produto de usuário (MLBU): identidade lida pelo título; marca e GTIN podem ser preenchidos manualmente."]
+        : ["Mercado Livre não conectado; dados preenchidos só pela página."]);
   const identity =
     enrichment?.identity ?? extractIdentity({ title: input.title });
   const referencePrice = input.referencePrice ?? enrichment?.referencePrice ?? null;

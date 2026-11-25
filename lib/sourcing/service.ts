@@ -75,7 +75,7 @@ const httpUrl = z
 
 export const opportunitySchema = z.object({
   title: z.string().trim().min(2, "Informe o nome do produto.").max(200),
-  mlItemId: z.string().trim().regex(/^MLB\d{5,15}$/i, "Código MLB inválido.").nullable().optional(),
+  mlItemId: z.string().trim().regex(/^MLBU?\d{5,15}$/i, "Código MLB inválido.").nullable().optional(),
   permalink: httpUrl.nullable().optional(),
   categoryId: optText(30),
   brand: optText(80),

@@ -9,6 +9,23 @@ globalThis.fetch = async (input, init) => {
   const url = new URL(
     typeof input === "string" ? input : (input.url ?? String(input)),
   );
+  if (url.hostname === "brasilapi.com.br") {
+    const cnpj = url.pathname.split("/").pop();
+    if (cnpj !== "00000000000191") return new Response("{}", { status: 404 });
+    return new Response(
+      JSON.stringify({
+        cnpj,
+        razao_social: "FORNECEDOR TESTE SA",
+        situacao_cadastral: 2,
+        descricao_situacao_cadastral: "ATIVA",
+        cnae_fiscal: 4649408,
+        cnae_fiscal_descricao: "Comércio atacadista",
+        uf: "MG",
+        municipio: "BELO HORIZONTE",
+      }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    );
+  }
   if (url.hostname !== "api.mercadolibre.com") return original(input, init);
   const seller = prefix + "100",
     item = "MLB999000001",

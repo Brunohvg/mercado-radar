@@ -9,7 +9,7 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 const schema = z.object({
-  itemId: z.string().trim().regex(/^MLB\d{5,15}$/i),
+  itemId: z.string().trim().regex(/^MLBU?\d{5,15}$/i),
   title: z.string().trim().min(2).max(200),
   permalink: opportunitySchema.shape.permalink,
   price: z.number().positive().max(10_000_000).nullable().optional(),

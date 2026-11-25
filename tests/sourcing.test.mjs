@@ -247,8 +247,9 @@ test("viabilidade: custo entregue rateia frete e usa o motor de margem", () => {
   assert.equal(v.order.units, 5000);
   assert.equal(v.order.sellableListings, 5);
   assert.equal(v.order.capital, 120);
-  assert.equal(v.landedUnitCost, 0.02);
-  assert.equal(v.perSale.purchaseCost, 20);
+  // 0,018 + 30/5000 de frete = 0,024 por peça; arredondar para 0,02 esconderia R$ 4 por venda.
+  assert.equal(v.landedUnitCost, 0.024);
+  assert.equal(v.perSale.purchaseCost, 24);
   assert.ok(v.perSale.profit > 0);
   assert.ok(v.plan.salesToRecoverCapital >= 1);
   assert.ok(!v.risks.some((r) => r.text.includes("estimativa")));
@@ -281,6 +282,14 @@ test("viabilidade: demanda limita o estoque e estimativa vira risco alto", () =>
   assert.ok(v.risks.some((r) => r.text.includes("Frete")));
 });
 
+test("custo máximo por peça preserva centavos fracionados", () => {
+  const value = maxUnitCostForMargin(sale);
+  assert.ok(value > 0.01 && value < 0.03, String(value));
+  assert.notEqual(Math.round(value * 100) / 100, value);
+  const tight = recommendNextAction({ sale, supplierCount: 1, quoteCount: 1, best: evaluateQuote(sale, quote) });
+  assert.match(tight.detail, /0,0\d{2,}/);
+});
+
 test("próxima ação segue a jornada", () => {
   assert.equal(
     recommendNextAction({ sale: { ...sale, salePrice: null }, supplierCount: 0, quoteCount: 0, best: null }).tab,
@@ -309,7 +318,7 @@ test("radar por capital filtra por dinheiro, perfil e margem", () => {
       { opportunityId: "a", title: "Ilhós", viability: good, supplierKind: "DISTRIBUIDOR", sellsToCpf: true, requiresCnpj: false },
       { opportunityId: "b", title: "Cola", viability: good, supplierKind: "DISTRIBUIDOR", sellsToCpf: false, requiresCnpj: true },
     ],
-    { capital: 200, profile: "CPF", minMarginPercent: 10 },
+    { capital: 200, profile: "CPF", minMarginPercent: 5 },
   );
   assert.deepEqual(result.matches.map((m) => m.opportunityId), ["a"]);
   assert.ok(result.excluded[0].reasons.includes("Não vende para CPF"));

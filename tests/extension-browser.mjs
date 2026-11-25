@@ -1093,6 +1093,14 @@ try {
               availability: "PAGE_ONLY",
               note: "A API restringiu esta oferta; a leitura da página permanece disponível.",
             });
+          if (message.path === "/api/extension/sourcing")
+            return ok({
+              id: "opp1",
+              reused: false,
+              notes: ["Produto de usuário (MLBU): identidade lida pelo título."],
+              url: "https://outro-servidor.invalid/onde-comprar/opp1",
+              identity: { brand: null, model: null, gtin: null, packQuantity: null, referencePrice: 19.9 },
+            });
           if (message.path === "/api/extension/watchlist")
             return ok({
               trackingMode: "PAGE",
@@ -1646,7 +1654,7 @@ try {
         .waitFor();
       for (const width of [280, 360, 460, 720]) {
         await page.setViewportSize({ width, height: 900 });
-        for (const tab of ["summary", "calculator", "market"]) {
+        for (const tab of ["summary", "calculator", "market", "suppliers"]) {
           await page.locator(`[data-tab="${tab}"]`).click();
           assert.equal(
             await page.evaluate(
@@ -1657,6 +1665,28 @@ try {
           );
         }
       }
+    },
+  );
+  await check(
+    "supplier tab saves the open listing without inventing identity",
+    async () => {
+      await page.setViewportSize({ width: 390, height: 900 });
+      await page.locator('[data-tab="suppliers"]').click();
+      await page.getByRole("button", { name: "Encontrar fornecedores" }).click();
+      await page.locator("#supplierIdentity").waitFor();
+      const request = await page.evaluate(() =>
+        __qa.calls.filter((m) => m.path === "/api/extension/sourcing").at(-1),
+      );
+      assert.equal(request.body.itemId, "MLBU5074600649");
+      assert.ok(request.body.price > 0);
+      const facts = await page.locator("#supplierIdentity").innerText();
+      assert.match(facts, /Marca\s+não informado/);
+      assert.match(facts, /R\$\s?19,90/);
+      assert.equal(await page.locator("#supplierLink").isHidden(), true);
+      assert.match(await page.locator("#supplierStatus").innerText(), /Produto salvo/);
+      if (artifacts)
+        await page.screenshot({ path: `${artifacts}/extension-suppliers.png`, fullPage: true });
+      await page.locator('[data-tab="summary"]').click();
     },
   );
   await check(

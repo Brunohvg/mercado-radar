@@ -333,6 +333,99 @@ try {
       assert.equal(r.json.pagination.pages, 3);
     },
   );
+  await check(
+    "sourcing journey: product, supplier, CNPJ, quote, viability and isolation",
+    async () => {
+      const created = await req("/api/sourcing/opportunities", cookieA, "POST", {
+        title: "Ilhós nº 54 Baxmann 1000 unidades",
+        brand: "Baxmann",
+        referencePrice: 42.9,
+        referenceSource: "MANUAL",
+      });
+      assert.equal(created.status, 201, created.text);
+      const id = created.json.opportunity.id;
+      assert.equal(created.json.opportunity.packQuantity, 1000);
+      let view = (await req("/api/sourcing/opportunities/" + id, cookieA)).json;
+      assert.equal(view.nextAction.title, "Encontrar fornecedores");
+      const search = await req(`/api/sourcing/opportunities/${id}/search`, cookieA, "POST");
+      assert.equal(search.status, 200, search.text);
+      assert.equal(search.json.search.status, "DESLIGADO");
+      assert.equal(search.json.search.candidates.length, 0);
+      assert.ok(search.json.search.manualLinks.length >= 3);
+      const bad = await req("/api/sourcing/suppliers", cookieA, "POST", {
+        name: "CNPJ errado", cnpj: "00.000.000/0001-92",
+      });
+      assert.equal(bad.status, 400);
+      const supplier = await req("/api/sourcing/suppliers", cookieA, "POST", {
+        name: "Distribuidor Teste",
+        kind: "DISTRIBUIDOR",
+        cnpj: "00.000.000/0001-91",
+        sellsToCpf: true,
+        opportunityId: id,
+      });
+      assert.equal(supplier.status, 201, supplier.text);
+      const supplierId = supplier.json.supplier.id;
+      const checked = await req(`/api/sourcing/suppliers/${supplierId}/cnpj`, cookieA, "POST");
+      assert.equal(checked.status, 200, checked.text);
+      assert.equal(checked.json.supplier.cnpjCheck.status, "ATIVA");
+      assert.equal(checked.json.supplier.state, "MG");
+      view = (await req("/api/sourcing/opportunities/" + id, cookieA)).json;
+      assert.equal(view.nextAction.title, "Solicitar cotação de atacado");
+      assert.equal(
+        view.suppliers[0].qualification.criteria.find((c) => c.key === "cnpj").state,
+        "OK",
+      );
+      const quote = await req("/api/sourcing/quotes", cookieA, "POST", {
+        opportunityId: id,
+        supplierId,
+        unitPrice: 0.018,
+        unitsPerPack: 1000,
+        minUnits: 5000,
+        freightCost: 30,
+        exactMatch: true,
+        source: "COTACAO_RECEBIDA",
+      });
+      assert.equal(quote.status, 201, quote.text);
+      assert.equal(quote.json.best.status, "FALTAM_DADOS");
+      assert.equal(quote.json.nextAction.title, "Completar custos de venda");
+      const filled = await req("/api/sourcing/opportunities/" + id, cookieA, "PATCH", {
+        commissionPercent: 12,
+        fixedFee: 6.25,
+        shippingCost: 0,
+        taxPercent: 6,
+        operatingCost: 1,
+        budget: 500,
+      });
+      assert.equal(filled.status, 200, filled.text);
+      assert.equal(filled.json.best.status, "CALCULADO");
+      assert.equal(filled.json.best.landedUnitCost < 0.03, true);
+      assert.notEqual(filled.json.best.landedUnitCost, 0.02);
+      assert.equal(filled.json.best.order.limitedBy, "ORCAMENTO");
+      assert.ok(filled.json.best.order.capital <= 500);
+      assert.ok(filled.json.best.perSale.profit > 0);
+      const capital = await req("/api/sourcing/capital", cookieA, "POST", {
+        capital: 200, profile: "CPF", minMarginPercent: 5,
+      });
+      assert.equal(capital.status, 200, capital.text);
+      assert.equal(capital.json.matches.length, 1);
+      // Workspace B never sees or changes A's sourcing data.
+      assert.equal((await req("/api/sourcing/opportunities/" + id, cookieB)).status, 404);
+      assert.equal((await req("/api/sourcing/opportunities", cookieB)).json.opportunities.length, 0);
+      assert.equal((await req("/api/sourcing/suppliers", cookieB)).json.suppliers.length, 0);
+      assert.equal(
+        (await req("/api/sourcing/quotes", cookieB, "POST", {
+          opportunityId: id, supplierId, unitPrice: 1, source: "ESTIMATIVA_USUARIO",
+        })).status,
+        404,
+      );
+      assert.equal(
+        (await req("/api/sourcing/opportunities/" + id, cookieB, "PATCH", { supplierIds: [supplierId] })).status,
+        404,
+      );
+      assert.equal((await req(`/api/sourcing/suppliers/${supplierId}/cnpj`, cookieB, "POST")).status, 404);
+      assert.equal((await req("/api/sourcing/opportunities")).status, 401);
+    },
+  );
   await check("sales never leak another client", async () => {
     const r = await req("/api/ml/sales?days=30", cookieB);
     assert.equal(r.json.summary.grossRevenue, 10000);

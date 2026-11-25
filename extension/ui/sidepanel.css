@@ -577,7 +577,7 @@ dialog .dialog-close {
 }
 .tabs {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   position: sticky;
   top: 0;
   background: #f6f6f5;
@@ -586,18 +586,29 @@ dialog .dialog-close {
   gap: 5px;
 }
 .tabs button {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: #736d64;
   background: transparent;
   font-size: 12px;
   margin: 0;
   min-height: 38px;
-  padding: 6px;
+  padding: 6px 2px;
 }
 .tabs button[aria-current="page"] {
-  color: #a84f0b;
-  background: #ebe8e3;
-  box-shadow: inset 0 0 0 1px #d8d2ca;
+  color: var(--text);
+  background: var(--surface);
+  box-shadow: inset 0 -3px 0 var(--signal), inset 0 0 0 1px var(--line-strong);
 }
+@media (max-width: 340px) {
+  .tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.supplier-card { border-top: 3px solid var(--signal); }
+#supplierIdentity div { display: flex; justify-content: space-between; gap: 8px; }
+#supplierIdentity dt { color: var(--text-2); }
+#supplierIdentity dd { margin: 0; font-weight: 600; text-align: right; }
 .section-head {
   display: flex;
   align-items: center;

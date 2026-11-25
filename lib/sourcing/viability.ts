@@ -109,7 +109,8 @@ export function maxUnitCostForMargin(sale: SaleContext, extraPerPiece = 0) {
     sale.shippingCost! -
     (sale.operatingCost ?? 0);
   const value = available / pieces - extraPerPiece;
-  return value > 0 ? Math.floor(value * 100) / 100 : 0;
+  // Peças baratas (ilhós, contas) precisam de 4 casas: R$ 0,0185 não é R$ 0,01.
+  return value > 0 ? Math.floor(value * 10000) / 10000 : 0;
 }
 
 export function evaluateQuote(sale: SaleContext, quote: QuoteInput): Viability {
@@ -154,7 +155,9 @@ export function evaluateQuote(sale: SaleContext, quote: QuoteInput): Viability {
 
   const goodsCost = round2(units * quote.unitPrice);
   const capital = round2(goodsCost + extraCosts);
-  const landedUnitCost = round2(quote.unitPrice + extraCosts / units);
+  // 4 casas: em peças de centavos, arredondar para 2 distorce o custo do lote.
+  const landedUnitCost =
+    Math.round((quote.unitPrice + extraCosts / units + Number.EPSILON) * 10000) / 10000;
   const sellableListings = Math.floor(units / saleUnits);
 
   const missing = missingSaleData(sale);
@@ -263,7 +266,11 @@ export function bestViability(results: Viability[]) {
 export type NextAction = { title: string; detail: string; tab: "mercado" | "fornecedores" | "margem" | "plano" };
 
 const brl = (value: number) =>
-  value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: Math.abs(value) < 1 ? 4 : 2,
+  });
 
 export function recommendNextAction(input: {
   sale: SaleContext;
@@ -302,7 +309,7 @@ export function recommendNextAction(input: {
       tab: "margem",
     };
   return {
-    title: `Planejar compra de ${best.order.units} unidades`,
+    title: `Planejar compra de ${best.order.units.toLocaleString("pt-BR")} unidades`,
     detail: `Investimento de ${brl(best.order.capital)} com ${best.supplierName}.`,
     tab: "plano",
   };

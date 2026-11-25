@@ -12,6 +12,7 @@ export const SECTION_TABS = {
     { href: "/promocoes", label: "Promoções" },
     { href: "/produtos", label: "Produtos" },
     { href: "/fornecedores", label: "Fornecedores" },
+    { href: "/reposicao", label: "Pedido de compra" },
   ],
 } as const;
 

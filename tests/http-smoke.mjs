@@ -371,6 +371,10 @@ try {
       assert.deepEqual([editedRow.status, editedRow.availableQuantity], ["paused", 12]);
       assert.equal((await db.query(`SELECT count(*)::int AS n FROM "PilotActionLog" WHERE kind='EDIT_LISTING' AND status='DONE'`)).rows[0].n, 1);
       await db.query('UPDATE "MercadoLivreProduct" SET status = $2, "availableQuantity" = 5 WHERE "mlItemId" = $1', ["MLB999000001", "active"]);
+      const po = await req("/api/purchase-order", cookieA);
+      assert.equal(po.status, 200, po.text);
+      assert.ok(Array.isArray(po.json.orders));
+      assert.equal((await req("/api/purchase-order", "")).status, 401);
       // Promoções: lucro no preço da campanha, só anúncios próprios, aceite com confirmação.
       const promos = await req("/api/promotions", cookieA);
       assert.equal(promos.status, 200, promos.text);

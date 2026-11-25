@@ -13,6 +13,7 @@ export type PilotProduct = {
   status: string;
   /** Custo líquido por unidade (já com desconto do fornecedor). */
   cost: number | null;
+  supplier?: string | null;
 };
 
 export type PilotSale = {

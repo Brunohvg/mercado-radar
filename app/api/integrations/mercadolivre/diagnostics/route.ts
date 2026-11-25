@@ -150,6 +150,52 @@ export async function GET() {
         feePath,
         "Custos por vender · parâmetros de anúncio próprio",
       ),
+      // Radar 2.0: sinais usados em "Onde comprar" e na extensão. Testados no
+      // anúncio da própria conta para separar permissão de falta de dado.
+      add(
+        "itemPrices",
+        "Preços e faixas por quantidade",
+        true,
+        itemId ? `/items/${itemId}/prices` : null,
+        "Publicação e sincronização · leitura",
+      ),
+      add(
+        "itemVisits",
+        "Visitas por anúncio (faixa de vendas)",
+        true,
+        itemId
+          ? `/items/${itemId}/visits/time_window?last=30&unit=day&ending=${new Date().toISOString().slice(0, 10)}`
+          : null,
+        "Métricas do negócio · leitura",
+      ),
+      add(
+        "questions",
+        "Perguntas dos compradores",
+        true,
+        itemId ? `/questions/search?item=${itemId}&limit=1&api_version=4` : null,
+        "Comunicações pré e pós-venda · leitura",
+      ),
+      add(
+        "reviews",
+        "Opiniões do produto",
+        true,
+        itemId ? `/reviews/item/${itemId}?limit=1` : null,
+        "Opiniões · leitura pública",
+      ),
+      add(
+        "publicUser",
+        "Reputação pública de vendedor",
+        true,
+        `/users/${seller}`,
+        "Usuários · leitura",
+      ),
+      add(
+        "categoryAttributes",
+        "Ficha obrigatória da categoria",
+        true,
+        detail?.category_id ? `/categories/${detail.category_id}/attributes` : null,
+        "Categorias · leitura pública",
+      ),
       add(
         "shippingCosts",
         "Custo de envio realizado",

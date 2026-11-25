@@ -1611,6 +1611,11 @@ try {
         "RESTRICTED",
       );
       assert.ok(!r.json.checks.some((c) => c.key === "application"));
+      const state = (key) => r.json.checks.find((c) => c.key === key)?.state;
+      assert.equal(state("itemPrices"), "AVAILABLE");
+      assert.equal(state("questions"), "AVAILABLE");
+      assert.equal(state("publicUser"), "AVAILABLE");
+      assert.match(r.json.checks.find((c) => c.key === "questions").grant, /Comunicações pré e pós-venda/);
     },
   );
   let secondDeviceToken;

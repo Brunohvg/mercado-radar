@@ -180,6 +180,8 @@ globalThis.fetch = async (input, init) => {
         { type: "standard", amount: 75, currency_id: "BRL", conditions: { context_restrictions: ["user_type_business"], min_purchase_unit: 50 } },
       ],
     });
+  if (url.pathname === `/users/${seller}`)
+    return json({ id: seller, nickname: "Teste A", seller_reputation: { level_id: "5_green" } });
   if (url.pathname === "/users/555001")
     return json({
       id: 555001,

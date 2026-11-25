@@ -7,7 +7,7 @@ export default function ProductsPage() {
     <main className="shell">
       <AppNavigation />
       <section className="content routed-content">
-        <SectionTabs section="anuncios" current="/produtos" />
+        <SectionTabs section="compras" current="/produtos" />
         <ProductsDashboard />
       </section>
     </main>

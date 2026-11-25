@@ -1,3 +1,4 @@
+import { SectionTabs } from "@/components/section-tabs";
 import type { Metadata } from "next";
 import { AppNavigation } from "@/components/app-navigation";
 import { MarketIntelligence } from "@/components/market-intelligence";
@@ -9,6 +10,7 @@ export default function MercadoPage() {
     <main className="shell">
       <AppNavigation />
       <section className="content routed-content">
+        <SectionTabs section="mercado" current="/mercado" />
         <MarketIntelligence />
       </section>
     </main>

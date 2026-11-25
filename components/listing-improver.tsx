@@ -73,7 +73,7 @@ export function ListingImprover() {
     <section className="improve-page">
       <header className="page-header clean-page-header">
         <div>
-          <p className="page-kicker">Anúncios</p>
+          <p className="page-kicker">Vender</p>
           <h1>Melhorar anúncio</h1>
           <p>O que falta no seu anúncio perto dos que mais vendem, com sugestões da IA e o preço pelos concorrentes. Nada muda no Mercado Livre sem o seu clique.</p>
         </div>

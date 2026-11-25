@@ -11,9 +11,17 @@ export const SECTION_TABS = {
     { href: "/anuncios", label: "Anúncios" },
     { href: "/melhorar-anuncio", label: "Melhorar com IA" },
     { href: "/promocoes", label: "Promoções" },
-    { href: "/produtos", label: "Produtos" },
-    { href: "/fornecedores", label: "Fornecedores" },
+    { href: "/publicidade", label: "Publicidade" },
+  ],
+  compras: [
     { href: "/reposicao", label: "Pedido de compra" },
+    { href: "/produtos", label: "Produtos e custos" },
+    { href: "/fornecedores", label: "Fornecedores" },
+  ],
+  mercado: [
+    { href: "/monitoramento", label: "Monitoramento" },
+    { href: "/mercado", label: "Preços do mercado" },
+    { href: "/oportunidades", label: "Oportunidades" },
   ],
 } as const;
 

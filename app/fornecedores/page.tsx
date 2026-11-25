@@ -7,7 +7,7 @@ export default function SuppliersPage() {
     <main className="shell">
       <AppNavigation />
       <section className="content routed-content">
-        <SectionTabs section="anuncios" current="/fornecedores" />
+        <SectionTabs section="compras" current="/fornecedores" />
         <SuppliersDashboard />
       </section>
     </main>

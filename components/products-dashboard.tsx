@@ -264,7 +264,7 @@ export function ProductsDashboard() {
     <section className="products-page">
       <header className="page-header clean-page-header">
         <div>
-          <p className="page-kicker">Operação</p>
+          <p className="page-kicker">Comprar</p>
           <h1>Produtos</h1>
           <p>Quanto cada produto deixa, quanto capital está parado e quando repor.</p>
         </div>

@@ -469,7 +469,7 @@ export function OpportunityRadar() {
     <section className="opportunity-page">
       <header className="page-header clean-page-header opportunity-page-header">
         <div>
-          <p className="page-kicker">Inteligência</p>
+          <p className="page-kicker">Mercado</p>
           <h1>Radar de oportunidades</h1>
           <p>
             Pesquise produtos e compare demanda, preço e potencial antes de

@@ -33,7 +33,7 @@ export function PurchaseOrders() {
     <section className="po-page">
       <header className="page-header clean-page-header">
         <div>
-          <p className="page-kicker">Operação</p>
+          <p className="page-kicker">Comprar</p>
           <h1>Pedido de compra</h1>
           <p>
             O que vai acabar antes da próxima entrega, separado por fornecedor, com a quantidade e o valor. Ajuste as

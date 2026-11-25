@@ -202,7 +202,7 @@ export function AdvertisingDashboard() {
     <section className="ads-page">
       <header className="page-header clean-page-header">
         <div>
-          <p className="page-kicker">Operação</p>
+          <p className="page-kicker">Vender</p>
           <h1>Publicidade x margem</h1>
           <p>Quanto cada anúncio patrocinado gasta perto do lucro que o produto deixa. Primeiro os que comem a sua margem.</p>
         </div>

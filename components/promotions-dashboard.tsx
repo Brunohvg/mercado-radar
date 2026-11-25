@@ -55,7 +55,7 @@ export function PromotionsDashboard() {
     <section className="promotions-page">
       <header className="page-header clean-page-header">
         <div>
-          <p className="page-kicker">Operação</p>
+          <p className="page-kicker">Vender</p>
           <h1>Promoções do Mercado Livre</h1>
           <p>
             Cada convite de campanha com o lucro que sobra no preço da promoção. Aceite só o que fica acima da

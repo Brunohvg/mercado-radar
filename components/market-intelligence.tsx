@@ -550,7 +550,7 @@ export function MarketIntelligence() {
     <section className="market-page" aria-busy={loading}>
       <header className="page-header clean-page-header">
         <div>
-          <p className="page-kicker">Inteligência de mercado</p>
+          <p className="page-kicker">Mercado</p>
           <h1>Encontre seu próximo produto</h1>
           <p>
             Compare demanda, preço e potencial dos anúncios que você pesquisou.

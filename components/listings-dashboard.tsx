@@ -352,7 +352,7 @@ export function ListingsDashboard() {
     <section className="listings-page">
       <header className="page-header clean-page-header">
         <div>
-          <p className="page-kicker">Operação</p>
+          <p className="page-kicker">Vender</p>
           <h1>Anúncios</h1>
           <p>
             Veja qual anúncio pede ajuste de preço, estoque ou atenção — e qual

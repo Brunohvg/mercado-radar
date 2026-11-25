@@ -7,7 +7,7 @@ export default function PurchaseOrderPage() {
     <main className="shell">
       <AppNavigation />
       <section className="content routed-content">
-        <SectionTabs section="anuncios" current="/reposicao" />
+        <SectionTabs section="compras" current="/reposicao" />
         <PurchaseOrders />
       </section>
     </main>

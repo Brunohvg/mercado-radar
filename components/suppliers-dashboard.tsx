@@ -129,7 +129,7 @@ export function SuppliersDashboard() {
     <section className="suppliers-page">
       <header className="page-header clean-page-header">
         <div>
-          <p className="page-kicker">Operação</p>
+          <p className="page-kicker">Comprar</p>
           <h1>Fornecedores</h1>
           <p>Quem vende para você, como falar com cada um e quanto do seu estoque vem de cada fornecedor.</p>
         </div>

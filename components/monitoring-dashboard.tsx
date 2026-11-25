@@ -239,7 +239,7 @@ export function MonitoringDashboard() {
     <section className="monitoring-page">
       <header className="page-header clean-page-header">
         <div>
-          <p className="page-kicker">Inteligência</p>
+          <p className="page-kicker">Mercado</p>
           <h1>Monitoramento</h1>
           <p>
             Preço e leituras dos anúncios que você salvou. Dados privados

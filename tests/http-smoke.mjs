@@ -358,6 +358,14 @@ try {
       const log = await db.query('SELECT kind, status FROM "PilotActionLog" ORDER BY "createdAt"');
       assert.deepEqual(log.rows.map((r) => r.kind + ":" + r.status), ["ANSWER_QUESTION:DONE", "UPDATE_PRICE:DONE"]);
       await db.query('UPDATE "MercadoLivreProduct" SET "currentPrice" = 100 WHERE "mlItemId" = $1', ["MLB999000001"]);
+      await db.query('UPDATE "MercadoLivreProduct" SET "categoryId" = $2 WHERE "mlItemId" = $1', ["MLB999000001", "MLB1234"]);
+      const hunter = await req("/api/hunter?refresh=1", cookieA);
+      assert.equal(hunter.status, 200, hunter.text);
+      assert.equal(hunter.json.seeds[0].id, "MLB1234");
+      const found = hunter.json.candidates.find((c) => c.productId === "MLB88800001");
+      assert.ok(found, hunter.text.slice(0, 800));
+      assert.ok(found.reasons.some((r) => /3º mais vendido/.test(r)));
+      assert.ok(found.maxCost == null || found.formula);
       for (const row of r.json.missingCosts) {
         assert.match(row.mlItemId, /^MLB/);
         assert.ok(row.units > 0);

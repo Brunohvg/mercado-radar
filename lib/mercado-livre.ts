@@ -1330,6 +1330,7 @@ export async function getCatalogProductDetails(input: {
     settings?: { listing_strategy?: string; exclusive?: boolean; content?: string };
     sold_quantity?: number;
     permalink?: string;
+    pictures?: Array<{ id?: string; url?: string }>;
     attributes?: Array<{
       id?: string;
       name?: string;

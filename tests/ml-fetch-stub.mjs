@@ -257,6 +257,12 @@ globalThis.fetch = async (input, init) => {
     return json({
       results: [{ id: "MLB88800001", name: "Caneta catálogo fixture", status: "active", pictures: [{ url: "https://http2.mlstatic.com/fixture.jpg" }] }],
     });
+  if (url.pathname === "/highlights/MLB/category/MLB1234")
+    return json({ content: [{ id: "MLB88800001", position: 3, type: "PRODUCT" }, { id: "MLB777000001", position: 5, type: "ITEM" }] });
+  if (url.pathname === "/trends/MLB/MLB1234")
+    return json([{ keyword: "ilhós 54" }, { keyword: "alicate ilhós" }]);
+  if (url.pathname === "/products/MLB88800001")
+    return json({ id: "MLB88800001", name: "Caneta Fantasminha Montovani Kit 2", permalink: "https://www.mercadolivre.com.br/p/MLB88800001", pictures: [{ url: "https://http2.mlstatic.com/fixture.jpg" }] });
   if (url.pathname === "/products/MLB88800001/items")
     return json({
       paging: { total: 52 },

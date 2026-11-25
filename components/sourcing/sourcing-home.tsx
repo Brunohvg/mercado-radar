@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { HunterPanel } from "./hunter-panel";
 import { api, brl, dateBr, parseNumber, pct, STATUS_LABEL } from "./format";
 
 type OpportunityRow = {
@@ -99,6 +100,8 @@ export function SourcingHome() {
           ))}
         </ol>
       </header>
+
+      <HunterPanel />
 
       <div className="vr-grid-2">
         <section className="vr-card" aria-labelledby="vr-new">

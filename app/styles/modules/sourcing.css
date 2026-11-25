@@ -198,3 +198,30 @@
 .vr-sources { display: flex; flex-wrap: wrap; gap: 6px; overflow-wrap: anywhere; }
 .vr-ai-note { display: grid; gap: var(--s-2); }
 .vr-search-entry { width: 100%; height: 72px; border: 0; background: transparent; }
+
+/* Caçador do próximo produto */
+.hunter-head { display: flex; justify-content: space-between; gap: var(--s-3); align-items: flex-start; }
+.hunter-head h2 { margin: 0 0 4px; }
+.hunter-seeds { display: grid; gap: var(--s-2); }
+.hunter-seeds > div { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; font-size: var(--fs-13); }
+.hunter-seeds a { text-decoration: none; }
+.hunter-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.hunter-list li { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: var(--s-3); align-items: center; padding: var(--s-3); border: 1px solid var(--line); border-radius: var(--r-sm); }
+.hunter-list img, .hunter-ph { width: 56px; height: 56px; object-fit: contain; border-radius: var(--r-sm); background: var(--surface-3); }
+.hunter-main { display: grid; gap: 2px; min-width: 0; }
+.hunter-name { font-weight: 600; color: var(--ink-900); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hunter-meta, .hunter-reasons { font-size: var(--fs-13); color: var(--ink-500); }
+.hunter-reasons { color: var(--ok); }
+.hunter-warn { font-size: var(--fs-12); color: var(--warn-ink); }
+.hunter-main details summary { cursor: pointer; font-size: var(--fs-12); color: var(--info); }
+.hunter-main details p { margin: 4px 0 0; font-size: var(--fs-12); color: var(--ink-500); }
+.hunter-side { display: grid; gap: 4px; justify-items: end; text-align: right; }
+.hunter-side strong { font-size: 20px; }
+.hunter-side .good { color: var(--ok); }
+.hunter-side .bad { color: var(--risk); }
+.hunter-label { font-size: var(--fs-12); color: var(--ink-500); }
+.hunter-notes { margin: 0; padding-left: 18px; font-size: var(--fs-12); color: var(--warn-ink); }
+@media (max-width: 720px) {
+  .hunter-list li { grid-template-columns: 48px minmax(0, 1fr); }
+  .hunter-side { grid-column: 1 / -1; justify-items: start; text-align: left; }
+}

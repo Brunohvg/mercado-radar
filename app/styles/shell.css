@@ -41,7 +41,7 @@
   height: 100vh;
   padding: var(--s-5) var(--s-3) var(--s-4);
   background:
-    radial-gradient(120% 60% at 0% 0%, rgba(245, 165, 36, 0.07), transparent 60%),
+    radial-gradient(120% 60% at 0% 0%, rgba(0, 209, 230, 0.07), transparent 60%),
     var(--night);
   color: var(--night-text);
   border-right: 1px solid var(--night-line);
@@ -75,7 +75,7 @@
   height: 34px;
   border-radius: 9px;
   overflow: hidden;
-  box-shadow: 0 0 0 1px rgba(245, 165, 36, 0.18);
+  box-shadow: 0 0 0 1px rgba(0, 209, 230, 0.18);
 }
 
 .brand-mark img {
@@ -210,7 +210,7 @@
   flex: none;
   padding: 1px 7px;
   border-radius: var(--r-pill);
-  background: rgba(245, 165, 36, 0.16);
+  background: rgba(0, 209, 230, 0.16);
   color: var(--signal);
   font-size: var(--fs-11);
   font-weight: 600;
@@ -265,7 +265,7 @@
   height: 8px;
   border-radius: 50%;
   background: var(--signal);
-  box-shadow: 0 0 0 3px rgba(245, 165, 36, 0.16);
+  box-shadow: 0 0 0 3px rgba(0, 209, 230, 0.16);
 }
 
 .sidebar-account-status.is-offline {
@@ -386,7 +386,7 @@
     inset: 0;
     z-index: 45;
     display: block;
-    background: rgba(22, 24, 29, 0.45);
+    background: rgba(11, 17, 32, 0.45);
   }
 
   .sidebar,

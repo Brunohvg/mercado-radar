@@ -1,25 +1,29 @@
-# Etapa 4: marca e identidade
+# Etapa 4: marca e identidade (família Vidalys)
 
-**Nome:** Vidalys Radar (mantido; coerente com Vidalys Flow, Pay e Fideliza e não limita a Mercado Livre).
-**Assinatura:** Inteligência para revender. **Promessa:** Encontre o produto, encontre o fornecedor, descubra sua margem.
+**Nome:** Vidalys Radar. **Assinatura:** Inteligência para revender. **Promessa:** Encontre o produto, encontre o fornecedor, descubra sua margem.
 Busca de anterioridade no INPI ainda não feita.
 
-## Paleta Sinal
+## Alinhamento com a família
 
-| Papel | Cor | Uso |
+Referências lidas em 25/11/2026: `vidalys-fideliza/brand/tokens.css` e logos, `vidalys-pay/static/css/tokens.css` e `static/brand`.
+A primeira proposta (paleta âmbar "Sinal") foi substituída para o Radar parecer da mesma família.
+
+| Elemento | Família | Radar |
 | --- | --- | --- |
-| Grafite | `#16181D` | Barra lateral, botões principais, texto |
-| Âmbar | `#F5A524` | "Blip" do radar: próxima ação, aba ativa, destaque. Nunca em texto sobre fundo claro |
-| Âmbar escuro | `#B45309` | Links, títulos de seção, botões da extensão (contraste AA sobre branco) |
-| Areia | `#FAF8F5` | Fundo |
-| Pedra | `#6B7280` | Texto secundário |
-| Verde `#15803D` / Vermelho `#B93A2B` | Só margem positiva e risco/prejuízo |
+| Base escura | Grafite `#0B1120` / navy `#0C2A6C→#04102B` | Barra lateral, hero, "próxima ação" |
+| Azul Vidalys | `#1263FF` (Fideliza) / `#2563FF` (Pay) | Botões, links, nome "Radar" no logotipo |
+| Ciano | `#00D1E6` / `#19D5D8` | Sinal do radar: aba ativa, próxima ação, ponto do símbolo |
+| Gradiente | ciano → `#15AFFF` → azul | Monograma V |
+| Fundo | `#F3F5F9` | Fundo do painel e da extensão |
+| Texto secundário | `#526071` | |
+| Sucesso / alerta / perigo | `#16A36A` / `#D97706` / `#D92D20` | Só margem, atenção e risco |
+| Fonte | Manrope (Inter de reserva) | Painel e extensão (arquivo local, SIL OFL) |
+| Raios | 10 / 16 / 24 | 10 / 12 / 16 |
 
-Por que: petróleo/menta é o visual padrão de fintech, e a marca verde se confundia com "dá lucro" (o próprio `DESIGN_SYSTEM.md` dizia "verde só significa saudável").
+Com a marca azul, verde e vermelho continuam exclusivos de margem e risco (o problema original do verde da marca).
 
-## O que mudou
+## Símbolo
 
-- Tokens do painel (`app/styles/tokens.css`) e da extensão (`extension/ui/tokens.css`).
-- Cores fixas da extensão (`sidepanel.css`, `content.js`, `product-analysis.js`) remapeadas: teal da marca → âmbar escuro, neutros esverdeados → areia/grafite. Verdes semânticos (lucro, demanda alta) preservados.
-- Novo símbolo: quadrado grafite com arcos de radar e um ponto âmbar (`public/brand/mark.svg`, `logo.svg`, `social-card.svg`, `app/icon.svg`, ícones PNG da extensão).
-- Nome "Mercado Radar" → "Vidalys Radar" em telas, manifest, metadados e instaladores. Pastas, domínio e identificadores técnicos não mudaram.
+Monograma V em gradiente da família (mesma geometria do Fideliza) sobre quadrado navy, com ondas e ponto ciano de radar. Logotipo em duas cores como os irmãos: "Vidalys" grafite + "Radar" azul.
+
+Arquivos: `public/brand/mark.svg`, `logo.svg`, `social-card.svg`, `app/icon.svg`, `extension/icons/*.png`, fontes em `public/fonts` e `extension/ui/fonts`.

@@ -1,4 +1,4 @@
-/* Vidalys Radar 2.0 — Onde comprar. Âmbar = oportunidade/ação; verde e vermelho só para margem e risco. */
+/* Vidalys Radar 2.0 — Onde comprar. Azul Vidalys = ação; ciano = sinal do radar; verde e vermelho só para margem e risco. */
 .vr { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; color: var(--ink-900); }
 .vr h1 { margin: 0; font-size: var(--fs-28); line-height: 1.15; letter-spacing: -0.01em; }
 .vr h2 { margin: 0 0 var(--s-3); font-size: var(--fs-18); }
@@ -12,7 +12,7 @@
 .vr-notice { margin: 0; padding: var(--s-2) var(--s-4); border-radius: var(--r-sm); background: var(--surface-3); color: var(--ink-700); font-size: var(--fs-13); }
 .vr-warn { margin: var(--s-2) 0 0; padding: var(--s-2) var(--s-3); border-radius: var(--r-sm); background: var(--warn-tint); color: var(--warn-ink); font-size: var(--fs-13); }
 
-.vr-hero { padding: var(--s-8); border-radius: var(--r-lg); background: var(--night); color: var(--night-text); position: relative; overflow: hidden; }
+.vr-hero { padding: var(--s-8); border-radius: var(--r-lg); background: var(--night-gradient); color: var(--night-text); position: relative; overflow: hidden; }
 .vr-hero::after { content: ""; position: absolute; right: -120px; bottom: -160px; width: 420px; height: 420px; border-radius: 50%; border: 2px solid rgba(250, 248, 245, 0.06); box-shadow: 0 0 0 60px rgba(250, 248, 245, 0.03), 0 0 0 120px rgba(250, 248, 245, 0.02); pointer-events: none; }
 .vr-hero h1 { color: #fff; max-width: 760px; }
 .vr-hero .vr-kicker { color: var(--signal); }
@@ -35,8 +35,8 @@
 .vr-form--row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-3); }
 .vr-form--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
-.vr-btn { align-self: flex-start; font: inherit; font-weight: 600; font-size: var(--fs-14); padding: 10px 16px; border-radius: var(--r-sm); border: 1px solid var(--ink-900); background: var(--ink-900); color: #fff; cursor: pointer; }
-.vr-btn:hover:not(:disabled) { background: var(--ink-700); }
+.vr-btn { align-self: flex-start; font: inherit; font-weight: 600; font-size: var(--fs-14); padding: 10px 16px; border-radius: var(--r-sm); border: 1px solid var(--brand); background: var(--brand); color: #fff; cursor: pointer; }
+.vr-btn:hover:not(:disabled) { background: var(--brand-600); border-color: var(--brand-600); }
 .vr-btn:focus-visible { outline: none; box-shadow: var(--focus); }
 .vr-btn:disabled { opacity: 0.55; cursor: default; }
 .vr-btn--ghost { background: var(--surface); color: var(--ink-900); border-color: var(--line-strong); }
@@ -79,7 +79,7 @@
 .vr-next strong { grid-area: title; font-size: var(--fs-18); color: #fff; }
 .vr-next > span:not(.vr-next-label) { grid-area: detail; font-size: var(--fs-14); color: var(--night-muted); }
 .vr-next .vr-btn { grid-area: btn; background: var(--signal); border-color: var(--signal); color: var(--night); }
-.vr-next .vr-btn:hover { background: #ffb53d; }
+.vr-next .vr-btn:hover { background: #4fe3f1; }
 
 .vr-tabs { display: flex; gap: var(--s-1); border-bottom: 1px solid var(--line); overflow-x: auto; }
 .vr-tabs button { font: inherit; font-weight: 600; font-size: var(--fs-14); padding: 10px 16px; border: 0; border-bottom: 3px solid transparent; background: none; color: var(--ink-500); cursor: pointer; display: inline-flex; gap: var(--s-2); align-items: center; white-space: nowrap; }
@@ -116,7 +116,7 @@
 .vr-quote { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-3); align-items: center; padding: var(--s-2) var(--s-3); border-radius: var(--r-sm); background: var(--surface-2); font-size: var(--fs-13); }
 .vr-quote-form { padding: var(--s-4); border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--line); }
 .vr-source { white-space: nowrap; padding: 1px 8px; border-radius: var(--r-pill); font-size: var(--fs-11); font-weight: 700; }
-.vr-source--cotacao_recebida { background: var(--night); color: #fff; }
+.vr-source--cotacao_recebida { background: var(--brand); color: #fff; }
 .vr-source--preco_publicado { background: var(--surface-3); color: var(--ink-700); }
 .vr-source--estimativa_usuario { background: transparent; color: var(--ink-500); border: 1px dashed var(--ink-400); }
 

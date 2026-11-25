@@ -353,8 +353,6 @@ export function ProductsDashboard() {
                   <thead>
                     <tr>
                       <th>Produto</th>
-                      <th>Tipo</th>
-                      <th>SKU</th>
                       <th>Fornecedor</th>
                       <th className="is-num">Estoque</th>
                       <th className="is-num">Preço</th>
@@ -382,19 +380,9 @@ export function ProductsDashboard() {
                               )}
                               <div>
                                 <strong>{product.title}</strong>
-                                <small>{product.mlItemId}</small>
+                                <small>{[product.mlItemId, product.sku ? "SKU " + product.sku : null, listingLabel(product.listingTypeId)].filter(Boolean).join(" · ")}</small>
                               </div>
                             </div>
-                          </td>
-                          <td>
-                            <span className="neutral-chip">
-                              {listingLabel(product.listingTypeId)}
-                            </span>
-                          </td>
-                          <td className="products-sku">
-                            {product.sku ?? (
-                              <span className="table-muted">Sem SKU</span>
-                            )}
                           </td>
                           <td>
                             {product.supplier ? (
@@ -463,7 +451,7 @@ export function ProductsDashboard() {
 
                         {costEditorId === product.mlItemId && (
                           <tr className="product-editor-row">
-                            <td colSpan={9}>
+                            <td colSpan={7}>
                               <div className="product-inline-editor">
                                 <div className="product-inline-editor-head">
                                   <div>

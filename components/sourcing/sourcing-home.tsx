@@ -28,15 +28,6 @@ type CapitalMatch = {
   };
 };
 
-const JOURNEY = [
-  ["Encontre", "o produto"],
-  ["Localize", "fornecedores"],
-  ["Qualifique", "quem vende"],
-  ["Descubra", "sua margem"],
-  ["Planeje", "o investimento"],
-  ["Comece", "a vender"],
-];
-
 export function SourcingHome() {
   const router = useRouter();
   const [rows, setRows] = useState<OpportunityRow[] | null>(null);
@@ -88,17 +79,12 @@ export function SourcingHome() {
 
   return (
     <div className="vr">
-      <header className="vr-hero">
-        <p className="vr-kicker">Vidalys Radar · Inteligência para revender</p>
-        <h1>Encontre o produto, encontre o fornecedor, descubra sua margem.</h1>
-        <ol className="vr-journey" aria-label="Jornada">
-          {JOURNEY.map(([verb, rest], index) => (
-            <li key={verb}>
-              <span className="vr-journey-n">{index + 1}</span>
-              <strong>{verb}</strong> {rest}
-            </li>
-          ))}
-        </ol>
+      <header className="page-header clean-page-header">
+        <div>
+          <p className="page-kicker">Onde comprar</p>
+          <h1>O que revender e de quem comprar</h1>
+          <p>Produtos com demanda nas suas categorias, fornecedores e quanto você pode pagar para ter margem.</p>
+        </div>
       </header>
 
       <HunterPanel />

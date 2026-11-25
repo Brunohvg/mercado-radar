@@ -265,6 +265,7 @@ export function MonitoringDashboard() {
 
       {!loading && (
         <>
+          {summary.total > 0 && (
           <section className="clean-kpi-grid">
             <article className="clean-kpi-card">
               <span>Monitorados</span>
@@ -272,9 +273,9 @@ export function MonitoringDashboard() {
               <small>anúncios acompanhados</small>
             </article>
             <article className="clean-kpi-card">
-              <span>Score 70 ou mais</span>
+              <span>Boas oportunidades</span>
               <strong>{summary.highScore}</strong>
-              <small>maior aderência atual</small>
+              <small>nota do Radar 70 ou mais</small>
             </article>
             <article className="clean-kpi-card">
               <span>Demanda alta</span>
@@ -282,11 +283,12 @@ export function MonitoringDashboard() {
               <small>demanda alta ou excelente</small>
             </article>
             <article className="clean-kpi-card accent">
-              <span>Momentum 70 ou mais</span>
+              <span>Vendendo mais rápido</span>
               <strong>{summary.momentumStrong}</strong>
-              <small>{summary.momentumReady} com histórico suficiente</small>
+              <small>de {summary.momentumReady} com histórico suficiente</small>
             </article>
           </section>
+          )}
 
           {alerts.length > 0 && (
             <section className="clean-panel monitoring-alerts-panel">

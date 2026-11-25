@@ -94,58 +94,6 @@ export default function ExtensionPage() {
               </li>
             </ol>
           </section>
-
-          <section className="clean-panel extension-install-status">
-            <div className="clean-panel-head">
-              <div>
-                <span>Status</span>
-                <strong>Extensão pronta para testes locais</strong>
-              </div>
-            </div>
-            <div className="clean-mini-grid">
-              <div>
-                <span>Leitura da página</span>
-                <strong>Ativa</strong>
-                <small>
-                  sem login: preço, texto de vendidos e avaliações, quando exibidos
-                </small>
-              </div>
-              <div>
-                <span>Comparação de preços</span>
-                <strong>Ativos</strong>
-                <small>
-                  marque anúncios na busca e leve a amostra revisada ao painel
-                </small>
-              </div>
-              <div>
-                <span>Ferramentas contextuais</span>
-                <strong>Ativo</strong>
-                <small>
-                  indicadores públicos sem login e calculadora manual no painel
-                </small>
-              </div>
-              <div>
-                <span>Atualização</span>
-                <strong>Manual</strong>
-                <small>
-                  atualize os arquivos, recarregue a extensão no Chrome e a aba
-                  do Mercado Livre
-                </small>
-              </div>
-            </div>
-          </section>
-
-          <section className="clean-panel extension-install-note">
-            <div>
-              <strong>Por que ainda há três cliques no Chrome?</strong>
-              <p>
-                Extensões fora da Chrome Web Store não podem ser instaladas
-                silenciosamente por um site comum. Quando publicarmos a versão
-                oficial, este fluxo será substituído por um botão direto para
-                “Adicionar ao Chrome”.
-              </p>
-            </div>
-          </section>
         </section>
       </section>
     </main>

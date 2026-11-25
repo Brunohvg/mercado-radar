@@ -51,12 +51,6 @@ const percent = (n: number | null) =>
   n == null
     ? "—"
     : `${n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
-const tone = (action: string) =>
-  action === "STOP_BUYING"
-    ? "bad"
-    : ["MAINTAIN", "RESTOCK"].includes(action)
-      ? "good"
-      : "attention";
 
 export function ExecutiveDashboard() {
   const [days, setDays] = useState(30);
@@ -64,7 +58,6 @@ export function ExecutiveDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState("ALL");
   const run = useRef(0);
   const load = useCallback(async () => {
     const current = ++run.current;
@@ -125,19 +118,10 @@ export function ExecutiveDashboard() {
   }
   const visible = data?.days === days ? data : null;
   const decisions = visible?.decisions ?? [];
-  const attention = decisions.filter(
-    (d) => !["MAINTAIN", "OBSERVE"].includes(d.action),
-  );
   const inventoryCapital = decisions.reduce(
     (sum, d) => sum + (d.inventoryCapital ?? 0),
     0,
   );
-  const rows =
-    filter === "ALL"
-      ? decisions
-      : filter === "ATTENTION"
-        ? attention
-        : decisions.filter((d) => d.action === filter);
   const summary = visible?.summary;
   const coverage = summary?.profitCoveragePercent;
   return (
@@ -172,37 +156,6 @@ export function ExecutiveDashboard() {
         </div>
       </header>
       <PilotBriefing />
-      <section
-        className="radar-discover clean-panel"
-        aria-label="Pesquisar uma oportunidade"
-      >
-        <div>
-          <p className="page-kicker">Sua próxima oportunidade</p>
-          <h2>O que você está pensando em vender?</h2>
-          <p>
-            Cole o link do anúncio ou digite o produto. Mostramos fornecedores
-            e quanto você pode pagar para ter lucro.
-          </p>
-        </div>
-        <form action="/onde-comprar" method="GET">
-          <label className="sr-only" htmlFor="dashboard-product-search">
-            Produto para pesquisar
-          </label>
-          <input
-            id="dashboard-product-search"
-            type="search"
-            name="q"
-            minLength={2}
-            maxLength={300}
-            required
-            placeholder="Link do anúncio ou nome do produto"
-          />
-          <button className="clean-primary" type="submit">
-            Começar →
-          </button>
-        </form>
-        <Link href="/analisar">Só quero calcular o lucro de um anúncio →</Link>
-      </section>
       {error && (
         <div className="error" role="alert">
           {error} <button onClick={() => void load()}>Tentar novamente</button>
@@ -252,17 +205,6 @@ export function ExecutiveDashboard() {
               </Link>
             </div>
           )}
-          {visible.configured && !visible.reportComplete && (
-            <div className="radar-notice">
-              <div>
-                <strong>Histórico parcial ou desatualizado</strong>
-                <p>
-                  Atualize os dados para conferir o período completo. Reposição
-                  depende de 30 dias de histórico recente.
-                </p>
-              </div>
-            </div>
-          )}
           <section
             className="clean-kpi-grid"
             aria-label="Indicadores do período"
@@ -295,7 +237,10 @@ export function ExecutiveDashboard() {
             <article className="clean-kpi-card">
               <span>Margem conhecida</span>
               <strong>{percent(summary?.realizedMarginPercent ?? null)}</strong>
-              <small>Somente vendas com custos conferidos</small>
+              <small>
+                {coverage == null ? "sem vendas no período" : `em ${coverage.toFixed(0)}% da receita · `}
+                {coverage != null && <Link href="/vendas">ver vendas</Link>}
+              </small>
             </article>
             <article className="clean-kpi-card">
               <span>Capital conhecido em estoque</span>
@@ -311,169 +256,36 @@ export function ExecutiveDashboard() {
             </article>
           </section>
           <section
-            className="radar-evidence clean-panel"
-            aria-label="Confiabilidade dos resultados"
+            className="radar-discover clean-panel"
+            aria-label="Pesquisar uma oportunidade"
           >
             <div>
-              <strong>Quanto do lucro já conseguimos apurar?</strong>
+              <p className="page-kicker">Sua próxima oportunidade</p>
+              <h2>O que você está pensando em vender?</h2>
               <p>
-                {coverage == null
-                  ? "Ainda não há vendas pagas no período."
-                  : `${coverage.toFixed(0)}% da receita tem custos completos. ${summary?.awaitingCostCount ?? 0} pedido(s) aguardam conferência.`}
+                Cole o link do anúncio ou digite o produto. Mostramos fornecedores
+                e quanto você pode pagar para ter lucro.
               </p>
             </div>
-            <div className="radar-coverage">
-              <progress
-                value={coverage ?? 0}
-                max="100"
-                aria-label="Receita com custos completos"
+            <form action="/onde-comprar" method="GET">
+              <label className="sr-only" htmlFor="dashboard-product-search">
+                Produto para pesquisar
+              </label>
+              <input
+                id="dashboard-product-search"
+                type="search"
+                name="q"
+                minLength={2}
+                maxLength={300}
+                required
+                placeholder="Link do anúncio ou nome do produto"
               />
-              <b>{percent(coverage ?? null)}</b>
-            </div>
-            <Link href="/vendas">Conferir vendas →</Link>
-          </section>
-          <div className="radar-section-head">
-            <div>
-              <p className="page-kicker">Prioridades · últimos 30 dias</p>
-              <h2>O que merece sua atenção</h2>
-            </div>
-            <span className="table-status attention">
-              {attention.length}{" "}
-              {attention.length === 1
-                ? "ação para revisar"
-                : "ações para revisar"}
-            </span>
-          </div>
-          <div
-            className="radar-filter-bar"
-            role="group"
-            aria-label="Filtrar decisões"
-          >
-            {[
-              ["ALL", "Todos"],
-              ["ATTENTION", "Precisam de atenção"],
-              ["RESTOCK", "Reposição"],
-              ["ADD_COST", "Sem custo"],
-              ["STOP_BUYING", "Margem em risco"],
-            ].map(([key, label]) => (
-              <button
-                key={key}
-                aria-pressed={filter === key}
-                className={filter === key ? "active" : ""}
-                onClick={() => setFilter(key)}
-              >
-                {label}
+              <button className="clean-primary" type="submit">
+                Começar →
               </button>
-            ))}
-          </div>
-          {!rows.length && (
-            <div className="radar-empty clean-panel">
-              <h3>
-                {decisions.length
-                  ? "Nenhum produto neste filtro"
-                  : "Seu radar está pronto para receber produtos"}
-              </h3>
-              <p>
-                {decisions.length
-                  ? "Escolha outro filtro para continuar a análise."
-                  : "Atualize os dados para importar seus anúncios e, em Produtos, cadastre os custos de compra."}
-              </p>
-              <Link href="/produtos">Abrir produtos →</Link>
-            </div>
-          )}
-          <div className="radar-decision-grid">
-            {rows.slice(0, 12).map((item) => (
-              <article
-                className={
-                  "radar-decision-card clean-panel " + tone(item.action)
-                }
-                key={item.mlItemId}
-              >
-                <div className="radar-decision-top">
-                  <span className={"table-status " + tone(item.action)}>
-                    {item.label}
-                  </span>
-                  <small>{item.mlItemId}</small>
-                </div>
-                <div className="radar-decision-product">
-                  {item.thumbnail ? (
-                    <img src={item.thumbnail} alt="" loading="lazy" />
-                  ) : (
-                    <div
-                      className="radar-product-placeholder"
-                      aria-hidden="true"
-                    >
-                      ◎
-                    </div>
-                  )}
-                  <h3>{item.title}</h3>
-                </div>
-                <p>{item.reason}</p>
-                <dl className="radar-decision-metrics">
-                  <div>
-                    <dt>Margem conhecida</dt>
-                    <dd>{percent(item.marginPercent)}</dd>
-                  </div>
-                  <div>
-                    <dt>Cobertura de estoque</dt>
-                    <dd>
-                      {item.stockDays == null
-                        ? "A apurar"
-                        : item.stockDays < 1 && item.stock > 0
-                          ? "< 1 dia"
-                          : `${Math.floor(item.stockDays)} dias`}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Vendas pagas · 30d</dt>
-                    <dd>{item.units} un.</dd>
-                  </div>
-                </dl>
-                {item.suggestedReorder != null && (
-                  <div className="radar-reorder">
-                    Lote sugerido: <strong>{item.suggestedReorder} un.</strong>{" "}
-                    · capital {money.format(item.capitalNeeded ?? 0)}
-                    <small>
-                      Estimativa pela saída observada. Confira o prazo com o
-                      fornecedor.
-                    </small>
-                  </div>
-                )}
-                {item.breakEvenRoas != null && (
-                  <div className="radar-ad-room">
-                    <span>
-                      ROAS de equilíbrio estimado{" "}
-                      <b>
-                        {item.breakEvenRoas.toLocaleString("pt-BR", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                        ×
-                      </b>
-                    </span>
-                    <small>
-                      Margem histórica antes de Ads. Mix e custos precisam se
-                      manter.
-                    </small>
-                  </div>
-                )}
-                <Link
-                  className="radar-card-action"
-                  href={`/produtos?item=${item.mlItemId}`}
-                >
-                  {item.action === "ADD_COST"
-                    ? "Cadastrar custo"
-                    : "Revisar produto"}{" "}
-                  <span aria-hidden="true">↗</span>
-                </Link>
-              </article>
-            ))}
-          </div>
-          {rows.length > 12 && (
-            <Link className="clean-secondary" href="/produtos">
-              Revisar todos os {rows.length} produtos
-            </Link>
-          )}
+            </form>
+            <Link href="/analisar">Só quero calcular o lucro de um anúncio →</Link>
+          </section>
           <footer className="radar-data-note">
             <span>
               {visible.lastSyncedAt

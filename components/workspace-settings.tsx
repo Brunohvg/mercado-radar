@@ -252,9 +252,6 @@ export function WorkspaceSettings() {
             Uma base financeira consistente para todas as decisões do Radar.
           </p>
         </div>
-        <a className="clean-secondary" href="/">
-          Voltar ao radar
-        </a>
       </header>
       {error && (
         <div className="error" role="alert">
@@ -334,23 +331,6 @@ export function WorkspaceSettings() {
               </dl>
               <p className="settings-muted">
                 O limite é compartilhado entre os dispositivos da sua operação.
-              </p>
-            </section>
-            <section className="clean-panel settings-help">
-              <h3>Como o Radar decide</h3>
-              <p>
-                <strong>Compensa:</strong> alcança suas metas de margem e ROI.
-              </p>
-              <p>
-                <strong>Apertado:</strong> margem de pelo menos 10%, com uma
-                meta ainda pendente.
-              </p>
-              <p>
-                <strong>Revisar:</strong> margem abaixo de 10% ou prejuízo.
-              </p>
-              <p>
-                Reposição usa vendas pagas, prazo do fornecedor e segurança.
-                Histórico incompleto bloqueia a sugestão de compra.
               </p>
             </section>
             {!account?.user.isOperator && (

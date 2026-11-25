@@ -209,12 +209,11 @@
               </button>
             </div>
             <div id="costField">
-              <label for="supplierPrice">Custo do produto/kit · R$</label
+              <label for="supplierPrice">Custo do produto/kit · R$ <small>(opcional)</small></label
               ><input
                 id="supplierPrice"
                 inputmode="decimal"
-                required
-                placeholder="Ex.: 10,90"
+                placeholder="Sem custo? Mostramos quanto você pode pagar"
               />
             </div>
             <div id="shippingField" hidden>
@@ -233,7 +232,7 @@
               ><input
                 id="taxPercent"
                 inputmode="decimal"
-                placeholder="Confirme, inclusive zero"
+                placeholder="Opcional · sem valor, calcula sem imposto"
               />
               <div class="segments" aria-label="Atalhos de imposto">
                 <button type="button" data-input="taxPercent" data-value="0">
@@ -255,6 +254,12 @@
             Tarifas e frete vêm da conta autorizada quando disponíveis. Caso contrário, confira a estimativa antes de decidir.
           </p>
           <p id="calcStatus" class="notice" role="status" hidden></p>
+          <div id="reverseResult" class="reverse-result" hidden>
+            <small>Você pode pagar até</small>
+            <strong id="reverseMax">—</strong>
+            <p id="reverseDetail" class="muted"></p>
+          </div>
+          <ul id="calcAssumptions" class="calc-assumptions" hidden></ul>
           <div id="calcResult" hidden>
             <p id="calcDecision" class="calc-decision"></p>
             <p id="calcDecisionReason" class="muted"></p>

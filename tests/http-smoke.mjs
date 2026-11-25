@@ -1438,10 +1438,13 @@ try {
         },
         extensionHeaders(),
       );
+      // Sem cotação de frete: calcula mesmo assim, com a suposição à vista.
       assert.equal(missing.json.shippingSource, "UNAVAILABLE");
-      assert.equal(missing.json.fees.shippingCost, null);
-      assert.equal(missing.json.result, null);
-      assert.ok(missing.json.needs.includes("shippingCost"));
+      assert.equal(missing.json.fees.shippingCost, 0);
+      assert.equal(missing.json.shippingPending, true);
+      assert.equal(missing.json.availability, "ASSUMED");
+      assert.ok(missing.json.assumptions.some((a) => a.field === "shippingCost" && a.material));
+      assert.notEqual(missing.json.result, null);
       const invalid = await req(
         "/api/extension/profitability",
         "",
@@ -1524,7 +1527,7 @@ try {
     },
   );
   await check(
-    "missing tax and freight produce partial costs, not a false profit or error page",
+    "missing tax, freight and cost become visible assumptions and a reverse answer, never a silent profit",
     async () => {
       const r = await req(
         "/api/extension/profitability",
@@ -1535,9 +1538,21 @@ try {
       );
       assert.equal(r.status, 200, r.text);
       assert.equal(r.json.result, null);
-      assert.ok(r.json.needs.includes("taxPercent"));
-      assert.ok(r.json.needs.includes("shippingCost"));
+      assert.deepEqual(r.json.needs, []);
       assert.equal(r.json.feeSource, "MERCADO_LIVRE_API");
+      const fields = r.json.assumptions.map((a) => a.field).sort();
+      assert.deepEqual(fields, ["shippingCost", "taxPercent"]);
+      assert.match(r.json.assumptions.find((a) => a.field === "shippingCost").text, /comprador/);
+      const { supplierPrice, ...withoutCost } = simulation;
+      assert.ok(supplierPrice > 0);
+      const reverse = await req("/api/extension/profitability", "", "POST", withoutCost, extensionHeaders());
+      assert.equal(reverse.status, 200, reverse.text);
+      assert.equal(reverse.json.availability, "REVERSE");
+      assert.equal(reverse.json.result, null);
+      assert.ok(reverse.json.reverse.breakEven >= reverse.json.reverse.forTargetMargin);
+      assert.equal(reverse.json.reverse.targetMarginPercent, 20);
+      const saveReverse = await req("/api/extension/profitability", "", "POST", { ...withoutCost, save: true }, extensionHeaders());
+      assert.equal(saveReverse.status, 422);
     },
   );
   await check(

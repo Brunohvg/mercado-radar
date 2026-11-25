@@ -1,3 +1,4 @@
+import { ML_FREE_SHIPPING_THRESHOLD } from "@/lib/calculator-defaults";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -153,7 +154,10 @@ export async function loadOpportunityView(workspaceId: string, id: string) {
     listingType: (opportunity.listingType as ListingType) ?? "CLASSIC",
     commissionPercent: num(opportunity.commissionPercent),
     fixedFee: num(opportunity.fixedFee),
-    shippingCost: num(opportunity.shippingCost),
+    // Abaixo de R$ 79 o comprador paga o frete: sem valor informado, conta zero (e a tela avisa).
+    shippingCost:
+      num(opportunity.shippingCost) ??
+      (num(opportunity.referencePrice) != null && num(opportunity.referencePrice)! < ML_FREE_SHIPPING_THRESHOLD ? 0 : null),
     taxPercent: num(opportunity.taxPercent) ?? num(settings.taxPercent),
     operatingCost: num(opportunity.operatingCost) ?? num(settings.operatingCostDefault),
     targetMarginPercent: Number(settings.targetMarginPercent),

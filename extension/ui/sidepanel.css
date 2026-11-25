@@ -835,3 +835,13 @@ summary {
 #contextCard.compact h1 {
   font-size: 13px;
 }
+
+/* Calculadora com o que você tem: modo reverso e suposições visíveis */
+.reverse-result { margin-top: 10px; padding: 12px; border-radius: var(--radius-md, 12px); background: var(--brand-tint, #e8efff); border: 1px solid var(--line, #e3e8f0); }
+.reverse-result small { display: block; color: var(--ink-500, #5b6475); }
+.reverse-result strong { display: block; font-size: 24px; letter-spacing: -0.5px; color: var(--brand-700, #003fa8); font-variant-numeric: tabular-nums; }
+.reverse-result p { margin-top: 4px; }
+.calc-assumptions { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.calc-assumptions li { font-size: 11px; line-height: 1.4; padding: 6px 8px; border-radius: 8px; background: var(--paper, #f3f5f9); color: var(--ink-700, #2b3242); overflow-wrap: anywhere; }
+.calc-assumptions li.material { background: var(--warn-tint, #fef3e2); color: var(--warn-ink, #6b4500); }
+#costField label small { font-weight: 400; color: var(--ink-500, #5b6475); }

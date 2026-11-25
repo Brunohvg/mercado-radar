@@ -1176,6 +1176,16 @@ try {
               note: "Simulação de custos.",
               result: null,
             };
+            if (qa.reverseMode && !p.quoteOnly && p.supplierPrice == null)
+              return ok({
+                ...body,
+                needs: [],
+                assumptions: [
+                  { field: "taxPercent", text: "Imposto não informado: calculado sem imposto.", material: true },
+                  { field: "shippingCost", text: "<b>Abaixo de R$ 79</b> o frete é pago pelo comprador.", material: false },
+                ],
+                reverse: { forTargetMargin: 21.5, breakEven: 31.5, targetMarginPercent: 20 },
+              });
             if (!needs.length && !p.quoteOnly) {
               const purchase = round(
                   p.supplierPrice *
@@ -1421,6 +1431,32 @@ try {
       await page.evaluate(() => {
         __qa.delay = 0;
       });
+    },
+  );
+  await check(
+    "without cost or tax the calculator answers how much the seller can pay, with visible assumptions",
+    async () => {
+      await page.evaluate(() => {
+        __qa.reverseMode = true;
+      });
+      const before = { cost: await page.locator("#supplierPrice").inputValue() };
+      await page.locator("#supplierPrice").fill("");
+      await page.locator("#calculate").click();
+      await page.locator("#reverseResult").waitFor();
+      assert.match(await page.locator("#reverseMax").innerText(), /R\$\s?21,50 por unidade/);
+      assert.match(await page.locator("#reverseDetail").innerText(), /20% de margem.*R\$\s?31,50 você empata/);
+      const notes = await page.locator("#calcAssumptions li").allInnerTexts();
+      assert.equal(notes.length, 2);
+      assert.equal(await page.locator("#calcAssumptions li.material").count(), 1);
+      assert.equal(await page.locator("#calcAssumptions b").count(), 0, "assumptions render as text");
+      const sent = await page.evaluate(() =>
+        __qa.calls.filter((c) => c.path === "/api/extension/profitability" && !c.body.quoteOnly).at(-1).body,
+      );
+      assert.equal("supplierPrice" in sent && sent.supplierPrice != null, false);
+      await page.evaluate(() => {
+        __qa.reverseMode = false;
+      });
+      await page.locator("#supplierPrice").fill(before.cost);
     },
   );
   await check("network errors release the calculator for retry", async () => {

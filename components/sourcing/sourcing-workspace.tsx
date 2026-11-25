@@ -282,7 +282,7 @@ function MarketTab({
             <label>Tarifa fixa (R$)<input name="fixedFee" defaultValue={o.fixedFee ?? ""} inputMode="decimal" /></label>
           </div>
           <div className="vr-form--row">
-            <label>Frete pago por você (R$)<input name="shippingCost" defaultValue={o.shippingCost ?? ""} inputMode="decimal" /></label>
+            <label>Frete pago por você (R$)<input name="shippingCost" defaultValue={o.shippingCost ?? ""} placeholder={o.referencePrice != null && o.referencePrice < 79 ? "vazio = 0 (abaixo de R$ 79 o comprador paga)" : "a confirmar"} inputMode="decimal" /></label>
             <label>Imposto (%)<input name="taxPercent" defaultValue={o.taxPercent ?? ""} placeholder={view.sale.taxPercent != null ? `padrão ${view.sale.taxPercent}%` : "não informado"} inputMode="decimal" /></label>
           </div>
           <label>Vendas por mês observadas (opcional)<input name="monthlyDemand" defaultValue={o.monthlyDemand ?? ""} inputMode="numeric" /></label>

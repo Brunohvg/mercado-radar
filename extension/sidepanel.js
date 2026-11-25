@@ -653,6 +653,8 @@
     state.candidates = [];
     state.selected.clear();
     $("calcResult").hidden = true;
+    $("reverseResult").hidden = true;
+    renderAssumptions([]);
     $("candidates").replaceChildren();
     $("marketRange").replaceChildren();
     $("sampleNote").textContent = "";
@@ -910,6 +912,15 @@
       );
     return valid ? value : undefined;
   }
+  function renderAssumptions(list) {
+    const items = Array.isArray(list)
+      ? list.filter((a) => a && typeof a.text === "string").slice(0, 4)
+      : [];
+    $("calcAssumptions").replaceChildren(
+      ...items.map((a) => node("li", a.text.slice(0, 240), a.material ? "material" : "")),
+    );
+    $("calcAssumptions").hidden = items.length === 0;
+  }
   function calcPayload(quoteOnly = false) {
     const obs = current();
     if (!obs) throw new Error("Abra um anúncio para simular.");
@@ -921,10 +932,11 @@
       title: obs.title,
       categoryId: state.item?.categoryId || obs.categoryId || undefined,
       salePrice: inputNumber("salePrice", 0.01, 10000000),
-      supplierPrice: quoteOnly ? 0 : inputNumber("supplierPrice", 0, 10000000),
+      // Logado: custo e imposto são opcionais (modo reverso / suposição visível).
+      supplierPrice: quoteOnly ? 0 : inputNumber("supplierPrice", 0, 10000000, !state.auth?.authenticated),
       kitQuantity: quantity,
       discountPercent: inputNumber("discountPercent", 0, 95),
-      taxPercent: inputNumber("taxPercent", 0, 50, !quoteOnly),
+      taxPercent: inputNumber("taxPercent", 0, 50, !quoteOnly && !state.auth?.authenticated),
       operatingCost: inputNumber("operatingCost", 0, 10000000),
       targetMarginPercent: inputNumber("targetMargin", 0, 80),
       targetRoiPercent: inputNumber("targetRoi", 0, 500),
@@ -1046,6 +1058,7 @@
     );
     state.result = null;
     $("calcResult").hidden = true;
+    $("reverseResult").hidden = true;
     try {
       let response;
       try {
@@ -1074,12 +1087,26 @@
           ". " +
           body.shippingNote
         : body.shippingNote || "";
+      renderAssumptions(body.assumptions);
+      $("reverseResult").hidden = true;
+      if (!quoteOnly && body.reverse) {
+        const r = body.reverse;
+        $("reverseMax").textContent = brl(r.forTargetMargin) + " por unidade";
+        $("reverseDetail").textContent =
+          "Para ter " + pct(r.targetMarginPercent) + " de margem. Pagando " +
+          brl(r.breakEven) + " você empata. Informe o custo real para ver o lucro.";
+        $("reverseResult").hidden = false;
+        notice("calcStatus", "");
+        return;
+      }
       if (!body.result) {
+        // Logado: com a tarifa em mãos já calcula (com custo, lucro; sem custo, modo reverso).
         if (
           quoteOnly &&
-          !(body.needs || []).some((n) => n !== "taxPercent") &&
-          M.money($("supplierPrice").value) != null &&
-          M.money($("taxPercent").value) != null
+          !(body.needs || []).length &&
+          (state.auth?.authenticated ||
+            (M.money($("supplierPrice").value) != null &&
+              M.money($("taxPercent").value) != null))
         )
           state.automaticTimer = setTimeout(() => void calculate(), 0);
         notice(

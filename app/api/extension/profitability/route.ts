@@ -17,6 +17,8 @@ import { buildCompetitivePriceStrategy } from "@/lib/price-strategy";
 import { referenceIdSchema } from "@/lib/extension-observation";
 import { simulateAdvertising } from "@/lib/ads-simulation";
 import { parseShippingDiscount } from "@/lib/shipping-package";
+import { fillMissingCosts, maxSupplierCost } from "@/lib/calculator-defaults";
+import { getWorkspaceSettings } from "@/lib/workspace-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +26,8 @@ const schema = z.object({
   itemId: referenceIdSchema,
   salePrice: z.coerce.number().positive().optional(),
   marketReferencePrice: z.coerce.number().positive().optional(),
-  supplierPrice: z.coerce.number().min(0),
+  // Opcional: sem custo, a resposta traz o modo reverso (quanto dá para pagar).
+  supplierPrice: z.coerce.number().min(0).optional(),
   discountPercent: z.coerce.number().min(0).max(95).default(0),
   kitQuantity: z.coerce.number().int().min(1).max(1000).default(1),
   taxPercent: z.coerce.number().min(0).max(50).optional(),
@@ -291,17 +294,26 @@ export async function POST(request: Request) {
               : shippingQuoteError
                 ? "Frete não obtido pela API: " + shippingQuoteError + ". Confira as permissões ou informe um custo conferido para estimar."
                 : "Informe a embalagem para estimar na sua conta ou um custo de frete verificado.";
-    const shippingCost =
+    const knownShippingCost =
       parsed.data.shippingCost ?? shipping?.shippingCost ?? null;
     const shippingDiscount = parseShippingDiscount(
       shipping?.raw?.coverage?.all_country?.discount,
     );
-    const taxPercent = parsed.data.taxPercent ?? null;
-    const needs = [
-      !fee ? "fees" : null,
-      shippingCost == null ? "shippingCost" : null,
-      taxPercent == null ? "taxPercent" : null,
-    ].filter(Boolean);
+    // Calcula com o que se tem: imposto e frete ausentes viram suposições
+    // visíveis (nunca silenciosas); só a tarifa continua obrigatória.
+    const settings = await getWorkspaceSettings(session.account.workspaceId).catch(() => null);
+    const filled = fillMissingCosts({
+      price,
+      shippingCost: knownShippingCost,
+      taxPercent: parsed.data.taxPercent ?? null,
+      workspaceTaxPercent: settings?.taxPercent == null ? null : Number(settings.taxPercent),
+      logisticType,
+      freeShipping: Boolean(parsed.data.freeShipping ?? item.freeShipping),
+    });
+    const shippingCost = filled.shippingCost;
+    const taxPercent = filled.taxPercent;
+    const assumptions = filled.assumptions;
+    const needs = [!fee ? "fees" : null].filter(Boolean);
     const partial = {
       item: { ...item, price, listingType, isOwn: isOwnItem },
       feeSource,
@@ -328,7 +340,10 @@ export async function POST(request: Request) {
           taxPercent == null ? null : Math.round(price * taxPercent) / 100,
       },
       needs,
+      assumptions,
+      shippingPending: filled.shippingPending,
       result: null,
+      reverse: null as null | ReturnType<typeof maxSupplierCost> & { targetMarginPercent: number },
       adsSimulation: null,
       availability: needs.length ? "PARTIAL" : "READY",
       note: !fee
@@ -348,8 +363,41 @@ export async function POST(request: Request) {
         );
       return NextResponse.json(partial);
     }
-    if (!fee || shippingCost == null || taxPercent == null)
-      throw new Error("Custos incompletos.");
+    if (!fee) throw new Error("Custos incompletos.");
+
+    // Modo reverso: sem o custo do produto, diz quanto dá para pagar.
+    if (parsed.data.supplierPrice == null) {
+      if (parsed.data.save)
+        return NextResponse.json(
+          { ...partial, error: "Informe o custo do produto para salvar a simulação." },
+          { status: 422 },
+        );
+      const reverse = maxSupplierCost({
+        productName: item.title,
+        discountPercent: parsed.data.discountPercent,
+        kitQuantity: parsed.data.kitQuantity,
+        salePrice: price,
+        listingType,
+        commissionPercent: fee.commissionPercent,
+        fixedFee: fee.fixedFee,
+        quotedSaleFeeAmount: parsed.data.manualFees ? undefined : quotedFee?.saleFeeAmount,
+        shippingCost,
+        operatingCost: parsed.data.operatingCost,
+        taxPercent,
+        targetMarginPercent: parsed.data.targetMarginPercent,
+        targetRoiPercent: parsed.data.targetRoiPercent,
+      });
+      return NextResponse.json({
+        ...partial,
+        availability: "REVERSE",
+        reverse: { ...reverse, targetMarginPercent: parsed.data.targetMarginPercent },
+      });
+    }
+    if (parsed.data.save && parsed.data.saveMode !== "SNAPSHOT" && assumptions.some((a) => a.material))
+      return NextResponse.json(
+        { error: "A simulação usa suposições (imposto ou frete). Confirme esses valores antes de salvar uma decisão." },
+        { status: 422 },
+      );
 
     const analysis = analyzeProfitability({
       productName: item.title,
@@ -502,7 +550,9 @@ export async function POST(request: Request) {
       categoryId,
       logisticType,
       needs: [],
-      availability: "READY",
+      assumptions,
+      shippingPending: filled.shippingPending,
+      availability: assumptions.some((a) => a.material) ? "ASSUMED" : "READY",
       note: partial.note,
       shippingKnown,
       shippingEstimated,

@@ -142,6 +142,10 @@ function Improver({ data, onChanged }: { data: Quality; onChanged: () => void })
             <div><dt>Visitas</dt><dd>{performance.visits?.toLocaleString("pt-BR") ?? "—"}</dd></div>
             <div><dt>Conversão</dt><dd>{performance.conversionPercent == null ? "—" : `${performance.conversionPercent.toLocaleString("pt-BR")}%`}</dd></div>
           </dl>
+          {performance.unitsSold === 0 && <p>{performance.visits == null
+            ? "Visitas indisponíveis para diagnosticar a exposição."
+            : performance.visits === 0 ? "Nenhuma visita no período. Confira o status do anúncio, o título e os filtros da categoria."
+            : "Houve visitas sem venda. Compare preço total e prazo para o mesmo CEP em anúncios da mesma variante e quantidade."}</p>}
         </div>
         <div className="improve-score-wrap">
           <div className={`improve-score tone-${tone}`}>

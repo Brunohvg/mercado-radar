@@ -6,6 +6,7 @@ import { getWorkspaceSettings } from "@/lib/workspace-settings";
 import type { CnpjCheck } from "@/lib/sourcing/cnpj";
 import { qualifySupplier, type Qualification } from "@/lib/sourcing/qualification";
 import {
+  missingSaleData, maxUnitCostForMargin,
   evaluateQuote,
   bestViability,
   recommendNextAction,
@@ -141,17 +142,10 @@ export const quoteSchema = z.object({
 const num = (value: unknown) =>
   value == null ? null : Number(value as number | string);
 
-export async function loadOpportunityView(workspaceId: string, id: string, budgetOverride?: number) {
-  const opportunity = await prisma.sourcingOpportunity.findFirst({
-    where: { id, workspaceId },
-    include: {
-      quotes: { include: { supplier: true }, orderBy: { quotedAt: "desc" } },
-    },
-  });
-  if (!opportunity)
-    throw new SourcingError("Oportunidade não encontrada nesta conta.", 404, "NOT_FOUND");
-  const settings = await getWorkspaceSettings(workspaceId);
-  const sale: SaleContext = {
+type SaleFields = Pick<OpportunityRow, "referencePrice" | "packQuantity" | "listingType" | "commissionPercent" | "fixedFee" | "shippingCost" | "taxPercent" | "operatingCost" | "budget" | "monthlyDemand">;
+
+export function sourcingSaleContext(opportunity: SaleFields, settings: Awaited<ReturnType<typeof getWorkspaceSettings>>, budgetOverride?: number): SaleContext {
+  return {
     salePrice: num(opportunity.referencePrice),
     saleUnits: opportunity.packQuantity,
     listingType: (opportunity.listingType as ListingType) ?? "CLASSIC",
@@ -165,6 +159,27 @@ export async function loadOpportunityView(workspaceId: string, id: string, budge
     budget: budgetOverride ?? num(opportunity.budget),
     monthlyDemand: opportunity.monthlyDemand,
   };
+}
+
+export function purchaseLimit(sale: SaleContext) {
+  const missing = missingSaleData(sale);
+  if (sale.taxPercent == null) missing.push("imposto");
+  if (sale.operatingCost == null) missing.push("custo operacional");
+  const limit = missing.length ? null : maxUnitCostForMargin({ ...sale, saleUnits: 1 });
+  return { perListing: limit == null ? null : Math.floor(limit * 100 + 1e-8) / 100, missing };
+}
+
+export async function loadOpportunityView(workspaceId: string, id: string, budgetOverride?: number) {
+  const opportunity = await prisma.sourcingOpportunity.findFirst({
+    where: { id, workspaceId },
+    include: {
+      quotes: { include: { supplier: true }, orderBy: { quotedAt: "desc" } },
+    },
+  });
+  if (!opportunity)
+    throw new SourcingError("Oportunidade não encontrada nesta conta.", 404, "NOT_FOUND");
+  const settings = await getWorkspaceSettings(workspaceId);
+  const sale = sourcingSaleContext(opportunity, settings, budgetOverride);
 
   const supplierIds = new Set(opportunity.quotes.map((q) => q.supplierId));
   const linkedSuppliers = await prisma.sourcingSupplier.findMany({
@@ -244,6 +259,7 @@ export async function loadOpportunityView(workspaceId: string, id: string, budge
   return {
     opportunity: serializeOpportunity(opportunity),
     sale,
+    purchaseLimit: purchaseLimit(sale),
     suppliers: supplierViews,
     quotes,
     best,

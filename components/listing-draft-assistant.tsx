@@ -99,11 +99,13 @@ async function postJson<T>(url: string, data: unknown): Promise<T> {
 import type { ListingReference } from "@/lib/listing-reference";
 
 export function ListingDraftAssistant({
-  marketReference,
+  publishingEnabled, quotation, marketReference,
   initialName = "",
   initialReference = "",
   fromExtension = false,
 }: {
+  publishingEnabled: boolean;
+  quotation?: { supplier: string; packageCost: number };
   marketReference?: ListingReference | null;
   initialName?: string;
   initialReference?: string;
@@ -111,6 +113,7 @@ export function ListingDraftAssistant({
 }) {
   const [attributes, setAttributes] = useState<Record<string, string>>({});
   const [preparing, setPreparing] = useState(false);
+  const [usingQuote, setUsingQuote] = useState(Boolean(quotation));
   const [referenceOpen, setReferenceOpen] = useState(true);
   const [selectedFacts, setSelectedFacts] = useState<string[]>([]);
   const [name, setName] = useState(initialName);
@@ -120,7 +123,7 @@ export function ListingDraftAssistant({
   const [brand, setBrand] = useState("");
   const [sku, setSku] = useState("");
   const [units, setUnits] = useState("1");
-  const [purchaseCost, setPurchaseCost] = useState("");
+  const [purchaseCost, setPurchaseCost] = useState(quotation ? String(quotation.packageCost) : "");
   const [operatingCost, setOperatingCost] = useState("0");
   const [discount, setDiscount] = useState("0");
   const [categoryId, setCategoryId] = useState("");
@@ -441,11 +444,15 @@ export function ListingDraftAssistant({
     <div className={preparing ? "listing-assistant" : "listing-assistant listing-assistant--draft"}>
       <header className="listing-assistant__header">
         <h1>Criar anúncio</h1>
+        {usingQuote && quotation && <p>Referência de compra: {quotation.supplier} · {money(quotation.packageCost)} por pacote entregue.</p>}
         <p>{preparing ? "Confira categoria, preço e envio antes de validar a publicação." : "Comece pelo nome do produto. Estoque e fotos podem ser adicionados depois."}</p>
-        <button type="button" className="secondary" onClick={() => setPreparing(!preparing)}>
-          {preparing ? "Voltar ao rascunho" : "Preparar publicação"}
+        <button type="button" className={preparing ? "secondary" : "primary"} aria-expanded={preparing} onClick={() => setPreparing(!preparing)}>
+          {preparing ? "Voltar ao rascunho" : "Publicar no Mercado Livre"}
         </button>
       </header>
+      {preparing && <p role="status">{publishingEnabled
+        ? "Salve os dados e valide o anúncio. Você confirma o envio no último passo."
+        : "Publicação desativada neste ambiente. Você pode preparar, salvar e validar o rascunho."}</p>}
       {preparing && <details><summary>Conexão com o Mercado Livre</summary>
         <p>{sellerModel ? "Modelo da conta identificado." : "Verificação da conta pendente."} {sellerCanWrite === true ? "Escrita autorizada." : sellerCanWrite === false ? "Reconecte a conta para publicar." : "Verificando permissão para publicar."}</p>
       </details>}
@@ -486,7 +493,7 @@ export function ListingDraftAssistant({
           <h2>Produto</h2>
         </div>
         <form onSubmit={event => { if (preparing) void identify(event); else event.preventDefault(); }} className="listing-assistant__form">
-          {label(preparing ? "Nome ou EAN do produto" : "Nome do produto", name, (v) => { setName(v); setAttributes({}); setReferenceOpen(false); setAiDraft(null); setSavedTitle(""); setSavedDescription(""); setRestoredMissingFacts([]); setDiscovery(null); setCategoryId(""); setCategoryName(""); setPrice(null); }, "Ex.: tinta pinta couro Shake Paint 37 ml", true)}
+          {label(preparing ? "Nome ou EAN do produto" : "Nome do produto", name, (v) => { setName(v); if (usingQuote) { setUsingQuote(false); setPurchaseCost(""); } setAttributes({}); setReferenceOpen(false); setAiDraft(null); setSavedTitle(""); setSavedDescription(""); setRestoredMissingFacts([]); setDiscovery(null); setCategoryId(""); setCategoryName(""); setPrice(null); }, "Ex.: tinta pinta couro Shake Paint 37 ml", true)}
           {preparing && <><div className="listing-assistant__grid">
             {label("Marca confirmada (opcional)", brand, (v) => { setBrand(v); setAiDraft(null); }, "Ex.: Acrilex")}
             {label("SKU interno (opcional)", sku, setSku, "Seu código de estoque")}
@@ -716,6 +723,7 @@ export function ListingDraftAssistant({
           </div>
         )}
         <ListingDraftManager
+          publishingEnabled={publishingEnabled}
           preparing={preparing}
           onPrepare={() => { setPreparing(true); window.scrollTo(0, 0); }}
           setAttributes={setAttributes}
@@ -749,6 +757,7 @@ export function ListingDraftAssistant({
           } satisfies DraftValues}
           onRestore={data => {
             setReferenceOpen(false);
+            setUsingQuote(false);
             setName(data.name);
             setBrand(data.brand);
             setSku(data.sku);

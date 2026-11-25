@@ -202,29 +202,24 @@ try {
       assert.equal(await page.locator(".market-product").count(), 6);
       const source = page.locator('[data-market-id="MLB1234567890"]');
       const draft = new URL(await source.getByRole("link", {name: "Criar meu anúncio"}).getAttribute("href"), base);
+      assert.equal(await source.getByRole("link", {name: "Cotar fornecedor"}).getAttribute("href"), "/onde-comprar?referencia=MLB1234567890");
       assert.equal(draft.pathname, "/assistente-anuncios");
       assert.equal(draft.searchParams.get("referencia"), "MLB1234567890");
       assert.equal(draft.searchParams.get("origem"), "concorrencia");
       assert.equal(await page.getByRole("link", {name: "Melhorar meu anúncio"}).count(), 1);
       assert.match(
         await page.locator('[data-market-id="MLB1234567890"]').innerText(),
-        /Bom potencial[\s\S]*Alta[\s\S]*115,1 mil/,
+        /Bom potencial[\s\S]*Alta/,
       );
       assert.match(
         await page.locator('[data-market-id="MLB1234567891"]').innerText(),
-        /Potencial moderado[\s\S]*Média[\s\S]*27,2 mil/,
+        /Potencial moderado[\s\S]*Média/,
       );
       assert.match(
         await page.locator('[data-market-id="MLB1234567895"]').innerText(),
         /Pouco giro[\s\S]*0 un.\/dia/,
       );
-      assert.equal(
-        await page
-          .locator('[data-market-id="MLB1234567894"] .market-reading b')
-          .last()
-          .innerText(),
-        "—",
-      );
+      assert.doesNotMatch(await source.innerText(), /115,1 mil/);
       assert.equal(
         await page.getByText("Itens monitorados", { exact: true }).count(),
         0,
@@ -298,7 +293,7 @@ try {
       assert.equal(await page.locator(".market-product").count(), 1);
       assert.match(
         await page.locator(".market-comparison-table").innerText(),
-        /Prensa manual[\s\S]*27,2 mil/,
+        /Prensa manual[\s\S]*27,3 mil/,
       );
       if (artifacts)
         await page.screenshot({

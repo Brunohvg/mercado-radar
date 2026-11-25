@@ -29,9 +29,10 @@ type Saved = {
 };
 
 export function ListingDraftManager({
-  data, onRestore, setAttributes, preparing, onPrepare,
+  data, onRestore, setAttributes, preparing, onPrepare, publishingEnabled,
 }: {
   data: DraftValues;
+  publishingEnabled: boolean;
   preparing: boolean;
   onPrepare: () => void;
   setAttributes: React.Dispatch<React.SetStateAction<Record<string, string>>>;
@@ -463,7 +464,7 @@ export function ListingDraftManager({
           <button type="button" className="secondary listing-assistant__button" onClick={() => void publication("validate")} disabled={pending || uploading}>
             {pending ? "Validando…" : "Validar anúncio na API do Mercado Livre"}
           </button>
-          {validated && <>
+          {validated && publishingEnabled && <>
             <label className="listing-draft-workspace__confirmation">
               <input type="checkbox" checked={publishConfirmed} onChange={e => setPublishConfirmed(e.target.checked)} />
               <span>Confirmo que revisei os dados e quero criar um anúncio PAUSADO na minha conta Mercado Livre.</span>

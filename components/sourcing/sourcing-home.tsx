@@ -28,7 +28,7 @@ type CapitalMatch = {
   };
 };
 
-export function SourcingHome() {
+export function SourcingHome({ reference }: { reference: { id: string; title: string; price: number | null; observed: string; permalink: string | null } | null }) {
   const router = useRouter();
   const [rows, setRows] = useState<OpportunityRow[] | null>(null);
   const [error, setError] = useState("");
@@ -38,10 +38,11 @@ export function SourcingHome() {
   // Vem do "O que você quer revender?" do Início: link vai no campo de link,
   // texto livre no nome do produto.
   useEffect(() => {
+    if (reference) return;
     const q = new URLSearchParams(window.location.search).get("q")?.trim();
     if (!q) return;
     if (queryRef.current) { queryRef.current.value = q.slice(0, 300); queryRef.current.focus(); }
-  }, []);
+  }, [reference]);
 
   useEffect(() => {
     api<{ opportunities: OpportunityRow[] }>("/api/sourcing/opportunities")
@@ -69,23 +70,26 @@ export function SourcingHome() {
       setError("Abra o anúncio e copie o link com o código MLB ou MLBU. Você também pode buscar pelo nome.");
       return;
     }
-    if (!code && query.length > 200) { setError("Use até 200 caracteres no nome do produto."); return; }
+    if (!reference && !code && query.length > 200) { setError("Use até 200 caracteres no nome do produto."); return; }
     if (query.length < 2) { setError("Informe o nome do produto ou o link do anúncio."); return; }
     const rawBudget = String(form.get("budget") ?? "").trim();
     const budget = parseNumber(rawBudget);
     if (rawBudget && (budget == null || budget <= 0)) { setError("Informe um orçamento maior que zero."); return; }
+    const rawPrice = String(form.get("price") ?? "").trim();
+    const price = parseNumber(rawPrice);
+    if (rawPrice && (price == null || price <= 0)) { setError("Informe um preço de venda maior que zero."); return; }
     setCreating(true);
     setError("");
     try {
       const body = await api<{ opportunity: { id: string } }>("/api/sourcing/opportunities", {
         method: "POST",
         body: JSON.stringify({
-          title: code ? `Anúncio ${code}` : query,
-          mlItemId: code ?? null,
-          permalink: link?.href ?? null,
+          title: reference?.title.slice(0, 200) ?? (code ? `Anúncio ${code}` : query),
+          mlItemId: reference?.id ?? code ?? null,
+          permalink: reference?.permalink ?? link?.href ?? null,
           budget,
-          referencePrice: parseNumber(String(form.get("price") ?? "")),
-          referenceSource: parseNumber(String(form.get("price") ?? "")) != null ? "MANUAL" : null,
+          referencePrice: price,
+          referenceSource: price != null ? "MANUAL" : null,
         }),
       });
       router.push(`/onde-comprar/${body.opportunity.id}?buscar=1`);
@@ -107,18 +111,19 @@ export function SourcingHome() {
 
       <form className="vr-start" onSubmit={create}>
         <h2>Qual produto você quer comprar para revender?</h2>
+        {reference && <p>{reference.id} · Leitura em {dateBr(reference.observed)} · Preço observado {brl(reference.price)}</p>}
         <div className="vr-start-row">
-          <input ref={queryRef} name="query" required maxLength={500} aria-label="Link do anúncio ou nome do produto" placeholder="Cole o link do anúncio no Mercado Livre ou escreva o nome" />
+          <input ref={queryRef} readOnly={Boolean(reference)} defaultValue={reference?.title} name="query" required maxLength={500} aria-label="Link do anúncio ou nome do produto" placeholder="Cole o link do anúncio no Mercado Livre ou escreva o nome" />
           <button className="vr-btn" disabled={creating}>{creating ? "Preparando a busca…" : "Buscar fornecedores"}</button>
         </div>
-        <details>
+        <details open={reference ? true : undefined}>
           <summary>Orçamento e preço de venda (opcionais)</summary>
           <label>
             Quanto pode investir?<input name="budget" placeholder="R$ 500,00" inputMode="decimal" />
           </label>
           <label>
-            Preço de venda
-            <input name="price" placeholder="R$ 42,90" inputMode="decimal" />
+            Preço de venda para simular
+            <input defaultValue={reference?.price ?? ""} name="price" placeholder="R$ 42,90" inputMode="decimal" />
           </label>
         </details>
       </form>

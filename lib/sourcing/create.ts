@@ -27,7 +27,7 @@ export async function createOpportunity(
   const canEnrich = Boolean(mlItemId && /^MLB\d/.test(mlItemId) && accessToken);
   const [enrichment, insights] = canEnrich
     ? await Promise.all([
-        enrichFromMercadoLivre({ accessToken: accessToken!, itemId: mlItemId!, listingType, fallbackTitle: input.title }),
+        enrichFromMercadoLivre({ accessToken: accessToken!, itemId: mlItemId!, listingType, fallbackTitle: input.title, simulationPrice: input.referencePrice }),
         collectListingInsights(mlItemId!, accessToken).catch(() => null),
       ])
     : [null, null];

@@ -108,6 +108,7 @@ export async function runBrowserChecks({ base, cookie }) {
     for (const width of [390, 1366]) {
       await page.setViewportSize({ width, height: 960 });
       await page.getByLabel("Nome do produto", { exact: true }).waitFor();
+      await page.getByRole("button", { name: "Publicar no Mercado Livre", exact: true }).waitFor();
       assert.equal(await page.getByText("Custos e frete", { exact: true }).count(), 0);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
       if (artifacts) await page.screenshot({ path: artifacts + "/criar-anuncio-" + width + ".png", fullPage: true });
@@ -157,9 +158,12 @@ export async function runBrowserChecks({ base, cookie }) {
     assert.equal(supplier.status(), 201, await supplier.text());
     await page.goto(base + "/onde-comprar");
     await page.getByLabel("Link do anúncio ou nome do produto").fill("Ilhós Baxmann Nº 54, 1000 unidades");
+    await page.getByText("Orçamento e preço de venda (opcionais)").click();
+    await page.getByLabel("Quanto pode investir?").fill("500");
     await page.getByRole("button", { name: "Buscar fornecedores", exact: true }).click();
     await page.waitForURL(/\/onde-comprar\/[^/]+/);
     await page.getByRole("heading", { name: "Fornecedores para este produto" }).waitFor();
+    await page.getByText(/Orçamento para o lote: R\$\s*500,00/).waitFor();
     await page.getByText(/Busca automática desligada/).waitFor();
     await page.getByRole("button", { name: "Usar fornecedor salvo" }).click();
     const directory = page.locator('select[name="supplierId"]');
@@ -185,7 +189,26 @@ export async function runBrowserChecks({ base, cookie }) {
       }
       if (artifacts) await page.screenshot({ path: `${artifacts}/onde-comprar-comparar-${width}.png`, fullPage: true });
     }
-    console.log("PASS app-browser supplier search, directory, pack price and pending freight");
+    const studyId = new URL(page.url()).pathname.split("/").pop();
+    const costs = await context.request.patch(base + "/api/sourcing/opportunities/" + studyId, { data: {
+      referencePrice: 42.9, commissionPercent: 12, fixedFee: 6, shippingCost: 0, taxPercent: 3, operatingCost: 1, packQuantity: 1000,
+    }});
+    assert.ok(costs.ok(), await costs.text());
+    const received = await context.request.post(base + "/api/sourcing/quotes", { data: {
+      opportunityId: studyId, supplierId: (await supplier.json()).supplier.id, unitPrice: 0.018, unitsPerPack: 1000,
+      minUnits: 5000, freightCost: 0, otherCosts: 0, exactMatch: true, source: "COTACAO_RECEBIDA",
+    }});
+    assert.equal(received.status(), 201, await received.text());
+    const study = await received.json();
+    assert.ok(study.purchaseLimit.perListing > 0);
+    assert.ok(study.best.order.capital <= 500);
+    await page.reload();
+    await page.getByRole("tab", { name: "Comparar cotações" }).click();
+    await page.getByRole("link", { name: "Criar rascunho com esta cotação" }).click();
+    await page.getByText(/Referência de compra:.*18,00 por pacote entregue/).waitFor();
+    await page.getByRole("button", { name: "Publicar no Mercado Livre", exact: true }).click();
+    assert.equal(await page.getByLabel("Custo de compra por unidade (R$)").inputValue(), "18");
+    console.log("PASS app-browser budget, delivered package cost and explicit publication review");
     checks++;
     await page.setViewportSize({ width: 390, height: 960 });
     await page.getByRole("button", { name: "Abrir menu", exact: true }).click();

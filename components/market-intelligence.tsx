@@ -21,6 +21,7 @@ type Estimate = {
 };
 
 type Insight = {
+  purchaseLimit?: { perListing: number | null; missing: string[]; salePrice: number | null; target: number } | null;
   id: string;
   title: string;
   permalink: string | null;
@@ -44,9 +45,10 @@ type Insight = {
 
 function ListingAction({ item }: { item: Insight }) {
   const params = new URLSearchParams({ origem: "concorrencia", produto: item.title, referencia: item.id });
-  return <Link prefetch={false} className="market-link" href={item.isOwn
+  return <>{!item.isOwn && <Link prefetch={false} className="market-link" href={"/onde-comprar?referencia=" + encodeURIComponent(item.id)}>Cotar fornecedor</Link>}
+    <Link prefetch={false} className="market-link" href={item.isOwn
     ? "/melhorar-anuncio?item=" + encodeURIComponent(item.id)
-    : "/assistente-anuncios?" + params}>{item.isOwn ? "Melhorar meu anúncio" : "Criar meu anúncio"}</Link>;
+    : "/assistente-anuncios?" + params}>{item.isOwn ? "Melhorar meu anúncio" : "Criar meu anúncio"}</Link></>;
 }
 
 type ListPayload = {
@@ -328,8 +330,8 @@ function RevenueReading({ item }: { item: Insight }) {
           : "Falta preço ou quantidade vendida."
       }
     >
-      <b>{a.reference?.text ?? "—"}</b>
-      <small>receita de referência</small>
+      <b>{a.reference ? compactMoney(a.reference.value) : "—"}</b>
+      <small>projeção ao preço atual</small>
       {a.recent && a.demand.rate != null && item.price != null && (
         <small>{compactMoney(a.demand.rate * item.price)} est./dia</small>
       )}
@@ -927,7 +929,11 @@ export function MarketIntelligence() {
                     </strong>
                   </div>
                   <DemandReading item={item} />
-                  <RevenueReading item={item} />
+                  {!item.isOwn && item.purchaseLimit && <div><small>Teto de compra por pacote</small>
+                    <b>{item.purchaseLimit.perListing == null ? "A confirmar" : brl.format(item.purchaseLimit.perListing)}</b>
+                    <small>{item.purchaseLimit.perListing == null ? "Falta " + item.purchaseLimit.missing.join(", ") :
+                      "Margem de " + item.purchaseLimit.target + "% na venda a " + brl.format(item.purchaseLimit.salePrice!)}</small>
+                  </div>}
                 </div>
                 <p className="market-product-reason">
                   {assessment(item).potential.reason}
@@ -1043,7 +1049,7 @@ export function MarketIntelligence() {
 function DetailBody({ detail, tier }: { detail: Detail; tier: Tier }) {
   const { insight, series } = detail;
   const e = insight.estimate;
-  const acc = accumulated(insight);
+  const projection = assessment(insight).reference;
   const reviewsPts = series
     .filter((p) => p.reviews != null)
     .map((p) => ({ at: p.at, value: p.reviews as number }));
@@ -1084,11 +1090,11 @@ function DetailBody({ detail, tier }: { detail: Detail; tier: Tier }) {
           sub: span(e.revenuePerDay, money),
           tip: "Vendas por dia × preço atual.",
         }
-      : acc != null && {
-          label: "Receita de referência",
-          value: assessment(insight).reference!.text,
-          sub: assessment(insight).reference!.basis,
-          tip: assessment(insight).reference!.detail,
+      : projection && {
+          label: "Projeção ao preço atual",
+          value: compactMoney(projection.value),
+          sub: projection.basis,
+          tip: projection.detail,
         },
     e.visitsPerDay.value != null && {
       label: "Visitas por dia",

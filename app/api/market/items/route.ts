@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCalibration, getMarketInsights } from "@/lib/market-intel";
 
+import { getWorkspaceSettings } from "@/lib/workspace-settings";
+import { purchaseLimit, sourcingSaleContext } from "@/lib/sourcing/service";
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -42,10 +45,25 @@ export async function GET(request: Request) {
       prisma.marketItemSnapshot.count({ where: { workspaceId } }),
     ]);
 
-    const items = await getMarketInsights(workspaceId, rows.map((r) => r.id));
+    const ids = rows.map(r => r.id);
+    const [items, studies, settings] = await Promise.all([
+      getMarketInsights(workspaceId, ids),
+      prisma.sourcingOpportunity.findMany({
+        where: { workspaceId, mlItemId: { in: ids }, status: { not: "DESCARTADA" } },
+        orderBy: { updatedAt: "desc" }, distinct: ["mlItemId"],
+        select: { mlItemId: true, referencePrice: true, packQuantity: true, listingType: true,
+          commissionPercent: true, fixedFee: true, shippingCost: true, taxPercent: true,
+          operatingCost: true, budget: true, monthlyDemand: true },
+      }),
+      getWorkspaceSettings(workspaceId),
+    ]);
+    const limits = new Map(studies.map(study => {
+      const sale = sourcingSaleContext(study, settings);
+      return [study.mlItemId, { ...purchaseLimit(sale), salePrice: sale.salePrice, target: sale.targetMarginPercent }];
+    }));
 
     return NextResponse.json({
-      items,
+      items: items.map(item => ({ ...item, purchaseLimit: limits.get(item.id) ?? null })),
       summary: {
         marketItems: totals.find((t) => !t.isOwn)?._count._all ?? 0,
         ownItems: totals.find((t) => t.isOwn)?._count._all ?? 0,

@@ -93,6 +93,7 @@ type View = {
     marketInsights: ListingInsights | null;
     marketInsightsAt: string | null;
   };
+  purchaseLimit: { perListing: number | null; missing: string[] };
   sale: { targetMarginPercent: number; taxPercent: number | null; operatingCost: number | null };
   suppliers: Supplier[];
   quotes: Quote[];
@@ -172,6 +173,14 @@ export function SourcingWorkspace({ id }: { id: string }) {
           <span className={`vr-status vr-status--${o.status.toLowerCase()}`}>{STATUS_LABEL[o.status] ?? o.status}</span>
         </div>
       </header>
+
+      <section className="vr-card">
+        <strong>Limite de compra por pacote de venda</strong>
+        {view.purchaseLimit.perListing == null
+          ? <p>Para calcular, confirme {view.purchaseLimit.missing.join(", ")}. <button className="vr-btn vr-btn--ghost vr-btn--small" onClick={() => setTab("mercado")}>Completar custos</button></p>
+          : <p>{brl(view.purchaseLimit.perListing)} por {o.packQuantity} un., incluindo o frete de compra, para uma margem de {pct(view.sale.targetMarginPercent)}.</p>}
+        {o.budget != null && <small>Orçamento para o lote: {brl(o.budget)}</small>}
+      </section>
 
       <ol className="vr-steps" role="tablist" aria-label="Etapas">
         {TABS.map(([key, label], index) => {
@@ -260,6 +269,7 @@ function MarketTab({
         fixedFee: numField(form, "fixedFee"),
         shippingCost: numField(form, "shippingCost"),
         taxPercent: numField(form, "taxPercent"),
+        operatingCost: numField(form, "operatingCost"),
         monthlyDemand: numField(form, "monthlyDemand"),
       },
       "Dados de mercado salvos.",
@@ -314,6 +324,7 @@ function MarketTab({
             <label>Custo de envio do vendedor (R$)<input name="shippingCost" defaultValue={o.shippingCost ?? ""} placeholder="A confirmar" inputMode="decimal" /></label>
             <label>Imposto (%)<input name="taxPercent" defaultValue={o.taxPercent ?? ""} placeholder={view.sale.taxPercent != null ? `padrão ${view.sale.taxPercent}%` : "não informado"} inputMode="decimal" /></label>
           </div>
+          <label>Custo operacional por venda (R$)<input name="operatingCost" defaultValue={o.operatingCost ?? ""} placeholder={view.sale.operatingCost == null ? "A confirmar" : brl(view.sale.operatingCost)} inputMode="decimal" /></label>
           <label>Vendas por mês observadas (opcional)<input name="monthlyDemand" defaultValue={o.monthlyDemand ?? ""} inputMode="numeric" /></label>
           <p className="vr-hint">Informe zero apenas quando souber que o envio não tem custo para você. O frete que o comprador vê é outro valor.</p>
           <button className="vr-btn">Salvar</button>
@@ -894,12 +905,14 @@ function MarginTab({ view, onMarket, onSuppliers }: { view: View; onMarket: () =
                   <tr key={quote.id}>
                     <td data-label="">
                       {v.supplierName}
+                      {v.status === "CALCULADO" && !v.purchasePending.length && <Link prefetch={false} className="vr-table-detail" href={"/assistente-anuncios?estudo=" + encodeURIComponent(view.opportunity.id) + "&cotacao=" + encodeURIComponent(quote.id)}>Criar rascunho com esta cotação</Link>}
                       <small className="vr-table-detail">{SOURCE_LABEL[v.source]} · {dateBr(quote.quotedAt)}</small>
                       {v.purchasePending.length > 0 && <small className="vr-table-detail">Confirme: {v.purchasePending.join(", ")}.</small>}
                     </td>
                     <td className="num" data-label="Lote mínimo">{v.order.minimumUnits.toLocaleString("pt-BR")} un.</td>
                     <td className="num" data-label="Total no mínimo">
                       <span>
+                        {v.status === "CAPITAL_INSUFICIENTE" && <small className="vr-table-detail">Acima do orçamento</small>}
                         {brl(v.order.minimumUnits * quote.unitPrice + v.order.extraCosts)}
                         {v.freightPending && <small className="vr-table-detail">+ frete a confirmar</small>}
                       </span>
@@ -911,7 +924,9 @@ function MarginTab({ view, onMarket, onSuppliers }: { view: View; onMarket: () =
                         <small className="vr-table-detail">{supplier?.issuesInvoice == null ? "NF a confirmar" : supplier.issuesInvoice ? "Emite NF" : "Sem NF"}</small>
                       </span>
                     </td>
-                    <td className="num" data-label="Custo entregue por peça">{v.freightPending ? "—" : brl(v.landedUnitCost)}</td>
+                    <td className="num" data-label="Custo entregue por peça">{v.freightPending ? "—" : brl(v.landedUnitCost)}
+                      {!v.freightPending && view.opportunity.packQuantity && <small className="vr-table-detail">{brl(v.landedUnitCost * view.opportunity.packQuantity)} por pacote de venda</small>}
+                    </td>
                     <td data-label="Lucro estimado por venda" className={`num ${v.perSale && !v.purchasePending.length ? (v.perSale.profit > 0 ? "vr-pos" : "vr-neg") : ""}`}>{v.perSale ? brl(v.perSale.profit) : "—"}</td>
                     <td className="num" data-label="Margem estimada">{v.perSale ? pct(v.perSale.marginPercent) : "—"}</td>
                   </tr>

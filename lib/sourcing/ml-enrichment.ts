@@ -24,6 +24,7 @@ export async function enrichFromMercadoLivre(input: {
   accessToken: string;
   itemId: string;
   listingType: "CLASSIC" | "PREMIUM";
+  simulationPrice?: number | null;
   fallbackTitle?: string | null;
 }): Promise<Enrichment> {
   const out: Enrichment = {
@@ -53,11 +54,12 @@ export async function enrichFromMercadoLivre(input: {
   } catch {
     out.notes.push("Preço atual indisponível na API.");
   }
-  if (out.referencePrice && out.categoryId) {
+  const feePrice = input.simulationPrice ?? out.referencePrice;
+  if (feePrice && out.categoryId) {
     try {
       const fee = await getListingPriceQuote({
         accessToken: input.accessToken,
-        price: out.referencePrice,
+        price: feePrice,
         categoryId: out.categoryId,
         listingType: input.listingType,
       });

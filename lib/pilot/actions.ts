@@ -27,7 +27,7 @@ export async function logPilotAction(entry: {
   workspaceId: string;
   userId: string;
   sellerId: string;
-  kind: "ANSWER_QUESTION" | "UPDATE_PRICE";
+  kind: "ANSWER_QUESTION" | "UPDATE_PRICE" | "EDIT_LISTING";
   mlItemId: string;
   targetId?: string;
   before?: unknown;

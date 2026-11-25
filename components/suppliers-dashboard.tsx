@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 
 type Product = {
   mlItemId: string;
@@ -23,6 +23,7 @@ type Payload = {
 
 type SupplierGroup = {
   name: string;
+  items: Product[];
   products: number;
   units: number;
   sold30d: number;
@@ -40,6 +41,7 @@ export function SuppliersDashboard() {
   const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [open, setOpen] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -93,6 +95,7 @@ export function SuppliersDashboard() {
 
         return {
           name,
+          items: rows,
           products: rows.length,
           units: rows.reduce((sum, row) => sum + row.availableQuantity, 0),
           sold30d: rows.reduce((sum, row) => sum + row.health.unitsSold, 0),
@@ -189,12 +192,13 @@ export function SuppliersDashboard() {
                     <th className="is-num">Custo médio</th>
                     <th className="is-num">Margem média</th>
                     <th className="suppliers-capital-head">Capital em estoque</th>
+                    <th><span className="sr-only">Ações</span></th>
                   </tr>
                 </thead>
                 <tbody>
                   {groups.map((group) => (
+                    <Fragment key={group.name}>
                     <tr
-                      key={group.name}
                       className={
                         group.name === "Sem fornecedor" ? "is-missing" : undefined
                       }
@@ -258,7 +262,45 @@ export function SuppliersDashboard() {
                           />
                         </span>
                       </td>
+                      <td className="suppliers-actions">
+                        <button
+                          type="button"
+                          className="inline-link-button"
+                          aria-expanded={open === group.name}
+                          onClick={() => setOpen(open === group.name ? null : group.name)}
+                        >
+                          {open === group.name ? "Fechar" : group.name === "Sem fornecedor" ? "Ver produtos" : "Ver e editar"}
+                        </button>
+                      </td>
                     </tr>
+                    {open === group.name && (
+                      <tr className="supplier-detail-row">
+                        <td colSpan={8}>
+                          {group.name !== "Sem fornecedor" && (
+                            <SupplierEditor
+                              name={group.name}
+                              others={groups.filter((g) => g.name !== group.name && g.name !== "Sem fornecedor").map((g) => g.name)}
+                              onDone={() => { setOpen(null); void load(); }}
+                            />
+                          )}
+                          <ul className="supplier-products">
+                            {group.items.map((item) => (
+                              <li key={item.mlItemId}>
+                                <span>
+                                  <strong title={item.title}>{item.title}</strong>
+                                  <small>{item.mlItemId} · estoque {item.availableQuantity} · vendeu {item.health.unitsSold} em 30 dias</small>
+                                </span>
+                                <span className="num">{item.netUnitCost == null ? "sem custo" : `${money.format(item.netUnitCost)}/un.`}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          <p className="supplier-hint">
+                            Para trocar o fornecedor ou o custo de um produto só, use <a href="/produtos">Produtos</a>.
+                          </p>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -268,5 +310,60 @@ export function SuppliersDashboard() {
         </>
       )}
     </section>
+  );
+}
+
+function SupplierEditor({ name, others, onDone }: { name: string; others: string[]; onDone: () => void }) {
+  const [value, setValue] = useState(name);
+  const [confirmUnlink, setConfirmUnlink] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function send(to: string | null) {
+    setBusy(true);
+    setMessage("");
+    const response = await fetch("/api/ml/products/supplier", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ from: name, to }),
+    }).catch(() => null);
+    const body = await response?.json().catch(() => null);
+    setBusy(false);
+    if (!response?.ok) { setMessage(body?.error ?? "Não foi possível salvar."); return; }
+    onDone();
+  }
+
+  const trimmed = value.trim();
+  const merging = others.find((o) => o.toLowerCase() === trimmed.toLowerCase());
+  return (
+    <div className="supplier-editor">
+      <label>
+        <span>Nome do fornecedor</span>
+        <input value={value} maxLength={120} onChange={(e) => setValue(e.target.value)} list="supplier-names" />
+        <datalist id="supplier-names">{others.map((o) => <option key={o} value={o} />)}</datalist>
+      </label>
+      <button
+        type="button"
+        className="vr-btn vr-btn--small"
+        disabled={busy || !trimmed || trimmed === name}
+        onClick={() => void send(merging ?? trimmed)}
+      >
+        {merging ? `Juntar com ${merging}` : "Renomear"}
+      </button>
+      {confirmUnlink ? (
+        <span className="supplier-confirm">
+          Tirar {name} de todos os produtos? O custo cadastrado continua.
+          <button type="button" className="vr-btn vr-btn--small vr-btn--danger" disabled={busy} onClick={() => void send(null)}>
+            Sim, excluir
+          </button>
+          <button type="button" className="vr-btn vr-btn--ghost vr-btn--small" onClick={() => setConfirmUnlink(false)}>Voltar</button>
+        </span>
+      ) : (
+        <button type="button" className="vr-btn vr-btn--ghost vr-btn--small" onClick={() => setConfirmUnlink(true)}>
+          Excluir fornecedor
+        </button>
+      )}
+      {message && <p className="pilot-exec-error" role="alert">{message}</p>}
+    </div>
   );
 }

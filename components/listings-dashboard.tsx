@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { ListingInsightPanel } from "@/components/listing-insight-panel";
 
 type Listing = {
   mlItemId: string;
@@ -87,6 +88,9 @@ type ListingInsight = {
     maximum: number | null;
     average: number | null;
     gapToMedian: number | null;
+    cheaperThanYou?: number | null;
+    source?: "EXTENSAO" | "CATALOGO" | "BUSCA" | "SEM_DADOS";
+    notice?: string | null;
   };
   profitability: {
     profit: number;
@@ -113,7 +117,7 @@ type ListingInsight = {
     similarityPercent: number | null;
     searchPosition?: number | null;
     logisticType?: string | null;
-    source?: "EXTENSION_SEARCH" | "CATALOG_WINNER";
+    source?: string;
   }>;
   catalogCompetition?: {
     status: string | null;
@@ -280,15 +284,6 @@ export function ListingsDashboard() {
     } finally {
       setInsightLoading(null);
     }
-  }
-
-  function strategyLabel(
-    action: "HOLD" | "RAISE" | "REDUCE" | "RAISE_OR_EXIT",
-  ) {
-    if (action === "REDUCE") return "Reduzir com limite";
-    if (action === "RAISE") return "Subir preço";
-    if (action === "RAISE_OR_EXIT") return "Subir ou sair";
-    return "Manter";
   }
 
   const listings = useMemo(() => {
@@ -512,10 +507,7 @@ export function ListingsDashboard() {
                 <thead>
                   <tr>
                     <th>Anúncio</th>
-                    <th>ID</th>
                     <th>Status</th>
-                    <th>Plano</th>
-                    <th>Canal</th>
                     <th>Preço</th>
                     <th>Estoque</th>
                     <th>Vendas 30d</th>
@@ -528,7 +520,7 @@ export function ListingsDashboard() {
                 <tbody>
                   {listings.length === 0 && (
                     <tr className="listing-empty-row">
-                      <td colSpan={11}>
+                      <td colSpan={8}>
                         <div className="empty-result">
                           <strong>
                             {data.products.length === 0
@@ -564,7 +556,8 @@ export function ListingsDashboard() {
                               <div>
                                 <strong>{item.title}</strong>
                                 <small>
-                                  {item.sku ? "SKU " + item.sku : "Sem SKU"}
+                                  {[item.mlItemId, item.listingTypeId ? listingType(item.listingTypeId) : null, channelLabel(item.channel)].filter(Boolean).join(" · ")}
+                                  {item.sku ? " · SKU " + item.sku : ""}
                                   {item.listingCreatedAt
                                     ? " · desde " +
                                       new Date(
@@ -577,36 +570,8 @@ export function ListingsDashboard() {
                           </td>
 
                           <td>
-                            <div className="listing-id-cell">
-                              <strong>{item.mlItemId}</strong>
-                              {item.userProductId && (
-                                <small>{item.userProductId}</small>
-                              )}
-                            </div>
-                          </td>
-
-                          <td>
                             <span className={"listing-status " + item.status}>
                               {statusLabel(item.status)}
-                            </span>
-                          </td>
-
-                          <td>
-                            <span className="listing-plan">
-                              {listingType(item.listingTypeId)}
-                            </span>
-                          </td>
-
-                          <td>
-                            <span
-                              className={
-                                "channel-chip " +
-                                (item.channel === "CATALOG"
-                                  ? "catalog"
-                                  : "traditional")
-                              }
-                            >
-                              {channelLabel(item.channel)}
                             </span>
                           </td>
 
@@ -677,7 +642,7 @@ export function ListingsDashboard() {
                                 disabled={isLoadingInsight}
                                 title="Analisar posição, mercado e preço"
                               >
-                                {isLoadingInsight ? "Abrindo…" : isOpen ? "Fechar" : "Analisar"}
+                                {isLoadingInsight ? "Abrindo…" : isOpen ? "Fechar" : "Analisar e editar"}
                               </button>
 
                               {item.permalink && (
@@ -697,7 +662,7 @@ export function ListingsDashboard() {
 
                         {isOpen && (
                           <tr className="listing-insight-row">
-                            <td colSpan={11}>
+                            <td colSpan={8}>
                               <div className="listing-insight-panel">
                                 {isLoadingInsight && (
                                   <div className="listing-insight-loading">
@@ -710,224 +675,17 @@ export function ListingsDashboard() {
                                 )}
 
                                 {!isLoadingInsight && insight && (
-                                  <>
-                                    <div className="listing-insight-summary">
-                                      <div>
-                                        <span>Posição na busca</span>
-                                        <strong>
-                                          {insight.ranking.position == null
-                                            ? "50+"
-                                            : "#" + insight.ranking.position}
-                                        </strong>
-                                        <small>
-                                          {insight.ranking.position == null
-                                            ? insight.ranking.note ??
-                                              "fora dos resultados analisados"
-                                            : "entre " +
-                                              insight.ranking.searched +
-                                              " resultados lidos"}
-                                        </small>
-                                      </div>
-
-                                      <div>
-                                        <span>P25 mercado</span>
-                                        <strong>
-                                          {insight.market.p25 == null
-                                            ? "—"
-                                            : money.format(insight.market.p25)}
-                                        </strong>
-                                        <small>
-                                          {insight.market.count} comparáveis
-                                        </small>
-                                      </div>
-
-                                      <div>
-                                        <span>Mediana</span>
-                                        <strong>
-                                          {insight.market.median == null
-                                            ? "—"
-                                            : money.format(
-                                                insight.market.median,
-                                              )}
-                                        </strong>
-                                        <small>
-                                          {insight.market.gapToMedian == null
-                                            ? "sem comparação"
-                                            : (insight.market.gapToMedian >= 0
-                                                ? "+"
-                                                : "") +
-                                              insight.market.gapToMedian.toFixed(
-                                                1,
-                                              ) +
-                                              "% seu preço"}
-                                        </small>
-                                      </div>
-
-                                      <div>
-                                        <span>Lucro atual</span>
-                                        <strong>
-                                          {insight.profitability == null
-                                            ? "Sem custo"
-                                            : money.format(
-                                                insight.profitability.profit,
-                                              )}
-                                        </strong>
-                                        <small>
-                                          {insight.profitability == null
-                                            ? "cadastre custo para liberar"
-                                            : "margem " +
-                                              insight.profitability.marginPercent.toFixed(
-                                                1,
-                                              ) +
-                                              "% · ROI " +
-                                              insight.profitability.roiPercent.toFixed(
-                                                1,
-                                              ) +
-                                              "%"}
-                                        </small>
-                                      </div>
-                                    </div>
-
-                                    {insight.strategy && (
-                                      <div
-                                        className={
-                                          "listing-price-strategy " +
-                                          insight.strategy.action.toLowerCase()
-                                        }
-                                      >
-                                        <div>
-                                          <span>Radar de preço</span>
-                                          <strong>
-                                            {strategyLabel(
-                                              insight.strategy.action,
-                                            )}
-                                          </strong>
-                                          <p>{insight.strategy.message}</p>
-                                          <small>{insight.strategy.caveat}</small>
-                                        </div>
-
-                                        <div className="listing-price-strategy-numbers">
-                                          <div>
-                                            <span>Preço recomendado</span>
-                                            <strong>
-                                              {money.format(
-                                                insight.strategy
-                                                  .recommendedPrice,
-                                              )}
-                                            </strong>
-                                          </div>
-                                          <div>
-                                            <span>Piso saudável</span>
-                                            <strong>
-                                              {money.format(
-                                                insight.strategy.safeFloor,
-                                              )}
-                                            </strong>
-                                          </div>
-                                          <div>
-                                            <span>Referência</span>
-                                            <strong>
-                                              {money.format(
-                                                insight.strategy
-                                                  .marketReferencePrice,
-                                              )}
-                                            </strong>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    <div className="listing-insight-grid">
-                                      <div className="listing-history-box">
-                                        <strong>Histórico de posição</strong>
-                                        {insight.history.length === 0 ? (
-                                          <p className="table-muted">
-                                            Primeiro snapshot criado agora.
-                                          </p>
-                                        ) : (
-                                          <div className="listing-history-list">
-                                            {insight.history
-                                              .slice(0, 6)
-                                              .map((point, index) => (
-                                                <div
-                                                  key={
-                                                    point.createdAt +
-                                                    "-" +
-                                                    String(index)
-                                                  }
-                                                >
-                                                  <span>
-                                                    {new Date(
-                                                      point.createdAt,
-                                                    ).toLocaleDateString(
-                                                      "pt-BR",
-                                                    )}
-                                                  </span>
-                                                  <strong>
-                                                    {point.position == null
-                                                      ? "50+"
-                                                      : "#" + point.position}
-                                                  </strong>
-                                                  <small>
-                                                    {point.testedPrice == null
-                                                      ? "—"
-                                                      : money.format(
-                                                          point.testedPrice,
-                                                        )}
-                                                  </small>
-                                                </div>
-                                              ))}
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      <div className="listing-competitors-box">
-                                        <strong>Concorrentes próximos</strong>
-                                        {insight.competitors.length === 0 ? (
-                                          <p className="table-muted">
-                                            Nenhum comparável forte encontrado.
-                                          </p>
-                                        ) : (
-                                          <div className="listing-competitors-list">
-                                            {insight.competitors
-                                              .slice(0, 5)
-                                              .map((competitor) => (
-                                                <div key={competitor.id}>
-                                                  <span>
-                                                    {competitor.title}
-                                                  </span>
-                                                  <strong>
-                                                    {competitor.price == null
-                                                      ? "—"
-                                                      : money.format(
-                                                          competitor.price,
-                                                        )}
-                                                  </strong>
-                                                  <small>
-                                                    {competitor.source ===
-                                                    "CATALOG_WINNER"
-                                                      ? "vencedor do catálogo"
-                                                      : competitor.searchPosition !=
-                                                          null
-                                                        ? "#" +
-                                                          competitor.searchPosition +
-                                                          " na busca"
-                                                        : "observado na busca"}
-                                                    {competitor.freeShipping
-                                                      ? " · frete grátis"
-                                                      : ""}
-                                                    {competitor.logisticType ===
-                                                    "fulfillment"
-                                                      ? " · Full"
-                                                      : ""}
-                                                  </small>
-                                                </div>
-                                              ))}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </>
+                                  <ListingInsightPanel
+                                    item={item}
+                                    insight={insight}
+                                    onEdited={(patch) =>
+                                      setData((current) =>
+                                        current
+                                          ? { ...current, products: current.products.map((p) => (p.mlItemId === item.mlItemId ? { ...p, ...patch } : p)) }
+                                          : current,
+                                      )
+                                    }
+                                  />
                                 )}
                               </div>
                             </td>

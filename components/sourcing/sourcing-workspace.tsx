@@ -316,6 +316,7 @@ function SuppliersTab({
   const o = view.opportunity;
   const [search, setSearch] = useState<SearchOutcome | null>(o.searchSnapshot);
   const [busy, setBusy] = useState("");
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [adding, setAdding] = useState<Partial<Supplier> | null>(null);
   const [quoting, setQuoting] = useState<string | null>(null);
 
@@ -372,6 +373,21 @@ function SuppliersTab({
       await reload();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Falha ao salvar fornecedor.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function removeSupplier(supplier: Supplier) {
+    setBusy(`del-${supplier.id}`);
+    setError("");
+    try {
+      await api(`/api/sourcing/suppliers/${supplier.id}`, { method: "DELETE" });
+      setDeleting(null);
+      setNotice(`Fornecedor ${supplier.name} excluído.`);
+      await reload();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Falha ao excluir.");
     } finally {
       setBusy("");
     }
@@ -592,6 +608,17 @@ function SuppliersTab({
                 </button>
               )}
               <button className="vr-btn vr-btn--ghost vr-btn--small" onClick={() => setAdding(supplier)}>Editar ficha</button>
+              {deleting === supplier.id ? (
+                <span className="vr-confirm">
+                  Excluir {supplier.name} e as cotações dele em todos os produtos?
+                  <button className="vr-btn vr-btn--small vr-btn--danger" disabled={busy === `del-${supplier.id}`} onClick={() => removeSupplier(supplier)}>
+                    {busy === `del-${supplier.id}` ? "Excluindo…" : "Sim, excluir"}
+                  </button>
+                  <button className="vr-btn vr-btn--ghost vr-btn--small" onClick={() => setDeleting(null)}>Voltar</button>
+                </span>
+              ) : (
+                <button className="vr-link" onClick={() => setDeleting(supplier.id)}>Excluir</button>
+              )}
               {supplier.website && <a href={supplier.website} target="_blank" rel="noopener noreferrer">Site ↗</a>}
             </div>
             {quoting === supplier.id && (

@@ -142,7 +142,7 @@ globalThis.fetch = async (input, init) => {
   if (url.pathname === "/answers" && init?.method === "POST")
     return json({ id: 9001, status: "ANSWERED" });
   if (url.pathname === `/items/${item}` && init?.method === "PUT")
-    return json({ id: item, price: JSON.parse(String(init.body)).price });
+    return json({ id: item, ...JSON.parse(String(init.body)) });
   if (url.pathname === "/items" || url.pathname === "/items/bulk")
     return json(
       (url.searchParams.get("ids") || "").split(",").map((id) =>
@@ -154,6 +154,7 @@ globalThis.fetch = async (input, init) => {
                 body: {
                   id,
                   title: "Kit ilhós",
+                  status: "active",
                   price: 100,
                   category_id: "MLB1234",
                   seller_id: id === item ? seller : "foreign-seller",

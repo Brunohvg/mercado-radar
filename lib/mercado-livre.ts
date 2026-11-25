@@ -1906,6 +1906,15 @@ export async function updateItemPrice(input: { accessToken: string; itemId: stri
   });
 }
 
+/** Atualiza campos editáveis do anúncio (preço, estoque, status, variações). */
+export async function updateItem(input: { accessToken: string; itemId: string; body: Record<string, unknown> }) {
+  return jsonFetch<{ id?: string; price?: number; available_quantity?: number; status?: string }>(`${API}/items/${input.itemId}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${input.accessToken}`, "content-type": "application/json" },
+    body: JSON.stringify(input.body),
+  });
+}
+
 export type MlRawReviews = {
   paging?: { total?: number };
   rating_average?: number;

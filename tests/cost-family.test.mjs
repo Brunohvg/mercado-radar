@@ -46,3 +46,15 @@ test("mesmo catálogo vale mesmo com título diferente; famílias distintas não
   assert.equal(s.get("B").match, "MESMO_PRODUTO");
   assert.equal(s.has("C"), false);
 });
+
+test("sem quantidade escrita não extrapola, e custo acima do preço é descartado", () => {
+  const s = suggestCosts([
+    { mlItemId: "A", title: "Kit ilhós nº54 dourado e prata", netCost: 40 },
+    { mlItemId: "B", title: "Ilhós Nº 54 Dourado Pacote 500 Unidades", netCost: null, price: 24.9 },
+    { mlItemId: "C", title: "Ilhós Nº 54 Prata Pacote 1000 Unidades", netCost: 24.5 },
+    { mlItemId: "D", title: "Ilhós Nº 54 Ouro Pacote 2000 Unidades", netCost: null, price: 30 },
+  ]);
+  assert.equal(s.get("B").fromMlItemId, "C");
+  assert.equal(s.get("B").supplierPrice, 12.25);
+  assert.equal(s.has("D"), false);
+});

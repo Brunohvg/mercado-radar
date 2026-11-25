@@ -225,3 +225,5 @@
   .hunter-list li { grid-template-columns: 48px minmax(0, 1fr); }
   .hunter-side { grid-column: 1 / -1; justify-items: start; text-align: left; }
 }
+.vr-btn--danger { background: var(--risk, #d92d20); border-color: var(--risk, #d92d20); color: #fff; }
+.vr-confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: var(--fs-13, 13px); color: var(--risk-ink, inherit); }

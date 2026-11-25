@@ -357,6 +357,20 @@ try {
       assert.equal(changed.json.after, 95);
       const log = await db.query('SELECT kind, status FROM "PilotActionLog" ORDER BY "createdAt"');
       assert.deepEqual(log.rows.map((r) => r.kind + ":" + r.status), ["ANSWER_QUESTION:DONE", "UPDATE_PRICE:DONE"]);
+      // Edição direta do anúncio: confere o que está no ML, exige confirmação, registra.
+      const editBase = { mlItemId: "MLB999000001", expected: { price: 100, availableQuantity: 20, status: "active" } };
+      assert.equal((await req("/api/ml/products/edit", cookieA, "POST", { ...editBase, status: "paused" })).status, 400);
+      const staleEdit = await req("/api/ml/products/edit", cookieA, "POST", { ...editBase, expected: { ...editBase.expected, availableQuantity: 3 }, status: "paused", confirm: true });
+      assert.equal(staleEdit.status, 409, staleEdit.text);
+      const typo = await req("/api/ml/products/edit", cookieA, "POST", { ...editBase, price: 1000, confirm: true });
+      assert.equal(typo.status, 422, typo.text);
+      assert.equal((await req("/api/ml/products/edit", cookieB, "POST", { ...editBase, status: "paused", confirm: true })).status >= 400, true);
+      const edited = await req("/api/ml/products/edit", cookieA, "POST", { ...editBase, availableQuantity: 12, status: "paused", confirm: true });
+      assert.equal(edited.status, 200, edited.text);
+      const editedRow = (await db.query('SELECT status, "availableQuantity" FROM "MercadoLivreProduct" WHERE "mlItemId"=$1', ["MLB999000001"])).rows[0];
+      assert.deepEqual([editedRow.status, editedRow.availableQuantity], ["paused", 12]);
+      assert.equal((await db.query(`SELECT count(*)::int AS n FROM "PilotActionLog" WHERE kind='EDIT_LISTING' AND status='DONE'`)).rows[0].n, 1);
+      await db.query('UPDATE "MercadoLivreProduct" SET status = $2, "availableQuantity" = 5 WHERE "mlItemId" = $1', ["MLB999000001", "active"]);
       await db.query('UPDATE "MercadoLivreProduct" SET "currentPrice" = 100 WHERE "mlItemId" = $1', ["MLB999000001"]);
       await db.query('UPDATE "MercadoLivreProduct" SET "categoryId" = $2 WHERE "mlItemId" = $1', ["MLB999000001", "MLB1234"]);
       const hunter = await req("/api/hunter?refresh=1", cookieA);
@@ -1022,6 +1036,18 @@ try {
     mlItemId: "MLB999000001",
     supplierPrice: 40,
     discountPercent: 0,
+  });
+  await check("supplier can be renamed and removed across products, scoped to the account", async () => {
+    await req("/api/ml/products/cost", cookieA, "PATCH", { mlItemId: "MLB999000001", supplier: "Fornecedor Smoke", supplierPrice: 40, discountPercent: 0 });
+    assert.equal((await req("/api/ml/products/supplier", cookieB, "PATCH", { from: "Fornecedor Smoke", to: "X" })).status, 404);
+    const renamed = await req("/api/ml/products/supplier", cookieA, "PATCH", { from: "Fornecedor Smoke", to: "Fornecedor Novo" });
+    assert.equal(renamed.status, 200, renamed.text);
+    let row = (await db.query('SELECT supplier, "supplierPrice" FROM "MercadoLivreProduct" WHERE "mlItemId"=$1', ["MLB999000001"])).rows[0];
+    assert.equal(row.supplier, "Fornecedor Novo");
+    assert.equal((await req("/api/ml/products/supplier", cookieA, "PATCH", { from: "Fornecedor Novo", to: null })).status, 200);
+    row = (await db.query('SELECT supplier, "supplierPrice" FROM "MercadoLivreProduct" WHERE "mlItemId"=$1', ["MLB999000001"])).rows[0];
+    assert.equal(row.supplier, null);
+    assert.equal(Number(row.supplierPrice), 40);
   });
   await check(
     "decision center sorts useful actions with known stock and history",

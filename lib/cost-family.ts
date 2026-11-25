@@ -9,6 +9,8 @@ export type CostFamilyItem = {
   userProductId?: string | null;
   /** Custo líquido por anúncio vendido (já com desconto), quando cadastrado. */
   netCost: number | null;
+  /** Preço de venda; custo sugerido acima dele é descartado como erro. */
+  price?: number | null;
 };
 
 export type CostSuggestion = {
@@ -39,14 +41,20 @@ const toInt = (raw: string) => Number(raw.replace(/\./g, ""));
 
 /** Quantas unidades do item-base vão em um anúncio (Kit 2 = 2, Pacote 1.000 un. = 1000). */
 export function packQuantity(title: string) {
+  return readPack(title).qty;
+}
+
+/** Quantidade e se ela veio escrita no título (sem número, 1 é só suposição). */
+export function readPack(title: string) {
   const t = strip(title);
   const kit = t.match(/\b(?:kit|jogo|lote|conjunto)\s*(?:c\/|com|de)?\s*(\d{1,4}(?:\.\d{3})?)\b(?!\s*(?:mm|cm|m|g|kg|ml|l|x|v|w)\b)/);
   const units = t.match(/(\d{1,3}(?:\.\d{3})+|\d{1,5})\s*(?:unidades|unidade|unid|und|un|pcs|pecas|pcs\.|pçs|peças)\b/);
   const pack = t.match(/\b(?:pacote|pct|caixa|cx|embalagem)\s*(?:c\/|com|de)?\s*(\d{1,3}(?:\.\d{3})+|\d{1,5})\b/);
   const kitN = kit ? toInt(kit[1]) : null;
   const unitN = units ? toInt(units[1]) : pack ? toInt(pack[1]) : null;
-  if (kitN && unitN && kitN !== unitN && kitN <= 20) return kitN * unitN;
-  return unitN ?? kitN ?? 1;
+  if (kitN && unitN && kitN !== unitN && kitN <= 20) return { qty: kitN * unitN, explicit: true };
+  const qty = unitN ?? kitN;
+  return qty ? { qty, explicit: true } : { qty: 1, explicit: false };
 }
 
 /** Palavras que identificam o produto, sem quantidade, cor e palavras de embalagem. */
@@ -72,11 +80,11 @@ const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curren
 export function suggestCosts(items: CostFamilyItem[], minSimilarity = 0.75) {
   const known = items
     .filter((i) => i.netCost != null && i.netCost > 0)
-    .map((i) => ({ ...i, qty: packQuantity(i.title), tokens: familyTokens(i.title) }));
+    .map((i) => ({ ...i, ...readPack(i.title), tokens: familyTokens(i.title) }));
   const out = new Map<string, CostSuggestion>();
   for (const item of items) {
     if (item.netCost != null && item.netCost > 0) continue;
-    const qty = packQuantity(item.title);
+    const { qty, explicit } = readPack(item.title);
     const tokens = familyTokens(item.title);
     let best: { k: (typeof known)[number]; match: CostSuggestion["match"]; score: number } | null = null;
     for (const k of known) {
@@ -86,6 +94,8 @@ export function suggestCosts(items: CostFamilyItem[], minSimilarity = 0.75) {
         (item.userProductId && item.userProductId === k.userProductId);
       const score = same ? 2 : tokens.size >= 2 && k.tokens.size >= 2 ? similarity(tokens, k.tokens) : 0;
       if (score < minSimilarity) continue;
+      // Só escala custo quando as duas quantidades estão escritas no título.
+      if (k.qty !== qty && !(explicit && k.explicit)) continue;
       // Empate: prefere o parente com a mesma quantidade (menos conta, menos erro).
       const better = !best || score > best.score || (score === best.score && k.qty === qty && best.k.qty !== qty);
       if (better) best = { k, match: same ? "MESMO_PRODUTO" : "MESMA_FAMILIA", score };
@@ -94,6 +104,7 @@ export function suggestCosts(items: CostFamilyItem[], minSimilarity = 0.75) {
     const { k, match } = best;
     const supplierPrice = round2((k.netCost! / k.qty) * qty);
     if (!(supplierPrice > 0)) continue;
+    if (item.price != null && item.price > 0 && supplierPrice >= item.price) continue;
     const scale = k.qty === qty ? "mesma quantidade" : `${brl(k.netCost!)} ÷ ${k.qty} × ${qty}`;
     out.set(item.mlItemId, {
       supplierPrice,

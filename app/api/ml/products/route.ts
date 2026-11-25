@@ -115,6 +115,7 @@ export async function GET(request: Request) {
 
     const costSuggestions = suggestCosts(products.map((p) => ({
       mlItemId: p.mlItemId, title: p.title, catalogProductId: p.catalogProductId, userProductId: p.userProductId,
+      price: p.currentPrice == null ? null : Number(p.currentPrice),
       netCost: p.supplierPrice == null ? null : Number(p.supplierPrice) * (1 - Number(p.discountPercent) / 100),
     })));
 

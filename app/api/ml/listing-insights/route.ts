@@ -6,7 +6,10 @@ import {
   getExistingItemShippingQuote,
   getListingPriceQuote,
   getMlSession,
+  getCatalogProductOffersSnapshot,
+  searchMarketplaceWithSource,
 } from "@/lib/mercado-livre";
+import { summarizePrices } from "@/lib/market-stats";
 import { analyzeProfitability } from "@/lib/profitability";
 import { buildCompetitivePriceStrategy } from "@/lib/price-strategy";
 
@@ -99,7 +102,7 @@ export async function GET(request: Request) {
         title: item.title ?? "Anúncio observado na busca",
         price: round2(Number(item.price)),
         freeShipping: Boolean(item.freeShipping),
-        listingTypeId: null,
+        listingTypeId: null as string | null,
         similarityPercent: null,
         searchPosition: item.searchPosition ?? null,
         logisticType: item.logisticType ?? null,
@@ -137,16 +140,55 @@ export async function GET(request: Request) {
       });
     }
 
-    const market = {
-      count: latestSnapshot?.resultCount ?? compactCompetitors.length,
-      minimum: decimal(latestSnapshot?.minimumPrice),
-      p25: decimal(latestSnapshot?.p25Price),
-      median: decimal(latestSnapshot?.medianPrice),
-      p75: decimal(latestSnapshot?.p75Price),
-      maximum: decimal(latestSnapshot?.maximumPrice),
-      average: decimal(latestSnapshot?.averagePrice),
-      gapToMedian: decimal(latestSnapshot?.marketGapPercent),
-    };
+    // Mercado: a captura da extensão vale por 7 dias; sem ela, buscamos ao vivo as
+    // ofertas do catálogo (ou a busca, quando liberada) e dizemos a fonte.
+    const snapshotFresh = latestSnapshot && Date.now() - latestSnapshot.createdAt.getTime() < 7 * 24 * 60 * 60 * 1000;
+    let marketSource: "EXTENSAO" | "CATALOGO" | "BUSCA" | "SEM_DADOS" = snapshotFresh ? "EXTENSAO" : "SEM_DADOS";
+    let marketNotice: string | null = null;
+    let livePrices: number[] = [];
+    if (!snapshotFresh) {
+      if (product.catalogProductId) {
+        const snap = await getCatalogProductOffersSnapshot({ accessToken: session.accessToken, productId: product.catalogProductId, limit: 50 }).catch(() => null);
+        const others = (snap?.offers ?? []).filter((o) => o.itemId !== itemId && o.sellerId !== sellerUserId);
+        if (others.length) {
+          marketSource = "CATALOGO";
+          livePrices = others.map((o) => o.price);
+          compactCompetitors.push(...others.sort((a, b) => a.price - b.price).slice(0, 8).map((o) => ({
+            id: o.itemId, title: "Oferta no mesmo catálogo", price: round2(o.price), freeShipping: o.freeShipping,
+            listingTypeId: null, similarityPercent: null, searchPosition: null, logisticType: o.logisticType, source: "CATALOG_OFFER",
+          })));
+        }
+      } else {
+        const found = await searchMarketplaceWithSource({ accessToken: session.accessToken, query: product.title, categoryId: product.categoryId ?? undefined, limit: 30 }).catch(() => null);
+        const others = (found?.items ?? []).filter((i) => i.id !== itemId && i.sellerId !== sellerUserId);
+        if (found && others.length) {
+          marketSource = found.source === "BUSCA" ? "BUSCA" : "CATALOGO";
+          marketNotice = found.notice;
+          livePrices = others.map((i) => i.price);
+          compactCompetitors.push(...others.slice(0, 8).map((i, index) => ({
+            id: i.id, title: i.title, price: round2(i.price), freeShipping: i.freeShipping, listingTypeId: i.listingTypeId,
+            similarityPercent: null, searchPosition: found.source === "BUSCA" ? index + 1 : null, logisticType: null,
+            source: found.source === "BUSCA" ? "LIVE_SEARCH" : "CATALOG_OFFER",
+          })));
+        } else if (found?.notice) marketNotice = found.notice;
+      }
+    }
+
+    const market = marketSource === "EXTENSAO"
+      ? {
+          count: latestSnapshot?.resultCount ?? compactCompetitors.length,
+          minimum: decimal(latestSnapshot?.minimumPrice),
+          p25: decimal(latestSnapshot?.p25Price),
+          median: decimal(latestSnapshot?.medianPrice),
+          p75: decimal(latestSnapshot?.p75Price),
+          maximum: decimal(latestSnapshot?.maximumPrice),
+          average: decimal(latestSnapshot?.averagePrice),
+          gapToMedian: decimal(latestSnapshot?.marketGapPercent),
+          cheaperThanYou: null as number | null,
+          source: marketSource,
+          notice: marketNotice,
+        }
+      : { ...summarizePrices(livePrices, currentPrice), source: marketSource, notice: marketNotice };
 
     let unitCost =
       product.supplierPrice == null
@@ -172,8 +214,18 @@ export async function GET(request: Request) {
 
     let profitability = null;
     let strategy = null;
+    const settingsRow = await prisma.appSettings.findUnique({ where: { id: session.account.workspaceId }, select: { taxPercent: true } });
+    let profitabilityNote: string | null =
+      unitCost == null
+        ? "Cadastre o custo do produto para ver lucro e piso."
+        : settingsRow?.taxPercent == null
+          ? "Confirme seu imposto em Configurações para ver lucro e piso."
+          : !product.categoryId || currentPrice == null || currentPrice <= 0
+            ? "Sincronize os anúncios para calcular tarifa e frete deste item."
+            : null;
 
     if (
+      profitabilityNote == null &&
       unitCost != null &&
       currentPrice != null &&
       currentPrice > 0 &&
@@ -192,8 +244,7 @@ export async function GET(request: Request) {
         settings?.operatingCostDefault ?? 1,
       );
 
-      if (settings?.taxPercent == null) throw new Error("Confirme o imposto em Metas e configurações para analisar a rentabilidade.");
-      const [fee, shipping] = await Promise.all([
+      const quotes = await Promise.all([
         getListingPriceQuote({
           accessToken: session.accessToken,
           price: currentPrice,
@@ -208,7 +259,13 @@ export async function GET(request: Request) {
           listingType,
           freeShipping: product.freeShipping,
         }),
-      ]);
+      ]).catch((e: unknown) => {
+        // Sem tarifa ou frete oficial não há lucro honesto; o resto do painel continua.
+        profitabilityNote = `O Mercado Livre não devolveu tarifa ou frete deste anúncio agora (${e instanceof Error ? e.message : "erro"}). Tente de novo em instantes.`;
+        return null;
+      });
+      if (quotes) {
+      const [fee, shipping] = quotes;
 
       profitability = analyzeProfitability({
         productName: product.title,
@@ -222,7 +279,7 @@ export async function GET(request: Request) {
         quotedSaleFeeAmount: fee.saleFeeAmount,
         shippingCost: shipping.shippingCost,
         operatingCost,
-        taxPercent: Number(settings.taxPercent),
+        taxPercent: Number(settings?.taxPercent ?? 0),
         targetMarginPercent,
         targetRoiPercent,
       });
@@ -245,6 +302,7 @@ export async function GET(request: Request) {
           minimumSuggestedPrice: profitability.minimumSuggestedPrice,
           breakEvenPrice: profitability.breakEvenPrice,
         });
+      }
       }
     }
 
@@ -307,6 +365,7 @@ export async function GET(request: Request) {
         : null,
       market,
       profitability,
+      profitabilityNote,
       strategy,
       competitors: compactCompetitors,
       history: history.map((snapshot) => ({

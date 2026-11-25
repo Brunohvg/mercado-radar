@@ -59,12 +59,12 @@ export async function GET(request: Request) {
     // Produto sem custo que é kit/pacote/cor de outro com custo: sugere o custo e mostra a origem.
     const catalog = await prisma.mercadoLivreProduct.findMany({
       where: { sellerUserId },
-      select: { mlItemId: true, title: true, catalogProductId: true, userProductId: true, supplierPrice: true, discountPercent: true },
+      select: { mlItemId: true, title: true, catalogProductId: true, userProductId: true, supplierPrice: true, discountPercent: true, currentPrice: true },
     });
     const listed = new Set(catalog.map((p) => p.mlItemId));
     const suggestions = suggestCosts([
-      ...catalog.map((p) => ({ ...p, netCost: p.supplierPrice == null ? null : Number(p.supplierPrice) * (1 - Number(p.discountPercent) / 100) })),
-      ...report.productRows.filter((r) => !listed.has(r.mlItemId)).map((r) => ({ mlItemId: r.mlItemId, title: r.title, netCost: r.unitCost })),
+      ...catalog.map((p) => ({ ...p, price: p.currentPrice == null ? null : Number(p.currentPrice), netCost: p.supplierPrice == null ? null : Number(p.supplierPrice) * (1 - Number(p.discountPercent) / 100) })),
+      ...report.productRows.filter((r) => !listed.has(r.mlItemId)).map((r) => ({ mlItemId: r.mlItemId, title: r.title, netCost: r.unitCost, price: r.units ? r.revenue / r.units : null })),
     ]);
     const productRows = report.productRows.map((r) => ({ ...r, costSuggestion: r.unitCost == null ? suggestions.get(r.mlItemId) ?? null : null }));
     const lastSync = await prisma.syncRun.findFirst({ where: { workspaceId: session.account.workspaceId, kind: "ML_ORDERS", status: "SUCCESS" }, orderBy: { finishedAt: "desc" } });

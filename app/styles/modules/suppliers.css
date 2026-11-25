@@ -180,3 +180,16 @@
 .suppliers-page .suppliers-table tr.is-missing .suppliers-share {
   visibility: hidden;
 }
+
+.suppliers-page .suppliers-actions { text-align: right; white-space: nowrap; }
+.suppliers-page .supplier-detail-row > td { background: var(--surface-2, #f6f8fb); padding: var(--s-3, 12px) var(--s-4, 16px); }
+.suppliers-page .supplier-editor { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; margin-bottom: var(--s-3, 12px); }
+.suppliers-page .supplier-editor label { display: grid; gap: 4px; font-size: var(--fs-12, 12px); color: var(--ink-500); }
+.suppliers-page .supplier-editor input { font: inherit; min-width: 240px; padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.suppliers-page .supplier-confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: var(--fs-13, 13px); color: var(--risk-ink, inherit); }
+.suppliers-page .supplier-products { list-style: none; margin: 0; padding: 0; display: grid; }
+.suppliers-page .supplier-products li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+.suppliers-page .supplier-products li span:first-child { display: grid; min-width: 0; }
+.suppliers-page .supplier-products strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.suppliers-page .supplier-products small, .suppliers-page .supplier-hint { color: var(--ink-500); font-size: var(--fs-12, 12px); }
+.suppliers-page .supplier-hint { margin: 8px 0 0; }

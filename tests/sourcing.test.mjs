@@ -74,9 +74,20 @@ test("CNPJ: dígitos verificadores, formatação e mapeamento da BrasilAPI", () 
       cnae_fiscal_descricao: "Comércio atacadista",
       uf: "MG",
       municipio: "BELO HORIZONTE",
+      ddd_telefone_1: "3132221234",
+      email: "Vendas@Empresa.com.br",
+      descricao_tipo_de_logradouro: "RUA",
+      logradouro: "DOS GUAJAJARAS",
+      numero: "100",
+      bairro: "CENTRO",
+      cep: "30180100",
     },
     new Date("2026-11-25T12:00:00Z"),
   );
+  assert.equal(check.phone, "(31) 3222-1234");
+  assert.equal(check.email, "vendas@empresa.com.br");
+  assert.equal(check.address, "RUA DOS GUAJAJARAS, 100, CENTRO");
+  assert.equal(check.zipCode, "30180-100");
   assert.equal(check.status, "ATIVA");
   assert.equal(check.state, "MG");
   assert.match(check.mainActivity, /4649408/);

@@ -437,6 +437,17 @@ try {
       assert.equal(checked.status, 200, checked.text);
       assert.equal(checked.json.supplier.cnpjCheck.status, "ATIVA");
       assert.equal(checked.json.supplier.state, "MG");
+      // Cadastro completo: CNPJ preenche, campos novos voltam, outra conta não enxerga.
+      const lookup = await req("/api/sourcing/cnpj?cnpj=00.000.000/0001-91", cookieA);
+      assert.equal(lookup.status, 200, lookup.text);
+      assert.equal(lookup.json.check.legalName, "FORNECEDOR TESTE SA");
+      assert.equal((await req("/api/sourcing/cnpj?cnpj=123", cookieA)).status, 400);
+      assert.equal((await req("/api/sourcing/cnpj?cnpj=00000000000191", "")).status, 401);
+      const edited = await req(`/api/sourcing/suppliers/${supplierId}`, cookieA, "PATCH", { contactName: "Ana", paymentTerms: "Boleto 28 dias", address: "Rua A, 1", zipCode: "30180-100" });
+      assert.equal(edited.status, 200, edited.text);
+      assert.equal(edited.json.supplier.paymentTerms, "Boleto 28 dias");
+      assert.equal(edited.json.supplier.contactName, "Ana");
+      assert.equal((await req(`/api/sourcing/suppliers/${supplierId}`, cookieB, "PATCH", { contactName: "X" })).status, 404);
       view = (await req("/api/sourcing/opportunities/" + id, cookieA)).json;
       assert.equal(view.nextAction.title, "Solicitar cotação de atacado");
       assert.equal(

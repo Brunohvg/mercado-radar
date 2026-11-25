@@ -108,6 +108,13 @@ export function ProductsDashboard() {
     discountPercent: "0",
   });
   const [costSaving, setCostSaving] = useState(false);
+  const [supplierNames, setSupplierNames] = useState<string[]>([]);
+  useEffect(() => {
+    fetch("/api/sourcing/suppliers", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { suppliers: [] }))
+      .then((b: { suppliers?: Array<{ name: string }> }) => setSupplierNames((b.suppliers ?? []).map((x) => x.name)))
+      .catch(() => {});
+  }, []);
 
   const load = useCallback(async (refresh = false) => {
     refresh ? setRefreshing(true) : setLoading(true);
@@ -498,9 +505,11 @@ export function ProductsDashboard() {
                                 <div className="product-inline-editor-grid">
                                   <label>
                                     <span>Fornecedor</span>
+                                    <datalist id="registered-suppliers">{supplierNames.map((n) => <option key={n} value={n} />)}</datalist>
                                     <input
                                       value={costDraft.supplier}
-                                      placeholder="Ex.: Bibelô"
+                                      list="registered-suppliers"
+                                      placeholder={supplierNames.length ? "Escolha ou digite" : "Ex.: Bibelô"}
                                       onChange={(event) =>
                                         setCostDraft((current) => ({
                                           ...current,

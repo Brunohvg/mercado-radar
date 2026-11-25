@@ -193,3 +193,45 @@
 .suppliers-page .supplier-products strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .suppliers-page .supplier-products small, .suppliers-page .supplier-hint { color: var(--ink-500); font-size: var(--fs-12, 12px); }
 .suppliers-page .supplier-hint { margin: 8px 0 0; }
+
+/* Cadastro de fornecedores */
+.suppliers-page .supplier-unregistered { display: grid; gap: 8px; margin-bottom: var(--s-3, 12px); background: var(--info-tint); border-color: transparent; }
+.suppliers-page .supplier-unregistered > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.suppliers-page .supplier-registry { display: grid; gap: var(--s-3, 12px); }
+.suppliers-page .supplier-registry-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.suppliers-page .supplier-registry-toolbar input { font: inherit; min-width: min(320px, 100%); padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.suppliers-page .supplier-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.suppliers-page .supplier-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 24px; padding: 14px 0; border-top: 1px solid var(--line); }
+.suppliers-page .supplier-item-main { display: grid; gap: 4px; min-width: 0; }
+.suppliers-page .supplier-item-title { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.suppliers-page .supplier-item-title strong { font-size: var(--fs-16, 16px); }
+.suppliers-page .supplier-kind, .suppliers-page .supplier-cnpj { font-size: var(--fs-12, 12px); padding: 2px 8px; border-radius: 999px; background: var(--surface-3, #eef1f6); color: var(--ink-500); }
+.suppliers-page .supplier-cnpj.is-ok { background: var(--ok-tint); color: #0b7a4b; }
+.suppliers-page .supplier-cnpj.is-bad { background: var(--risk-tint); color: var(--risk-ink); }
+.suppliers-page .supplier-item-main > small { color: var(--ink-500); font-size: var(--fs-13, 13px); }
+.suppliers-page .supplier-contact { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--fs-13, 13px); color: var(--ink-500); }
+.suppliers-page .supplier-item-stats { display: grid; gap: 2px; justify-items: end; font-size: var(--fs-13, 13px); color: var(--ink-500); text-align: right; }
+.suppliers-page .supplier-item-stats b { color: var(--ink-900, inherit); font-variant-numeric: tabular-nums; }
+.suppliers-page .supplier-item-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.suppliers-page .supplier-item .supplier-products { grid-column: 1 / -1; }
+.suppliers-page .supplier-form { display: grid; gap: var(--s-3, 12px); margin-bottom: var(--s-4, 16px); }
+.suppliers-page .supplier-form header h2 { margin: 0 0 2px; font-size: var(--fs-18, 18px); }
+.suppliers-page .supplier-form header p { margin: 0; color: var(--ink-500); }
+.suppliers-page .supplier-form-cnpj { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.suppliers-page .supplier-check { flex-basis: 100%; margin: 0; padding: 8px 12px; border-radius: var(--r-sm); font-size: var(--fs-13, 13px); }
+.suppliers-page .supplier-check.is-ok { background: var(--ok-tint); }
+.suppliers-page .supplier-check.is-bad { background: var(--risk-tint); }
+.suppliers-page .supplier-form fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+.suppliers-page .supplier-form legend { font-weight: 700; font-size: var(--fs-13, 13px); color: var(--ink-700, inherit); margin-bottom: 6px; }
+.suppliers-page .supplier-form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.suppliers-page .supplier-form label { display: grid; gap: 4px; font-size: var(--fs-12, 12px); color: var(--ink-500); }
+.suppliers-page .supplier-form input, .suppliers-page .supplier-form select, .suppliers-page .supplier-form textarea { font: inherit; font-size: var(--fs-14, 14px); padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-sm); background: #fff; color: var(--ink-900, inherit); }
+.suppliers-page .supplier-form .span-2 { grid-column: span 2; }
+.suppliers-page .supplier-form .span-3 { grid-column: 1 / -1; }
+.suppliers-page .supplier-form-actions { display: flex; gap: 8px; }
+@media (max-width: 720px) {
+  .suppliers-page .supplier-form-grid { grid-template-columns: 1fr; }
+  .suppliers-page .supplier-form .span-2 { grid-column: auto; }
+  .suppliers-page .supplier-item { grid-template-columns: 1fr; }
+  .suppliers-page .supplier-item-stats { justify-items: start; text-align: left; }
+}

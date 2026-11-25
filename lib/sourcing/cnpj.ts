@@ -18,6 +18,10 @@ export type CnpjCheck = {
   state: string | null;
   simples: boolean | null;
   mei: boolean | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  zipCode?: string | null;
 };
 
 export function normalizeCnpj(raw: string | null | undefined) {
@@ -73,6 +77,14 @@ type BrasilApiCnpj = {
   uf?: string | null;
   opcao_pelo_simples?: boolean | null;
   opcao_pelo_mei?: boolean | null;
+  ddd_telefone_1?: string | null;
+  email?: string | null;
+  descricao_tipo_de_logradouro?: string | null;
+  logradouro?: string | null;
+  numero?: string | null;
+  complemento?: string | null;
+  bairro?: string | null;
+  cep?: string | number | null;
 };
 
 export function mapBrasilApiCnpj(
@@ -108,7 +120,22 @@ export function mapBrasilApiCnpj(
     state: body.uf ?? null,
     simples: body.opcao_pelo_simples ?? null,
     mei: body.opcao_pelo_mei ?? null,
+    phone: formatPhone(body.ddd_telefone_1),
+    email: body.email?.trim().toLowerCase() || null,
+    address: [
+      [body.descricao_tipo_de_logradouro, body.logradouro].filter(Boolean).join(" ").trim(),
+      body.numero?.trim(),
+      body.complemento?.trim(),
+      body.bairro?.trim(),
+    ].filter(Boolean).join(", ") || null,
+    zipCode: body.cep == null ? null : String(body.cep).replace(/\D/g, "").padStart(8, "0").replace(/^(\d{5})(\d{3})$/, "$1-$2") || null,
   };
+}
+
+function formatPhone(raw: string | null | undefined) {
+  const digits = (raw ?? "").replace(/\D/g, "");
+  if (digits.length < 10) return null;
+  return digits.replace(/^(\d{2})(\d{4,5})(\d{4})$/, "($1) $2-$3");
 }
 
 export class CnpjLookupError extends Error {

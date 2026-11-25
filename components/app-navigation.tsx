@@ -47,7 +47,7 @@ const moreItems: MenuItem[] = [
   { href: "/integracoes", label: "Integrações", icon: "integrations" },
   { href: "/assistente-anuncios", label: "Criar anúncio", icon: "listings" },
   { href: "/produtos", label: "Produtos", icon: "products" },
-  { href: "/fornecedores", label: "Custos por fornecedor", icon: "suppliers" },
+  { href: "/fornecedores", label: "Fornecedores", icon: "suppliers" },
   { href: "/publicidade", label: "Publicidade", icon: "ads" },
   { href: "/mercado", label: "Mercado", icon: "market" },
   { href: "/oportunidades", label: "Radar de oportunidades", icon: "radar" },

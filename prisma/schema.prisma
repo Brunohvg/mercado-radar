@@ -607,6 +607,10 @@ model SourcingSupplier {
   minOrderUnits  Int?
   leadTimeDays   Int?
   reputationNote String?
+  contactName    String?
+  address        String?
+  zipCode        String?
+  paymentTerms   String?
   origin         String   @default("MANUAL")
   originUrl      String?
   cnpjCheck      Json?

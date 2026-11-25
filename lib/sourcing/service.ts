@@ -1,4 +1,3 @@
-import { ML_FREE_SHIPPING_THRESHOLD } from "@/lib/calculator-defaults";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -127,7 +126,7 @@ export const supplierSchema = z.object({
 export const quoteSchema = z.object({
   opportunityId: z.string().min(5).max(40),
   supplierId: z.string().min(5).max(40),
-  unitPrice: z.number().finite().positive("Informe o preço por peça.").max(1_000_000),
+  unitPrice: z.number().finite().min(0.00000001, "O preço por peça está abaixo da precisão suportada.").max(1_000_000),
   unitsPerPack: z.number().int().min(1).max(100000).optional(),
   minUnits: optInt,
   freightCost: optMoney,
@@ -142,7 +141,7 @@ export const quoteSchema = z.object({
 const num = (value: unknown) =>
   value == null ? null : Number(value as number | string);
 
-export async function loadOpportunityView(workspaceId: string, id: string) {
+export async function loadOpportunityView(workspaceId: string, id: string, budgetOverride?: number) {
   const opportunity = await prisma.sourcingOpportunity.findFirst({
     where: { id, workspaceId },
     include: {
@@ -158,15 +157,12 @@ export async function loadOpportunityView(workspaceId: string, id: string) {
     listingType: (opportunity.listingType as ListingType) ?? "CLASSIC",
     commissionPercent: num(opportunity.commissionPercent),
     fixedFee: num(opportunity.fixedFee),
-    // Abaixo de R$ 79 o comprador paga o frete: sem valor informado, conta zero (e a tela avisa).
-    shippingCost:
-      num(opportunity.shippingCost) ??
-      (num(opportunity.referencePrice) != null && num(opportunity.referencePrice)! < ML_FREE_SHIPPING_THRESHOLD ? 0 : null),
+    shippingCost: num(opportunity.shippingCost),
     taxPercent: num(opportunity.taxPercent) ?? num(settings.taxPercent),
     operatingCost: num(opportunity.operatingCost) ?? num(settings.operatingCostDefault),
     targetMarginPercent: Number(settings.targetMarginPercent),
     targetRoiPercent: Number(settings.targetRoiPercent),
-    budget: num(opportunity.budget),
+    budget: budgetOverride ?? num(opportunity.budget),
     monthlyDemand: opportunity.monthlyDemand,
   };
 
@@ -193,6 +189,7 @@ export async function loadOpportunityView(workspaceId: string, id: string) {
       otherCosts: num(quote.otherCosts),
       source: quote.source as QuoteSource,
       exactMatch: quote.exactMatch,
+      expired: quote.validUntil != null && quote.validUntil.getTime() <= Date.now(),
       supplierMinOrderUnits: quote.supplier.minOrderUnits,
       supplierMinOrderValue: num(quote.supplier.minOrderValue),
     });

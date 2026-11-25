@@ -494,6 +494,17 @@ try {
       assert.equal(quote.status, 201, quote.text);
       assert.equal(quote.json.best.status, "FALTAM_DADOS");
       assert.equal(quote.json.nextAction.title, "Completar custos de venda");
+      assert.equal(quote.json.nextAction.tab, "mercado");
+      assert.ok(quote.json.best.missing.includes("frete do vendedor"));
+      const quotePath = `/api/sourcing/quotes/${quote.json.quotes[0].id}`;
+      const updatedQuote = { unitPrice: 0.01799, freightCost: null, source: "COTACAO_RECEBIDA" };
+      assert.equal((await req(quotePath, cookieB, "PATCH", updatedQuote)).status, 404);
+      const pending = await req(quotePath, cookieA, "PATCH", updatedQuote);
+      assert.equal(pending.status, 200, pending.text);
+      assert.equal(pending.json.quotes[0].unitPrice, 0.01799);
+      assert.equal(pending.json.best.freightPending, true);
+      assert.equal(pending.json.best.perSale, null);
+      assert.equal((await req(quotePath, cookieA, "PATCH", { ...updatedQuote, freightCost: 30 })).status, 200);
       const filled = await req("/api/sourcing/opportunities/" + id, cookieA, "PATCH", {
         commissionPercent: 12,
         fixedFee: 6.25,
@@ -514,6 +525,12 @@ try {
       });
       assert.equal(capital.status, 200, capital.text);
       assert.equal(capital.json.matches.length, 1);
+      const link = { supplierId, opportunityId: id };
+      assert.equal((await req("/api/sourcing/suppliers", cookieB, "POST", link)).status, 404);
+      assert.equal((await req("/api/sourcing/suppliers", cookieA, "POST", link)).status, 200);
+      assert.equal((await req("/api/sourcing/suppliers", cookieA, "POST", link)).status, 200);
+      const resumed = await req("/api/sourcing/opportunities/" + id, cookieA);
+      assert.equal(resumed.json.suppliers.filter((entry) => entry.id === supplierId).length, 1);
       // Workspace B never sees or changes A's sourcing data.
       assert.equal((await req("/api/sourcing/opportunities/" + id, cookieB)).status, 404);
       assert.equal((await req("/api/sourcing/opportunities", cookieB)).json.opportunities.length, 0);

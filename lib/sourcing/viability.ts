@@ -45,6 +45,7 @@ export type QuoteInput = {
   otherCosts: number | null;
   source: QuoteSource;
   exactMatch: boolean | null;
+  expired?: boolean;
   supplierMinOrderUnits: number | null;
   supplierMinOrderValue: number | null;
 };
@@ -57,6 +58,8 @@ export type Viability = {
   source: QuoteSource;
   status: "CALCULADO" | "FALTAM_DADOS" | "CAPITAL_INSUFICIENTE";
   missing: string[];
+  purchasePending: string[];
+  freightPending: boolean;
   order: {
     minimumUnits: number;
     units: number;
@@ -88,6 +91,7 @@ const floorTo = (value: number, step: number) =>
 export function missingSaleData(sale: SaleContext) {
   const missing: string[] = [];
   if (!sale.salePrice || sale.salePrice <= 0) missing.push("preço de venda");
+  if (sale.saleUnits == null || sale.saleUnits < 1) missing.push("unidades por anúncio");
   if (sale.commissionPercent == null) missing.push("comissão do Mercado Livre");
   if (sale.fixedFee == null) missing.push("tarifa fixa");
   if (sale.shippingCost == null) missing.push("frete do vendedor");
@@ -155,12 +159,16 @@ export function evaluateQuote(sale: SaleContext, quote: QuoteInput): Viability {
 
   const goodsCost = round2(units * quote.unitPrice);
   const capital = round2(goodsCost + extraCosts);
-  // 4 casas: em peças de centavos, arredondar para 2 distorce o custo do lote.
-  const landedUnitCost =
-    Math.round((quote.unitPrice + extraCosts / units + Number.EPSILON) * 10000) / 10000;
+  const landedUnitCost = quote.unitPrice + extraCosts / units;
   const sellableListings = Math.floor(units / saleUnits);
 
   const missing = missingSaleData(sale);
+  const freightPending = quote.freightCost == null;
+  const purchasePending: string[] = [];
+  if (quote.expired) purchasePending.push("validade da cotação");
+  if (quote.exactMatch !== true) purchasePending.push("correspondência do produto");
+  if (freightPending) purchasePending.push("frete do fornecedor");
+  if (quote.source !== "COTACAO_RECEBIDA") purchasePending.push("preço confirmado pelo fornecedor");
   const risks: Risk[] = [];
   if (quote.source === "ESTIMATIVA_USUARIO")
     risks.push({ level: "ALTO", text: "Preço é estimativa sua, não cotação do fornecedor." });
@@ -185,7 +193,7 @@ export function evaluateQuote(sale: SaleContext, quote: QuoteInput): Viability {
     monthsOfStock: null,
   };
 
-  if (!missing.length) {
+  if (!missing.length && !freightPending) {
     perSale = analyzeProfitability({
       productName: quote.supplierName,
       supplierPrice: landedUnitCost,
@@ -225,8 +233,10 @@ export function evaluateQuote(sale: SaleContext, quote: QuoteInput): Viability {
     quoteId: quote.id,
     supplierName: quote.supplierName,
     source: quote.source,
-    status: missing.length && status === "CALCULADO" ? "FALTAM_DADOS" : status,
+    status: (missing.length || freightPending) && status === "CALCULADO" ? "FALTAM_DADOS" : status,
     missing,
+    purchasePending,
+    freightPending,
     order: {
       minimumUnits,
       units,
@@ -238,7 +248,7 @@ export function evaluateQuote(sale: SaleContext, quote: QuoteInput): Viability {
     },
     landedUnitCost,
     perSale,
-    maxUnitCostForTarget: maxUnit,
+    maxUnitCostForTarget: freightPending ? null : maxUnit,
     plan,
     risks,
   };
@@ -255,9 +265,12 @@ export function bestViability(results: Viability[]) {
       const aOk = a.status === "CALCULADO" ? 0 : 1;
       const bOk = b.status === "CALCULADO" ? 0 : 1;
       return (
+        Number(a.purchasePending.length > 0) - Number(b.purchasePending.length > 0) ||
         aOk - bOk ||
+        a.purchasePending.length - b.purchasePending.length ||
+        sourceRank[a.source] - sourceRank[b.source] ||
         (b.perSale?.marginPercent ?? -Infinity) - (a.perSale?.marginPercent ?? -Infinity) ||
-        sourceRank[a.source] - sourceRank[b.source]
+        a.order.capital - b.order.capital
       );
     })[0] ?? null
   );
@@ -278,17 +291,15 @@ export function recommendNextAction(input: {
   quoteCount: number;
   best: Viability | null;
 }): NextAction {
-  const { sale, best } = input;
-  if (!sale.salePrice)
-    return { title: "Informar o preço de venda", detail: "Abra o anúncio com a extensão ou digite o preço praticado no mercado.", tab: "mercado" };
+  const { best } = input;
   if (!input.supplierCount)
     return { title: "Encontrar fornecedores", detail: "Busque fabricantes, distribuidores e atacadistas deste produto.", tab: "fornecedores" };
   if (!input.quoteCount || !best)
     return { title: "Solicitar cotação de atacado", detail: "Compare o custo entregue antes de decidir quanto investir.", tab: "fornecedores" };
-  if (best.status === "FALTAM_DADOS")
-    return { title: "Completar custos de venda", detail: `Falta: ${best.missing.join(", ")}.`, tab: "margem" };
-  if (best.source === "ESTIMATIVA_USUARIO")
-    return { title: "Confirmar o preço com o fornecedor", detail: `Hoje só há uma estimativa sua para ${best.supplierName}.`, tab: "fornecedores" };
+  if (best.purchasePending.length)
+    return { title: "Confirmar condições da compra", detail: `${best.supplierName}: ${best.purchasePending.join(", ")}.`, tab: "fornecedores" };
+  if (best.missing.length)
+    return { title: "Completar custos de venda", detail: `Falta: ${best.missing.join(", ")}.`, tab: "mercado" };
   if (best.status === "CAPITAL_INSUFICIENTE")
     return { title: "Buscar fornecedor com lote menor", detail: `O pedido mínimo custa ${brl(best.order.capital)}, acima do seu orçamento.`, tab: "plano" };
   if (best.perSale && best.perSale.verdict === "BAD")

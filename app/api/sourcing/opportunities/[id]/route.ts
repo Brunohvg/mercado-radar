@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   sourcingUser,
@@ -42,10 +43,17 @@ export async function PATCH(request: Request, { params }: Params) {
         throw new SourcingError("Fornecedor não encontrado nesta conta.", 404, "NOT_FOUND");
     }
     const priceChanged = data.referencePrice !== undefined;
+    const searchFields = ["title", "brand", "model", "gtin", "packQuantity"] as const;
+    const searchChanged = searchFields.some((field) => data[field] !== undefined);
+    const previous = searchChanged
+      ? await prisma.sourcingOpportunity.findUnique({ where: { id, workspaceId: user.workspaceId }, select: { title: true, brand: true, model: true, gtin: true, packQuantity: true } })
+      : null;
+    const resetSearch = previous && searchFields.some((field) => data[field] !== undefined && data[field] !== previous[field]);
     const updated = await prisma.sourcingOpportunity.updateMany({
       where: { id, workspaceId: user.workspaceId },
       data: {
         ...data,
+        ...(resetSearch ? { searchSnapshot: Prisma.DbNull } : {}),
         ...(data.mlItemId ? { mlItemId: data.mlItemId.toUpperCase() } : {}),
         ...(supplierIds ? { supplierIds: [...new Set(supplierIds)] } : {}),
         ...(priceChanged

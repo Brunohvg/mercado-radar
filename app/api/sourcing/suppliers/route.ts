@@ -32,21 +32,32 @@ export async function GET() {
   }
 }
 
-const createSchema = supplierSchema.extend({
-  opportunityId: z.string().min(5).max(40).optional(),
-});
+const id = z.string().min(5).max(40);
+const createSchema = z.union([
+  z.object({ supplierId: id, opportunityId: id }),
+  supplierSchema.extend({ opportunityId: id.optional() }),
+]);
 
 export async function POST(request: Request) {
   try {
     const user = await sourcingUser();
-    const { opportunityId, ...input } = await readJson(request, createSchema);
+    const data = await readJson(request, createSchema);
+    if ("supplierId" in data) {
+      const supplier = await prisma.sourcingSupplier.findFirst({
+        where: { id: data.supplierId, workspaceId: user.workspaceId },
+      });
+      if (!supplier) throw new SourcingError("Fornecedor não encontrado nesta conta.", 404, "NOT_FOUND");
+      await linkSupplier(user.workspaceId, data.opportunityId, supplier.id);
+      return NextResponse.json({ supplier: serializeSupplier(supplier), reused: true }, noStore);
+    }
+    const { opportunityId, ...input } = data;
     const cnpj = input.cnpj ? normalizeCnpj(input.cnpj) : null;
     if (input.cnpj && (!cnpj || !isValidCnpj(cnpj)))
       throw new SourcingError("CNPJ inválido. Confira os 14 dígitos.", 400, "INVALID_INPUT");
     const opportunity = opportunityId
       ? await prisma.sourcingOpportunity.findFirst({
           where: { id: opportunityId, workspaceId: user.workspaceId },
-          select: { id: true, supplierIds: true },
+          select: { id: true },
         })
       : null;
     if (opportunityId && !opportunity)
@@ -61,11 +72,7 @@ export async function POST(request: Request) {
       (await prisma.sourcingSupplier.create({
         data: { ...input, cnpj, workspaceId: user.workspaceId },
       }));
-    if (opportunity && !opportunity.supplierIds.includes(supplier.id))
-      await prisma.sourcingOpportunity.update({
-        where: { id: opportunity.id },
-        data: { supplierIds: [...opportunity.supplierIds, supplier.id] },
-      });
+    if (opportunity) await linkSupplier(user.workspaceId, opportunity.id, supplier.id);
     return NextResponse.json(
       { supplier: serializeSupplier(supplier), reused: Boolean(existing) },
       { status: existing ? 200 : 201, ...noStore },
@@ -73,4 +80,15 @@ export async function POST(request: Request) {
   } catch (error) {
     return sourcingError(error, "suppliers/create");
   }
+}
+
+
+async function linkSupplier(workspaceId: string, opportunityId: string, supplierId: string) {
+  const where = { id: opportunityId, workspaceId };
+  const linked = await prisma.sourcingOpportunity.updateMany({
+    where: { ...where, NOT: { supplierIds: { has: supplierId } } },
+    data: { supplierIds: { push: supplierId } },
+  });
+  if (!linked.count && !await prisma.sourcingOpportunity.count({ where }))
+    throw new SourcingError("Produto não encontrado nesta conta.", 404, "NOT_FOUND");
 }

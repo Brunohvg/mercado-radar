@@ -631,7 +631,7 @@ model SourcingQuote {
   workspaceId   String
   opportunityId String
   supplierId    String
-  unitPrice     Decimal  @db.Decimal(12, 4)
+  unitPrice     Decimal  @db.Decimal(16, 8)
   unitsPerPack  Int      @default(1)
   minUnits      Int?
   freightCost   Decimal? @db.Decimal(10, 2)

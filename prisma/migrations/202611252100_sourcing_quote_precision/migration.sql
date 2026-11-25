@@ -1,0 +1,1 @@
+ALTER TABLE "SourcingQuote" ALTER COLUMN "unitPrice" TYPE DECIMAL(16, 8);

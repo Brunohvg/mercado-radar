@@ -53,25 +53,42 @@ export function SourcingHome() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const query = String(form.get("query") ?? "").trim();
-    const isLink = /^https?:\/\//i.test(query) || /^MLB-?\d{5,}$/i.test(query);
-    const link = isLink ? query : "";
-    const title = isLink ? "" : query;
-    const mlb = link.match(/MLB-?(\d{5,15})/i);
-    if (!query) { setError("Cole o link do anúncio ou escreva o nome do produto."); return; }
+    const isUrl = /^https?:\/\//i.test(query);
+    const itemId = query.match(/^MLBU?-?\d{5,15}$/i)?.[0];
+    let link: URL | null = null;
+    if (isUrl) {
+      try { link = new URL(query); } catch { /* Mensagem exibida abaixo. */ }
+      const host = link?.hostname ?? "";
+      if (!(host === "mercadolivre.com.br" || host.endsWith(".mercadolivre.com.br"))) {
+        setError("Use um link do Mercado Livre ou escreva o nome do produto.");
+        return;
+      }
+    }
+    const code = (itemId ?? link?.pathname.match(/\bMLBU?-?\d{5,15}\b/i)?.[0])?.replace("-", "").toUpperCase();
+    if (isUrl && !code) {
+      setError("Abra o anúncio e copie o link com o código MLB ou MLBU. Você também pode buscar pelo nome.");
+      return;
+    }
+    if (!code && query.length > 200) { setError("Use até 200 caracteres no nome do produto."); return; }
+    if (query.length < 2) { setError("Informe o nome do produto ou o link do anúncio."); return; }
+    const rawBudget = String(form.get("budget") ?? "").trim();
+    const budget = parseNumber(rawBudget);
+    if (rawBudget && (budget == null || budget <= 0)) { setError("Informe um orçamento maior que zero."); return; }
     setCreating(true);
     setError("");
     try {
       const body = await api<{ opportunity: { id: string } }>("/api/sourcing/opportunities", {
         method: "POST",
         body: JSON.stringify({
-          title: title || (mlb ? `Anúncio MLB${mlb[1]}` : ""),
-          mlItemId: mlb ? `MLB${mlb[1]}` : null,
-          permalink: /^https?:\/\//.test(link) ? link : null,
+          title: code ? `Anúncio ${code}` : query,
+          mlItemId: code ?? null,
+          permalink: link?.href ?? null,
+          budget,
           referencePrice: parseNumber(String(form.get("price") ?? "")),
           referenceSource: parseNumber(String(form.get("price") ?? "")) != null ? "MANUAL" : null,
         }),
       });
-      router.push(`/onde-comprar/${body.opportunity.id}`);
+      router.push(`/onde-comprar/${body.opportunity.id}?buscar=1`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Falha ao criar.");
       setCreating(false);
@@ -90,17 +107,15 @@ export function SourcingHome() {
 
       <form className="vr-start" onSubmit={create}>
         <h2>Qual produto você quer comprar para revender?</h2>
-        <ol className="vr-how" aria-label="Como funciona">
-          <li><b>1</b>Diga o produto</li>
-          <li><b>2</b>Junte fornecedores e preços</li>
-          <li><b>3</b>Veja quanto sobra de lucro</li>
-        </ol>
         <div className="vr-start-row">
-          <input ref={queryRef} name="query" aria-label="Link do anúncio ou nome do produto" placeholder="Cole o link do anúncio no Mercado Livre ou escreva o nome" />
-          <button className="vr-btn" disabled={creating}>{creating ? "Abrindo…" : "Começar"}</button>
+          <input ref={queryRef} name="query" required maxLength={500} aria-label="Link do anúncio ou nome do produto" placeholder="Cole o link do anúncio no Mercado Livre ou escreva o nome" />
+          <button className="vr-btn" disabled={creating}>{creating ? "Preparando a busca…" : "Buscar fornecedores"}</button>
         </div>
         <details>
-          <summary>Já sabe por quanto vai vender? (opcional)</summary>
+          <summary>Orçamento e preço de venda (opcionais)</summary>
+          <label>
+            Quanto pode investir?<input name="budget" placeholder="R$ 500,00" inputMode="decimal" />
+          </label>
           <label>
             Preço de venda
             <input name="price" placeholder="R$ 42,90" inputMode="decimal" />
@@ -148,7 +163,8 @@ export function SourcingHome() {
 }
 
 function studyStep(row: OpportunityRow) {
-  if (row.status === "VIAVEL" || row.status === "COMPRANDO") return { done: 3, next: "Pronto para comprar" };
+  if (row.status === "VIAVEL") return { done: 3, next: "Marcado como viável" };
+  if (row.status === "COMPRANDO") return { done: 3, next: "Comprando" };
   if (row.status === "DESCARTADA") return { done: 3, next: "Descartado" };
   if (row.quoteCount > 0) return { done: 2, next: "Ver o lucro" };
   if (row.supplierCount > 0) return { done: 1, next: "Pedir preço ao fornecedor" };

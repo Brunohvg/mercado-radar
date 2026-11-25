@@ -15,10 +15,12 @@ export const dateBr = (value: string | Date | null | undefined) =>
   value ? new Date(value).toLocaleDateString("pt-BR") : "—";
 
 export const parseNumber = (raw: string): number | null => {
-  const text = raw.trim();
-  if (!text) return null;
+  const text = raw.trim().replace(/^R\$\s*/, "");
+  const decimal = /^-?(?:\d+(?:\.\d+)?|\.\d+)$/;
+  const brazilian = /^-?(?:\d+|\d{1,3}(?:\.\d{3})+),\d+$/;
+  if (!decimal.test(text) && !brazilian.test(text)) return null;
   const normalized = text.includes(",") ? text.replace(/\./g, "").replace(",", ".") : text;
-  const value = Number(normalized.replace(/[^\d.-]/g, ""));
+  const value = Number(normalized);
   return Number.isFinite(value) ? value : null;
 };
 

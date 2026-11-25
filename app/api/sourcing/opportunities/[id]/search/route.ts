@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { consumeIntelligenceRequest } from "@/lib/intelligence-access";
 import { sourcingUser, sourcingError, SourcingError, noStore } from "@/lib/sourcing/service";
-import { extractIdentity, type ProductIdentity } from "@/lib/sourcing/identity";
+import { extractIdentity, isValidGtin, searchTermsFor, type ProductIdentity } from "@/lib/sourcing/identity";
 import { braveProvider, searchSuppliers, withAiResearch } from "@/lib/sourcing/search";
 import { aiSupplierSearchEnabled, runAiSupplierResearch } from "@/lib/sourcing/ai-research-run";
 import type { ListingInsights } from "@/lib/marketplaces/types";
@@ -23,13 +23,31 @@ export async function POST(_request: Request, { params }: Params) {
     const stored = opportunity.identity as ProductIdentity | null;
     const identity: ProductIdentity = {
       ...(stored ?? extractIdentity({ title: opportunity.title })),
+      title: opportunity.title,
       brand: opportunity.brand,
       model: opportunity.model,
       gtin: opportunity.gtin,
+      gtinValid: opportunity.gtin ? isValidGtin(opportunity.gtin) : null,
+      packQuantity: opportunity.packQuantity,
+      searchTerms: searchTermsFor(opportunity),
     };
+    if (opportunity.mlItemId && /^Anúncio MLBU?\d+$/i.test(identity.title)) {
+      const fallback = await searchSuppliers(identity, null);
+      return NextResponse.json({
+        search: { ...fallback, status: "INDISPONIVEL", message: "Informe o nome do produto em Custos da venda para buscar fornecedores." },
+      }, noStore);
+    }
     const key = process.env.BRAVE_SEARCH_API_KEY?.trim();
     const useAi = aiSupplierSearchEnabled();
-    if (key || useAi) await consumeIntelligenceRequest(user.workspaceId, user.workspace.dailyRequestLimit);
+    if (key || useAi) {
+      try {
+        await consumeIntelligenceRequest(user.workspaceId, user.workspace.dailyRequestLimit);
+      } catch (error) {
+        if (!(error instanceof Error) || !("code" in error) || error.code !== "QUOTA") throw error;
+        const fallback = await searchSuppliers(identity, null);
+        return NextResponse.json({ search: { ...fallback, message: "Limite diário atingido. A pesquisa manual continua disponível." } }, noStore);
+      }
+    }
     let outcome = await searchSuppliers(identity, key ? braveProvider(key) : null);
     if (useAi) {
       const insights = opportunity.marketInsights as ListingInsights | null;
@@ -38,17 +56,20 @@ export async function POST(_request: Request, { params }: Params) {
       });
       outcome = withAiResearch(outcome, research, candidates);
     }
-    await prisma.sourcingOpportunity.update({
-      where: { id: opportunity.id },
-      data: {
-        searchSnapshot: JSON.parse(JSON.stringify(outcome)) as Prisma.InputJsonValue,
-        status: opportunity.status === "PESQUISANDO" ? "COTANDO" : opportunity.status,
+    if (outcome.status === "OK" || !opportunity.searchSnapshot) await prisma.sourcingOpportunity.updateMany({
+      where: {
+        id: opportunity.id,
+        workspaceId: user.workspaceId,
+        title: opportunity.title,
+        brand: opportunity.brand,
+        model: opportunity.model,
+        gtin: opportunity.gtin,
+        packQuantity: opportunity.packQuantity,
       },
+      data: { searchSnapshot: JSON.parse(JSON.stringify(outcome)) as Prisma.InputJsonValue },
     });
     return NextResponse.json({ search: outcome }, noStore);
   } catch (error) {
-    if (error instanceof Error && "status" in error && (error as { code?: string }).code === "QUOTA")
-      return NextResponse.json({ error: error.message, code: "QUOTA" }, { status: 429 });
     return sourcingError(error, "opportunities/search");
   }
 }

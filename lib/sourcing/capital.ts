@@ -28,25 +28,21 @@ export function matchByCapital(
   const evaluated = candidates.map((candidate) => {
     const reasons: string[] = [];
     const v = candidate.viability;
-    const minimumCapital =
-      v.order.minimumUnits * (v.order.goodsCost / Math.max(1, v.order.units)) +
-      v.order.extraCosts;
-    if (minimumCapital > filters.capital)
+    if (v.order.capital > filters.capital)
       reasons.push(
-        `Pedido mínimo custa ${minimumCapital.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`,
+        `Lote simulado custa ${v.order.capital.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`,
       );
     if (!v.perSale) reasons.push("Margem ainda não calculada");
     else if (v.perSale.marginPercent < filters.minMarginPercent)
       reasons.push(`Margem de ${v.perSale.marginPercent.toFixed(1)}%`);
-    if (v.source === "ESTIMATIVA_USUARIO") reasons.push("Custo é estimativa, não cotação");
+    if (v.purchasePending.length) reasons.push(`Confirme: ${v.purchasePending.join(", ")}`);
     if (filters.profile === "CPF" && candidate.sellsToCpf !== true)
       reasons.push(candidate.sellsToCpf === false ? "Não vende para CPF" : "Venda para CPF não confirmada");
     if (filters.profile === "FABRICA" && candidate.supplierKind !== "FABRICANTE")
       reasons.push("Fornecedor não é o fabricante");
     if (filters.profile === "CNPJ" && candidate.requiresCnpj === false && candidate.supplierKind === "LOJA_ML")
       reasons.push("Loja de varejo, não atacado para CNPJ");
-    const blocking = reasons.filter((reason) => reason !== "Custo é estimativa, não cotação");
-    return { ...candidate, fits: blocking.length === 0, reasons };
+    return { ...candidate, fits: reasons.length === 0, reasons };
   });
   const byMargin = (a: CapitalMatch, b: CapitalMatch) =>
     (b.viability.perSale?.marginPercent ?? -Infinity) -

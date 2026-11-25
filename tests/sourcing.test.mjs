@@ -304,7 +304,7 @@ test("custo máximo por peça preserva centavos fracionados", () => {
 test("próxima ação segue a jornada", () => {
   assert.equal(
     recommendNextAction({ sale: { ...sale, salePrice: null }, supplierCount: 0, quoteCount: 0, best: null }).tab,
-    "mercado",
+    "fornecedores",
   );
   assert.equal(
     recommendNextAction({ sale, supplierCount: 0, quoteCount: 0, best: null }).title,
@@ -338,4 +338,33 @@ test("radar por capital filtra por dinheiro, perfil e margem", () => {
     { capital: 50, profile: "TODOS", minMarginPercent: 0 },
   );
   assert.equal(tooPoor.matches.length, 0);
+});
+
+
+test("busca retém a página do modelo e descarta atacadista de outro produto", async () => {
+  const identity = extractIdentity({
+    title: "Ilhós Nº 54 Alumínio Baxmann 1000 unidades",
+    attributes: [{ id: "BRAND", value_name: "Baxmann" }, { id: "MODEL", value_name: "54" }, { id: "GTIN", value_name: "7894900011517" }],
+  });
+  assert.ok(buildSupplierQueries(identity).some((row) => row.query === "7894900011517"));
+  const outcome = await searchSuppliers(identity, async () => [
+    { title: "Distribuidor atacadista de pneus", url: "https://pneus.exemplo.com.br/" },
+    { title: "Representantes Baxmann", url: "https://baxmann.exemplo.com.br/representantes" },
+    { title: "Ilhós Baxmann 54 1000 un. alumínio", url: "https://aviamentos.exemplo.com.br/ilhos-54" },
+    { title: "Ilhós Baxmann 45 1000 un. alumínio", url: "https://outro.exemplo.com.br/ilhos-45" },
+  ]);
+  assert.deepEqual(outcome.candidates.map((candidate) => candidate.evidence), ["PRODUTO", "MARCA"]);
+  assert.ok(outcome.candidates.every((candidate) => !candidate.url.includes("pneus")));
+});
+
+test("estimativa sem frete e cotação vencida ficam atrás de condição confirmada", () => {
+  const confirmed = evaluateQuote(sale, quote);
+  const pending = evaluateQuote(sale, { ...quote, id: "pending", freightCost: null, source: "ESTIMATIVA_USUARIO" });
+  const expired = evaluateQuote(sale, { ...quote, id: "expired", unitPrice: 0.005, expired: true });
+  assert.equal(pending.perSale, null);
+  assert.equal(pending.status, "FALTAM_DADOS");
+  assert.equal(bestViability([pending, expired, confirmed]).quoteId, quote.id);
+  assert.equal(recommendNextAction({ sale, supplierCount: 1, quoteCount: 1, best: pending }).tab, "fornecedores");
+  const missingShipping = evaluateQuote({ ...sale, shippingCost: null }, quote);
+  assert.equal(recommendNextAction({ sale, supplierCount: 1, quoteCount: 1, best: missingShipping }).tab, "mercado");
 });

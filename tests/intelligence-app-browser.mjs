@@ -36,6 +36,7 @@ export async function runBrowserChecks({ base, cookie }) {
     "/vendas",
     "/publicidade",
     "/fornecedores",
+    "/onde-comprar",
     "/extensao",
     "/concorrentes",
     "/kits",
@@ -72,6 +73,38 @@ export async function runBrowserChecks({ base, cookie }) {
         console.log(`PASS app-browser ${path} at ${width}`);
       }
     }
+    const supplier = await context.request.post(base + "/api/sourcing/suppliers", {
+      data: { name: "Aviamentos do teste de navegação", kind: "ATACADISTA" },
+    });
+    assert.equal(supplier.status(), 201, await supplier.text());
+    await page.goto(base + "/onde-comprar");
+    await page.getByLabel("Link do anúncio ou nome do produto").fill("Ilhós Baxmann Nº 54, 1000 unidades");
+    await page.getByRole("button", { name: "Buscar fornecedores", exact: true }).click();
+    await page.waitForURL(/\/onde-comprar\/[^/]+/);
+    await page.getByRole("heading", { name: "Fornecedores para este produto" }).waitFor();
+    await page.getByText(/Busca automática desligada/).waitFor();
+    await page.getByRole("button", { name: "Usar fornecedor salvo" }).click();
+    const directory = page.getByLabel("Fornecedor salvo", { exact: true });
+    await directory.locator("option").nth(1).waitFor({ state: "attached" });
+    await directory.selectOption({ label: "Aviamentos do teste de navegação" });
+    await page.getByRole("button", { name: "Vincular ao produto" }).click();
+    await page.getByRole("button", { name: "Registrar cotação" }).click();
+    await page.getByLabel("Preço informado (R$)").fill("19,99");
+    await page.getByLabel("Peças por embalagem").fill("1000");
+    await page.getByLabel("Mínimo (peças)").fill("5000");
+    await page.getByLabel("Mesmo produto e variante?").selectOption("sim");
+    await page.getByRole("button", { name: "Salvar cotação" }).click();
+    await page.getByText(/R\$\s*19,99 \/ 1.000 un/).waitFor();
+    await page.getByRole("tab", { name: "Comparar cotações" }).click();
+    await page.getByText("+ frete a confirmar", { exact: true }).waitFor();
+    for (const width of [390, 1366]) {
+      await page.setViewportSize({ width, height: 960 });
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `Comparação de cotações a ${width}px`);
+      if (artifacts) await page.screenshot({ path: `${artifacts}/onde-comprar-comparar-${width}.png`, fullPage: true });
+    }
+    console.log("PASS app-browser supplier search, directory, pack price and pending freight");
+    checks++;
+    await page.setViewportSize({ width: 390, height: 960 });
     await page.getByRole("button", { name: "Abrir menu", exact: true }).click();
     await page.getByRole("link", { name: "Concorrentes", exact: true }).click();
     await page
@@ -134,7 +167,7 @@ export async function runBrowserChecks({ base, cookie }) {
     checks++;
     assert.deepEqual(errors, []);
     console.log(
-      `APP_BROWSER_OK ${checks} checks (18 authenticated routes x 2 widths, competitor-to-kit draft, login); synthetic API and isolated PostgreSQL`,
+      `APP_BROWSER_OK ${checks} checks (authenticated routes x 2 widths, sourcing, competitor-to-kit draft, login); synthetic API and isolated PostgreSQL`,
     );
   } finally {
     await browser.close();

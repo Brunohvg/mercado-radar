@@ -275,3 +275,16 @@
   .vr-study { grid-template-columns: 1fr; }
   .vr-study-next { grid-row: auto; }
 }
+
+.vr-table-detail { display: block; margin-top: var(--s-1); color: var(--ink-500); font-size: var(--fs-12); white-space: normal; }
+
+@media (max-width: 720px) {
+  .vr-compare, .vr-compare tbody { display: block; }
+  .vr-compare thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .vr-compare tr { display: block; border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s-2) var(--s-3); }
+  .vr-compare tr + tr { margin-top: var(--s-3); }
+  .vr-compare td { display: block; text-align: left; }
+  .vr-compare td[data-label] { position: relative; padding-left: 49%; text-align: right; min-height: 38px; }
+  .vr-compare td[data-label]::before { content: attr(data-label); position: absolute; left: var(--s-2); width: 44%; text-align: left; color: var(--ink-500); }
+  .vr-compare td:last-child { border-bottom: 0; }
+}

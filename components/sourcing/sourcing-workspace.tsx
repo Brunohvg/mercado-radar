@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { MarketSignals } from "./market-signals";
+import { manualSearchLinks, type SupplierCandidate } from "@/lib/sourcing/search";
+import { extractIdentity } from "@/lib/sourcing/identity";
 import type { ListingInsights } from "@/lib/marketplaces/types";
 import {
   api,
@@ -35,6 +37,7 @@ type Supplier = {
   minOrderUnits: number | null;
   leadTimeDays: number | null;
   reputationNote: string | null;
+  paymentTerms: string | null;
   origin: string;
   originUrl: string | null;
   cnpjCheck: { status: string; statusLabel: string | null; legalName: string | null; mainActivity: string | null; size: string | null; checkedAt: string } | null;
@@ -46,6 +49,8 @@ type Viability = {
   source: string;
   status: string;
   missing: string[];
+  purchasePending: string[];
+  freightPending: boolean;
   order: { minimumUnits: number; units: number; sellableListings: number; goodsCost: number; extraCosts: number; capital: number; limitedBy: string };
   landedUnitCost: number;
   perSale: null | {
@@ -62,8 +67,7 @@ type Quote = {
   evidenceUrl: string | null; quotedAt: string; validUntil: string | null; notes: string | null; viability: Viability;
 };
 type AiContact = { value: string; verified: boolean } | null;
-type Candidate = {
-  name: string; url: string; domain: string; kind: string; reasons: string[]; snippet: string | null;
+type Candidate = SupplierCandidate & {
   origin?: "IA"; sources?: Array<{ title: string; url: string }>;
   phone?: AiContact; email?: AiContact; cnpj?: AiContact; city?: string | null; state?: string | null;
   sellsToCpf?: boolean | null; minimumOrder?: string | null;
@@ -98,9 +102,9 @@ type View = {
 type Tab = "mercado" | "fornecedores" | "margem" | "plano";
 
 const TABS: Array<[Tab, string]> = [
-  ["mercado", "Preço de venda"],
   ["fornecedores", "Fornecedores"],
-  ["margem", "Lucro"],
+  ["mercado", "Custos da venda"],
+  ["margem", "Comparar cotações"],
   ["plano", "Decisão"],
 ];
 
@@ -129,7 +133,9 @@ export function SourcingWorkspace({ id }: { id: string }) {
   }, [id]);
 
   useEffect(() => {
-    void load().then((body) => body && setTab(body.nextAction.tab));
+    void load().then((body) => {
+      if (body) setTab(new URLSearchParams(location.search).has("buscar") ? "fornecedores" : body.nextAction.tab);
+    });
   }, [load]);
 
   async function patch(data: Record<string, unknown>, message = "Salvo.") {
@@ -152,7 +158,7 @@ export function SourcingWorkspace({ id }: { id: string }) {
   const o = view.opportunity;
   return (
     <div className="vr">
-      <nav className="vr-crumbs"><Link href="/onde-comprar">Onde comprar</Link> / Produto</nav>
+      <nav className="vr-crumbs"><Link href="/onde-comprar">Onde comprar</Link></nav>
       <header className="vr-product">
         <div>
           <h1>{o.title}</h1>
@@ -161,7 +167,7 @@ export function SourcingWorkspace({ id }: { id: string }) {
           </p>
         </div>
         <div className="vr-product-price">
-          <span>Você vende por</span>
+          <span>Preço de referência</span>
           <strong className="vr-num">{brl(o.referencePrice)}</strong>
           <span className={`vr-status vr-status--${o.status.toLowerCase()}`}>{STATUS_LABEL[o.status] ?? o.status}</span>
         </div>
@@ -215,9 +221,9 @@ export function SourcingWorkspace({ id }: { id: string }) {
         />
       )}
       {tab === "fornecedores" && (
-        <SuppliersTab view={view} reload={load} setError={setError} setNotice={setNotice} setView={setView} />
+        <SuppliersTab view={view} reload={load} setError={setError} setNotice={setNotice} setView={setView} onMarket={() => setTab("mercado")} />
       )}
-      {tab === "margem" && <MarginTab view={view} />}
+      {tab === "margem" && <MarginTab view={view} onMarket={() => setTab("mercado")} onSuppliers={() => setTab("fornecedores")} />}
       {tab === "plano" && <PlanTab view={view} onSave={patch} />}
     </div>
   );
@@ -243,6 +249,7 @@ function MarketTab({
     const price = numField(form, "referencePrice");
     onSave(
       {
+        title: String(form.get("title") ?? "").trim(),
         brand: String(form.get("brand") ?? "").trim() || null,
         model: String(form.get("model") ?? "").trim() || null,
         gtin: String(form.get("gtin") ?? "").replace(/\D/g, "") || null,
@@ -281,6 +288,7 @@ function MarketTab({
         </div>
         <form className="vr-card vr-form" onSubmit={submit}>
           <h2>Venda no Mercado Livre</h2>
+          <label>Produto<input name="title" required minLength={2} maxLength={200} defaultValue={o.title} /></label>
           <div className="vr-form--row">
             <label>Marca<input name="brand" defaultValue={o.brand ?? ""} /></label>
             <label>Modelo<input name="model" defaultValue={o.model ?? ""} /></label>
@@ -303,11 +311,11 @@ function MarketTab({
             <label>Tarifa fixa (R$)<input name="fixedFee" defaultValue={o.fixedFee ?? ""} inputMode="decimal" /></label>
           </div>
           <div className="vr-form--row">
-            <label>Frete pago por você (R$)<input name="shippingCost" defaultValue={o.shippingCost ?? ""} placeholder={o.referencePrice != null && o.referencePrice < 79 ? "vazio = 0 (abaixo de R$ 79 o comprador paga)" : "a confirmar"} inputMode="decimal" /></label>
+            <label>Custo de envio do vendedor (R$)<input name="shippingCost" defaultValue={o.shippingCost ?? ""} placeholder="A confirmar" inputMode="decimal" /></label>
             <label>Imposto (%)<input name="taxPercent" defaultValue={o.taxPercent ?? ""} placeholder={view.sale.taxPercent != null ? `padrão ${view.sale.taxPercent}%` : "não informado"} inputMode="decimal" /></label>
           </div>
           <label>Vendas por mês observadas (opcional)<input name="monthlyDemand" defaultValue={o.monthlyDemand ?? ""} inputMode="numeric" /></label>
-          <p className="vr-hint">Campo vazio fica “a confirmar” e não entra como zero. Tarifa oficial é preenchida quando o Mercado Livre está conectado.</p>
+          <p className="vr-hint">Informe zero apenas quando souber que o envio não tem custo para você. O frete que o comprador vê é outro valor.</p>
           <button className="vr-btn">Salvar</button>
         </form>
       </div>
@@ -326,13 +334,14 @@ function MarketTab({
 }
 
 function SuppliersTab({
-  view, reload, setError, setNotice, setView,
+  view, reload, setError, setNotice, setView, onMarket,
 }: {
   view: View;
   reload: () => Promise<View | null>;
   setError: (value: string) => void;
   setNotice: (value: string) => void;
   setView: (value: View) => void;
+  onMarket: () => void;
 }) {
   const o = view.opportunity;
   const [search, setSearch] = useState<SearchOutcome | null>(o.searchSnapshot);
@@ -340,17 +349,86 @@ function SuppliersTab({
   const [deleting, setDeleting] = useState<string | null>(null);
   const [adding, setAdding] = useState<Partial<Supplier> | null>(null);
   const [quoting, setQuoting] = useState<string | null>(null);
+  const [editingQuote, setEditingQuote] = useState<Quote | null>(null);
+  const [priceByPack, setPriceByPack] = useState(true);
+  const [directory, setDirectory] = useState<Array<{ id: string; name: string }> | null>(null);
+  const [quoteQuantity, setQuoteQuantity] = useState("");
+  const [quoteZip, setQuoteZip] = useState("");
+  const [buyerProfile, setBuyerProfile] = useState("");
+  const [copyError, setCopyError] = useState("");
 
-  async function runSearch() {
+  const runSearch = useCallback(async () => {
     setBusy("search");
     setError("");
     try {
       const body = await api<{ search: SearchOutcome }>(`/api/sourcing/opportunities/${o.id}/search`, { method: "POST" });
-      setSearch(body.search);
+      setSearch((previous) => previous?.candidates.length && !body.search.candidates.length && body.search.status !== "OK"
+        ? { ...previous, message: body.search.message }
+        : body.search);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Falha na busca.");
     } finally {
       setBusy("");
+    }
+  }, [o.id, setError]);
+
+  useEffect(() => {
+    const url = new URL(location.href);
+    if (!url.searchParams.has("buscar")) return;
+    url.searchParams.delete("buscar");
+    history.replaceState(null, "", url);
+    if (!o.searchSnapshot?.candidates.length) void runSearch();
+  }, [o.searchSnapshot, runSearch]);
+
+  async function findSavedSuppliers() {
+    setBusy("directory");
+    setError("");
+    try {
+      const result = await api<{ suppliers: Array<{ id: string; name: string }> }>("/api/sourcing/suppliers");
+      setDirectory(result.suppliers);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Falha ao carregar fornecedores salvos.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function linkSavedSupplier(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const supplierId = new FormData(event.currentTarget).get("supplierId");
+    if (!supplierId) return;
+    setBusy("link");
+    setError("");
+    try {
+      await api("/api/sourcing/suppliers", { method: "POST", body: JSON.stringify({ supplierId, opportunityId: o.id }) });
+      await reload();
+      setDirectory(null);
+      setNotice("Fornecedor vinculado a este produto.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Falha ao vincular fornecedor.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function copyQuoteRequest(supplier: Supplier) {
+    const product = [...new Set([o.title, o.brand, o.model].filter(Boolean))].join(" · ");
+    const quantity = quoteQuantity.trim() || (o.packQuantity ? String(o.packQuantity) : "");
+    const cep = quoteZip.replace(/\D/g, "");
+    if (cep && cep.length !== 8) {
+      setError("Informe os oito dígitos do CEP para incluir a entrega na cotação.");
+      return;
+    }
+    setError("");
+    const shipping = cep ? ` para o CEP ${cep.slice(0, 5)}-${cep.slice(5)}` : "";
+    const profile = buyerProfile ? ` A compra será por ${buyerProfile}.` : "";
+    const message = `Olá, ${supplier.name}! Gostaria de cotar ${product}${quantity ? ` — ${quantity} unidades` : ""}.${profile} Vocês podem informar preço e quantidade por embalagem, pedido mínimo, frete${shipping}, prazo de envio, emissão de nota fiscal, formas de pagamento e validade da proposta?`;
+    setCopyError("");
+    try {
+      await navigator.clipboard.writeText(message);
+      setNotice("Pedido de cotação copiado. Cole no WhatsApp ou e-mail do fornecedor.");
+    } catch {
+      setCopyError(message);
     }
   }
 
@@ -381,6 +459,7 @@ function SuppliersTab({
         minOrderValue: numField(form, "minOrderValue"),
         leadTimeDays: numField(form, "leadTimeDays"),
         reputationNote: text("reputationNote"),
+        paymentTerms: text("paymentTerms"),
         origin: adding?.origin ?? "MANUAL",
         originUrl: adding?.originUrl ?? null,
       };
@@ -432,16 +511,25 @@ function SuppliersTab({
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const match = String(form.get("exactMatch") ?? "");
+    const unitsPerPack = numField(form, "unitsPerPack") ?? 1;
+    const price = numField(form, "quotePrice");
+    const unitPrice = price == null ? null : Math.round(price / (priceByPack ? unitsPerPack : 1) * 100000000) / 100000000;
+    if (!unitPrice || unitPrice < 0.00000001 || !Number.isInteger(unitsPerPack) || unitsPerPack < 1) {
+      setError("Confira o preço e informe uma quantidade inteira de peças por embalagem.");
+      return;
+    }
+    const validity = String(form.get("validUntil") ?? "");
     setBusy("quote");
     setError("");
     try {
-      const body = await api<View>("/api/sourcing/quotes", {
-        method: "POST",
+      const body = await api<View>(editingQuote ? `/api/sourcing/quotes/${editingQuote.id}` : "/api/sourcing/quotes", {
+        method: editingQuote ? "PATCH" : "POST",
         body: JSON.stringify({
           opportunityId: o.id,
           supplierId,
-          unitPrice: numField(form, "unitPrice"),
-          unitsPerPack: numField(form, "unitsPerPack") ?? 1,
+          unitPrice,
+          unitsPerPack,
+          validUntil: validity ? new Date(`${validity}T23:59:59-03:00`).toISOString() : null,
           minUnits: numField(form, "minUnits"),
           freightCost: numField(form, "freightCost"),
           otherCosts: numField(form, "otherCosts"),
@@ -453,7 +541,8 @@ function SuppliersTab({
       });
       setView(body);
       setQuoting(null);
-      setNotice("Cotação registrada. Veja a margem.");
+      setEditingQuote(null);
+      setNotice(editingQuote ? "Cotação atualizada." : "Cotação registrada.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Falha ao salvar cotação.");
     } finally {
@@ -470,20 +559,30 @@ function SuppliersTab({
     }
   }
 
-  const known = new Set(view.suppliers.map((s) => s.originUrl).filter(Boolean));
+  const known = new Set(view.suppliers.flatMap((supplier) => [supplier.originUrl, supplier.website]).filter(Boolean));
+
+  const manualLinks = search?.manualLinks ?? manualSearchLinks({
+    ...extractIdentity({ title: o.title }),
+    brand: o.brand,
+  });
+  const savedOptions = directory?.filter((supplier) => !view.suppliers.some((item) => item.id === supplier.id));
 
   return (
     <section className="vr-panel">
       <div className="vr-card">
         <div className="vr-card-head">
-          <h2>Onde comprar este produto?</h2>
-          <button className="vr-btn" onClick={runSearch} disabled={busy === "search"}>
+          <h2>Fornecedores para este produto</h2>
+          <button className="vr-btn" onClick={runSearch} disabled={Boolean(busy)}>
             {busy === "search" ? "Buscando…" : search ? "Buscar de novo" : "Buscar fornecedores"}
           </button>
         </div>
-        <p className="vr-muted">
-          A busca parte da marca, descarta varejo e mostra fabricantes, distribuidores, atacadistas e lojas de volume. Candidato não é fornecedor confirmado: qualifique antes de comprar.
-        </p>
+        {busy === "search" && <p className="vr-muted" role="status">Consultando fontes de fornecedores…</p>}
+        {o.mlItemId && o.title === `Anúncio ${o.mlItemId}` && (
+          <div className="vr-actions">
+            <p className="vr-muted">Só temos o código deste anúncio.</p>
+            <button className="vr-btn vr-btn--ghost vr-btn--small" onClick={onMarket}>Informar nome do produto</button>
+          </div>
+        )}
         {search && (
           <>
             {search.message && <p className="vr-warn">{search.message}</p>}
@@ -492,15 +591,18 @@ function SuppliersTab({
                 {search.candidates.map((candidate) => (
                   <li key={candidate.url}>
                     <div>
-                      <span className="vr-tag">{KIND_LABEL[candidate.kind] ?? candidate.kind}</span>
+                      <span className="vr-tag">{
+                        candidate.evidence === "PRODUTO" ? "Sinal do produto" :
+                          candidate.evidence === "MARCA" ? "Canal da marca a confirmar" : "Candidato a confirmar"
+                      }</span>
                       <strong>{candidate.name}</strong>
                       <a href={candidate.url} target="_blank" rel="noopener noreferrer">{candidate.domain} ↗</a>
-                      <small>{candidate.reasons.join(" · ")}</small>
+                      <small>{[KIND_LABEL[candidate.kind], candidate.snippet || candidate.reasons.join(" · ")].filter(Boolean).join(" · ")}</small>
                       {candidate.origin === "IA" && <AiDetails candidate={candidate} />}
                     </div>
                     <button
                       className="vr-btn vr-btn--ghost vr-btn--small"
-                      disabled={known.has(candidate.url)}
+                      disabled={Boolean(busy) || known.has(candidate.url)}
                       onClick={() =>
                         setAdding({
                           name: candidate.name,
@@ -511,7 +613,7 @@ function SuppliersTab({
                           // Só entra no cadastro o contato confirmado na página; CNPJ é conferido na Receita depois.
                           phone: candidate.phone?.verified ? candidate.phone.value : null,
                           email: candidate.email?.verified ? candidate.email.value : null,
-                          cnpj: candidate.cnpj?.value ?? null,
+                          cnpj: candidate.cnpj?.verified ? candidate.cnpj.value : null,
                           city: candidate.city ?? null,
                           state: candidate.state ?? null,
                           sellsToCpf: candidate.sellsToCpf ?? null,
@@ -525,20 +627,48 @@ function SuppliersTab({
               </ul>
             )}
             {search.ai && <AiResearchNote research={search.ai} />}
-            <div className="vr-manual">
-              <span>Pesquise no seu navegador:</span>
-              {search.manualLinks.map((link) => (
-                <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer">{link.label} ↗</a>
-              ))}
-            </div>
-            <p className="vr-hint">Busca de {dateBr(search.searchedAt)}{search.discarded ? ` · ${search.discarded} resultado(s) de varejo ou sem sinal comercial descartado(s)` : ""}.</p>
+            <p className="vr-hint">Busca de {dateBr(search.searchedAt)}{search.discarded ? ` · ${search.discarded} resultado(s) sem evidência suficiente descartado(s)` : ""}.</p>
           </>
         )}
-        <button className="vr-btn vr-btn--ghost" onClick={() => setAdding({ kind: "OUTRO" })}>Cadastrar fornecedor que já conheço</button>
+        <details>
+          <summary>Pesquisar no navegador</summary>
+          <div className="vr-manual">
+            {manualLinks.map((link) => (
+              <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer">{link.label} ↗</a>
+            ))}
+          </div>
+        </details>
+        <div className="vr-actions">
+          <button className="vr-btn vr-btn--ghost" disabled={Boolean(busy)} onClick={() => setAdding({ kind: "OUTRO" })}>Cadastrar fornecedor</button>
+          <button className="vr-btn vr-btn--ghost" disabled={Boolean(busy)} onClick={findSavedSuppliers}>Usar fornecedor salvo</button>
+        </div>
+        {savedOptions && (savedOptions.length > 0 ? (
+          <form className="vr-form" onSubmit={linkSavedSupplier}>
+            <label>Fornecedor salvo
+              <select name="supplierId" required defaultValue="">
+                <option value="">Selecione</option>
+                {savedOptions.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+              </select>
+            </label>
+            <button className="vr-btn" disabled={Boolean(busy)}>Vincular ao produto</button>
+          </form>
+        ) : <p className="vr-muted">Nenhum fornecedor salvo disponível para vincular.</p>)}
       </div>
 
+      {view.suppliers.length > 0 && (
+        <details className="vr-card">
+          <summary>Dados para pedir cotação</summary>
+          <div className="vr-form vr-form--row vr-form--three">
+            <label>Quantidade a cotar<input inputMode="numeric" value={quoteQuantity} onChange={(event) => setQuoteQuantity(event.target.value.replace(/\D/g, ""))} placeholder={String(o.packQuantity ?? "Ex.: 5000")} /></label>
+            <label>CEP de entrega<input autoComplete="postal-code" inputMode="numeric" maxLength={9} value={quoteZip} onChange={(event) => setQuoteZip(event.target.value.replace(/[^0-9-]/g, ""))} /></label>
+            <label>Forma de compra<select value={buyerProfile} onChange={(event) => setBuyerProfile(event.target.value)}><option value="">A definir</option><option>CPF</option><option>CNPJ</option></select></label>
+          </div>
+        </details>
+      )}
+      {copyError && <label className="vr-card vr-form">Copie o pedido de cotação<textarea readOnly rows={4} value={copyError} onFocus={(event) => event.target.select()} /></label>}
+
       {adding && (
-        <form className="vr-card vr-form" onSubmit={saveSupplier}>
+        <form key={adding.id ?? adding.website ?? "manual"} className="vr-card vr-form" onSubmit={saveSupplier}>
           <h2>{adding.id ? "Editar ficha do fornecedor" : "Ficha do fornecedor"}</h2>
           <div className="vr-form--row">
             <label>Nome<input name="name" required defaultValue={adding.name ?? ""} /></label>
@@ -570,9 +700,10 @@ function SuppliersTab({
             <label>Pedido mínimo (R$)<input name="minOrderValue" defaultValue={adding.minOrderValue ?? ""} inputMode="decimal" /></label>
             <label>Prazo (dias)<input name="leadTimeDays" defaultValue={adding.leadTimeDays ?? ""} inputMode="numeric" /></label>
           </div>
+          <label>Condições de pagamento<input name="paymentTerms" defaultValue={adding.paymentTerms ?? ""} placeholder="Ex.: Pix ou boleto em 28 dias" /></label>
           <label>Evidência de reputação<input name="reputationNote" defaultValue={adding.reputationNote ?? ""} placeholder="Ex.: Reclame Aqui 8,1; indicação de outro vendedor; compra anterior" /></label>
           <div className="vr-actions">
-            <button className="vr-btn" disabled={busy === "supplier"}>Salvar fornecedor</button>
+            <button className="vr-btn" disabled={Boolean(busy)}>Salvar fornecedor</button>
             <button type="button" className="vr-btn vr-btn--ghost" onClick={() => setAdding(null)}>Cancelar</button>
           </div>
         </form>
@@ -594,6 +725,8 @@ function SuppliersTab({
                 {supplier.qualification.label} · {supplier.qualification.confirmed}/{supplier.qualification.total}
               </span>
             </header>
+            <details><summary>Condições e verificações</summary>
+            {supplier.paymentTerms && <p className="vr-hint">Pagamento: {supplier.paymentTerms}</p>}
             <ul className="vr-criteria">
               {supplier.qualification.criteria.map((criterion) => (
                 <li key={criterion.key} className={`vr-crit vr-crit--${criterion.state.toLowerCase()}`}>
@@ -611,18 +744,33 @@ function SuppliersTab({
                 {supplier.cnpjCheck.mainActivity ? ` · ${supplier.cnpjCheck.mainActivity}` : ""}. CNPJ ativo comprova cadastro, não confiabilidade.
               </p>
             )}
+            </details>
             {quotes.map((quote) => (
               <div key={quote.id} className="vr-quote">
                 <span className={`vr-source vr-source--${quote.source.toLowerCase()}`}>{SOURCE_LABEL[quote.source]}</span>
-                <span className="vr-num">{brl(quote.unitPrice)} / peça</span>
+                <span className="vr-num">{brl(quote.unitPrice * quote.unitsPerPack)} / {quote.unitsPerPack.toLocaleString("pt-BR")} un.</span>
                 <span>mín. {quote.viability.order.minimumUnits.toLocaleString("pt-BR")} un. · frete {quote.freightCost == null ? "a confirmar" : brl(quote.freightCost)} · {dateBr(quote.quotedAt)}</span>
                 {quote.evidenceUrl && <a href={quote.evidenceUrl} target="_blank" rel="noopener noreferrer">evidência ↗</a>}
-                <button className="vr-link" onClick={() => removeQuote(quote.id)}>remover</button>
+                {quote.validUntil && <span>Válida até {dateBr(quote.validUntil)}</span>}
+                <button className="vr-link" disabled={Boolean(busy)} onClick={() => {
+                  setEditingQuote(quote);
+                  setPriceByPack(false);
+                  setQuoting(supplier.id);
+                }}>Editar cotação</button>
+                <button className="vr-link" disabled={Boolean(busy)} onClick={() => removeQuote(quote.id)}>Remover cotação</button>
               </div>
             ))}
             <div className="vr-actions">
               {supplier.qualification.nextAsk && <span className="vr-ask">Pergunte: {supplier.qualification.nextAsk}</span>}
-              <button className="vr-btn vr-btn--small" onClick={() => setQuoting(quoting === supplier.id ? null : supplier.id)}>Registrar cotação</button>
+              <button className="vr-btn vr-btn--small" disabled={Boolean(busy)} onClick={() => {
+                setEditingQuote(null);
+                setPriceByPack(true);
+                setQuoting(supplier.id);
+              }}>Registrar cotação</button>
+              <button className="vr-btn vr-btn--ghost vr-btn--small" onClick={() => copyQuoteRequest(supplier)}>Copiar pedido de cotação</button>
+              {supplier.website && <a href={supplier.website} target="_blank" rel="noopener noreferrer">Site ↗</a>}
+              {supplier.phone && <a href={`tel:${supplier.phone.replace(/[^+\d]/g, "")}`}>{supplier.phone}</a>}
+              {supplier.email && <a href={`mailto:${supplier.email}`}>E-mail</a>}
               {supplier.cnpj && (
                 <button className="vr-btn vr-btn--ghost vr-btn--small" onClick={() => verifyCnpj(supplier)} disabled={busy === `cnpj-${supplier.id}`}>
                   {busy === `cnpj-${supplier.id}` ? "Consultando…" : "Verificar CNPJ"}
@@ -643,29 +791,37 @@ function SuppliersTab({
               {supplier.website && <a href={supplier.website} target="_blank" rel="noopener noreferrer">Site ↗</a>}
             </div>
             {quoting === supplier.id && (
-              <form className="vr-form vr-quote-form" onSubmit={(event) => saveQuote(event, supplier.id)}>
+              <form key={editingQuote?.id ?? "new"} className="vr-form vr-quote-form" onSubmit={(event) => saveQuote(event, supplier.id)}>
                 <div className="vr-form--row vr-form--three">
-                  <label>Preço por peça (R$)<input name="unitPrice" required inputMode="decimal" placeholder="0,04" /></label>
-                  <label>Peças por embalagem<input name="unitsPerPack" inputMode="numeric" placeholder="1000" /></label>
-                  <label>Mínimo (peças)<input name="minUnits" inputMode="numeric" /></label>
+                  <label>Preço informado (R$)<input name="quotePrice" required inputMode="decimal" defaultValue={editingQuote?.unitPrice} placeholder={priceByPack ? "18,00" : "0,018"} /></label>
+                  <label>Como veio o preço?
+                    <select value={priceByPack ? "pack" : "unit"} onChange={(event) => setPriceByPack(event.target.value === "pack")}>
+                      <option value="pack">Por pacote, caixa ou milheiro</option>
+                      <option value="unit">Por peça</option>
+                    </select>
+                  </label>
+                  <label>Peças por embalagem<input name="unitsPerPack" inputMode="numeric" required={priceByPack} defaultValue={editingQuote?.unitsPerPack ?? o.packQuantity ?? ""} placeholder="1000" /></label>
+                  <label>Mínimo (peças)<input name="minUnits" inputMode="numeric" defaultValue={editingQuote?.minUnits ?? ""} /></label>
                 </div>
                 <div className="vr-form--row vr-form--three">
-                  <label>Frete até você (R$)<input name="freightCost" inputMode="decimal" placeholder="a confirmar" /></label>
-                  <label>Outros custos (R$)<input name="otherCosts" inputMode="decimal" /></label>
-                  <TriSelect name="exactMatch" label="Mesmo produto do anúncio?" value={null} />
+                  <label>Frete até você para o lote cotado (R$)<input name="freightCost" inputMode="decimal" defaultValue={editingQuote?.freightCost ?? ""} placeholder="A confirmar" /></label>
+                  <label>Outros custos (R$)<input name="otherCosts" inputMode="decimal" defaultValue={editingQuote?.otherCosts ?? ""} /></label>
+                  <TriSelect name="exactMatch" label="Mesmo produto e variante?" value={editingQuote?.exactMatch} />
                 </div>
                 <div className="vr-form--row">
                   <label>Origem do preço
-                    <select name="source" required defaultValue="COTACAO_RECEBIDA">
+                    <select name="source" required defaultValue={editingQuote?.source ?? "COTACAO_RECEBIDA"}>
                       <option value="COTACAO_RECEBIDA">Cotação recebida do fornecedor</option>
                       <option value="PRECO_PUBLICADO">Preço publicado no site/catálogo</option>
                       <option value="ESTIMATIVA_USUARIO">Estimativa minha (não confirmada)</option>
                     </select>
                   </label>
-                  <label>Link da evidência<input name="evidenceUrl" inputMode="url" placeholder="https://" /></label>
+                  <label>Link da evidência<input name="evidenceUrl" inputMode="url" defaultValue={editingQuote?.evidenceUrl ?? ""} placeholder="https://" /></label>
                 </div>
+                <label>Válida até<input name="validUntil" type="date" defaultValue={editingQuote?.validUntil ? new Date(editingQuote.validUntil).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }) : ""} /></label>
+                <label>Observações<textarea name="notes" defaultValue={editingQuote?.notes ?? ""} /></label>
                 <div className="vr-actions">
-                  <button className="vr-btn" disabled={busy === "quote"}>Salvar cotação</button>
+                  <button className="vr-btn" disabled={Boolean(busy)}>Salvar cotação</button>
                   <button type="button" className="vr-btn vr-btn--ghost" onClick={() => setQuoting(null)}>Cancelar</button>
                 </div>
               </form>
@@ -696,12 +852,15 @@ const VERDICT: Record<string, [string, string]> = {
   BAD: ["Não compensa", "risk"],
 };
 
-function MarginTab({ view }: { view: View }) {
+function MarginTab({ view, onMarket, onSuppliers }: { view: View; onMarket: () => void; onSuppliers: () => void }) {
   const best = view.best;
   if (!view.quotes.length)
     return (
       <section className="vr-panel">
-        <div className="vr-card"><p className="vr-muted">Sem custo de fornecedor ainda. Registre uma cotação na aba Fornecedores para ver a margem real.</p></div>
+        <div className="vr-card">
+          <p className="vr-muted">Registre uma cotação para comparar preços e condições.</p>
+          <button className="vr-btn" onClick={onSuppliers}>Ir para fornecedores</button>
+        </div>
       </section>
     );
   return (
@@ -709,9 +868,10 @@ function MarginTab({ view }: { view: View }) {
       {best?.perSale && (
         <div className="vr-card">
           <div className="vr-card-head">
-            <h2>Melhor cenário · {best.supplierName}</h2>
-            <span className={`vr-verdict vr-verdict--${VERDICT[best.perSale.verdict]?.[1]}`}>{VERDICT[best.perSale.verdict]?.[0]}</span>
+            <h2>{best.purchasePending.length ? "Simulação preliminar" : "Cotação em destaque"} · {best.supplierName}</h2>
+            {!best.purchasePending.length && <span className={`vr-verdict vr-verdict--${VERDICT[best.perSale.verdict]?.[1]}`}>{VERDICT[best.perSale.verdict]?.[0]}</span>}
           </div>
+          {best.purchasePending.length > 0 && <p className="vr-warn">Confirme: {best.purchasePending.join(", ")}.</p>}
           <Waterfall v={best} />
           <p className="vr-hint">
             Custo entregue de {brl(best.landedUnitCost)} por peça (preço + frete e custos rateados no lote de {best.order.units.toLocaleString("pt-BR")} un.). Origem: {SOURCE_LABEL[best.source]}.
@@ -722,28 +882,46 @@ function MarginTab({ view }: { view: View }) {
       <div className="vr-card">
         <h2>Comparar fornecedores</h2>
         <div className="vr-table-wrap">
-          <table className="vr-table">
+          <table className="vr-table vr-compare">
             <thead>
-              <tr><th>Fornecedor</th><th>Origem</th><th className="num">Custo entregue/peça</th><th className="num">Lucro/venda</th><th className="num">Margem</th><th className="num">Lote mínimo</th></tr>
+              <tr><th>Fornecedor</th><th className="num">Lote mínimo</th><th className="num">Total no mínimo</th><th>Condições</th><th className="num">Custo entregue/peça</th><th className="num">Lucro estimado/venda</th><th className="num">Margem estimada</th></tr>
             </thead>
             <tbody>
               {view.quotes.map((quote) => {
                 const v = quote.viability;
+                const supplier = view.suppliers.find((item) => item.id === quote.supplierId);
                 return (
                   <tr key={quote.id}>
-                    <td>{v.supplierName}</td>
-                    <td><span className={`vr-source vr-source--${v.source.toLowerCase()}`}>{SOURCE_LABEL[v.source]}</span></td>
-                    <td className="num">{brl(v.landedUnitCost)}</td>
-                    <td className={`num ${v.perSale ? (v.perSale.profit > 0 ? "vr-pos" : "vr-neg") : ""}`}>{v.perSale ? brl(v.perSale.profit) : "falta dado"}</td>
-                    <td className="num">{v.perSale ? pct(v.perSale.marginPercent) : "—"}</td>
-                    <td className="num">{brl(v.order.minimumUnits * quote.unitPrice + v.order.extraCosts)}</td>
+                    <td>
+                      {v.supplierName}
+                      <small className="vr-table-detail">{SOURCE_LABEL[v.source]} · {dateBr(quote.quotedAt)}</small>
+                      {v.purchasePending.length > 0 && <small className="vr-table-detail">Confirme: {v.purchasePending.join(", ")}.</small>}
+                    </td>
+                    <td className="num" data-label="Lote mínimo">{v.order.minimumUnits.toLocaleString("pt-BR")} un.</td>
+                    <td className="num" data-label="Total no mínimo">
+                      {brl(v.order.minimumUnits * quote.unitPrice + v.order.extraCosts)}
+                      {v.freightPending && <small className="vr-table-detail">+ frete a confirmar</small>}
+                    </td>
+                    <td data-label="Condições">
+                      {supplier?.leadTimeDays != null ? `${supplier.leadTimeDays} dia(s)` : "Prazo a confirmar"}
+                      <small className="vr-table-detail">{supplier?.paymentTerms || "Pagamento a confirmar"}</small>
+                      <small className="vr-table-detail">{supplier?.issuesInvoice == null ? "NF a confirmar" : supplier.issuesInvoice ? "Emite NF" : "Sem NF"}</small>
+                    </td>
+                    <td className="num" data-label="Custo entregue por peça">{v.freightPending ? "—" : brl(v.landedUnitCost)}</td>
+                    <td data-label="Lucro estimado por venda" className={`num ${v.perSale && !v.purchasePending.length ? (v.perSale.profit > 0 ? "vr-pos" : "vr-neg") : ""}`}>{v.perSale ? brl(v.perSale.profit) : "—"}</td>
+                    <td className="num" data-label="Margem estimada">{v.perSale ? pct(v.perSale.marginPercent) : "—"}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
-        {best?.status === "FALTAM_DADOS" && <p className="vr-warn">Para calcular a margem falta: {best.missing.join(", ")}. Preencha na aba Mercado.</p>}
+        {best && best.missing.length > 0 && (
+          <div className="vr-actions">
+            <p className="vr-muted">Para estimar a margem, preencha {best.missing.join(", ")}.</p>
+            <button className="vr-btn vr-btn--ghost vr-btn--small" onClick={onMarket}>Preencher custos da venda</button>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -794,13 +972,14 @@ function PlanTab({ view, onSave }: { view: View; onSave: (data: Record<string, u
       <div className="vr-grid-2">
         <div className="vr-card">
           <h2>Plano de compra</h2>
+          {best && best.purchasePending.length > 0 && <p className="vr-warn">Cenário preliminar. Confirme: {best.purchasePending.join(", ")}.</p>}
           {!best ? (
             <p className="vr-muted">Registre uma cotação para montar o plano.</p>
           ) : (
             <>
               <dl className="vr-kpis">
-                <div><dt>Comprar</dt><dd className="vr-num">{best.order.units.toLocaleString("pt-BR")} un.</dd><small>limitado pelo {LIMIT_LABEL[best.order.limitedBy]}</small></div>
-                <div><dt>Investimento</dt><dd className="vr-num">{brl(best.order.capital)}</dd><small>produto {brl(best.order.goodsCost)} + frete/outros {brl(best.order.extraCosts)}</small></div>
+                <div><dt>Lote simulado</dt><dd className="vr-num">{best.order.units.toLocaleString("pt-BR")} un.</dd><small>limitado pelo {LIMIT_LABEL[best.order.limitedBy]}</small></div>
+                <div><dt>Investimento</dt><dd className="vr-num">{brl(best.order.capital)}</dd><small>mercadoria {brl(best.order.goodsCost)} · {best.freightPending ? "frete a confirmar" : `frete e outros ${brl(best.order.extraCosts)}`}</small></div>
                 <div><dt>Anúncios vendáveis</dt><dd className="vr-num">{best.order.sellableListings}</dd><small>{o.packQuantity ?? 1} un. por venda</small></div>
                 <div><dt>Vendas para recuperar</dt><dd className="vr-num">{best.plan.salesToRecoverCapital ?? "—"}</dd><small>{best.plan.profitIfAllSold != null ? `lucro se vender tudo: ${brl(best.plan.profitIfAllSold)}` : "margem ainda não calculada"}</small></div>
               </dl>
@@ -826,7 +1005,7 @@ function PlanTab({ view, onSave }: { view: View; onSave: (data: Record<string, u
               </button>
             ))}
           </div>
-          <p className="vr-hint">Depois de comprar, use “Criar anúncio” e “Monitoramento” para acompanhar a concorrência e o resultado.</p>
+
         </form>
       </div>
     </section>

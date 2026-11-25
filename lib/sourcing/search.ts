@@ -3,7 +3,7 @@
  * partem da marca, o varejo conhecido é descartado e cada candidato recebe um
  * tipo provável com as razões. Candidato não é fornecedor confirmado.
  */
-import type { ProductIdentity } from "@/lib/sourcing/identity";
+import { productCore, type ProductIdentity } from "@/lib/sourcing/identity";
 
 export type SupplierKind =
   | "FABRICANTE"
@@ -34,6 +34,7 @@ export type SupplierCandidate = {
   reasons: string[];
   snippet: string | null;
   query: string;
+  evidence?: "PRODUTO" | "MARCA" | "CANDIDATO";
 };
 
 export type SearchOutcome = {
@@ -55,17 +56,10 @@ export function withAiResearch(
   research: import("@/lib/sourcing/ai-research").AiResearch,
   aiCandidates: SupplierCandidate[],
 ): SearchOutcome {
-  const byDomain = new Map(outcome.candidates.map((c) => [c.domain, c]));
-  const merged = [...outcome.candidates];
-  for (const candidate of aiCandidates) {
-    const existing = byDomain.get(candidate.domain);
-    if (existing) {
-      Object.assign(existing, { ...candidate, reasons: [...new Set([...existing.reasons, ...candidate.reasons])] });
-    } else {
-      merged.unshift(candidate);
-      byDomain.set(candidate.domain, candidate);
-    }
-  }
+  const merged = mergeCandidates([
+    outcome.candidates,
+    aiCandidates.map((candidate) => ({ ...candidate, evidence: "CANDIDATO" })),
+  ]);
   const aiOk = research.status === "OK";
   const webOk = outcome.status === "OK";
   return {
@@ -113,7 +107,8 @@ export const RETAIL_DOMAINS = [
 
 export function domainOf(url: string) {
   try {
-    return new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+    const parsed = new URL(url);
+    return /^https?:$/.test(parsed.protocol) ? parsed.hostname.replace(/^www\./, "").toLowerCase() : "";
   } catch {
     return "";
   }
@@ -149,12 +144,12 @@ export function buildSupplierQueries(identity: ProductIdentity): SearchQuery[] {
   });
   if (identity.gtin && identity.gtinValid)
     queries.push({ intent: "Código de barras", query: identity.gtin });
-  return queries.slice(0, 4);
+  return queries.length > 4 ? [...queries.slice(0, 3), queries[queries.length - 1]] : queries;
 }
 
 const RULES: Array<{ kind: SupplierKind; pattern: RegExp; reason: string }> = [
   { kind: "FABRICANTE", pattern: /\b(fabricante|fábrica|fabrica|indústria|industria|\.ind\.br)\b/i, reason: "Menciona fabricação" },
-  { kind: "DISTRIBUIDOR", pattern: /\b(distribuidor|distribuidora|distribuição|representante)\b/i, reason: "Menciona distribuição" },
+  { kind: "DISTRIBUIDOR", pattern: /\b(distribuidor|distribuidora|distribuição|representantes?)\b/i, reason: "Menciona distribuição" },
   { kind: "DISTRIBUIDOR", pattern: /seja (um )?revendedor|revenda autorizada|onde comprar/i, reason: "Tem programa de revenda" },
   { kind: "ATACADISTA", pattern: /\b(atacado|atacadista|atacarejo|caixa fechada|pedido mínimo|pedido minimo)\b/i, reason: "Menciona atacado" },
   { kind: "IMPORTADOR", pattern: /\b(importador|importadora|importação direta)\b/i, reason: "Menciona importação" },
@@ -163,13 +158,14 @@ const RULES: Array<{ kind: SupplierKind; pattern: RegExp; reason: string }> = [
 export function classifyResult(
   result: RawResult,
   query: string,
+  identity?: ProductIdentity,
 ): SupplierCandidate | null {
   const domain = domainOf(result.url);
   if (!domain || isRetail(domain)) return null;
   const text = `${result.title} ${result.description ?? ""} ${domain}`;
   const reasons: string[] = [];
   let kind: SupplierKind = "OUTRO";
-  if (domain.endsWith("mercadolivre.com.br")) {
+  if (domain === "mercadolivre.com.br" || domain.endsWith(".mercadolivre.com.br")) {
     if (!/(atacado|distribuidora|distribuidor|insumos|\b\d{3,}\s*(un|unidades|peças))/i.test(text))
       return null;
     kind = "LOJA_ML";
@@ -185,7 +181,9 @@ export function classifyResult(
     reasons.push("Domínio de indústria (.ind.br)");
     if (kind === "OUTRO") kind = "FABRICANTE";
   }
-  if (!reasons.length) return null;
+  const evidence = identity ? productEvidence(identity, `${text} ${result.url}`, kind) : undefined;
+  if (identity && !evidence) return null;
+  if (!reasons.length && evidence !== "PRODUTO") return null;
   return {
     name: cleanName(result.title, domain),
     url: result.url,
@@ -194,7 +192,30 @@ export function classifyResult(
     reasons: [...new Set(reasons)],
     snippet: result.description?.replace(/<[^>]+>/g, "").slice(0, 240) ?? null,
     query,
+    evidence: evidence ?? undefined,
   };
+}
+
+function words(value: string): string[] {
+  return value.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().match(/[a-z0-9]+/g) ?? [];
+}
+
+function productEvidence(identity: ProductIdentity, text: string, kind: SupplierKind): SupplierCandidate["evidence"] | null {
+  const resultWords = new Set(words(text));
+  const brand = words(identity.brand ?? identity.manufacturer ?? "");
+  const model = words(identity.model ?? identity.title.match(/(?:n[º°]|número)\s*(\d+)/i)?.[1] ?? "");
+  const terms = words(productCore(identity.title, 8))
+    .filter((term) => term.length >= 3 && /[a-z]/.test(term) && !brand.includes(term));
+  const uniqueTerms = [...new Set(terms)];
+  const brandMatches = brand.length > 0 && brand.every((word) => resultWords.has(word));
+  const gtinMatches = identity.gtin && identity.gtinValid && resultWords.has(identity.gtin);
+  const matchedTerms = uniqueTerms.filter((word) => resultWords.has(word)).length;
+  const modelMatches = model.length === 0 || model.every((word) => resultWords.has(word));
+  if (gtinMatches || (modelMatches && matchedTerms >= Math.min(2, uniqueTerms.length) && matchedTerms > 0 && (!brand.length || brandMatches)))
+    return "PRODUTO";
+  if (brandMatches && (kind === "FABRICANTE" || kind === "DISTRIBUIDOR")) return "MARCA";
+  if (matchedTerms > 0 && (brandMatches || (!brand.length && matchedTerms >= 2))) return "CANDIDATO";
+  return null;
 }
 
 function cleanName(title: string, domain: string) {
@@ -203,14 +224,13 @@ function cleanName(title: string, domain: string) {
 }
 
 export function mergeCandidates(groups: SupplierCandidate[][]) {
+  const rank = { PRODUTO: 0, MARCA: 1, CANDIDATO: 2 };
+  const evidenceRank = (candidate: SupplierCandidate) => rank[candidate.evidence ?? "CANDIDATO"];
   const byDomain = new Map<string, SupplierCandidate>();
   for (const candidate of groups.flat()) {
-    const key =
-      candidate.kind === "LOJA_ML" ? candidate.url : candidate.domain;
+    const key = candidate.kind === "LOJA_ML" ? candidate.url : candidate.domain;
     const current = byDomain.get(key);
-    if (!current) byDomain.set(key, candidate);
-    else
-      current.reasons = [...new Set([...current.reasons, ...candidate.reasons])];
+    if (!current || evidenceRank(candidate) < evidenceRank(current)) byDomain.set(key, candidate);
   }
   const order: SupplierKind[] = [
     "FABRICANTE",
@@ -223,6 +243,7 @@ export function mergeCandidates(groups: SupplierCandidate[][]) {
   return [...byDomain.values()]
     .sort(
       (a, b) =>
+        evidenceRank(a) - evidenceRank(b) ||
         order.indexOf(a.kind) - order.indexOf(b.kind) ||
         b.reasons.length - a.reasons.length,
     )
@@ -310,7 +331,7 @@ export async function searchSuppliers(
     try {
       const results = await provider(item.query);
       const kept = results
-        .map((result) => classifyResult(result, item.query))
+        .map((result) => classifyResult(result, item.query, identity))
         .filter((value): value is SupplierCandidate => Boolean(value));
       discarded += results.length - kept.length;
       groups.push(kept);
@@ -333,8 +354,8 @@ export async function searchSuppliers(
     provider: "BRAVE",
     status: "OK",
     message: candidates.length
-      ? null
-      : "Nenhum fornecedor provável nos resultados. Varejo foi descartado. Tente os links de pesquisa.",
+      ? failures ? "Parte das fontes não respondeu. Os resultados abaixo são parciais." : null
+      : "Nenhum resultado teve evidência suficiente. Revise o nome, a marca ou o modelo e tente a pesquisa manual.",
     candidates,
     discarded,
   };

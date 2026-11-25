@@ -157,7 +157,7 @@ export function productCore(title: string, limit = 5) {
     .join(" ");
 }
 
-function searchTermsFor(input: {
+export function searchTermsFor(input: {
   title: string;
   brand: string | null;
   model: string | null;

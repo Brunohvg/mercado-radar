@@ -67,7 +67,7 @@ export async function POST(request: Request) {
       signals: summarizeInsights(insights),
       reused: result.reused,
       notes: result.notes,
-      url: `${getPublicOrigin(request)}/onde-comprar/${opportunity.id}`,
+      url: `${getPublicOrigin(request)}/onde-comprar/${opportunity.id}?buscar=1`,
       identity: {
         brand: opportunity.brand,
         model: opportunity.model,

@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     });
     const candidates: CapitalCandidate[] = [];
     for (const row of rows) {
-      const view = await loadOpportunityView(user.workspaceId, row.id);
+      const view = await loadOpportunityView(user.workspaceId, row.id, filters.capital);
       // Cada cotação vira um candidato; o pedido mínimo é comparado ao capital informado.
       for (const quote of view.quotes) {
         const supplier = view.suppliers.find((item) => item.id === quote.supplierId);

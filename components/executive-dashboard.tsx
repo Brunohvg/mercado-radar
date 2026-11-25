@@ -1,5 +1,6 @@
 "use client";
 
+import { PilotBriefing } from "@/components/pilot-briefing";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -170,6 +171,7 @@ export function ExecutiveDashboard() {
           </button>
         </div>
       </header>
+      <PilotBriefing />
       <section
         className="radar-discover clean-panel"
         aria-label="Pesquisar uma oportunidade"

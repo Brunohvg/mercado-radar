@@ -332,6 +332,13 @@ try {
       assert.equal(r.json.orders.length, 100);
       assert.equal(r.json.pagination.pages, 3);
       assert.ok(Array.isArray(r.json.missingCosts));
+      const pilot = await req("/api/pilot/briefing", cookieA);
+      assert.equal(pilot.status, 200, pilot.text);
+      assert.ok(Array.isArray(pilot.json.actions));
+      assert.ok(pilot.json.actions.some((a) => a.kind === "QUESTION" && /atacado/.test(a.headline)), pilot.text.slice(0, 600));
+      for (let i = 1; i < pilot.json.actions.length; i++)
+        assert.ok(pilot.json.actions[i - 1].stake >= pilot.json.actions[i].stake);
+      assert.equal((await req("/api/pilot/briefing", "")).status, 401);
       for (const row of r.json.missingCosts) {
         assert.match(row.mlItemId, /^MLB/);
         assert.ok(row.units > 0);

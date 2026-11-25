@@ -940,3 +940,33 @@
   .quick-calc-form { grid-template-columns: 1fr; }
   .quick-calc-fees { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Piloto: briefing do dia */
+.pilot { display: grid; gap: var(--s-3); margin-bottom: var(--s-4); }
+.pilot-head h2 { margin: 2px 0 4px; }
+.pilot-head p { margin: 0; color: var(--ink-500); }
+.pilot-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.pilot-item { display: flex; gap: var(--s-4); justify-content: space-between; padding: var(--s-3) var(--s-4); border: 1px solid var(--line); border-left: 4px solid var(--line-strong, var(--line)); border-radius: var(--r-sm); background: var(--surface, #fff); }
+.pilot-item--risk { border-left-color: var(--risk); }
+.pilot-item--warn { border-left-color: var(--warn-strong); }
+.pilot-item--info { border-left-color: var(--info); }
+.pilot-item-main { display: grid; gap: 2px; min-width: 0; }
+.pilot-kind { justify-self: start; font-size: var(--fs-11, 11px); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; background: var(--surface-3, #eef1f6); color: var(--ink-500); }
+.pilot-kind--risk { background: var(--risk-tint); color: var(--risk-ink); }
+.pilot-kind--warn { background: var(--warn-tint); color: var(--warn-ink); }
+.pilot-kind--info { background: var(--info-tint); color: var(--info); }
+.pilot-product { font-size: var(--fs-13, 13px); color: var(--ink-500); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pilot-headline { margin: 0; font-weight: 700; font-size: var(--fs-16, 16px); }
+.pilot-detail { margin: 0; color: var(--ink-500); font-size: var(--fs-13, 13px); }
+.pilot-formula summary { cursor: pointer; font-size: var(--fs-12, 12px); color: var(--info); }
+.pilot-formula p { margin: 4px 0 0; font-size: var(--fs-12, 12px); color: var(--ink-500); }
+.pilot-item-side { display: grid; gap: var(--s-2); justify-items: end; align-content: center; flex: none; text-align: right; }
+.pilot-stake { font-weight: 700; font-size: var(--fs-14, 14px); }
+.pilot-item-side .vr-btn { text-decoration: none; }
+.pilot-more { justify-self: start; }
+.pilot-notes { margin: 0; padding-left: 18px; font-size: var(--fs-12, 12px); color: var(--warn-ink); }
+.pilot-foot { margin: 0; font-size: var(--fs-12, 12px); color: var(--ink-400, #8a93a3); }
+@media (max-width: 720px) {
+  .pilot-item { flex-direction: column; }
+  .pilot-item-side { justify-items: start; text-align: left; }
+}

@@ -1860,6 +1860,25 @@ export async function getItemQuestions(input: { accessToken: string; itemId: str
   );
 }
 
+/** Perguntas sem resposta de todos os anúncios do vendedor (mais antigas primeiro). */
+export async function getUnansweredQuestions(input: { accessToken: string; sellerId: string; limit?: number }) {
+  const params = new URLSearchParams({
+    seller_id: input.sellerId,
+    status: "UNANSWERED",
+    sort_fields: "date_created",
+    sort_types: "ASC",
+    limit: String(Math.min(Math.max(input.limit ?? 20, 1), 50)),
+    api_version: "4",
+  });
+  const raw = await jsonFetch<{ total?: number; questions?: Array<{ id?: number | string; item_id?: string; text?: string; date_created?: string; status?: string }> }>(
+    `${API}/questions/search?${params}`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+  return (raw.questions ?? [])
+    .filter((q) => q.id != null && q.item_id && typeof q.text === "string" && q.date_created && (q.status ?? "UNANSWERED") === "UNANSWERED")
+    .map((q) => ({ id: String(q.id), itemId: String(q.item_id), text: String(q.text), dateCreated: String(q.date_created) }));
+}
+
 export type MlRawReviews = {
   paging?: { total?: number };
   rating_average?: number;

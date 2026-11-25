@@ -189,6 +189,8 @@ globalThis.fetch = async (input, init) => {
       address: { city: "Belo Horizonte", state: "BR-MG" },
       seller_reputation: { level_id: "4_light_green", power_seller_status: "gold", metrics: { sales: { period: "60 days", completed: 410 }, claims: { rate: 0.01 } } },
     });
+  if (url.pathname === "/questions/search" && url.searchParams.get("seller_id") && url.searchParams.get("status") === "UNANSWERED")
+    return json({ total: 1, questions: [{ id: 9001, item_id: "MLB999000001", text: "Vende no atacado? Quero 200 unidades", status: "UNANSWERED", date_created: new Date(Date.now() - 5 * 3600e3).toISOString() }] });
   if (url.pathname === "/questions/search" && url.searchParams.get("item") === item)
     return json({ total: 31, questions: [{ text: "Vende no atacado? Quero 200 unidades", status: "UNANSWERED" }, { text: "Emite nota fiscal?", answer: { text: "Sim" } }] });
   if (url.pathname === `/reviews/item/${item}`)

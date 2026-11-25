@@ -339,6 +339,25 @@ try {
       for (let i = 1; i < pilot.json.actions.length; i++)
         assert.ok(pilot.json.actions[i - 1].stake >= pilot.json.actions[i].stake);
       assert.equal((await req("/api/pilot/briefing", "")).status, 401);
+      // Ações do Piloto: exigem confirmação, respeitam dono, contato e piso.
+      assert.equal((await req("/api/pilot/questions/9001/answer", cookieA, "POST", { text: "Olá! Sim." })).status, 400);
+      const contact = await req("/api/pilot/questions/9001/answer", cookieA, "POST", { text: "Chama no whats 31 99876-5432", confirm: true });
+      assert.equal(contact.status, 422, contact.text);
+      assert.equal((await req("/api/pilot/questions/9002/answer", cookieA, "POST", { text: "Olá! Sim, vendemos.", confirm: true })).status, 404);
+      const answered = await req("/api/pilot/questions/9001/answer", cookieA, "POST", { text: "Olá! Sim, vendemos no atacado. Estamos à disposição.", confirm: true });
+      assert.equal(answered.status, 200, answered.text);
+      const below = await req("/api/pilot/price", cookieA, "POST", { mlItemId: "MLB999000001", price: 72, expectedCurrent: 100, confirm: true });
+      assert.equal(below.status, 422, below.text);
+      assert.match(below.json.error, /Abaixo do piso/);
+      const stale = await req("/api/pilot/price", cookieA, "POST", { mlItemId: "MLB999000001", price: 95, expectedCurrent: 99, confirm: true });
+      assert.equal(stale.status, 409, stale.text);
+      assert.equal((await req("/api/pilot/price", cookieB, "POST", { mlItemId: "MLB999000001", price: 95, expectedCurrent: 100, confirm: true })).status >= 400, true);
+      const changed = await req("/api/pilot/price", cookieA, "POST", { mlItemId: "MLB999000001", price: 95, expectedCurrent: 100, confirm: true });
+      assert.equal(changed.status, 200, changed.text);
+      assert.equal(changed.json.after, 95);
+      const log = await db.query('SELECT kind, status FROM "PilotActionLog" ORDER BY "createdAt"');
+      assert.deepEqual(log.rows.map((r) => r.kind + ":" + r.status), ["ANSWER_QUESTION:DONE", "UPDATE_PRICE:DONE"]);
+      await db.query('UPDATE "MercadoLivreProduct" SET "currentPrice" = 100 WHERE "mlItemId" = $1', ["MLB999000001"]);
       for (const row of r.json.missingCosts) {
         assert.match(row.mlItemId, /^MLB/);
         assert.ok(row.units > 0);

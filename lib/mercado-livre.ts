@@ -1879,6 +1879,32 @@ export async function getUnansweredQuestions(input: { accessToken: string; selle
     .map((q) => ({ id: String(q.id), itemId: String(q.item_id), text: String(q.text), dateCreated: String(q.date_created) }));
 }
 
+/** ESCRITA: publica a resposta de uma pergunta. Só chamar após confirmação do vendedor. */
+export async function answerQuestion(input: { accessToken: string; questionId: string; text: string }) {
+  return jsonFetch<{ id?: number; status?: string; answer?: { text?: string } }>(`${API}/answers`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${input.accessToken}`, "content-type": "application/json" },
+    body: JSON.stringify({ question_id: Number(input.questionId), text: input.text }),
+  });
+}
+
+/** Uma pergunta específica (para conferir dono e status antes de responder). */
+export async function getQuestion(input: { accessToken: string; questionId: string }) {
+  return jsonFetch<{ id?: number; item_id?: string; seller_id?: number; text?: string; status?: string; date_created?: string }>(
+    `${API}/questions/${encodeURIComponent(input.questionId)}?api_version=4`,
+    { headers: { Authorization: `Bearer ${input.accessToken}` } },
+  );
+}
+
+/** ESCRITA: altera o preço do anúncio. Só chamar após confirmação do vendedor. */
+export async function updateItemPrice(input: { accessToken: string; itemId: string; price: number }) {
+  return jsonFetch<{ id?: string; price?: number }>(`${API}/items/${input.itemId}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${input.accessToken}`, "content-type": "application/json" },
+    body: JSON.stringify({ price: input.price }),
+  });
+}
+
 export type MlRawReviews = {
   paging?: { total?: number };
   rating_average?: number;

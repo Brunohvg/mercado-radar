@@ -51,3 +51,49 @@ test("prejuízo, estoque parado e perguntas entram ordenados por dinheiro em jog
   assert.match(b.actions[2].headline, /há 5 h/);
   assert.ok(b.actions[1].formula.includes("por venda"));
 });
+
+const { answerProblems, buildAnswerPrompt, priceGuard } = await loadTs("../lib/pilot/guards.ts");
+
+test("resposta com contato é barrada; resposta limpa passa", () => {
+  assert.deepEqual(answerProblems("Olá! Sim, temos 1.000 unidades em estoque. Estamos à disposição."), []);
+  assert.ok(answerProblems("Chama no whats (31) 99876-5432").length >= 2);
+  assert.ok(answerProblems("veja em www.loja.com.br").some((p) => /link/.test(p)));
+  assert.ok(answerProblems("").length);
+});
+
+test("prompt usa só os dados do anúncio e proíbe inventar e passar contato", () => {
+  const p = buildAnswerPrompt({ question: "Serve no tecido grosso?", title: "Ilhós 54", price: 42.9, stock: 10, attributes: [{ name: "Material", value: "Alumínio" }], previous: [] });
+  assert.match(p, /não invente/);
+  assert.match(p, /Nunca inclua telefone/);
+  assert.match(p, /Material: Alumínio/);
+  assert.match(p, /R\$ 42,90/);
+});
+
+test("trava de preço: piso, salto, frete grátis e preço sem custo", () => {
+  assert.equal(priceGuard({ current: 42.9, proposed: 45.9, floor: 44.1 }), null);
+  assert.match(priceGuard({ current: 42.9, proposed: 43.5, floor: 44.1 }), /piso/);
+  assert.match(priceGuard({ current: 42.9, proposed: 45.9, floor: null }), /custo/);
+  assert.match(priceGuard({ current: 60, proposed: 80, floor: 50 }), /R\$ 79/);
+  assert.match(priceGuard({ current: 100, proposed: 160, floor: 50 }), /30%/);
+  assert.match(priceGuard({ current: 42.9, proposed: 42.9, floor: 40 }), /já é esse/);
+});
+
+test("ações de prejuízo e margem baixa trazem o ajuste de preço para o piso; perguntas trazem a resposta", () => {
+  const b = buildBriefing({
+    products: [product({ mlItemId: "MLB9", cost: 30, stock: 50 })],
+    sales: sales("MLB9", 10),
+    questions: [{ id: "123", itemId: "MLB9", text: "Tem preto?", dateCreated: "2026-11-25T10:00:00Z" }],
+    settings, historyComplete: true, days: 30, now: new Date("2026-11-25T15:00:00Z"),
+  });
+  const loss = b.actions.find((a) => a.kind === "LOSS");
+  assert.equal(loss.execute.type, "PRICE");
+  assert.ok(loss.execute.suggested > loss.execute.current);
+  assert.deepEqual(b.actions.find((a) => a.kind === "QUESTION").execute, { type: "ANSWER", questionId: "123", question: "Tem preto?" });
+});
+
+test("sem botão de preço quando o piso pede um salto que a trava recusaria", () => {
+  const b = buildBriefing({ products: [product({ mlItemId: "MLB9", cost: 40, stock: 50 })], sales: sales("MLB9", 10), questions: [], settings, historyComplete: true, days: 30 });
+  const loss = b.actions.find((a) => a.kind === "LOSS");
+  assert.ok(loss);
+  assert.equal(loss.execute, undefined);
+});

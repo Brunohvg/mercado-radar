@@ -64,6 +64,10 @@ export type PilotAction = {
   /** Conta mostrada ao vendedor, para ele conferir. */
   formula: string | null;
   cta: { label: string; href: string };
+  /** Ação que o Piloto pode executar com um clique (sempre com confirmação). */
+  execute?:
+    | { type: "PRICE"; current: number; suggested: number }
+    | { type: "ANSWER"; questionId: string; question: string };
 };
 
 export type ProductEconomics = {
@@ -76,7 +80,10 @@ export type ProductEconomics = {
   dailyUnits: number;
 };
 
+import { priceGuard } from "./guards";
+
 const round2 = (v: number) => Math.round(v * 100) / 100;
+const ceilCents = (v: number) => Math.ceil(v * 100 - 1e-6) / 100;
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -240,6 +247,7 @@ export function buildBriefing(input: {
           stakeLabel: `${brl(loss)} perdidos no período`,
           formula: unitFormula,
           cta: { label: "Ver anúncio", href: product.permalink ?? "/anuncios" },
+          ...priceExecute(product.price, unit.floor),
         });
       } else if (unit.floor != null && price < unit.floor - 0.01) {
         const gap = (unit.floor - price) * econ.units;
@@ -253,6 +261,7 @@ export function buildBriefing(input: {
           stakeLabel: `${brl(gap)} abaixo da meta no período`,
           formula: unitFormula,
           cta: { label: "Ver anúncio", href: product.permalink ?? "/anuncios" },
+          ...priceExecute(product.price, unit.floor),
         });
       }
     }
@@ -298,6 +307,7 @@ export function buildBriefing(input: {
       stakeLabel: price ? `uma venda de ${brl(price)}` : "uma venda",
       formula: null,
       cta: { label: "Abrir anúncio", href: product?.permalink ?? "/anuncios" },
+      execute: { type: "ANSWER", questionId: q.id, question: q.text },
     });
   }
 
@@ -308,4 +318,34 @@ export function buildBriefing(input: {
     totalStake: round2(actions.reduce((sum, a) => sum + a.stake, 0)),
     assumptions,
   };
+}
+
+/** Piso de margem de um anúncio, recalculado no servidor antes de mudar preço. */
+export function floorFor(input: {
+  product: PilotProduct;
+  sales: PilotSale[];
+  settings: PilotSettings;
+  days: number;
+}) {
+  const econ = economicsFor(input.sales.filter((s) => s.mlItemId === input.product.mlItemId), input.days);
+  const price = input.product.price ?? econ.avgPrice;
+  if (price == null || input.product.cost == null || econ.feeRate == null) return null;
+  return unitEconomics({
+    price,
+    cost: input.product.cost,
+    feeRate: econ.feeRate,
+    shippingPerUnit: econ.shippingPerUnit ?? 0,
+    taxRate: (input.settings.taxPercent ?? 0) / 100,
+    operatingCost: input.settings.operatingCost,
+    targetMargin: input.settings.targetMarginPercent / 100,
+  }).floor;
+}
+
+/** Só oferece o botão quando a trava de preço aceitaria o piso sugerido. */
+function priceExecute(current: number | null, floor: number | null): Pick<PilotAction, "execute"> {
+  if (current == null || floor == null) return {};
+  const suggested = ceilCents(floor);
+  return priceGuard({ current, proposed: suggested, floor: suggested }) == null
+    ? { execute: { type: "PRICE", current, suggested } }
+    : {};
 }

@@ -647,3 +647,21 @@ model SourcingQuote {
   @@index([workspaceId, opportunityId])
   @@index([supplierId])
 }
+
+/// Ações que o Piloto executou na conta do Mercado Livre, sempre por clique do vendedor.
+model PilotActionLog {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String?
+  sellerId    String
+  kind        String
+  mlItemId    String
+  targetId    String?
+  before      Json?
+  after       Json?
+  status      String
+  error       String?
+  createdAt   DateTime @default(now())
+
+  @@index([workspaceId, createdAt])
+}

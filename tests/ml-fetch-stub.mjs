@@ -135,6 +135,14 @@ globalThis.fetch = async (input, init) => {
     return json({ id: seller, nickname: "Teste A" });
   if (url.pathname === `/users/${seller}/items/search`)
     return json({ results: [item] });
+  if (url.pathname === "/questions/9001")
+    return json({ id: 9001, item_id: item, seller_id: seller, status: "UNANSWERED", text: "Vende no atacado? Quero 200 unidades", date_created: now });
+  if (url.pathname === "/questions/9002")
+    return json({ id: 9002, item_id: item, seller_id: "foreign-seller", status: "UNANSWERED", text: "x", date_created: now });
+  if (url.pathname === "/answers" && init?.method === "POST")
+    return json({ id: 9001, status: "ANSWERED" });
+  if (url.pathname === `/items/${item}` && init?.method === "PUT")
+    return json({ id: item, price: JSON.parse(String(init.body)).price });
   if (url.pathname === "/items" || url.pathname === "/items/bulk")
     return json(
       (url.searchParams.get("ids") || "").split(",").map((id) =>

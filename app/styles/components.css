@@ -970,3 +970,13 @@
   .pilot-item { flex-direction: column; }
   .pilot-item-side { justify-items: start; text-align: left; }
 }
+.pilot-exec-open { justify-self: start; margin-top: var(--s-2); }
+.pilot-exec { display: grid; gap: var(--s-2); margin-top: var(--s-2); padding: var(--s-3); border-radius: var(--r-sm); background: var(--brand-tint-2, #f3f7ff); }
+.pilot-exec-label { font-size: var(--fs-12, 12px); color: var(--ink-500); }
+.pilot-exec textarea, .pilot-exec input { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-sm); background: #fff; }
+.pilot-exec input { width: 130px; }
+.pilot-exec-row { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
+.pilot-exec-row .vr-btn { align-self: center; }
+.pilot-exec-warn { font-size: var(--fs-13, 13px); font-weight: 600; color: var(--warn-ink); }
+.pilot-exec-error { margin: 0; font-size: var(--fs-13, 13px); color: var(--risk-ink); }
+.pilot-done { margin: var(--s-2) 0 0; font-weight: 600; color: var(--ok); }

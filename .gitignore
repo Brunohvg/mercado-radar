@@ -9,3 +9,4 @@ generated
 *.tsbuildinfo
 
 dist/
+artifacts/

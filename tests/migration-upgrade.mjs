@@ -64,6 +64,35 @@ try {
   await client.query(`INSERT INTO "RadarWorkspace" (id,name) VALUES ('new-workspace','Outra operação');
  INSERT INTO "Product" (id,"workspaceId",name,sku,"supplierPrice","updatedAt") VALUES ('new-product','new-workspace','Outro produto','LEGACY',10,NOW());
  INSERT INTO "MarketItem" (id,"workspaceId",title,"updatedAt") VALUES ('MLB999000001','new-workspace','Outra observação',NOW());`);
+  console.log("MIGRATION_BASE_UPGRADE_OK");
+  for (const name of names.slice(target + 1))
+    await client.query(
+      await readFile(new URL(name + "/migration.sql", root), "utf8"),
+    );
+  await client.query(
+    `INSERT INTO "RadarResearchDraft" (id,"workspaceId",kind,name,payload,"updatedAt") VALUES ('new-draft','new-workspace','RESEARCH','Pesquisa','{}',NOW());`,
+  );
+  assert.equal(
+    (await client.query("SELECT name FROM \"Product\" WHERE id='old-product'"))
+      .rows[0].name,
+    "Produto existente",
+  );
+  assert.equal(
+    (
+      await client.query(
+        'SELECT "itemId" FROM "MarketItemSnapshot" WHERE id=\'old-snapshot\'',
+      )
+    ).rows[0].itemId,
+    "MLB999000001",
+  );
+  assert.equal(
+    (
+      await client.query(
+        'SELECT "workspaceId" FROM "RadarResearchDraft" WHERE id=\'new-draft\'',
+      )
+    ).rows[0].workspaceId,
+    "new-workspace",
+  );
   console.log(
     "MIGRATION_UPGRADE_OK legacy rows, snapshots, distinct workspaces and financial invalidation",
   );

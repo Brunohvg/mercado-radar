@@ -2,6 +2,8 @@
 
 Data: 16/10/2026. Estado: **Planejado**.
 
+Atualização de prioridade em 23/10/2026: o roteiro anexado pelo usuário organiza a primeira entrega em auditoria, pesquisa de concorrentes e simulador de kits. A implementação isolada e seus limites estão em [INTELLIGENCE_V1_AUDIT.md](INTELLIGENCE_V1_AUDIT.md), PR #3. As demais etapas abaixo permanecem como plano; a integração do monitoramento legado com a regra pública continua pendente. A extensão 0.11.0 é a referência visual protegida.
+
 Direção aprovada pelo usuário: a experiência da revisão 0.11.0 melhorou e deve ser preservada. A evolução deve aumentar a utilidade das decisões, com menos digitação e motivos claros, mantendo a organização atual.
 
 Este documento registra o plano e a checagem de código que o fundamenta. Não significa que as próximas funcionalidades foram implementadas ou que todas as telas foram homologadas em produção.

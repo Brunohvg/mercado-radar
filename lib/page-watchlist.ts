@@ -6,6 +6,7 @@ export async function savePageWatch(
   sellerUserId: string,
   observed: ObservedListing,
   create = false,
+  observedAt?: Date,
 ) {
   const key = {
     sellerUserId_mlItemId: { sellerUserId, mlItemId: observed.id },
@@ -24,7 +25,9 @@ export async function savePageWatch(
     return null;
   if (create && existing?.active && existing.trackingMode === "API")
     return existing;
-  const now = new Date();
+  const now = observedAt ?? new Date();
+  // A saved research result is dated evidence, not a fresh page visit.
+  if (existing?.lastCheckedAt && existing.lastCheckedAt > now) return existing;
   const soldKnown = observed.soldLower != null;
   const data = {
     title: observed.title,
@@ -67,6 +70,7 @@ export async function savePageWatch(
         soldKnown,
         soldIsLowerBound: data.soldIsLowerBound,
         trackingMode: "PAGE",
+        capturedAt: now,
       },
     });
   return watch;

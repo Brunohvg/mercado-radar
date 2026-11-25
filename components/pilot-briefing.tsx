@@ -32,8 +32,8 @@ export function PilotBriefing() {
     fetch("/api/pilot/briefing", { cache: "no-store" })
       .then(async (r) => {
         const body = (await r.json().catch(() => ({}))) as Briefing;
-        if (!r.ok) throw new Error(body.error || "Não foi possível montar o briefing.");
-        return body;
+        if (!r.ok || !Array.isArray(body.actions)) throw new Error(body.error || "Não foi possível montar o briefing.");
+        return { ...body, assumptions: Array.isArray(body.assumptions) ? body.assumptions : [] };
       })
       .then((body) => { if (active) setData(body); })
       .catch((e) => { if (active) setError(e instanceof Error ? e.message : "Falha no briefing."); });

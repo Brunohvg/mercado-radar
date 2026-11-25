@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { AdsMarginResult } from "@/lib/ads-margin";
 
 type Campaign = {
   id: string | null;
@@ -56,6 +57,7 @@ type AdGroup = {
     label: string;
     reason: string;
   };
+  margin: AdsMarginResult;
 };
 
 type Payload = {
@@ -134,14 +136,14 @@ function pct(value: number | null | undefined) {
       }) + "%";
 }
 
-function metric(value: number | null | undefined, digits = 2) {
-  return value == null
-    ? "—"
-    : Number(value).toLocaleString("pt-BR", {
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits,
-      });
-}
+const RANK: Record<AdsMarginResult["verdict"], number> = {
+  COME_LUCRO: 0,
+  SEM_VENDA: 1,
+  VENDA_ADS_NO_PREJUIZO: 2,
+  SEM_CUSTO: 3,
+  PAGA: 4,
+  PODE_INVESTIR: 5,
+};
 
 function statusLabel(value: string) {
   const normalized = value.toLowerCase();
@@ -150,48 +152,25 @@ function statusLabel(value: string) {
   return value;
 }
 
-const confidenceLabel: Record<string, string> = {
-  LOW: "baixa",
-  MEDIUM: "média",
-  HIGH: "alta",
-};
-
-const toneLabel: Record<string, string> = {
-  good: "Saudável",
-  attention: "Atenção",
-  bad: "Crítico",
-  neutral: "Sem dados",
-};
-
 export function AdvertisingDashboard() {
-  const [days, setDays] = useState(7);
+  const [days, setDays] = useState(30);
   const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [filter, setFilter] = useState<"todos" | "problema" | "ok">("todos");
 
   const load = useCallback(
     async (refresh = false) => {
       refresh ? setRefreshing(true) : setLoading(true);
       setError("");
-
       try {
-        const response = await fetch("/api/ml/ads?days=" + days, {
-          cache: "no-store",
-        });
+        const response = await fetch("/api/ml/ads?days=" + days, { cache: "no-store" });
         const payload = await response.json();
-
-        if (!response.ok) {
-          throw new Error(payload.error ?? "Falha ao carregar publicidade.");
-        }
-
+        if (!response.ok) throw new Error(payload.error ?? "Falha ao carregar publicidade.");
         setData(payload);
       } catch (caught) {
-        setError(
-          caught instanceof Error
-            ? caught.message
-            : "Falha ao carregar publicidade.",
-        );
+        setError(caught instanceof Error ? caught.message : "Falha ao carregar publicidade.");
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -204,121 +183,51 @@ export function AdvertisingDashboard() {
     void load(false);
   }, [load]);
 
-  const insight = useMemo(() => {
-    const summary = data?.summary;
-    if (!summary || summary.cost <= 0) {
-      return {
-        tone: "neutral",
-        title: "Sem investimento no período",
-        text: "Assim que houver gasto, o Radar compara retorno publicitário com o lucro conhecido da operação.",
-      };
-    }
-
-    if (summary.realizedProfitAfterAds != null && summary.realizedProfitAfterAds < 0) {
-      return {
-        tone: "bad",
-        title: "Publicidade está consumindo o lucro conhecido",
-        text:
-          "O gasto de Ads supera o lucro realizado disponível para os pedidos com custo conhecido neste período.",
-      };
-    }
-
-    if (
-      summary.realizedMarginAfterAds != null &&
-      summary.realizedMarginAfterAds < 10
-    ) {
-      return {
-        tone: "attention",
-        title: "Retorno existe, mas a margem pós-Ads está apertada",
-        text:
-          "Evite aumentar orçamento só porque o ROAS parece alto. A margem real da operação é o limite.",
-      };
-    }
-
-    return {
-      tone: "good",
-      title: "Publicidade compatível com o lucro conhecido",
-      text:
-        "O investimento ainda preserva lucro após Ads nos pedidos com rentabilidade calculada.",
-    };
-  }, [data]);
-
-  const campaigns = data?.campaigns ?? [];
-  const adGroups = data?.adGroups ?? [];
   const summary = data?.summary;
-
+  const campaigns = data?.campaigns ?? [];
+  const groups = useMemo(
+    () =>
+      [...(data?.adGroups ?? [])]
+        .filter((g) => g.metrics.cost > 0)
+        .sort((a, b) => RANK[a.margin.verdict] - RANK[b.margin.verdict] || b.metrics.cost - a.metrics.cost),
+    [data],
+  );
+  const problems = groups.filter((g) => g.margin.tone === "risk" || g.margin.tone === "warn");
+  const wasted = problems.reduce((s, g) => s + g.metrics.cost, 0);
+  const shown = groups.filter((g) =>
+    filter === "todos" ? true : filter === "problema" ? g.margin.tone === "risk" || g.margin.tone === "warn" : g.margin.tone === "good",
+  );
 
   return (
     <section className="ads-page">
       <header className="page-header clean-page-header">
         <div>
           <p className="page-kicker">Operação</p>
-          <h1>Publicidade</h1>
-          <p>
-            Investimento, receita atribuída e lucro conhecido lado a lado, para
-            saber se os anúncios realmente pagam a conta.
-          </p>
+          <h1>Publicidade x margem</h1>
+          <p>Quanto cada anúncio patrocinado gasta perto do lucro que o produto deixa. Primeiro os que comem a sua margem.</p>
         </div>
-
         <div className="page-header-actions">
-          <select
-            className="clean-select"
-            aria-label="Período"
-            value={days}
-            onChange={(event) => setDays(Number(event.target.value))}
-          >
+          <select className="clean-select" aria-label="Período" value={days} onChange={(event) => setDays(Number(event.target.value))}>
             <option value={7}>Últimos 7 dias</option>
             <option value={30}>Últimos 30 dias</option>
             <option value={90}>Últimos 90 dias</option>
           </select>
-
-          <button
-            type="button"
-            className="clean-secondary"
-            disabled={refreshing}
-            onClick={() => void load(true)}
-          >
-            {refreshing ? "Atualizando..." : "Atualizar dados"}
+          <button type="button" className="clean-secondary" disabled={refreshing} onClick={() => void load(true)}>
+            {refreshing ? "Atualizando..." : "Atualizar"}
           </button>
         </div>
       </header>
 
-      {loading && <div className="clean-loading">Carregando Product Ads...</div>}
+      {loading && <div className="clean-loading">Lendo seus anúncios patrocinados...</div>}
       {error && <div className="error">{error}</div>}
 
       {!loading && data && !data.enabled && (
-        <section className="clean-panel ads-disabled-panel">
-          <span className="ads-disabled-icon" aria-hidden="true">
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1Z" />
-              <path d="M15.5 8.5a5 5 0 0 1 0 7" />
-              <path d="M3 3l18 18" />
-            </svg>
+        <section className="clean-panel module-empty">
+          <strong>Mercado Ads não está ativo nesta conta</strong>
+          <span>
+            {data.error ?? data.message ?? "A conta não retornou um anunciante do Mercado Ads."} Quando você patrocinar
+            anúncios, o Radar mostra aqui se eles cabem na margem.
           </span>
-          <div className="ads-disabled-copy">
-            <strong>Product Ads indisponível nesta conta</strong>
-            <p>
-              {data.error ??
-                data.message ??
-                "A conta não retornou um anunciante Product Ads."}
-            </p>
-            <small>
-              Ative o Mercado Ads na sua conta do Mercado Livre ou reconecte a
-              integração para o Radar ler campanhas, custos e retorno.
-            </small>
-          </div>
-          <a className="clean-secondary" href="/integracoes">
-            Ver integrações
-          </a>
         </section>
       )}
 
@@ -326,321 +235,148 @@ export function AdvertisingDashboard() {
         <>
           <section className="clean-kpi-grid ads-kpis">
             <article className="clean-kpi-card">
-              <span>Investimento em Ads</span>
+              <span>Gasto com anúncios</span>
               <strong>{money.format(summary.cost)}</strong>
-              <small>
-                {integer.format(summary.clicks)} cliques · CPC{" "}
-                {money.format(summary.cpc)}
-              </small>
+              <small>nos últimos {data.days} dias</small>
             </article>
-
             <article className="clean-kpi-card">
-              <span>Receita atribuída</span>
+              <span>Vendas pelos anúncios</span>
               <strong>{money.format(summary.total_amount)}</strong>
               <small>
-                direta {money.format(summary.direct_amount)} · indireta{" "}
-                {money.format(summary.indirect_amount)}
+                {integer.format(summary.units_quantity)} un. · ACOS {pct(summary.acos)}
               </small>
             </article>
-
-            <article className="clean-kpi-card">
-              <span>ROAS</span>
-              <strong>{metric(summary.roas)}x</strong>
-              <small>
-                ACOS {pct(summary.acos)} · CVR {pct(summary.cvr)}
-              </small>
-            </article>
-
             <article className="clean-kpi-card accent">
-              <span>Lucro conhecido após Ads</span>
-              <strong>{summary.realizedProfitAfterAds == null ? "A apurar" : money.format(summary.realizedProfitAfterAds)}</strong>
+              <span>Lucro depois dos anúncios</span>
+              <strong className={summary.realizedProfitAfterAds != null && summary.realizedProfitAfterAds < 0 ? "danger-value" : ""}>
+                {summary.realizedProfitAfterAds == null ? "—" : money.format(summary.realizedProfitAfterAds)}
+              </strong>
               <small>
-                cobertura de {pct(summary.profitCoveragePercent)} dos pedidos
+                {summary.realizedProfitAfterAds == null
+                  ? "informe os custos em Vendas"
+                  : `era ${money.format(summary.realizedProfitBeforeAds)} antes · margem ${pct(summary.realizedMarginAfterAds)}`}
               </small>
+            </article>
+            <article className={"clean-kpi-card" + (problems.length ? " ads-kpi-risk" : "")}>
+              <span>Comendo a margem</span>
+              <strong>{problems.length}</strong>
+              <small>{problems.length ? `${money.format(wasted)} gastos neles` : "nenhum anúncio"}</small>
             </article>
           </section>
 
-          <section className={"clean-panel ads-insight " + insight.tone}>
-            <div className="clean-panel-head">
-              <div>
-                <span>Leitura financeira</span>
-                <strong>{insight.title}</strong>
-              </div>
-              <span className={"table-status " + insight.tone}>
-                {toneLabel[insight.tone] ?? insight.tone}
-              </span>
-            </div>
+          {summary.profitCoveragePercent < 70 && summary.cost > 0 && (
+            <p className="ads-note">
+              Só {pct(summary.profitCoveragePercent)} dos pedidos têm custo informado. <a href="/vendas">Complete os custos</a> para
+              o lucro depois dos anúncios valer para a conta toda.
+            </p>
+          )}
 
-            <div className="ads-insight-body">
-              <div className="ads-insight-main">
-                <p>{insight.text}</p>
-
-                <div className="clean-mini-grid ads-insight-numbers">
-                  <div>
-                    <span>Lucro antes de Ads</span>
-                    <strong>
-                      {money.format(summary.realizedProfitBeforeAds)}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>Investimento em Ads</span>
-                    <strong className="danger-value">
-                      -{money.format(summary.cost)}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>Margem pós-Ads</span>
-                    <strong>{pct(summary.realizedMarginAfterAds)}</strong>
-                  </div>
-                </div>
-              </div>
-
-              <aside
-                className={
-                  "ads-insight-recommendation " +
-                  summary.recommendation.action.toLowerCase()
-                }
-              >
-                <span>Recomendação do Radar</span>
-                <strong>{summary.recommendation.label}</strong>
-                <p>{summary.recommendation.reason}</p>
-                <small>
-                  Confiança{" "}
-                  {confidenceLabel[summary.recommendation.confidence] ??
-                    summary.recommendation.confidence.toLowerCase()}
-                </small>
-              </aside>
-            </div>
-          </section>
-
-          <section className="clean-panel ads-campaigns-panel">
-            <div className="clean-panel-head">
-              <div>
-                <span>
-                  {data.advertiser?.accountName ??
-                    data.advertiser?.advertiserName ??
-                    "Product Ads"}
-                </span>
-                <strong>
-                  Campanhas{" "}
-                  <span className="ads-count">{campaigns.length}</span>
-                </strong>
+          <section className="clean-panel ads-margin-panel">
+            <div className="ads-margin-head">
+              <strong>Anúncios patrocinados</strong>
+              <div className="ads-chips" role="group" aria-label="Filtrar">
+                {([
+                  ["todos", `Todos (${groups.length})`],
+                  ["problema", `Comendo a margem (${problems.length})`],
+                  ["ok", `Se pagam (${groups.filter((g) => g.margin.tone === "good").length})`],
+                ] as const).map(([key, label]) => (
+                  <button key={key} type="button" className={"ads-chip" + (filter === key ? " is-active" : "")} onClick={() => setFilter(key)}>
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {campaigns.length === 0 ? (
+            {!shown.length ? (
               <div className="module-empty">
-                Nenhuma campanha retornada no período.
+                {groups.length ? "Nada neste filtro." : "Nenhum anúncio com gasto no período."}
               </div>
             ) : (
+              <ul className="ads-margin-list">
+                {shown.map((g, index) => {
+                  const m = g.margin;
+                  const title = g.product?.title ?? g.title ?? g.externalId ?? "Anúncio";
+                  const over = m.acos != null && m.breakEvenAcos != null && m.acos > m.breakEvenAcos;
+                  return (
+                    <li key={g.id ?? g.externalId ?? String(index)} className={"ads-margin-row tone-" + m.tone}>
+                      <div className="ads-margin-product">
+                        {g.product?.thumbnail ? <img src={g.product.thumbnail} alt="" /> : <span className="clean-product-thumb">AD</span>}
+                        <div>
+                          <span className={"ads-verdict tone-" + m.tone}>{m.label}</span>
+                          <strong title={title}>{title}</strong>
+                          <p>{m.reason}</p>
+                        </div>
+                      </div>
+                      <dl className="ads-margin-numbers">
+                        <div>
+                          <dt>Gasto</dt>
+                          <dd>{money.format(g.metrics.cost)}</dd>
+                        </div>
+                        <div>
+                          <dt>Vendeu pelo anúncio</dt>
+                          <dd>
+                            {money.format(g.metrics.totalAmount)}
+                            <small>{integer.format(g.metrics.units)} un.</small>
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>ACOS / limite</dt>
+                          <dd className={over ? "danger-value" : ""}>
+                            {pct(m.acos)} <small>/ {pct(m.breakEvenAcos)}</small>
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Lucro depois</dt>
+                          <dd className={m.profitAfterAds == null ? "" : m.profitAfterAds < 0 ? "danger-value" : "good-value"}>
+                            {m.profitAfterAds == null ? "—" : money.format(m.profitAfterAds)}
+                          </dd>
+                        </div>
+                      </dl>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+
+          {!!campaigns.length && (
+            <details className="clean-panel ads-campaigns-details">
+              <summary>Campanhas ({campaigns.length})</summary>
               <div className="clean-table-wrap">
-                <table className="clean-table ads-table ads-campaigns-table">
+                <table className="clean-table ads-table">
                   <thead>
                     <tr>
                       <th>Campanha</th>
                       <th>Status</th>
                       <th>Orçamento/dia</th>
-                      <th>Investimento</th>
-                      <th>Receita</th>
-                      <th>ROAS</th>
+                      <th>Gasto</th>
+                      <th>Vendas</th>
                       <th>ACOS</th>
-                      <th>CTR</th>
-                      <th>CVR</th>
-                      <th>Unidades</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {campaigns.map((campaign, index) => (
-                      <tr
-                        key={
-                          campaign.id ??
-                          campaign.name + "-" + String(index)
-                        }
-                      >
-                        <td>
-                          <div className="ads-name-cell">
-                            <strong>{campaign.name}</strong>
-                            {campaign.roasTarget != null && (
-                              <small className="table-subtext">
-                                ROAS alvo {metric(campaign.roasTarget, 1)}x
-                              </small>
-                            )}
-                          </div>
-                        </td>
-                        <td>
-                          <span
-                            className={
-                              "table-status ads-status " +
-                              campaign.status.toLowerCase()
-                            }
-                          >
-                            {statusLabel(campaign.status)}
-                          </span>
-                        </td>
-                        <td>
-                          {campaign.budget == null
-                            ? "—"
-                            : money.format(campaign.budget)}
-                        </td>
-                        <td>{money.format(campaign.metrics.cost)}</td>
-                        <td>{money.format(campaign.metrics.totalAmount)}</td>
-                        <td>
-                          <strong className="ads-roas">
-                            {metric(campaign.metrics.roas)}x
-                          </strong>
-                        </td>
-                        <td>{pct(campaign.metrics.acos)}</td>
-                        <td>{pct(campaign.metrics.ctr)}</td>
-                        <td>{pct(campaign.metrics.cvr)}</td>
-                        <td>{integer.format(campaign.metrics.units)}</td>
+                    {campaigns.map((c, index) => (
+                      <tr key={c.id ?? c.name + "-" + String(index)}>
+                        <td><strong>{c.name}</strong></td>
+                        <td>{statusLabel(c.status)}</td>
+                        <td>{c.budget == null ? "—" : money.format(c.budget)}</td>
+                        <td>{money.format(c.metrics.cost)}</td>
+                        <td>{money.format(c.metrics.totalAmount)}</td>
+                        <td>{pct(c.metrics.acos)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            )}
-          </section>
+            </details>
+          )}
 
-          <section className="clean-panel ads-groups-panel">
-            <div className="clean-panel-head">
-              <div>
-                <span>Por produto</span>
-                <strong>
-                  Anúncios patrocinados{" "}
-                  <span className="ads-count">{adGroups.length}</span>
-                </strong>
-              </div>
-            </div>
-
-            {adGroups.length === 0 ? (
-              <div className="module-empty">
-                Nenhum anúncio com métricas retornado no período.
-              </div>
-            ) : (
-              <div className="clean-table-wrap">
-                <table className="clean-table ads-table ads-groups-table">
-                  <thead>
-                    <tr>
-                      <th>Produto</th>
-                      <th>Status</th>
-                      <th>Investimento</th>
-                      <th>Receita</th>
-                      <th>ROAS</th>
-                      <th>TACOS</th>
-                      <th>Cliques</th>
-                      <th>Un.{"\u00a0"}Ads</th>
-                      <th>Un. orgânicas</th>
-                      <th>
-                        Lucro <span className="ads-nowrap">pós-Ads</span>
-                      </th>
-                      <th>Cobertura</th>
-                      <th>Recomendação</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {adGroups.map((group, index) => (
-                      <tr
-                        key={
-                          group.id ??
-                          group.externalId ??
-                          String(index)
-                        }
-                      >
-                        <td>
-                          <div className="clean-product-cell">
-                            {group.product?.thumbnail ? (
-                              <img src={group.product.thumbnail} alt="" />
-                            ) : (
-                              <span className="clean-product-thumb">MR</span>
-                            )}
-                            <div>
-                              <strong>
-                                {group.product?.title ??
-                                  group.title ??
-                                  group.externalId ??
-                                  (group.id
-                                    ? "Ad Group " + group.id
-                                    : "Ad Group")}
-                              </strong>
-                              <small>
-                                {group.product?.mlItemId ??
-                                  group.externalId ??
-                                  group.id ??
-                                  "—"}
-                                {group.catalogListing === true
-                                  ? " · Catálogo"
-                                  : group.catalogListing === false
-                                    ? " · Tradicional"
-                                    : ""}
-                              </small>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <span
-                            className={
-                              "table-status ads-status " +
-                              group.status.toLowerCase()
-                            }
-                          >
-                            {statusLabel(group.status)}
-                          </span>
-                        </td>
-                        <td>{money.format(group.metrics.cost)}</td>
-                        <td>{money.format(group.metrics.totalAmount)}</td>
-                        <td>
-                          <strong className="ads-roas">
-                            {metric(group.metrics.roas)}x
-                          </strong>
-                        </td>
-                        <td>{pct(group.metrics.tacos)}</td>
-                        <td>{integer.format(group.metrics.clicks)}</td>
-                        <td>{integer.format(group.metrics.units)}</td>
-                        <td>{integer.format(group.metrics.organicUnits)}</td>
-                        <td>
-                          {group.profit.realizedProfitAfterAds == null ? (
-                            <span className="table-muted">Sem custo</span>
-                          ) : (
-                            <span
-                              className={
-                                group.profit.realizedProfitAfterAds >= 0
-                                  ? "ads-profit good-value"
-                                  : "ads-profit danger-value"
-                              }
-                            >
-                              {money.format(
-                                group.profit.realizedProfitAfterAds,
-                              )}
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          {pct(group.profit.profitCoveragePercent)}
-                        </td>
-                        <td>
-                          <span
-                            className={
-                              "table-status ads-action-badge " +
-                              group.recommendation.action.toLowerCase()
-                            }
-                            title={group.recommendation.reason}
-                          >
-                            {group.recommendation.label}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <footer className="table-footer-note">
-              {data.freshness?.note} Lucro pós-Ads considera só pedidos com
-              rentabilidade já calculada; a cobertura aparece no topo para
-              evitar falsa precisão.
-            </footer>
-          </section>
+          <p className="pilot-foot">
+            Limite de ACOS é a margem do produto antes dos anúncios: acima dele, cada venda que vem do anúncio dá prejuízo.
+            Lucro vem dos seus pedidos com custo informado. Orçamento e pausa você muda no{" "}
+            <a href="https://ads.mercadolivre.com.br/" target="_blank" rel="noreferrer">Mercado Ads</a>.{" "}
+            {data.freshness?.note}
+          </p>
         </>
       )}
     </section>

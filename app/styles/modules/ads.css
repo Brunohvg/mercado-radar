@@ -322,3 +322,36 @@
     width: 100%;
   }
 }
+
+/* Publicidade x margem */
+.ads-page .ads-kpi-risk strong { color: var(--risk, #d92d20); }
+.ads-page .ads-note { margin: 0; padding: 8px 12px; border-radius: var(--r-sm); background: var(--warn-tint); color: var(--warn-ink); font-size: var(--fs-13, 13px); }
+.ads-page .ads-margin-panel { display: grid; gap: 12px; }
+.ads-page .ads-margin-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center; }
+.ads-page .ads-margin-head > strong { font-size: var(--fs-16, 16px); }
+.ads-page .ads-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ads-page .ads-chip { font: inherit; font-size: var(--fs-13, 13px); padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--ink-700, inherit); cursor: pointer; }
+.ads-page .ads-chip.is-active { background: var(--brand, #1263ff); border-color: var(--brand, #1263ff); color: #fff; }
+.ads-page .ads-margin-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ads-page .ads-margin-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); border-left-width: 4px; border-radius: var(--r-md, 10px); }
+.ads-page .ads-margin-row.tone-risk { border-left-color: var(--risk, #d92d20); }
+.ads-page .ads-margin-row.tone-warn { border-left-color: var(--warn, #f79009); }
+.ads-page .ads-margin-row.tone-good { border-left-color: var(--good, #12b76a); }
+.ads-page .ads-margin-product { display: flex; gap: 12px; min-width: 0; align-items: flex-start; }
+.ads-page .ads-margin-product img, .ads-page .ads-margin-product .clean-product-thumb { width: 44px; height: 44px; flex: none; border-radius: 8px; object-fit: cover; }
+.ads-page .ads-margin-product > div { min-width: 0; display: grid; gap: 3px; }
+.ads-page .ads-margin-product strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.ads-page .ads-margin-product p { margin: 0; color: var(--ink-500); font-size: var(--fs-13, 13px); }
+.ads-page .ads-verdict { justify-self: start; font-size: var(--fs-12, 12px); font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--surface-2, #f2f4f7); color: var(--ink-500); }
+.ads-page .ads-verdict.tone-risk { background: var(--risk-tint, #fee4e2); color: var(--risk-ink, #b42318); }
+.ads-page .ads-verdict.tone-warn { background: var(--warn-tint, #fef0c7); color: var(--warn-ink, #b54708); }
+.ads-page .ads-verdict.tone-good { background: var(--good-tint, #d1fadf); color: var(--good-ink, #027a48); }
+.ads-page .ads-margin-numbers { display: grid; grid-template-columns: repeat(4, minmax(96px, auto)); gap: 4px 18px; margin: 0; text-align: right; }
+.ads-page .ads-margin-numbers dt { font-size: var(--fs-12, 12px); color: var(--ink-500); white-space: nowrap; }
+.ads-page .ads-margin-numbers dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ads-page .ads-margin-numbers dd small { display: block; font-weight: 400; color: var(--ink-500); font-size: var(--fs-12, 12px); }
+.ads-page .ads-campaigns-details summary { cursor: pointer; font-weight: 600; }
+@media (max-width: 900px) {
+  .ads-page .ads-margin-row { grid-template-columns: 1fr; }
+  .ads-page .ads-margin-numbers { grid-template-columns: repeat(2, minmax(0, 1fr)); text-align: left; }
+}

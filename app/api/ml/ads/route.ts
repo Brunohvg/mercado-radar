@@ -1,3 +1,4 @@
+import { evaluateAdsMargin } from "@/lib/ads-margin";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { recommendAdsAction } from "@/lib/ads-strategy";
@@ -425,6 +426,17 @@ export async function GET(request: Request) {
           units: numberValue(row, "units_quantity"),
         });
 
+        const single = !!product && groupsPerProduct.get(product.mlItemId) === 1;
+        const margin = evaluateAdsMargin({
+          cost,
+          adsRevenue: numberValue(row, "total_amount"),
+          adsUnits: numberValue(row, "units_quantity"),
+          profitBeforeAds: single && realized ? realized.profit : null,
+          readyUnits: single && realized ? realized.readyUnits : 0,
+          totalUnits: realized?.totalUnits ?? 0,
+          totalRevenue: realized?.revenue ?? 0,
+        });
+
         return {
           id: row.id == null ? null : String(row.id),
           externalId,
@@ -461,6 +473,7 @@ export async function GET(request: Request) {
             profitCoveragePercent,
           },
           recommendation,
+          margin,
         };
       })
       .sort((a, b) => b.metrics.cost - a.metrics.cost)

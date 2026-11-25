@@ -331,6 +331,11 @@ try {
       assert.equal(r.json.summary.realizedProfit, 7380);
       assert.equal(r.json.orders.length, 100);
       assert.equal(r.json.pagination.pages, 3);
+      assert.ok(Array.isArray(r.json.missingCosts));
+      for (const row of r.json.missingCosts) {
+        assert.match(row.mlItemId, /^MLB/);
+        assert.ok(row.units > 0);
+      }
     },
   );
   await check(

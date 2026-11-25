@@ -58,7 +58,7 @@ export async function GET(request: Request) {
     const metadata = lastSync?.metadata as { days?: number; truncated?: boolean } | null;
     return NextResponse.json({
       sellerUserId, nickname: session.account.nickname, days, sync,
-      summary: report.summary, topProducts: report.topProducts,
+      summary: report.summary, topProducts: report.topProducts, missingCosts: report.missingCosts,
       pagination: { page, limit, total: count, pages: Math.ceil(count / limit) },
       dataQuality: { syncedAt: lastSync?.finishedAt ?? null, reportComplete: Boolean(lastSync?.finishedAt && Date.now() - lastSync.finishedAt.getTime() < 36 * 60 * 60 * 1000 && (metadata?.days ?? 0) >= days && metadata?.truncated === false) },
       orders: orders.map((order) => ({

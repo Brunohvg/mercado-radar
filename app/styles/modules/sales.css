@@ -399,3 +399,14 @@
     text-align: right;
   }
 }
+
+.sales-page .missing-costs { display: grid; gap: var(--s-3); margin: var(--s-4) 0; border-color: var(--warn-line); }
+.sales-page .missing-costs h3 { margin: 0 0 4px; }
+.sales-page .missing-costs p { margin: 0; color: var(--ink-500); }
+.sales-page .missing-costs form { display: grid; gap: var(--s-2); }
+.sales-page .missing-costs label { display: flex; gap: var(--s-3); align-items: center; justify-content: space-between; padding: var(--s-2) 0; border-bottom: 1px dashed var(--line); }
+.sales-page .missing-costs label span { display: grid; min-width: 0; }
+.sales-page .missing-costs label strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sales-page .missing-costs label small { color: var(--ink-500); }
+.sales-page .missing-costs input { font: inherit; width: 130px; flex: none; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.sales-page .missing-costs form .vr-btn { justify-self: start; }

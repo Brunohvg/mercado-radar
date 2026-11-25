@@ -20,6 +20,7 @@ type SalesPayload = {
     awaitingCostCount: number;
     averageTicket: number;
   };
+  missingCosts?: Array<{ mlItemId: string; title: string; units: number; revenue: number }>;
   topProducts: Array<{
     mlItemId: string;
     title: string;
@@ -190,13 +191,17 @@ export function SalesDashboard() {
               </strong>
               <small>
                 {data.summary.realizedMarginPercent != null
-                  ? `${data.summary.realizedMarginPercent.toFixed(1)}% de margem real`
+                  ? `${data.summary.realizedMarginPercent.toFixed(1)}% de margem · em ${data.summary.profitReadyCount} de ${data.summary.orders} pedidos`
                   : data.summary.awaitingCostCount > 0
                     ? `${data.summary.awaitingCostCount} pedido(s) aguardando custo/frete`
                     : "custos completos"}
               </small>
             </article>
           </div>
+
+          {!!data.missingCosts?.length && (
+            <MissingCosts rows={data.missingCosts} onSaved={() => void load(false, days)} />
+          )}
 
           {data.topProducts.length > 0 && (
             <section className="clean-panel sales-top-products">
@@ -326,6 +331,77 @@ export function SalesDashboard() {
           </div>
         </>
       )}
+    </section>
+  );
+}
+
+function MissingCosts({
+  rows,
+  onSaved,
+}: {
+  rows: NonNullable<SalesPayload["missingCosts"]>;
+  onSaved: () => void;
+}) {
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function save(event: React.FormEvent) {
+    event.preventDefault();
+    const entries = Object.entries(values)
+      .map(([mlItemId, raw]) => [mlItemId, Number(raw.replace(/\./g, "").replace(",", "."))] as const)
+      .filter(([, value]) => Number.isFinite(value) && value > 0);
+    if (!entries.length) { setMessage("Informe o custo de pelo menos um produto."); return; }
+    setSaving(true);
+    setMessage("");
+    const failed: string[] = [];
+    let recalculated = 0;
+    for (const [mlItemId, supplierPrice] of entries) {
+      const response = await fetch("/api/ml/products/cost", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mlItemId, supplierPrice }),
+      }).catch(() => null);
+      const body = await response?.json().catch(() => null);
+      if (!response?.ok) failed.push(`${mlItemId}: ${body?.error ?? "não salvou"}`);
+      else recalculated += Number(body?.ordersRecalculated ?? 0);
+    }
+    setSaving(false);
+    setMessage(
+      failed.length
+        ? `Não salvou: ${failed.join(" · ")}`
+        : `Custos salvos. ${recalculated} pedido(s) recalculado(s).`,
+    );
+    if (entries.length > failed.length) onSaved();
+  }
+
+  return (
+    <section className="clean-panel missing-costs" aria-labelledby="missing-costs-title">
+      <div>
+        <h3 id="missing-costs-title">Falta o custo de {rows.length} produto(s) para fechar o lucro</h3>
+        <p>Informe quanto você paga por unidade. O Radar recalcula os pedidos do período na hora.</p>
+      </div>
+      <form onSubmit={save}>
+        {rows.map((row) => (
+          <label key={row.mlItemId}>
+            <span>
+              <strong>{row.title}</strong>
+              <small>{row.mlItemId} · {row.units} un. vendidas · {money.format(row.revenue)}</small>
+            </span>
+            <input
+              inputMode="decimal"
+              placeholder="Custo R$"
+              aria-label={`Custo por unidade de ${row.title}`}
+              value={values[row.mlItemId] ?? ""}
+              onChange={(e) => setValues((v) => ({ ...v, [row.mlItemId]: e.target.value }))}
+            />
+          </label>
+        ))}
+        <button type="submit" className="vr-btn" disabled={saving}>
+          {saving ? "Salvando..." : "Salvar custos e recalcular"}
+        </button>
+        {message && <p role="status">{message}</p>}
+      </form>
     </section>
   );
 }

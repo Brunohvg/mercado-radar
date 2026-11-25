@@ -108,6 +108,18 @@ export async function getSalesReport(sellerUserId: string, days: number) {
         grossRevenue > 0 ? (knownRevenue / grossRevenue) * 100 : null,
       averageTicket: orders.length ? grossRevenue / orders.length : 0,
     },
+    // Produtos vendidos no período sem custo cadastrado: é o que trava o lucro.
+    missingCosts: [...items
+      .filter((i) => i.unitCost == null)
+      .reduce((map, i) => {
+        const row = map.get(i.mlItemId) ?? { mlItemId: i.mlItemId, title: i.title, units: 0, revenue: 0 };
+        row.units += i.quantity;
+        row.revenue += Number(i.unitPrice) * i.quantity;
+        return map.set(i.mlItemId, row);
+      }, new Map<string, { mlItemId: string; title: string; units: number; revenue: number }>())
+      .values()]
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 12),
     topProducts: [...byItem.values()]
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 8),

@@ -91,7 +91,7 @@ jobs:
       - name: Upload tested Chrome extension
         uses: actions/upload-artifact@v4
         with:
-          name: mercado-radar-extension-0.13.0
+          name: mercado-radar-extension-0.14.0
           path: dist/extension-prod/
           if-no-files-found: error
           retention-days: 14

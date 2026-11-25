@@ -20,6 +20,7 @@ type Quality = {
     categoryName: string | null;
   };
   diagnosis: { score: number; checks: QualityCheck[]; missingAttributes: MissingAttribute[]; titleMax: number; competitorTerms: string[] };
+  comparison: { date: string; source: string | null; items: Array<{ id: string; title: string; permalink: string | null; observedAt: string }> };
   performance: { days: number; unitsSold: number | null; visits: number | null; conversionPercent: number | null };
   official: OfficialQuality | null;
   priceSuggestion: PriceSuggestion | null;
@@ -77,7 +78,7 @@ export function ListingImprover() {
         <div>
           <p className="page-kicker">Vender</p>
           <h1>Melhorar anúncio</h1>
-          <p>O que falta no seu anúncio perto dos que mais vendem, com sugestões da IA e o preço pelos concorrentes. Nada muda no Mercado Livre sem o seu clique.</p>
+          <p>Confira a ficha, as visitas e os títulos de anúncios similares. Nada muda no Mercado Livre sem o seu clique.</p>
         </div>
       </header>
 
@@ -176,6 +177,12 @@ function Improver({ data, onChanged }: { data: Quality; onChanged: () => void })
 
       <section className="clean-panel improve-checks">
         <header><strong>{data.official ? "O que mais o Radar viu" : "O que melhorar"}</strong></header>
+        <details><summary>Referências da comparação ({data.comparison.items.length})</summary>
+          <p>Mercado Livre · {data.comparison.source === "RADAR" ? "leituras salvas no Radar" : data.comparison.source === "CATALOGO" ? "catálogo" : "busca de anúncios"} · {new Date(data.comparison.date).toLocaleDateString("pt-BR")}</p>
+          {data.comparison.items.length ? <ul>{data.comparison.items.map(c => <li key={c.id}>
+            {c.permalink?.startsWith("https://") ? <a href={c.permalink} target="_blank" rel="noreferrer">{c.title}</a> : c.title} · {new Date(c.observedAt).toLocaleDateString("pt-BR")}
+          </li>)}</ul> : <p>{!data.comparison.source || data.comparison.source === "BLOQUEADA" ? "Consulta de concorrentes indisponível." : "Nenhum título suficientemente similar na amostra."}</p>}
+        </details>
         <ul>
           {[...diagnosis.checks].sort((a, b) => "bwo".indexOf(a.status[0]) - "bwo".indexOf(b.status[0])).map((c) => (
             <li key={c.id} className={`improve-check is-${c.status}`}>

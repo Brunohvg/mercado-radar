@@ -93,7 +93,7 @@ export function diagnoseListing(input: {
 
   const terms = competitorTerms(item.title, input.competitorTitles);
   if (terms.length)
-    checks.push({ id: "PALAVRAS", status: "warn", label: "Palavras que os concorrentes usam", detail: `Aparecem na maioria dos títulos concorrentes e não no seu: ${terms.join(", ")}. Use só as que valem para o seu produto.`, fix: "title" });
+    checks.push({ id: "PALAVRAS", status: "warn", label: "Palavras que os concorrentes usam", detail: `Aparecem em pelo menos 40% dos títulos comparados e não no seu: ${terms.join(", ")}. Use só as que valem para o seu produto.`, fix: "title" });
 
   checks.push(
     item.pictures < 3

@@ -347,6 +347,7 @@
   margin: 12px 0;
 }
 .market-product footer {
+  flex-wrap: wrap;
   display: flex;
   justify-content: space-between;
   align-items: center;

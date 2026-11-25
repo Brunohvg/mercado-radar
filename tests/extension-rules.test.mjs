@@ -460,6 +460,8 @@ test("queda de contador não é venda negativa nem velocidade confirmada", () =>
   assert.equal(e.salesPerDay.value, null);
 });
 test("comparação rejeita quantidade e medida diferentes", () => {
+  assert.equal(comparison.comparableTitle("Ilhós 54 Baxmann grafite 1.000 unidades", "Ilhós 54 Baxmann grafite 1000 unidades").accepted, true);
+  assert.equal(comparison.comparableTitle("Ilhós 54 Baxmann grafite 1.000 unidades", "Ilhós 54 Baxmann grafite 100 unidades").accepted, false);
   assert.equal(
     comparison.comparableTitle(
       "Kit 1000 Ilhós Baxmann Nº54",

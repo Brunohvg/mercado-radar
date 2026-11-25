@@ -29,9 +29,10 @@ type Saved = {
 };
 
 export function ListingDraftManager({
-  data, onRestore,
+  data, onRestore, setAttributes,
 }: {
   data: DraftValues;
+  setAttributes: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   onRestore: (data: DraftValues) => void;
 }) {
   const [draftId, setDraftId] = useState("");
@@ -50,7 +51,7 @@ export function ListingDraftManager({
   const [packageMeasurementsConfirmed, setPackageMeasurementsConfirmed] = useState(false);
   const [channel, setChannel] = useState<"TRADITIONAL" | "CATALOG">("TRADITIONAL");
   const [catalogMatchConfirmed, setCatalogMatchConfirmed] = useState(false);
-  const [attributes, setAttributes] = useState<Record<string, string>>({});
+  const attributes = data.attributes;
   const [requiredAttributes, setRequiredAttributes] = useState<Array<{ id: string; name: string; values: Array<{ id: string; name: string }> }>>([]);
   const [categoryStatus, setCategoryStatus] = useState("");
   const [validated, setValidated] = useState(false);
@@ -409,6 +410,11 @@ export function ListingDraftManager({
           <strong>Ficha técnica da categoria</strong>
           <p className="listing-assistant__helper">Preencha características do produto, não preços. Os atributos obrigatórios ficam aqui, sem atrapalhar o fluxo principal.</p>
           <p className="listing-assistant__helper">{categoryStatus || "Consultando requisitos…"}</p>
+          {Object.keys(attributes).filter(id => !requiredAttributes.some(attr => attr.id === id)).map(id =>
+            <label className="field listing-assistant__field" key={id}>{id}
+              <input value={attributes[id]} maxLength={255} onChange={e =>
+                setAttributes(current => ({ ...current, [id]: e.target.value }))} />
+            </label>)}
           {requiredAttributes.map(attr => (
             <label key={attr.id} className="field listing-assistant__field">
               <span>{attr.name} (obrigatório)</span>

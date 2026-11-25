@@ -13,6 +13,9 @@ import {
 import { diagnoseListing, normalizePerformance, normalizePriceSuggestion, type CategoryAttribute, type QualityItem } from "@/lib/listing-quality";
 import { loadPilotData, PILOT_DAYS } from "@/lib/pilot/load";
 
+import { prisma } from "@/lib/prisma";
+import { comparableTitle } from "@/lib/market-comparison";
+
 type Session = { ml: { accessToken: string }; sellerId: string; workspaceId: string };
 
 /** Lê tudo o que o diagnóstico precisa, direto do ML. Devolve null se o anúncio não é desta conta. */
@@ -67,9 +70,27 @@ export async function loadListingQuality(s: Session, mlItemId: string) {
     freeShipping: live.freeShipping,
     price: live.currentPrice,
   };
-  const competitorTitles = (market?.items ?? [])
-    .filter((c) => c.id !== mlItemId && c.title)
-    .map((c) => c.title as string);
+  const now = new Date();
+  const eligible = (c: { id: string; sellerId: string | null; categoryId: string | null; title: string }) =>
+    c.id !== mlItemId && c.sellerId !== s.sellerId && (!categoryId || !c.categoryId || c.categoryId === categoryId)
+    && comparableTitle(live.title, c.title).accepted;
+  const competitors = (market?.items ?? []).filter(eligible).map(c => ({
+    id: c.id, title: c.title, permalink: c.permalink, observedAt: now.toISOString(),
+  }));
+  let source: string | null = market?.source ?? null;
+  if (!competitors.length) {
+    const saved = await prisma.marketItem.findMany({
+      where: { workspaceId: s.workspaceId, isOwn: false,
+        ...(categoryId ? { OR: [{ categoryId }, { categoryId: null }] } : {}) },
+      orderBy: { lastSeenAt: "desc" }, take: 200,
+      select: { id: true, title: true, permalink: true, categoryId: true, sellerId: true, lastSeenAt: true },
+    });
+    competitors.push(...saved.filter(eligible).slice(0, 20).map(c => ({
+      id: c.id, title: c.title, permalink: c.permalink, observedAt: c.lastSeenAt.toISOString(),
+    })));
+    if (competitors.length) source = "RADAR";
+  }
+  const competitorTitles = competitors.map(c => c.title);
   const diagnosis = diagnoseListing({ item, category, competitorTitles });
   const units = (pilot?.sales ?? []).reduce((sum, sale) => sum + sale.quantity, 0);
 
@@ -92,6 +113,9 @@ export async function loadListingQuality(s: Session, mlItemId: string) {
     official: normalizePerformance(performance),
     priceSuggestion: normalizePriceSuggestion(suggestion),
     category,
+    comparison: {
+      date: now.toISOString(), source, items: competitors,
+    },
     competitorTitles: competitorTitles.slice(0, 10),
     performance: {
       days: PILOT_DAYS,

@@ -285,11 +285,11 @@ export function buildBriefing(input: {
         kind: "IDLE_STOCK",
         ...base,
         headline: `${product.stock} un. paradas há ${input.days} dias`,
-        detail: "Nenhuma venda paga no período. Melhore o anúncio (título, fotos, ficha) ou veja se há promoção aberta para ele.",
+        detail: "Nenhuma venda paga no período. Confira as visitas, a ficha técnica e os anúncios similares encontrados para este produto.",
         stake: round2(capital),
         stakeLabel: `${brl(capital)} empatados`,
         formula: null,
-        cta: { label: "Melhorar anúncio", href: `/melhorar-anuncio?item=${product.mlItemId}` },
+        cta: { label: "Ver sugestões", href: `/melhorar-anuncio?item=${product.mlItemId}` },
       });
     }
   }

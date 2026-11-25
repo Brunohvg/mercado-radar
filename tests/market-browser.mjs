@@ -200,6 +200,12 @@ try {
     "public counters produce distinct readings and visible reference revenue",
     async () => {
       assert.equal(await page.locator(".market-product").count(), 6);
+      const source = page.locator('[data-market-id="MLB1234567890"]');
+      const draft = new URL(await source.getByRole("link", {name: "Criar meu anúncio"}).getAttribute("href"), base);
+      assert.equal(draft.pathname, "/assistente-anuncios");
+      assert.equal(draft.searchParams.get("referencia"), "MLB1234567890");
+      assert.equal(draft.searchParams.get("origem"), "concorrencia");
+      assert.equal(await page.getByRole("link", {name: "Melhorar meu anúncio"}).count(), 1);
       assert.match(
         await page.locator('[data-market-id="MLB1234567890"]').innerText(),
         /Bom potencial[\s\S]*Alta[\s\S]*115,1 mil/,

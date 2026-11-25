@@ -96,15 +96,22 @@ async function postJson<T>(url: string, data: unknown): Promise<T> {
   return body as T;
 }
 
+import type { ListingReference } from "@/lib/listing-reference";
+
 export function ListingDraftAssistant({
+  marketReference,
   initialName = "",
   initialReference = "",
   fromExtension = false,
 }: {
+  marketReference?: ListingReference | null;
   initialName?: string;
   initialReference?: string;
   fromExtension?: boolean;
 }) {
+  const [attributes, setAttributes] = useState<Record<string, string>>({});
+  const [referenceOpen, setReferenceOpen] = useState(true);
+  const [selectedFacts, setSelectedFacts] = useState<string[]>([]);
   const [name, setName] = useState(initialName);
   const [confirmedFacts, setConfirmedFacts] = useState("");
   const [aiDraft, setAiDraft] = useState<AiDraft | null>(null);
@@ -209,7 +216,7 @@ export function ListingDraftAssistant({
   const effectiveName = discovery?.identification?.verified && discovery.identification.name
     ? discovery.identification.name
     : name;
-  const inputIsBarcodeOnly = /^\d{8,14}$/.test(name.replace(/\D/g, ""));
+  const inputIsBarcodeOnly = /^\d{8,14}$/.test(name.trim());
   const unresolvedBarcode = inputIsBarcodeOnly && !discovery?.identification?.verified;
 
   // This is a deterministic preview, NOT model-generated ad copy.
@@ -282,6 +289,7 @@ export function ListingDraftAssistant({
       if (serial !== identificationSerial.current) return;
       setDiscovery(data);
       if (data.identification?.brand && !brand.trim()) setBrand(data.identification.brand);
+      if (categoryId !== (data.identification?.categoryId ?? "")) setAttributes({});
       setCategoryId(data.identification?.categoryId ?? "");
       setCategoryName(data.identification?.categoryName ?? "");
       setManualCategory(!data.identification?.categoryId);
@@ -446,6 +454,30 @@ export function ListingDraftAssistant({
         <span><b>02</b> Precificação</span>
         <span><b>03</b> Revisão</span>
       </div>
+      {marketReference !== undefined && referenceOpen && (
+        <section className="listing-assistant__origin">
+          <div><strong>Ficha de referência · Mercado Livre {marketReference?.source || initialReference}</strong>
+          {marketReference?.facts.length ? <>
+            <p>Marque as características que conferiu no seu produto.</p>
+            {marketReference.facts.map(f => <label key={f.id} style={{display: "block"}}>
+              <input type="checkbox" checked={selectedFacts.includes(f.id)} onChange={e =>
+                setSelectedFacts(ids => e.target.checked ? [...ids, f.id] : ids.filter(id => id !== f.id))} /> {f.name}: {f.value}
+            </label>)}
+            <button type="button" className="secondary" disabled={!selectedFacts.length} onClick={() => {
+              const facts = marketReference.facts.filter(f => selectedFacts.includes(f.id));
+              setConfirmedFacts(current => [current, ...facts.map(f => f.name + ": " + f.value)].filter(Boolean).join("\n"));
+              const manufacturer = facts.find(f => f.id === "BRAND");
+              if (manufacturer) setBrand(manufacturer.value);
+              if (marketReference.categoryId) {
+                setPrice(null);
+                setCategoryId(marketReference.categoryId);
+                setAttributes(Object.fromEntries(facts.map(f => [f.id, f.value])));
+              }
+              setAiDraft(null); setReferenceOpen(false);
+            }}>Usar características conferidas</button>
+          </> : <p>Ficha técnica indisponível. Continue pelo nome e confira os dados na embalagem.</p>}</div>
+        </section>
+      )}
       {fromExtension && (
         <div className="listing-assistant__origin">
           <div><strong>Produto enviado pela extensão</strong>
@@ -460,7 +492,7 @@ export function ListingDraftAssistant({
           <div><h2>Identificar produto</h2><p>Encontre a categoria e uma referência de mercado.</p></div>
         </div>
         <form onSubmit={identify} className="listing-assistant__form">
-          {label("Nome ou EAN do produto", name, (v) => { setName(v); setAiDraft(null); setSavedTitle(""); setSavedDescription(""); setRestoredMissingFacts([]); setDiscovery(null); setCategoryId(""); setCategoryName(""); setPrice(null); }, "Ex.: tinta pinta couro Shake Paint 37 ml", true)}
+          {label("Nome ou EAN do produto", name, (v) => { setName(v); setAttributes({}); setReferenceOpen(false); setAiDraft(null); setSavedTitle(""); setSavedDescription(""); setRestoredMissingFacts([]); setDiscovery(null); setCategoryId(""); setCategoryName(""); setPrice(null); }, "Ex.: tinta pinta couro Shake Paint 37 ml", true)}
           <div className="listing-assistant__grid">
             {label("Marca confirmada (opcional)", brand, (v) => { setBrand(v); setAiDraft(null); }, "Ex.: Acrilex")}
             {label("SKU interno (opcional)", sku, setSku, "Seu código de estoque")}
@@ -507,6 +539,7 @@ export function ListingDraftAssistant({
                 <span>Escolha a categoria correta</span>
                 <select value={manualCategory ? "manual" : categoryId} onChange={(event) => {
                   const id = event.target.value;
+                  if (id !== categoryId) setAttributes({});
                   setPrice(null);
                   if (id === "manual") {
                     setManualCategory(true);
@@ -529,7 +562,7 @@ export function ListingDraftAssistant({
             )}
             {!discovery.identification?.requiresProductName && <p>Comparáveis encontrados: {discovery.market?.comparableCount ?? "indisponível"}. Mediana de preços observados: <strong>{money(discovery.market?.medianPrice)}</strong>. Comparabilidade e período precisam de validação; isso não representa vendas garantidas.</p>}
             {discovery.dimensions && <p>Foram observadas medidas de referência no catálogo, mas não serão copiadas automaticamente. Confirme o peso e as dimensões da sua embalagem.</p>}
-            {manualCategory && label("ID de categoria confirmada", categoryId, (v) => { setCategoryId(v); setCategoryName(""); }, "Ex.: MLB1234")}
+            {manualCategory && label("ID de categoria confirmada", categoryId, (v) => { setAttributes({}); setCategoryId(v); setCategoryName(""); }, "Ex.: MLB1234")}
           </div>
         )}
       </section>
@@ -691,6 +724,7 @@ export function ListingDraftAssistant({
           </div>
         )}
         <ListingDraftManager
+          setAttributes={setAttributes}
           data={{
             name: effectiveName,
             barcode: /^\d{8,14}$/.test(name.trim()) ? name.trim() : null,
@@ -704,7 +738,7 @@ export function ListingDraftAssistant({
             missingFacts: aiDraft?.missingFacts ?? restoredMissingFacts,
             factsReviewed: false,
             packageMeasurementsConfirmed: false,
-            imageUrls: [], stock: 0, attributes: {},
+            imageUrls: [], stock: 0, attributes,
             costPerUnit: positiveNumber(purchaseCost),
             kitQuantity: Number(units) || 1,
             discountPercent: nonnegativeNumber(discount) ?? 0,
@@ -720,6 +754,7 @@ export function ListingDraftAssistant({
             marginPercent: price?.analysis?.marginPercent ?? null,
           } satisfies DraftValues}
           onRestore={data => {
+            setReferenceOpen(false);
             setName(data.name);
             setBrand(data.brand);
             setSku(data.sku);

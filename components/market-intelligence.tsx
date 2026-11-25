@@ -42,6 +42,13 @@ type Insight = {
   demand: "BAIXA" | "MEDIA" | "ALTA" | "EXCELENTE" | null;
 };
 
+function ListingAction({ item }: { item: Insight }) {
+  const params = new URLSearchParams({ origem: "concorrencia", produto: item.title, referencia: item.id });
+  return <Link prefetch={false} className="market-link" href={item.isOwn
+    ? "/melhorar-anuncio?item=" + encodeURIComponent(item.id)
+    : "/assistente-anuncios?" + params}>{item.isOwn ? "Melhorar meu anúncio" : "Criar meu anúncio"}</Link>;
+}
+
 type ListPayload = {
   items: Insight[];
   summary: {
@@ -934,6 +941,7 @@ export function MarketIntelligence() {
                   >
                     Ver análise →
                   </button>
+                  <ListingAction item={item} />
                 </footer>
               </article>
             ))}
@@ -976,6 +984,7 @@ export function MarketIntelligence() {
                       >
                         Ver análise
                       </button>
+                      <ListingAction item={item} />
                     </td>
                   </tr>
                 ))}

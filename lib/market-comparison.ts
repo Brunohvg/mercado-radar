@@ -11,6 +11,7 @@ export function comparisonTokens(text: string) {
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .toLowerCase()
+        .replace(/(\d)\.(?=\d{3}\b)/g, "$1")
         .replace(/(\d)\s*(metros?|mts?)\b/g, "$1m")
         .replace(/(\d)\s*milimetros?\b/g, "$1mm")
         .replace(/(\d)\s+(mm|cm|m|ml|kg|g)\b/g, "$1$2")

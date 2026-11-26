@@ -1460,12 +1460,21 @@ try {
       });
       const before = { cost: await page.locator("#supplierPrice").inputValue() };
       await page.locator("#supplierPrice").fill("");
-      await page.locator("#calculate").click();
-      await page.locator("#calcStatus").filter({ hasText: "seu frete por venda" }).waitFor();
-      assert.equal(await page.locator("#reverseResult").isVisible(), false);
-      assert.equal(await page.locator("#calcResult").isVisible(), false);
       if (!(await page.locator("#shippingCost").isVisible()))
         await page.locator("#editCostInputs").click();
+      await page.locator("#shippingCost").fill("");
+      await page.locator("#taxPercent").fill("");
+      const previousCalls = await page.evaluate(() => __qa.calls.length);
+      await page.locator("#calculate").click();
+      await page.waitForFunction(
+        (count) => __qa.calls.slice(count).some((call) =>
+          call.path === "/api/extension/profitability" && !call.body.quoteOnly,
+        ),
+        previousCalls,
+      );
+      await page.waitForFunction(() => !document.querySelector("#calculate").disabled);
+      assert.equal(await page.locator("#reverseResult").isVisible(), false);
+      assert.equal(await page.locator("#calcResult").isVisible(), false);
       await page.locator("#shippingCost").fill("0");
       await page.locator("#taxPercent").fill("6");
       await page.locator("#calculate").click();

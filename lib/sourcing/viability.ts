@@ -95,6 +95,8 @@ export function missingSaleData(sale: SaleContext) {
   if (sale.commissionPercent == null) missing.push("comissão do Mercado Livre");
   if (sale.fixedFee == null) missing.push("tarifa fixa");
   if (sale.shippingCost == null) missing.push("frete do vendedor");
+  if (sale.taxPercent == null) missing.push("tributos");
+  if (sale.operatingCost == null) missing.push("custos operacionais");
   return missing;
 }
 
@@ -135,7 +137,7 @@ export function evaluateQuote(sale: SaleContext, quote: QuoteInput): Viability {
   let limitedBy: Viability["order"]["limitedBy"] = "PEDIDO_MINIMO";
   let status: Viability["status"] = "CALCULADO";
 
-  if (sale.budget != null && sale.budget > 0) {
+  if (sale.budget != null && sale.budget >= 0) {
     const affordable = floorTo(
       Math.max(0, (sale.budget - extraCosts) / quote.unitPrice),
       pack,
@@ -183,7 +185,10 @@ export function evaluateQuote(sale: SaleContext, quote: QuoteInput): Viability {
   if (quote.freightCost == null)
     risks.push({ level: "MEDIO", text: "Frete do fornecedor não informado; custo entregue pode subir." });
   if (sale.taxPercent == null)
-    risks.push({ level: "MEDIO", text: "Imposto não informado; cálculo considera 0%." });
+    risks.push({ level: "MEDIO", text: "Tributos não informados; confirme o valor, inclusive se for zero." });
+
+  if (sale.operatingCost == null)
+    risks.push({ level: "MEDIO", text: "Custos operacionais não informados; confirme o valor, inclusive se for zero." });
 
   let perSale: ProfitabilityResult | null = null;
   const maxUnit = maxUnitCostForMargin(sale, extraCosts / units);
@@ -265,8 +270,8 @@ export function bestViability(results: Viability[]) {
       const aOk = a.status === "CALCULADO" ? 0 : 1;
       const bOk = b.status === "CALCULADO" ? 0 : 1;
       return (
-        Number(a.purchasePending.length > 0) - Number(b.purchasePending.length > 0) ||
         aOk - bOk ||
+        Number(a.purchasePending.length > 0) - Number(b.purchasePending.length > 0) ||
         a.purchasePending.length - b.purchasePending.length ||
         sourceRank[a.source] - sourceRank[b.source] ||
         (b.perSale?.marginPercent ?? -Infinity) - (a.perSale?.marginPercent ?? -Infinity) ||

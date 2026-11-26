@@ -426,3 +426,16 @@ test("radar de capital rejeita perfil contraditório e orçamento insuficiente",
   assert.equal(matchByCapital([{ ...base, viability: good }], { capital: 200, profile: "CPF", minMarginPercent: 0 }).matches.length, 0);
   assert.equal(matchByCapital([{ ...base, viability: poor }], { capital: 200, profile: "TODOS", minMarginPercent: 0 }).matches.length, 0);
 });
+
+
+test("evidência comercial: canal da marca e medidas de bases de broche", () => {
+  // Entradas reduzidas baseadas em páginas públicas consultadas em 25/11/2026.
+  const eyelet = extractIdentity({ title: "Ilhós Nº 54 Baxmann alumínio 1000 unidades", attributes: [{ id: "BRAND", value_name: "Baxmann" }, { id: "MODEL", value_name: "54" }] });
+  const maker = classifyResult({ title: "Representantes - Baxmann", url: "https://www.baxmann.com.br/representantes/", description: "Representantes Baxmann" }, "q", eyelet);
+  assert.equal(maker.evidence, "MARCA");
+  const brooch = extractIdentity({ title: "Base de broche 22 mm ferro 1000 unidades" });
+  const correct = classifyResult({ title: "Base de broche 22mm ferro 1000 un", url: "https://www.fazendoartesanato.com.br/produtos-pecas_para_montagem-base_metalica_para_broche-378.html", description: "Atacado e varejo" }, "q", brooch);
+  assert.equal(correct.evidence, "PRODUTO");
+  const wrong = classifyResult({ title: "Base de broche 15 mm ferro 1000 un", url: "https://www.fazendoartesanato.com.br/base_de_broche_peq_15_mm_ferro_p030___1000_un_2073.html", description: "Atacado" }, "q", brooch);
+  assert.equal(wrong, null);
+});

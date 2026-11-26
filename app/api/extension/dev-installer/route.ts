@@ -121,7 +121,6 @@ export async function GET(request: Request) {
           'attachment; filename="MercadoRadar-Instalar.ps1"',
         "Cache-Control": "no-store",
         "X-Content-Type-Options": "nosniff",
-        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (error) {

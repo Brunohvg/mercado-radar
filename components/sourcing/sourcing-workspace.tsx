@@ -604,7 +604,7 @@ function SuppliersTab({
             {search.message && <p className="vr-warn">{search.message}</p>}
             {search.candidates.length > 0 && (
               <div className="vr-form vr-form--row">
-                <label>Tipo de fornecedor<select value={candidateKind} onChange={(event) => setCandidateKind(event.target.value)}>
+                <label>Tipo de fornecedor<select aria-label="Tipo de fornecedor" value={candidateKind} onChange={(event) => setCandidateKind(event.target.value)}>
                   <option value="TODOS">Todos</option>
                   {Object.entries(KIND_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select></label>

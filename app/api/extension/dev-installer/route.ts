@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
-import { getPublicOrigin } from "@/lib/public-url";
+import { getInstallerOrigin } from "@/lib/public-url";
 
 export const dynamic = "force-dynamic";
 
@@ -29,18 +29,10 @@ function psString(value: string) {
 
 export async function GET(request: Request) {
   try {
-    const origin = new URL(getPublicOrigin(request)).origin;
-    const isLocal = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-    if (!origin.startsWith("https://") && !isLocal) {
-      return NextResponse.json(
-        { error: "A instalação exige HTTPS ou localhost." },
-        { status: 400 },
-      );
+    const origin = getInstallerOrigin(request);
+    if (!origin) {
+      return NextResponse.json({ error: "Configure NEXT_PUBLIC_APP_URL com o endereço público HTTPS do Radar." }, { status: 400 });
     }
-    const isProduction = origin === "https://radar.optarys.com.br";
-    const destination = isProduction ? "ExtensionDev" : "ExtensionBeta";
-    const installDirLine = '$installDir = Join-Path $env:LOCALAPPDATA "MercadoRadar\\' + destination + '"';
-    const root = path.join(process.cwd(), "extension");
 
     // Bind beta files only to the Coolify deployment they came from.
     // No production seller token or session is carried into homologation.
@@ -111,7 +103,7 @@ export async function GET(request: Request) {
       "",
       "Add-Type -AssemblyName PresentationFramework",
       "$nl = [Environment]::NewLine",
-      '$message = "Arquivos instalados em:" + $nl + $installDir + $nl + $nl + "Agora no Chrome:" + $nl + "1. Ative Modo do desenvolvedor." + $nl + "2. Clique em Carregar sem compactacao." + $nl + "3. Selecione a pasta ExtensionDev que acabou de abrir." + $nl + $nl + "O Chrome exige estes cliques por seguranca enquanto a extensao nao estiver publicada na Chrome Web Store."',
+      '$message = "Arquivos instalados em:" + $nl + $installDir + $nl + $nl + "Agora no Chrome:" + $nl + "1. Ative Modo do desenvolvedor." + $nl + "2. Clique em Carregar sem compactacao." + $nl + "3. Selecione a pasta exibida acima." + $nl + $nl + "O Chrome exige estes cliques por seguranca enquanto a extensao nao estiver publicada na Chrome Web Store."',
       '[System.Windows.MessageBox]::Show($message, "Vidalys Radar - Instalacao") | Out-Null',
       "",
     ].join("\r\n");
@@ -123,6 +115,7 @@ export async function GET(request: Request) {
         "Content-Disposition":
           'attachment; filename="MercadoRadar-Instalar.ps1"',
         "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (error) {

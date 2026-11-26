@@ -1,15 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 96" role="img" aria-label="Vidalys Radar">
-  <defs><linearGradient id="vr-bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0C2A6C"/><stop offset="1" stop-color="#04102B"/></linearGradient><linearGradient id="vr-v" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#19D5D8"/><stop offset=".52" stop-color="#15AFFF"/><stop offset="1" stop-color="#2563FF"/></linearGradient></defs>
-  <g transform="translate(8 8) scale(1.25)">
-  <rect width="64" height="64" rx="16" fill="url(#vr-bg)"/>
-  <path transform="translate(5 19) scale(.32)" d="M13 24L38 24 63 76 89 24 114 24 77 103 50 103Z" fill="url(#vr-v)"/>
-  <g fill="none" stroke="#00D1E6" stroke-linecap="round" stroke-width="2.6">
-    <path d="M46.6 21.3A8 8 0 0 1 42.3 16.1" opacity=".7"/>
-    <path d="M44.5 25.8A13 13 0 0 1 37.4 17.4" opacity=".4"/>
-  </g>
-  <circle cx="50" cy="14" r="6" fill="#00D1E6" opacity=".22"/>
-  <circle cx="50" cy="14" r="3.4" fill="#00D1E6"/>
-  </g>
-  <text x="106" y="56" font-size="40" font-weight="780" fill="#0B1120" font-family="Manrope,Inter,Arial,sans-serif" letter-spacing="-1.2">Vidalys <tspan fill="#1263FF">Radar</tspan></text>
-  <text x="108" y="82" font-size="12.5" letter-spacing="1.5" fill="#526071" font-family="Inter,Manrope,Arial,sans-serif">INTELIGÊNCIA PARA REVENDER</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 92" role="img" aria-label="Vidalys Radar"><g transform="translate(4 6) scale(1.25)"><rect width="64" height="64" rx="14" fill="#0B202D"/><g fill="none" stroke="#2EE5AD"><circle cx="32" cy="32" r="21" stroke-width="2" opacity=".5"/><circle cx="32" cy="32" r="12" stroke-width="2" opacity=".7"/><path d="M32 32 46 16" stroke-width="3.5" stroke-linecap="round"/></g><circle cx="32" cy="32" r="3.5" fill="#2EE5AD"/><circle cx="46" cy="16" r="4" fill="#2EE5AD"/></g><text x="101" y="45" font-family="Manrope,Inter,Arial,sans-serif" font-size="36" font-weight="700" letter-spacing="-1.4" fill="#0B202D">Vidalys <tspan fill="#0F766E">Radar</tspan></text><text x="103" y="69" font-family="Inter,Arial,sans-serif" font-size="14" fill="#526575">Inteligência para revender</text></svg>

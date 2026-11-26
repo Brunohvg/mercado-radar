@@ -255,6 +255,10 @@ export async function runBrowserChecks({ base, cookie }) {
     checks++;
     await page.setViewportSize({ width: 390, height: 960 });
     await page.getByRole("button", { name: "Abrir menu", exact: true }).click();
+    const nav = page.getByRole("navigation", { name: "Navegação principal" });
+    for (const label of ["Início", "Explorar mercado", "Onde comprar", "Rentabilidade", "Anúncios", "Vendas", "Estoque e compras", "Configurações"]) {
+      assert.equal(await nav.getByRole("link", { name: label, exact: true }).count(), 1, label);
+    }
     const more = page.locator(".sidebar details.nav-more");
     if (!(await more.evaluate(el => el.open))) await more.locator("summary").click();
     await page.getByRole("link", { name: "Concorrentes", exact: true }).click();

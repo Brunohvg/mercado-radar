@@ -4,8 +4,8 @@
   "description": "Encontre o produto, encontre o fornecedor, descubra sua margem.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FAF8F5",
-  "theme_color": "#16181D",
+  "background_color": "#F5F7FB",
+  "theme_color": "#FFFFFF",
   "orientation": "any",
   "icons": [
     {

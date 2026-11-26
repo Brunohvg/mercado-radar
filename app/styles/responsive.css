@@ -1,12 +1,12 @@
 /* Barra do topo no celular: menu + marca, sempre visível e sem cobrir conteúdo. */
 .mobile-topbar { display: none; }
 @media (max-width: 960px) {
-  .mobile-topbar { position: fixed; inset: 0 0 auto 0; z-index: 55; display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 12px; background: var(--night); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06), 0 6px 18px rgba(11, 17, 32, 0.18); }
-  .mobile-topbar .mobile-nav-button { position: static; box-shadow: none; width: 40px; height: 40px; background: rgba(255, 255, 255, 0.08); }
-  .mobile-topbar-brand { display: flex; align-items: center; gap: 8px; color: #fff; text-decoration: none; font-weight: 700; font-size: 16px; letter-spacing: -0.01em; }
+  .mobile-topbar { position: fixed; inset: 0 0 auto 0; z-index: 55; display: flex; align-items: center; gap: 12px; height: 60px; padding: 0 16px; background: var(--sidebar-bg); border-bottom: 1px solid var(--sidebar-line); box-shadow: 0 4px 14px rgba(20, 38, 61, 0.05); }
+  .mobile-topbar .mobile-nav-button { position: static; box-shadow: none; width: 40px; height: 40px; background: var(--sidebar-hover); }
+  .mobile-topbar-brand { display: flex; align-items: center; gap: 8px; color: var(--ink-900); text-decoration: none; font-weight: 700; font-size: 16px; letter-spacing: -0.01em; }
   .mobile-topbar-brand img { width: 28px; height: 28px; }
-  .mobile-topbar-brand b { color: var(--signal, #22d3ee); font-weight: 700; }
-  .content, .routed-content { padding-top: 76px !important; }
+  .mobile-topbar-brand b { color: var(--brand); font-weight: 700; }
+  .content, .routed-content { padding-top: 80px !important; }
 }
 
 /*

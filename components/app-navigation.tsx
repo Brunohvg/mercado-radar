@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ResponsiveTables } from "@/components/responsive-tables";
+import { ProductSearch } from "@/components/product-search";
 
 type IconName =
   | "dashboard"
@@ -375,6 +376,8 @@ export function AppNavigation() {
             {collapsed ? "›" : "‹"}
           </button>
         </div>
+
+        {!collapsed && <ProductSearch onNavigate={() => setOpen(false)} />}
 
         <nav className="sidebar-nav" aria-label="Navegação principal">
           {menuGroups.map((group, index) => (

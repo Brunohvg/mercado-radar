@@ -245,6 +245,21 @@ export function ListingsDashboard() {
     void load(false);
   }, [load]);
 
+  // Atalho vindo de outras telas: /anuncios?item=MLB... já filtra e abre a análise.
+  const [deepLinkDone, setDeepLinkDone] = useState(false);
+  useEffect(() => {
+    if (deepLinkDone || !data) return;
+    setDeepLinkDone(true);
+    const wanted = new URLSearchParams(window.location.search).get("item")?.trim().toUpperCase();
+    if (!wanted) return;
+    const match = data.products.find((p) => p.mlItemId.toUpperCase() === wanted);
+    if (!match) return;
+    setFilter("ALL");
+    setQuery(match.mlItemId);
+    void toggleInsight(match);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, deepLinkDone]);
+
   async function toggleInsight(item: Listing) {
     if (insightItemId === item.mlItemId) {
       setInsightItemId(null);

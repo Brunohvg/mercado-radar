@@ -1,0 +1,671 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ListingType {
+  CLASSIC
+  PREMIUM
+}
+
+enum AnalysisVerdict {
+  GOOD
+  TIGHT
+  BAD
+  KIT_ONLY
+  REPRICE
+}
+
+model RadarWorkspace {
+  id                String @id @default(cuid())
+  name              String
+  plan              String @default("PILOT")
+  dailyRequestLimit Int @default(500)
+  active            Boolean @default(true)
+  createdAt         DateTime @default(now())
+  users             RadarUser[]
+  accounts          MercadoLivreAccount[]
+  products          Product[]
+  analyses          ProductAnalysis[]
+  syncRuns          SyncRun[]
+  marketItems       MarketItem[]
+  usage             RadarWorkspaceUsage[]
+  settings          AppSettings?
+  listingDrafts     ListingDraft[]
+  researchDrafts    RadarResearchDraft[]
+  sourcingOpportunities SourcingOpportunity[]
+  sourcingSuppliers SourcingSupplier[]
+  sourcingQuotes    SourcingQuote[]
+}
+
+/// Opt-in intelligence inputs, never an accounting record or published listing.
+model RadarResearchDraft {
+  id          String @id @default(cuid())
+  workspaceId String
+  accountId   String?
+  kind        String
+  name        String
+  payload     Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  workspace   RadarWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, accountId, updatedAt])
+}
+
+model RadarUser {
+  id           String @id @default(cuid())
+  email        String @unique
+  passwordHash String?
+  workspaceId  String
+  isOperator   Boolean @default(false)
+  active       Boolean @default(true)
+  createdAt    DateTime @default(now())
+  workspace    RadarWorkspace @relation(fields: [workspaceId], references: [id])
+  sessions     RadarUserSession[]
+  listingDrafts ListingDraft[]
+  @@index([workspaceId])
+}
+
+model RadarUserSession {
+  tokenHash String @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      RadarUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([expiresAt])
+  @@index([userId])
+}
+
+model RadarWorkspaceUsage {
+  workspaceId String
+  day         DateTime @db.Date
+  requests    Int @default(0)
+  workspace   RadarWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@id([workspaceId, day])
+}
+
+model AppSettings {
+  id                    String   @id
+  workspace             RadarWorkspace @relation(fields: [id], references: [id])
+  taxPercent            Decimal? @db.Decimal(5, 2)
+  leadTimeDays          Int @default(7)
+  safetyStockDays       Int @default(7)
+  stockCoverageDays     Int @default(21)
+  defaultDiscountPercent Decimal  @default(0) @db.Decimal(5, 2)
+  targetMarginPercent   Decimal  @default(20) @db.Decimal(5, 2)
+  targetRoiPercent      Decimal  @default(30) @db.Decimal(5, 2)
+  operatingCostDefault  Decimal  @default(1) @db.Decimal(10, 2)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model Product {
+  workspaceId String
+  workspace RadarWorkspace @relation(fields: [workspaceId], references: [id])
+  @@index([workspaceId])
+  id                    String            @id @default(cuid())
+  name                  String
+  sku                   String?
+  supplier              String?
+  supplierPrice         Decimal           @db.Decimal(12, 2)
+  discountPercent       Decimal           @default(0) @db.Decimal(5, 2)
+  weightGrams           Int?
+  widthCm               Decimal?          @db.Decimal(8, 2)
+  heightCm              Decimal?          @db.Decimal(8, 2)
+  lengthCm              Decimal?          @db.Decimal(8, 2)
+  active                Boolean           @default(true)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  analyses              ProductAnalysis[]
+
+  @@index([createdAt])
+  @@index([active])
+  @@unique([workspaceId, sku])
+}
+
+model ProductAnalysis {
+  workspaceId String
+  workspace RadarWorkspace @relation(fields: [workspaceId], references: [id])
+  @@index([workspaceId])
+  id                    String            @id @default(cuid())
+  productId             String?
+  productName           String
+  listingType           ListingType       @default(CLASSIC)
+  kitQuantity           Int               @default(1)
+  supplierPrice         Decimal           @db.Decimal(12, 2)
+  discountPercent       Decimal           @db.Decimal(5, 2)
+  unitCost              Decimal           @db.Decimal(12, 2)
+  purchaseCost          Decimal           @db.Decimal(12, 2)
+  salePrice             Decimal           @db.Decimal(12, 2)
+  commissionPercent     Decimal           @db.Decimal(5, 2)
+  commissionAmount      Decimal           @db.Decimal(12, 2)
+  fixedFee              Decimal           @default(0) @db.Decimal(12, 2)
+  shippingCost          Decimal           @default(0) @db.Decimal(12, 2)
+  operatingCost         Decimal           @default(0) @db.Decimal(12, 2)
+  amountReceived        Decimal           @db.Decimal(12, 2)
+  profit                Decimal           @db.Decimal(12, 2)
+  marginPercent         Decimal           @db.Decimal(7, 2)
+  roiPercent            Decimal           @db.Decimal(7, 2)
+  targetMarginPercent   Decimal           @db.Decimal(5, 2)
+  targetRoiPercent      Decimal           @db.Decimal(5, 2)
+  minimumSuggestedPrice Decimal           @db.Decimal(12, 2)
+  verdict               AnalysisVerdict
+  source                String            @default("MANUAL")
+  metadata              Json?
+  createdAt             DateTime          @default(now())
+  product               Product?          @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([productId, createdAt])
+  @@index([verdict, createdAt])
+}
+
+model MercadoLivreAccount {
+  workspaceId String
+  workspace RadarWorkspace @relation(fields: [workspaceId], references: [id])
+  @@index([workspaceId])
+  id                    String   @id @default(cuid())
+  mercadoLivreUserId    String   @unique
+  nickname              String?
+  accessTokenEncrypted  String
+  refreshTokenEncrypted String
+  tokenExpiresAt        DateTime
+  scopes                String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  extensionAccesses     RadarExtensionAccess[]
+  extensionAuthCodes    RadarExtensionAuthCode[]
+}
+
+model SyncRun {
+  workspaceId String
+  workspace RadarWorkspace @relation(fields: [workspaceId], references: [id])
+  @@index([workspaceId])
+  id          String   @id @default(cuid())
+  kind        String
+  status      String
+  startedAt   DateTime @default(now())
+  finishedAt  DateTime?
+  itemsRead   Int      @default(0)
+  itemsSaved  Int      @default(0)
+  error       String?
+  metadata    Json?
+
+  @@index([kind, startedAt])
+}
+
+
+model MercadoLivreNotification {
+  id            String    @id @default(cuid())
+  externalId    String?   @unique
+  topic         String
+  resource      String
+  userId        String
+  applicationId String?
+  attempts      Int       @default(1)
+  sentAt        DateTime?
+  receivedAt    DateTime?
+  payload       Json
+  status        String    @default("PENDING")
+  processedAt   DateTime?
+  error         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([topic, createdAt])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+
+model MarketSnapshot {
+  id                String   @id @default(cuid())
+  sellerUserId      String
+  mlItemId          String?
+  position          Int?
+  query             String
+  categoryId        String?
+  resultCount       Int
+  minimumPrice      Decimal? @db.Decimal(12, 2)
+  p25Price          Decimal? @db.Decimal(12, 2)
+  medianPrice       Decimal? @db.Decimal(12, 2)
+  p75Price          Decimal? @db.Decimal(12, 2)
+  maximumPrice      Decimal? @db.Decimal(12, 2)
+  averagePrice      Decimal? @db.Decimal(12, 2)
+  testedPrice       Decimal? @db.Decimal(12, 2)
+  marketGapPercent  Decimal? @db.Decimal(8, 2)
+  opportunityScore  Int?
+  verdict           String?
+  competitors       Json
+  createdAt         DateTime @default(now())
+
+  @@index([sellerUserId, createdAt])
+  @@index([sellerUserId, mlItemId, createdAt])
+  @@index([categoryId, createdAt])
+  @@index([verdict, createdAt])
+}
+
+
+model MercadoLivreProduct {
+  id                String   @id @default(cuid())
+  mlItemId          String   @unique
+  sellerUserId      String
+  title             String
+  sku               String?
+  categoryId        String?
+  status            String
+  listingTypeId     String?
+  catalogProductId  String?
+  userProductId     String?
+  listingCreatedAt  DateTime?
+  currentPrice      Decimal? @db.Decimal(12, 2)
+  availableQuantity Int      @default(0)
+  soldQuantity      Int      @default(0)
+  visitsTotal       Int?
+  permalink         String?
+  thumbnail         String?
+  freeShipping      Boolean  @default(false)
+  supplier           String?
+  supplierPrice      Decimal? @db.Decimal(12, 2)
+  discountPercent    Decimal  @default(0) @db.Decimal(5, 2)
+  raw               Json
+  lastSyncedAt      DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([sellerUserId, status])
+  @@index([sellerUserId, soldQuantity])
+  @@index([catalogProductId])
+  @@index([userProductId])
+  @@index([lastSyncedAt])
+}
+
+model MercadoLivreOrder {
+  id                  String                    @id @default(cuid())
+  mlOrderId           String                    @unique
+  sellerUserId        String
+  status              String
+  dateCreated         DateTime
+  dateClosed          DateTime?
+  currencyId          String                    @default("BRL")
+  totalAmount         Decimal                   @default(0) @db.Decimal(12, 2)
+  paidAmount          Decimal                   @default(0) @db.Decimal(12, 2)
+  marketplaceFeeTotal Decimal?                  @db.Decimal(12, 2)
+  shippingId          String?
+  shippingCost        Decimal?                  @db.Decimal(12, 2)
+  buyerNickname       String?
+  profit              Decimal?                  @db.Decimal(12, 2)
+  marginPercent       Decimal?                  @db.Decimal(8, 2)
+  taxPercentApplied Decimal? @db.Decimal(5, 2)
+  operatingCostApplied Decimal? @db.Decimal(10, 2)
+  economicsVersion Int @default(0)
+  refundDetected Boolean @default(false)
+  profitabilityStatus String                    @default("AWAITING_COST")
+  raw                 Json
+  lastSyncedAt        DateTime                  @default(now())
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  items               MercadoLivreOrderItem[]
+
+  @@index([sellerUserId, dateCreated])
+  @@index([status, dateCreated])
+  @@index([profitabilityStatus, dateCreated])
+}
+
+model MercadoLivreOrderItem {
+  id             String              @id @default(cuid())
+  externalKey    String              @unique
+  orderId        String
+  mlItemId       String
+  variationId    String?
+  title          String
+  sku            String?
+  quantity       Int
+  unitPrice      Decimal             @db.Decimal(12, 2)
+  saleFee        Decimal?            @db.Decimal(12, 2)
+  listingTypeId  String?
+  unitCost       Decimal?            @db.Decimal(12, 2)
+  profit         Decimal?            @db.Decimal(12, 2)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  order          MercadoLivreOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([mlItemId])
+  @@index([sku])
+}
+
+
+model RadarWatchItem {
+  trackingMode String @default("API")
+  soldIsLowerBound Boolean @default(false)
+  soldKnown Boolean @default(true)
+  id             String   @id @default(cuid())
+  sellerUserId   String
+  mlItemId       String
+  referenceId    String?
+  title          String
+  permalink      String?
+  thumbnail      String?
+  currentPrice   Decimal? @db.Decimal(12, 2)
+  score          Int?
+  demandLabel    String?
+  soldQuantity   Int      @default(0)
+  visits         Int?
+  active         Boolean  @default(true)
+  lastCheckedAt  DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  snapshots      RadarWatchSnapshot[]
+  alerts         RadarAlert[]
+
+  @@unique([sellerUserId, mlItemId])
+  @@index([sellerUserId, active, updatedAt])
+}
+
+model RadarWatchSnapshot {
+  trackingMode String @default("API")
+  soldIsLowerBound Boolean @default(false)
+  soldKnown Boolean @default(true)
+  id           String         @id @default(cuid())
+  watchItemId  String
+  price        Decimal?       @db.Decimal(12, 2)
+  score        Int?
+  demandLabel  String?
+  soldQuantity Int            @default(0)
+  visits       Int?
+  capturedAt   DateTime       @default(now())
+  watchItem    RadarWatchItem @relation(fields: [watchItemId], references: [id], onDelete: Cascade)
+
+  @@index([watchItemId, capturedAt])
+}
+
+
+model RadarAlert {
+  id           String          @id @default(cuid())
+  sellerUserId String
+  watchItemId  String?
+  kind         String
+  severity     String          @default("INFO")
+  title        String
+  message      String
+  metadata     Json?
+  readAt       DateTime?
+  createdAt    DateTime        @default(now())
+  watchItem    RadarWatchItem? @relation(fields: [watchItemId], references: [id], onDelete: Cascade)
+
+  @@index([sellerUserId, readAt, createdAt])
+  @@index([watchItemId, createdAt])
+  @@index([kind, createdAt])
+}
+
+
+model RadarExtensionAccess {
+  id                    String   @id @default(cuid())
+  mercadoLivreAccountId String
+  deviceId              String
+  name                  String
+  tokenHash             String   @unique
+  plan                  String   @default("PRO")
+  dailyRequestLimit     Int      @default(5000)
+  capabilities          Json?
+  lastUsedAt            DateTime?
+  expiresAt             DateTime?
+  revokedAt             DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  account               MercadoLivreAccount @relation(fields: [mercadoLivreAccountId], references: [id], onDelete: Cascade)
+  usage                 RadarExtensionUsage[]
+
+  @@unique([mercadoLivreAccountId, deviceId])
+  @@index([mercadoLivreAccountId, revokedAt])
+  @@index([plan, createdAt])
+}
+
+model RadarExtensionAuthCode {
+  id                    String   @id @default(cuid())
+  codeHash              String   @unique
+  mercadoLivreAccountId String
+  codeChallenge         String
+  redirectUri           String
+  deviceId              String
+  deviceName            String?
+  expiresAt             DateTime
+  consumedAt            DateTime?
+  createdAt             DateTime @default(now())
+  account               MercadoLivreAccount @relation(fields: [mercadoLivreAccountId], references: [id], onDelete: Cascade)
+
+  @@index([mercadoLivreAccountId, expiresAt])
+  @@index([expiresAt, consumedAt])
+}
+
+model RadarExtensionUsage {
+  id        String   @id @default(cuid())
+  accessId  String
+  day       DateTime @db.Date
+  requests  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  access    RadarExtensionAccess @relation(fields: [accessId], references: [id], onDelete: Cascade)
+
+  @@unique([accessId, day])
+  @@index([day, requests])
+}
+
+
+/// Anúncio do Mercado Livre observado pelo Radar (de qualquer vendedor).
+/// Alimentado pela extensão (apenas o que a página aberta pelo usuário mostra)
+/// e pela sincronização oficial dos anúncios da própria conta.
+model MarketItem {
+  workspaceId String
+  workspace RadarWorkspace @relation(fields: [workspaceId], references: [id])
+  @@index([workspaceId])
+  id                String
+  @@id([workspaceId, id])
+  title             String
+  permalink         String?
+  thumbnail         String?
+  catalogProductId  String?
+  categoryId        String?
+  sellerId          String?
+  sellerName        String?
+  condition         String?
+  lastPrice         Decimal?             @db.Decimal(12, 2)
+  lastOriginalPrice Decimal?             @db.Decimal(12, 2)
+  lastSoldLower     Int?
+  lastSoldUpper     Int?
+  lastSoldLabel     String?
+  lastReviews       Int?
+  lastRating        Decimal?             @db.Decimal(3, 2)
+  freeShipping      Boolean              @default(false)
+  fulfillment       Boolean              @default(false)
+  bestSellerRank    Int?
+  bestSellerLabel   String?
+  dateCreated       DateTime?
+  isOwn             Boolean              @default(false)
+  observationCount  Int                  @default(0)
+  lastSnapshotAt    DateTime?
+  firstSeenAt       DateTime             @default(now())
+  lastSeenAt        DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  snapshots         MarketItemSnapshot[]
+
+  @@index([lastSeenAt])
+  @@index([catalogProductId])
+  @@index([categoryId])
+  @@index([isOwn, lastSeenAt])
+}
+
+/// Uma leitura datada de um anúncio. A série destas leituras é o que permite
+/// medir vendas/dia por diferença no tempo, sem acesso privilegiado.
+model MarketItemSnapshot {
+  workspaceId String
+  id             String     @id @default(cuid())
+  itemId         String
+  observedAt     DateTime   @default(now())
+  source         String
+  price          Decimal?   @db.Decimal(12, 2)
+  soldLower      Int?
+  soldUpper      Int?
+  soldExact      Int?
+  reviews        Int?
+  rating         Decimal?   @db.Decimal(3, 2)
+  bestSellerRank Int?
+  visitsTotal    Int?
+  searchQuery    String?
+  searchPosition Int?
+  item           MarketItem @relation(fields: [workspaceId, itemId], references: [workspaceId, id], onDelete: Cascade)
+
+  @@index([itemId, observedAt])
+  @@index([observedAt])
+}
+
+model ListingDraft {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  ownerId       String
+  status        String   @default("DRAFT")
+  mlItemId      String?  @unique
+  validatedAt   DateTime?
+  publishedAt   DateTime?
+  validation    Json     @default("{}")
+  name          String
+  barcode       String?
+  sku           String?
+  categoryId    String?
+  content       Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  workspace     RadarWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner         RadarUser @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, updatedAt])
+  @@index([workspaceId, status])
+  @@index([ownerId, updatedAt])
+}
+
+/// Vidalys Radar 2.0 — produto em estudo para revenda. Campos desconhecidos ficam null.
+model SourcingOpportunity {
+  id                String   @id @default(cuid())
+  workspaceId       String
+  title             String
+  mlItemId          String?
+  permalink         String?
+  categoryId        String?
+  brand             String?
+  model             String?
+  gtin              String?
+  packQuantity      Int?
+  referencePrice    Decimal? @db.Decimal(12, 2)
+  referenceSource   String?
+  referenceAt       DateTime?
+  listingType       String   @default("CLASSIC")
+  commissionPercent Decimal? @db.Decimal(5, 2)
+  fixedFee          Decimal? @db.Decimal(10, 2)
+  shippingCost      Decimal? @db.Decimal(10, 2)
+  taxPercent        Decimal? @db.Decimal(5, 2)
+  operatingCost     Decimal? @db.Decimal(10, 2)
+  budget            Decimal? @db.Decimal(12, 2)
+  monthlyDemand     Int?
+  status            String   @default("PESQUISANDO")
+  notes             String?
+  identity          Json?
+  searchSnapshot    Json?
+  marketInsights    Json?
+  marketInsightsAt  DateTime?
+  supplierIds       String[] @default([])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  workspace         RadarWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  quotes            SourcingQuote[]
+
+  @@index([workspaceId, updatedAt])
+  @@index([workspaceId, mlItemId])
+}
+
+/// Ficha comercial do fornecedor, reutilizável entre oportunidades.
+model SourcingSupplier {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  name           String
+  kind           String   @default("OUTRO")
+  cnpj           String?
+  website        String?
+  phone          String?
+  email          String?
+  city           String?
+  state          String?
+  sellsToCpf     Boolean?
+  requiresCnpj   Boolean?
+  issuesInvoice  Boolean?
+  servesSmall    Boolean?
+  minOrderValue  Decimal? @db.Decimal(12, 2)
+  minOrderUnits  Int?
+  leadTimeDays   Int?
+  reputationNote String?
+  contactName    String?
+  address        String?
+  zipCode        String?
+  paymentTerms   String?
+  origin         String   @default("MANUAL")
+  originUrl      String?
+  cnpjCheck      Json?
+  cnpjCheckedAt  DateTime?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  workspace      RadarWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  quotes         SourcingQuote[]
+
+  @@index([workspaceId, updatedAt])
+  @@index([workspaceId, cnpj])
+}
+
+/// Cotação com origem explícita. ESTIMATIVA_USUARIO nunca é apresentada como cotação recebida.
+model SourcingQuote {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  opportunityId String
+  supplierId    String
+  unitPrice     Decimal  @db.Decimal(16, 8)
+  unitsPerPack  Int      @default(1)
+  minUnits      Int?
+  freightCost   Decimal? @db.Decimal(10, 2)
+  otherCosts    Decimal? @db.Decimal(10, 2)
+  exactMatch    Boolean?
+  source        String
+  evidenceUrl   String?
+  quotedAt      DateTime @default(now())
+  validUntil    DateTime?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  workspace     RadarWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  opportunity   SourcingOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  supplier      SourcingSupplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, opportunityId])
+  @@index([supplierId])
+}
+
+/// Ações que o Piloto executou na conta do Mercado Livre, sempre por clique do vendedor.
+model PilotActionLog {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String?
+  sellerId    String
+  kind        String
+  mlItemId    String
+  targetId    String?
+  before      Json?
+  after       Json?
+  status      String
+  error       String?
+  createdAt   DateTime @default(now())
+
+  @@index([workspaceId, createdAt])
+}

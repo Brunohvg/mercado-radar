@@ -1,0 +1,18 @@
+{
+  "name": "Vidalys Radar",
+  "short_name": "Radar",
+  "description": "Encontre o produto, encontre o fornecedor, descubra sua margem.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF8F5",
+  "theme_color": "#16181D",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/brand/mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

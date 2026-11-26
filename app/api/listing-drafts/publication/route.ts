@@ -1,0 +1,385 @@
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/workspace-auth";
+import { getMlSession, getListingPriceQuote, getShippingQuote } from "@/lib/mercado-livre";
+import { getWorkspaceSettings } from "@/lib/workspace-settings";
+import { getPublicOrigin } from "@/lib/public-url";
+import { loadSellerShippingProfile } from "@/lib/ml-seller-shipping";
+import { analyzeProfitability } from "@/lib/profitability";
+import { buildPublicationBody, type PublicationModel } from "@/lib/ml-publication-model";
+import { loadSellerPublicationCapabilities } from "@/lib/ml-publication-capabilities";
+
+export const dynamic = "force-dynamic";
+const IMAGE_ROOT = process.env.RADAR_UPLOAD_DIR || "/app/uploads";
+const schema = z.object({
+  id: z.string().cuid(),
+  action: z.enum(["validate", "publish"]),
+  confirmed: z.boolean().optional(),
+});
+const itemData = z.object({
+  name: z.string().min(3), title: z.string().min(5), description: z.string().min(60),
+  factsReviewed: z.boolean().default(false),
+  packageMeasurementsConfirmed: z.boolean().default(false),
+  missingFacts: z.array(z.string()).default([]),
+  categoryId: z.string().regex(/^MLB\d{3,12}$/),
+  catalogProductId: z.string().trim().max(50).nullable().optional(),
+  publicationChannel: z.enum(["TRADITIONAL", "CATALOG"]).default("TRADITIONAL"),
+  catalogExactMatchConfirmed: z.boolean().default(false),
+  brand: z.string().optional(), barcode: z.string().nullable().optional(),
+  sku: z.string().optional(), attributes: z.record(z.string(), z.string()).default({}),
+  imageUrls: z.array(z.string()).min(1).max(12),
+  stock: z.number().int().positive(), costPerUnit: z.number().positive(),
+  kitQuantity: z.number().int().min(1), discountPercent: z.number().min(0).max(95),
+  operatingCost: z.number().nonnegative(), suggestedPrice: z.number().positive(),
+  profit: z.number().positive(), listingType: z.enum(["CLASSIC", "PREMIUM"]),
+  logisticType: z.enum(["drop_off", "cross_docking", "xd_drop_off", "fulfillment", "self_service"]),
+  freeShipping: z.boolean(), weightGrams: z.number().int().positive(),
+  heightCm: z.number().positive(), widthCm: z.number().positive(), lengthCm: z.number().positive(),
+});
+type Listing = z.infer<typeof itemData>;
+type Picture = { id: string } | { source: string };
+type Validation = { hash: string; pictures: Picture[]; checkedAt: string };
+
+function contentHash(data: Listing, sellerId: string) {
+  return createHash("sha256").update(JSON.stringify(data) + "|" + sellerId).digest("hex");
+}
+function responseError(message: string, status = 422, causes?: unknown) {
+  return NextResponse.json({ error: message, causes }, { status, headers: { "cache-control": "no-store" } });
+}
+async function mlJson(url: string, token: string, method = "GET", body?: unknown) {
+  const response = await fetch(url, {
+    method, headers: {
+      Authorization: "Bearer " + token,
+      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    cache: "no-store", signal: AbortSignal.timeout(22000),
+  });
+  const payload: unknown = await response.json().catch(() => null);
+  return { response, payload };
+}
+function safeCauses(payload: unknown) {
+  const p = payload as { cause?: Array<{ code?: string; message?: string }>; message?: string } | null;
+  return (p?.cause ?? []).slice(0, 12).map(x => ({
+    code: String(x.code ?? "").slice(0, 90),
+    message: String(x.message ?? "").slice(0, 300),
+  }));
+}
+async function pictureRefs(urls: string[], workspaceId: string, token: string): Promise<Picture[]> {
+  const refs: Picture[] = [];
+  for (const url of urls) {
+    if (url.startsWith("https://")) {
+      refs.push({ source: url });
+      continue;
+    }
+    const id = /^\/api\/listing-drafts\/photos\/([a-f0-9-]+\.(?:jpg|png|webp))$/.exec(url)?.[1];
+    if (!id || !/^[a-f0-9]{8}-[a-f0-9-]{27,}\.(?:jpg|png|webp)$/.test(id)) {
+      throw new Error("A foto local não possui um identificador válido.");
+    }
+    const bytes = await readFile(path.join(IMAGE_ROOT, workspaceId, id));
+    const type = id.endsWith(".png") ? "image/png" : id.endsWith(".webp") ? "image/webp" : "image/jpeg";
+    const form = new FormData();
+    form.append("file", new Blob([new Uint8Array(bytes)], { type }), id);
+    const response = await fetch("https://api.mercadolibre.com/pictures/items/upload", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + token },
+      body: form,
+      signal: AbortSignal.timeout(25000),
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => null) as { id?: string } | null;
+    if (!response.ok || !result?.id) {
+      throw new Error("O Mercado Livre não aceitou uma das fotos. Confira formato e resolução.");
+    }
+    refs.push({ id: result.id });
+  }
+  return refs;
+}
+async function prepare(
+  data: Listing, token: string, sellerId: string, workspaceId: string,
+  existingPictures?: Picture[],
+  model: PublicationModel = "LEGACY",
+) {
+  if (!data.packageMeasurementsConfirmed) {
+    throw new Error("Confirme o peso e as dimensões medidos na embalagem real antes de validar ou publicar.");
+  }
+  const cat = await mlJson("https://api.mercadolibre.com/categories/" + data.categoryId, token);
+  const category = cat.payload as {
+    settings?: { listing_allowed?: boolean; status?: string; max_title_length?: number; max_pictures_per_item?: number };
+  } | null;
+  const settingsOfCategory = category?.settings;
+  if (!cat.response.ok || !settingsOfCategory?.listing_allowed || settingsOfCategory.status !== "enabled") {
+    throw new Error("A categoria não está habilitada para novas publicações.");
+  }
+  if (data.title.length > (settingsOfCategory.max_title_length || 120)) {
+    throw new Error("O título excede o limite de " + settingsOfCategory.max_title_length + " caracteres da categoria.");
+  }
+  if (data.imageUrls.length > (settingsOfCategory.max_pictures_per_item || 12)) {
+    throw new Error("A categoria permite menos fotos. Remova as excedentes.");
+  }
+  if (data.publicationChannel === "CATALOG" && (!data.catalogProductId || !data.catalogExactMatchConfirmed)) {
+    throw new Error("Catálogo requer confirmação de correspondência exata com produto e embalagem.");
+  }
+  if (data.catalogProductId) {
+    const catalogResult = await mlJson("https://api.mercadolibre.com/products/" + encodeURIComponent(data.catalogProductId), token);
+    if (!catalogResult.response.ok || !catalogResult.payload) throw new Error("Não foi possível validar a referência de catálogo.");
+    const catalog = catalogResult.payload as {
+      status?: string; category_id?: string; children_ids?: string[];
+      settings?: { listing_strategy?: string; exclusive?: boolean };
+    };
+    if (catalog.category_id && catalog.category_id !== data.categoryId)
+      throw new Error("A categoria selecionada difere da categoria do produto de catálogo.");
+    if (catalog.children_ids?.length)
+      throw new Error("Referência de produto pai. Selecione a variação exata do catálogo.");
+    if (data.publicationChannel === "CATALOG" && catalog.status !== "active")
+      throw new Error("O produto de catálogo não está ativo.");
+    if (data.publicationChannel === "TRADITIONAL" &&
+      (catalog.settings?.exclusive === true || ["catalog_required", "catalog_only"].includes(catalog.settings?.listing_strategy ?? ""))) {
+      throw new Error("Este produto exige catálogo. A publicação tradicional está bloqueada.");
+    }
+  }
+  // Catalog association requires a separate account-level eligibility and
+  // product matching flow. Fail closed instead of guessing catalog payloads.
+  if (data.publicationChannel === "CATALOG") {
+    throw new Error("Publicação em catálogo depende da elegibilidade oficial do vendedor e do produto. Fluxo ainda não habilitado.");
+  }
+    if (data.missingFacts.length && !data.factsReviewed) {
+    throw new Error("Revise e confirme as pendências da IA antes da pré-validação.");
+  }
+  const attrs = await mlJson("https://api.mercadolibre.com/categories/" + data.categoryId + "/attributes", token);
+  if (!attrs.response.ok || !Array.isArray(attrs.payload)) throw new Error("Não foi possível verificar os atributos exigidos.");
+  const required = (attrs.payload as Array<{ id?: string; name?: string; tags?: { required?: boolean; new_required?: boolean } }>)
+    .filter(a => a.tags?.required || a.tags?.new_required);
+  const attributes = { ...(data.attributes || {}) };
+  if (data.brand && !attributes.BRAND) attributes.BRAND = data.brand;
+  // Block obviously incorrect values (e.g. R$ 29,90 entered as Marca).
+  const brand = attributes.BRAND?.trim();
+  if (brand && (/^(?:r\\$\\s*)?\\d+[\\d.,]*$/i.test(brand) ||
+      /^(?:confirmedBrand|nao informado|não informado|sem marca)$/i.test(brand))) {
+    throw new Error("Marca inválida: informe o fabricante real, não preço nem placeholder da IA.");
+  }
+  if (data.barcode && !attributes.GTIN && !attributes.EAN) attributes.GTIN = data.barcode;
+  const missing = required.filter(a => a.id && !attributes[a.id]?.trim());
+  if (missing.length) throw new Error("Ficha técnica incompleta: " + missing.slice(0, 8).map(a => a.name || a.id).join(", "));
+  const shippingProfile = await loadSellerShippingProfile(token, sellerId);
+  if (!shippingProfile.choices.some(x => x.type === data.logisticType)) {
+    throw new Error(
+      "A modalidade logística informada não foi confirmada nos dados deste vendedor. " +
+      shippingProfile.notice,
+    );
+  }
+  const effectiveFreeShipping = data.suggestedPrice >= 79 ? true : data.freeShipping;
+  const settings = await getWorkspaceSettings(workspaceId);
+  if (settings.taxPercent == null) throw new Error("Configure o imposto em Metas e configurações.");
+  const [fee, shipping] = await Promise.all([
+    getListingPriceQuote({
+      accessToken: token, price: data.suggestedPrice, categoryId: data.categoryId,
+      listingType: data.listingType, logisticType: data.logisticType, shippingMode: "me2",
+    }),
+    getShippingQuote({
+      accessToken: token, userId: sellerId, price: data.suggestedPrice,
+      listingType: data.listingType, weightGrams: data.weightGrams,
+      heightCm: data.heightCm, widthCm: data.widthCm, lengthCm: data.lengthCm,
+      logisticType: data.logisticType, shippingMode: "me2", freeShipping: effectiveFreeShipping,
+    }),
+  ]);
+  const real = analyzeProfitability({
+    productName: data.name, supplierPrice: data.costPerUnit,
+    discountPercent: data.discountPercent, kitQuantity: data.kitQuantity,
+    salePrice: data.suggestedPrice, listingType: data.listingType,
+    commissionPercent: fee.commissionPercent, fixedFee: fee.fixedFee,
+    quotedSaleFeeAmount: fee.saleFeeAmount, shippingCost: shipping.shippingCost,
+    taxPercent: Number(settings.taxPercent), operatingCost: data.operatingCost,
+    targetMarginPercent: Number(settings.targetMarginPercent),
+    targetRoiPercent: Number(settings.targetRoiPercent),
+  });
+  if (real.profit <= 0) throw new Error("O preço cotado não cobre os custos atualizados. Recalcule.");
+  if (Math.abs(real.profit - data.profit) > 0.5) {
+    throw new Error("Tarifa ou frete mudou desde a simulação. Recalcule e salve o rascunho.");
+  }
+
+  const pictures = existingPictures ?? await pictureRefs(data.imageUrls, workspaceId, token);
+  const body = buildPublicationBody({
+    model,
+    channel: "TRADITIONAL",
+    title: data.title,
+    categoryId: data.categoryId,
+    price: data.suggestedPrice,
+    stock: data.stock,
+    listingType: data.listingType,
+    pictures,
+    attributes: Object.entries(attributes)
+      .filter(([, value]) => value.trim())
+      .map(([id, value_name]) => ({ id, value_name })),
+    freeShipping: effectiveFreeShipping,
+    catalogProductId: null,
+    catalogExactMatchConfirmed: false,
+  });
+  return { body, real };
+}
+export async function POST(request: Request) {
+  // Behind Coolify's reverse proxy, request.url may be an internal
+  // 0.0.0.0:3000 address even when the browser is on the public HTTPS domain.
+  // Compare to the configured/trusted public origin, not the internal server URL.
+  const origin = request.headers.get("origin");
+  const publicOrigin = new URL(getPublicOrigin(request)).origin;
+  if (origin && origin !== publicOrigin) {
+    return responseError("Origem da requisição não permitida.", 403);
+  }
+  let user;
+  try { user = await requireUser(); }
+  catch { return responseError("Sessão expirada.", 401); }
+  const parsed = schema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return responseError("Informe uma ação e um rascunho válido.", 400);
+  if (parsed.data.action === "publish" && process.env.RADAR_ENABLE_PUBLISHING !== "true") {
+    return responseError("Publicação real desativada no Coolify. Habilite RADAR_ENABLE_PUBLISHING=true somente depois da homologação.", 403);
+  }
+  if (parsed.data.action === "publish" && parsed.data.confirmed !== true) {
+    return responseError("Confirme explicitamente que deseja criar um anúncio pausado.", 400);
+  }
+  const row = await prisma.listingDraft.findFirst({
+    where: { id: parsed.data.id, workspaceId: user.workspaceId },
+  });
+  if (!row) return responseError("Rascunho não encontrado.", 404);
+  if (row.mlItemId || row.status === "PUBLISHING" || row.status === "PUBLISHED") {
+    return responseError("O anúncio já foi enviado ou está em processamento. Confira antes de tentar novamente.", 409);
+  }
+  const data = itemData.safeParse(row.content);
+  if (!data.success) return responseError("O rascunho está incompleto. Salve os campos, foto, preço e ficha técnica.", 422);
+  const session = await getMlSession();
+  if (session.account.workspaceId !== user.workspaceId) return responseError("Conta Mercado Livre incompatível.", 403);
+  const sellerId = session.account.mercadoLivreUserId;
+  if (!session.account.scopes?.split(/\s+/).includes("write")) {
+    return responseError("A conta vendedora está conectada sem permissão de escrita. Habilite Publicação e sincronização com leitura/escrita no DevCenter e reconecte o vendedor.", 403);
+  }
+  // Same seller-specific capability check for the web app and extension.
+  let model: PublicationModel;
+  try {
+    const capabilities = await loadSellerPublicationCapabilities(
+      session.accessToken, sellerId, session.account.scopes,
+    );
+    if (!capabilities.grantVerified) {
+      return responseError("Esta conta não autorizou escrita. Reconecte-a em Integrações.", 403);
+    }
+    model = capabilities.model;
+  } catch {
+    return responseError("Não foi possível verificar o modelo de publicação na conta do vendedor. Nenhum anúncio foi enviado.", 502);
+  }
+  const hash = contentHash(data.data, sellerId);
+  try {
+    if (parsed.data.action === "validate") {
+      // A saved draft may remain DRAFT until the official preflight is complete.
+      if (data.data.sku) {
+        const duplicate = await prisma.mercadoLivreProduct.findFirst({
+          where: { sellerUserId: sellerId, sku: data.data.sku, status: { in: ["active", "paused"] } },
+        });
+        if (duplicate) return responseError("Já existe um anúncio com este SKU na conta vinculada.", 409);
+      }
+      const built = await prepare(data.data, session.accessToken, sellerId, user.workspaceId, undefined, model);
+      const validation = await mlJson("https://api.mercadolibre.com/items/validate", session.accessToken, "POST", built.body);
+      if (!validation.response.ok) {
+        return responseError("O Mercado Livre pediu ajustes antes de publicar.", 422, safeCauses(validation.payload));
+      }
+      const result: Validation = { hash, pictures: built.body.pictures, checkedAt: new Date().toISOString() };
+      const updated = await prisma.listingDraft.updateMany({
+        where: { id: row.id, workspaceId: user.workspaceId, updatedAt: row.updatedAt, status: { in: ["DRAFT", "REVIEW", "VALIDATED"] } },
+        data: { validation: result, validatedAt: new Date(), status: "VALIDATED" },
+      });
+      if (!updated.count) return responseError("O rascunho mudou durante a validação. Revise novamente.", 409);
+      return NextResponse.json({
+        valid: true,
+        message: "O Mercado Livre aceitou a pré-validação. Você pode criar o anúncio pausado quando habilitar a publicação.",
+        reviewedPrice: data.data.suggestedPrice,
+        reviewedProfit: built.real.profit,
+        publicationModel: model,
+      });
+    }
+
+    if (row.status !== "VALIDATED") return responseError("Valide este rascunho no Mercado Livre antes de publicar.", 409);
+    const last = row.validation as Validation | null;
+    if (!last || last.hash !== hash || !last.checkedAt ||
+        Date.now() - Date.parse(last.checkedAt) > 20 * 60 * 1000 ||
+        !Array.isArray(last.pictures)) {
+      return responseError("Validação desatualizada. Faça a pré-validação novamente.", 409);
+    }
+    const prepared = await prepare(data.data, session.accessToken, sellerId, user.workspaceId, last.pictures, model);
+    const updated = await prisma.listingDraft.updateMany({
+      where: { id: row.id, workspaceId: user.workspaceId, status: "VALIDATED", updatedAt: row.updatedAt },
+      data: { status: "PUBLISHING" },
+    });
+    if (!updated.count) return responseError("O rascunho mudou ou já está sendo enviado. Consulte o estado atual.", 409);
+    // No automatic retry after reaching the external API: a timeout may have created an item.
+    let response;
+    try {
+      response = await mlJson("https://api.mercadolibre.com/items", session.accessToken, "POST", prepared.body);
+    } catch (error) {
+      console.error("[listing-publish] indeterminate external result", error instanceof Error ? error.message : "unknown");
+      return NextResponse.json({
+        error: "O envio ainda não pôde ser confirmado.",
+        publicationUncertain: true,
+      }, { status: 502 });
+    }
+    if (!response.response.ok) {
+      if (response.response.status >= 500 || response.response.status === 408) {
+        return NextResponse.json({
+          error: "O Mercado Livre não confirmou o envio.",
+          publicationUncertain: true,
+        }, { status: 502 });
+      }
+      await prisma.listingDraft.updateMany({
+        where: { id: row.id, workspaceId: user.workspaceId, status: "PUBLISHING" },
+        data: { status: "REVIEW", validation: {}, validatedAt: null },
+      });
+      return responseError("O Mercado Livre recusou a publicação. Corrija os dados e valide novamente.", 422, safeCauses(response.payload));
+    }
+    const product = response.payload as { id?: string; permalink?: string; status?: string } | null;
+    if (!product?.id || !/^MLB\d+$/.test(product.id)) {
+      return NextResponse.json({
+        error: "O envio ainda não pôde ser confirmado.",
+        publicationUncertain: true,
+      }, { status: 502 });
+    }
+    // Preserve the created ID before any later action, so a retry cannot duplicate it.
+    await prisma.listingDraft.updateMany({
+      where: { id: row.id, workspaceId: user.workspaceId, status: "PUBLISHING" },
+      data: { status: "PUBLISHED", mlItemId: product.id, publishedAt: new Date() },
+    });
+    let paused = product.status === "paused";
+    if (!paused) {
+      try {
+        const pauseResult = await mlJson("https://api.mercadolibre.com/items/" + product.id,
+          session.accessToken, "PUT", { status: "paused" });
+        paused = pauseResult.response.ok;
+      } catch { paused = false; }
+    }
+    // Description API failure does not retry the item POST, avoiding duplicates.
+    let descriptionAdded = false;
+    try {
+      const desc = await mlJson("https://api.mercadolibre.com/items/" + product.id + "/description",
+        session.accessToken, "POST", { plain_text: data.data.description });
+      descriptionAdded = desc.response.ok;
+    } catch { /* Leave item paused; user can fix description in seller center. */ }
+    const publicationResult = {
+      paused,
+      descriptionAdded,
+      permalink: product.permalink ?? null,
+      message: !paused
+        ? "Anúncio criado. A pausa não foi confirmada. Confira o status no Mercado Livre."
+        : descriptionAdded
+          ? "Anúncio criado pausado. Revise antes de ativar."
+          : "Anúncio criado pausado. A descrição ficou pendente no Mercado Livre.",
+    };
+    await prisma.listingDraft.updateMany({
+      where: { id: row.id, workspaceId: user.workspaceId, status: "PUBLISHED", mlItemId: product.id },
+      data: { validation: { ...last, publicationResult } },
+    }).catch((error: unknown) => console.error("[listing-publish] outcome not saved", error));
+    return NextResponse.json({ published: true, mlItemId: product.id, ...publicationResult });
+  } catch (error) {
+    console.error("[listing-publish] error", error instanceof Error ? error.message : "unknown");
+    return responseError(error instanceof Error ? error.message : "Não foi possível validar o anúncio.", 502);
+  }
+}

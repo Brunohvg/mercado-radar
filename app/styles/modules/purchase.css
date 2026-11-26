@@ -1,0 +1,24 @@
+.po-page .po-rule { margin: 0 0 var(--s-3, 12px); color: var(--ink-500); font-size: var(--fs-13, 13px); }
+.po-page .po-rule b { color: var(--warn-ink); font-weight: 600; }
+.po-page .po-list { display: grid; gap: var(--s-3, 12px); }
+.po-page .po-card { display: grid; gap: 10px; border-left: 4px solid var(--line); }
+.po-page .po-card--urgent { border-left-color: var(--risk, #d92d20); }
+.po-page .po-card-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.po-page .po-card-head h2 { margin: 0; font-size: var(--fs-18, 18px); }
+.po-page .po-card-head small { color: var(--ink-500); font-size: var(--fs-13, 13px); }
+.po-page .po-total { display: grid; justify-items: end; text-align: right; }
+.po-page .po-total span, .po-page .po-total small { font-size: var(--fs-12, 12px); color: var(--ink-500); }
+.po-page .po-total strong { font-size: var(--fs-20, 20px); font-variant-numeric: tabular-nums; }
+.po-page .po-table-wrap { overflow-x: auto; }
+.po-page .po-table { width: 100%; border-collapse: collapse; font-size: var(--fs-14, 14px); }
+.po-page .po-table th { text-align: left; font-size: var(--fs-12, 12px); font-weight: 600; color: var(--ink-500); padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.po-page .po-table td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.po-page .po-table .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.po-page .po-table td strong { display: block; max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.po-page .po-table td small { color: var(--ink-500); font-size: var(--fs-12, 12px); }
+.po-page .po-table input { font: inherit; width: 72px; text-align: right; padding: 5px 8px; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.po-page .po-warn { margin: 0; padding: 8px 12px; border-radius: var(--r-sm); background: var(--warn-tint); color: var(--warn-ink); font-size: var(--fs-13, 13px); }
+.po-page .po-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.po-page .po-preview summary { cursor: pointer; color: var(--brand, #1263ff); font-size: var(--fs-13, 13px); }
+.po-page .po-preview pre { white-space: pre-wrap; font: inherit; font-size: var(--fs-13, 13px); background: var(--surface-2, #f6f8fb); padding: 10px 12px; border-radius: var(--r-sm); margin: 6px 0 0; }
+@media (max-width: 640px) { .po-page .po-card-head { flex-direction: column; } .po-page .po-total { justify-items: start; text-align: left; } }

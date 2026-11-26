@@ -1,0 +1,203 @@
+/* extension — /extensao */
+
+.extension-install-page .page-header {
+  align-items: flex-start;
+}
+
+.extension-install-beta {
+  margin-top: var(--s-1);
+}
+
+/* bloco principal: instalação + passo a passo */
+.extension-install-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  padding: 0;
+  overflow: hidden;
+}
+
+.extension-install-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-6);
+}
+
+.extension-install-kicker {
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+}
+
+.extension-install-copy h2 {
+  color: var(--ink-900);
+  font-size: var(--fs-22);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.extension-install-copy p {
+  max-width: 60ch;
+  color: var(--ink-700);
+  font-size: var(--fs-14);
+  line-height: 1.6;
+}
+
+.extension-install-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  margin-top: var(--s-2);
+}
+
+.extension-install-actions > a:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.extension-install-copy > small {
+  max-width: 60ch;
+  padding-left: var(--s-3);
+  border-left: 2px solid var(--brand-tint);
+  color: var(--ink-500);
+  font-size: var(--fs-12);
+  line-height: 1.5;
+}
+
+/* passo a passo */
+.extension-install-steps {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: var(--s-3) var(--s-6);
+  border-left: 1px solid var(--line);
+  background: var(--surface-2);
+  list-style: none;
+}
+
+.extension-install-steps > li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  column-gap: var(--s-3);
+  row-gap: 2px;
+  padding: var(--s-4) 0;
+}
+
+.extension-install-steps > li + li {
+  border-top: 1px solid var(--line);
+}
+
+.extension-install-steps > li > span {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--brand-tint);
+  color: var(--brand-700);
+  font-family: var(--font-num);
+  font-size: var(--fs-13);
+  font-weight: 600;
+}
+
+.extension-install-steps strong {
+  align-self: center;
+  color: var(--ink-900);
+  font-size: var(--fs-14);
+  font-weight: 600;
+}
+
+.extension-install-steps small {
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+  line-height: 1.5;
+}
+
+.extension-install-steps code {
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  background: var(--surface);
+  color: var(--ink-900);
+  font-size: var(--fs-12);
+  overflow-wrap: anywhere;
+}
+
+/* recursos da extensão */
+.extension-install-status .clean-mini-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.extension-install-status .clean-mini-grid strong {
+  font-size: var(--fs-18);
+}
+
+/* nota final */
+.extension-install-note {
+  background: var(--surface-2);
+}
+
+.extension-install-note > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.extension-install-note strong {
+  color: var(--ink-900);
+  font-size: var(--fs-14);
+  font-weight: 600;
+}
+
+.extension-install-note p {
+  max-width: 80ch;
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+  line-height: 1.6;
+}
+
+/* responsivo */
+@media (max-width: 1080px) {
+  .extension-install-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .extension-install-steps {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .extension-install-status .clean-mini-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .extension-install-copy {
+    padding: var(--s-4);
+  }
+
+  .extension-install-copy h2 {
+    font-size: var(--fs-18);
+  }
+
+  .extension-install-actions {
+    align-self: stretch;
+  }
+
+  .extension-install-actions > a {
+    flex: 1 1 100%;
+  }
+
+  .extension-install-steps {
+    padding: var(--s-1) var(--s-4);
+  }
+
+  .extension-install-status .clean-mini-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

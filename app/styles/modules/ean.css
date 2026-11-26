@@ -1,0 +1,276 @@
+/* ean — EAN em lote (.ean-batch-page) */
+
+/* área de trabalho: entrada + resumo lado a lado */
+
+.ean-batch-page .ean-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
+  gap: var(--s-4);
+  align-items: stretch;
+}
+
+.ean-batch-page .ean-input-panel,
+.ean-batch-page .ean-summary-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.ean-batch-page .ean-input-panel .clean-panel-head,
+.ean-batch-page .ean-summary-panel .clean-panel-head {
+  margin-bottom: var(--s-3);
+}
+
+.ean-batch-page .ean-counter {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.ean-batch-page .ean-input-panel textarea {
+  flex: 1;
+  min-height: 200px;
+  font-family: var(--font-num);
+  font-size: var(--fs-14);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.6;
+  background: var(--surface-2);
+}
+
+.ean-batch-page .ean-input-panel textarea:focus {
+  background: var(--surface);
+}
+
+.ean-batch-page .ean-input-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  margin-top: var(--s-3);
+}
+
+.ean-batch-page .ean-file-button {
+  position: relative;
+  cursor: pointer;
+}
+
+.ean-batch-page .ean-file-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ean-batch-page .ean-file-button:focus-within {
+  border-color: var(--brand);
+  box-shadow: var(--focus);
+}
+
+.ean-batch-page .ean-input-actions .primary:focus-visible,
+.ean-batch-page .ean-toolbar .clean-secondary:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.ean-batch-page .ean-helper {
+  margin-top: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line);
+  color: var(--ink-500);
+  font-size: var(--fs-12);
+}
+
+/* resumo: 2×2 com divisórias, número colorido pelo estado */
+
+.ean-batch-page .ean-summary-grid {
+  flex: 1;
+  grid-auto-rows: 1fr;
+}
+
+.ean-batch-page .ean-summary-grid > div {
+  justify-content: flex-start;
+  padding: var(--s-4);
+}
+
+.ean-batch-page .ean-summary-grid strong {
+  font-size: var(--fs-28);
+  line-height: 1.15;
+  color: var(--ink-900);
+}
+
+/* só colore depois que há resultado; zeros iniciais ficam neutros */
+.ean-batch-page:has(.ean-results-panel) .ean-stat-found strong {
+  color: var(--ok);
+}
+
+.ean-batch-page:has(.ean-results-panel) .ean-stat-invalid strong {
+  color: var(--risk);
+}
+
+.ean-batch-page .ean-summary-grid small {
+  font-size: var(--fs-12);
+}
+
+/* resultados */
+
+.ean-batch-page .ean-results-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.ean-batch-page .ean-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  padding: var(--s-4) var(--s-5);
+  border-bottom: 1px solid var(--line);
+}
+
+.ean-batch-page .ean-toolbar > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.ean-batch-page .ean-toolbar > div:first-child strong {
+  color: var(--ink-900);
+  font-size: var(--fs-16);
+  font-weight: 600;
+}
+
+.ean-batch-page .ean-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  padding: 1px var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  color: var(--ink-500);
+  font-family: var(--font-num);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ean-batch-page .ean-toolbar .clean-secondary {
+  min-height: 34px;
+  padding: 0 var(--s-3);
+  font-size: var(--fs-13);
+}
+
+.ean-batch-page .ean-results-table {
+  width: 100%;
+  min-width: 1000px;
+}
+
+.ean-batch-page .ean-results-table th:first-child,
+.ean-batch-page .ean-results-table th:last-child {
+  border-radius: 0;
+}
+
+.ean-batch-page .ean-results-table th:first-child,
+.ean-batch-page .ean-results-table td:first-child {
+  padding-left: var(--s-5);
+}
+
+.ean-batch-page .ean-results-table th:last-child,
+.ean-batch-page .ean-results-table td:last-child {
+  padding-right: var(--s-5);
+}
+
+.ean-batch-page .ean-code {
+  color: var(--ink-900);
+  font-family: var(--font-num);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.ean-batch-page .ean-num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ean-batch-page th.ean-num {
+  font-family: var(--font-ui);
+}
+
+.ean-batch-page .ean-median {
+  color: var(--ink-900);
+  font-weight: 600;
+}
+
+.ean-batch-page .ean-range {
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+}
+
+.ean-batch-page .ean-product-cell {
+  min-width: 260px;
+  max-width: 380px;
+}
+
+.ean-batch-page .ean-product-cell small {
+  font-size: var(--fs-12);
+}
+
+/* linhas sem produto: atenua os números vazios */
+
+.ean-batch-page .ean-row-not_found .ean-num,
+.ean-batch-page .ean-row-invalid .ean-num {
+  color: var(--ink-300);
+}
+
+.ean-batch-page .ean-row-invalid .ean-code {
+  color: var(--risk);
+}
+
+/* celular e tablet */
+
+@media (max-width: 1080px) {
+  .ean-batch-page .ean-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .ean-batch-page .ean-input-actions > * {
+    flex: 1 1 auto;
+  }
+
+  .ean-batch-page .ean-summary-grid strong {
+    font-size: var(--fs-22);
+  }
+
+  .ean-batch-page .ean-summary-grid > div {
+    padding: var(--s-3);
+  }
+
+  .ean-batch-page .ean-toolbar {
+    padding: var(--s-3) var(--s-4);
+  }
+
+  .ean-batch-page .ean-results-table th:first-child,
+  .ean-batch-page .ean-results-table td:first-child {
+    padding-left: var(--s-4);
+  }
+
+  /* primeira coluna fixa enquanto a tabela rola na horizontal */
+  .ean-batch-page .ean-results-table th:first-child,
+  .ean-batch-page .ean-results-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    box-shadow: 1px 0 0 var(--line);
+  }
+
+  .ean-batch-page .ean-results-table td:first-child {
+    background: var(--surface);
+  }
+}

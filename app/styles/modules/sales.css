@@ -1,0 +1,436 @@
+/* vendas e lucro — só layout; cor/tipo/forma vêm de tokens e primitivas */
+
+.sales-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+/* ---------------------------------------------------------------- */
+/* seletor de período (controle segmentado)                          */
+/* ---------------------------------------------------------------- */
+
+.sales-page .period-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+
+.sales-page .period-switch button {
+  min-height: 30px;
+  padding: 0 var(--s-3);
+  border-radius: var(--r-xs);
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background-color 0.12s, color 0.12s;
+}
+
+.sales-page .period-switch button:hover {
+  background: var(--surface-2);
+  color: var(--ink-900);
+}
+
+.sales-page .period-switch button.active {
+  background: var(--brand-tint);
+  color: var(--brand-700);
+  font-weight: 600;
+}
+
+.sales-page .period-switch button:focus-visible,
+.sales-page .sales-more-button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+/* ---------------------------------------------------------------- */
+/* faixa de indicadores                                              */
+/* ---------------------------------------------------------------- */
+
+.sales-kpis .clean-kpi-card > small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------------------------------------------------------------- */
+/* subtítulos dos painéis                                            */
+/* ---------------------------------------------------------------- */
+
+.sales-page .module-subhead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: var(--s-4);
+}
+
+.sales-page .module-subhead strong {
+  color: var(--ink-900);
+  font-size: var(--fs-16);
+  font-weight: 600;
+}
+
+.sales-page .module-subhead small {
+  max-width: 72ch;
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+}
+
+/* ---------------------------------------------------------------- */
+/* produtos que mais saíram (grade com divisórias de 1px)            */
+/* ---------------------------------------------------------------- */
+
+.sales-page .top-product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--line);
+  overflow: hidden;
+}
+
+.sales-page .top-product-grid article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  background: var(--surface);
+}
+
+.sales-page .top-product-grid article > span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+  color: var(--ink-500);
+  font-family: var(--font-num);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sales-page .top-product-grid article:first-child > span {
+  background: var(--brand-tint);
+  color: var(--brand-700);
+}
+
+.sales-page .top-product-grid article > div:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sales-page .top-product-grid article > div:nth-child(2) strong {
+  color: var(--ink-900);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sales-page .top-product-grid article > div:nth-child(2) small {
+  color: var(--ink-400);
+  font-size: var(--fs-12);
+}
+
+.sales-page .top-product-number {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.sales-page .top-product-number strong {
+  color: var(--ink-900);
+  font-size: var(--fs-18);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.sales-page .top-product-number small {
+  color: var(--ink-500);
+  font-size: var(--fs-12);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- */
+/* pedidos recentes (lista com divisórias)                           */
+/* ---------------------------------------------------------------- */
+
+.sales-page .sales-order-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.sales-page .sales-order-list .module-subhead {
+  margin-bottom: var(--s-2);
+}
+
+.sales-page .sales-order-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4) 0;
+  border-top: 1px solid var(--line);
+}
+
+.sales-page .sales-order-card:last-of-type {
+  padding-bottom: 0;
+}
+
+.sales-page .order-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--s-5);
+}
+
+.sales-page .order-main > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sales-page .product-flags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-bottom: var(--s-1);
+}
+
+.sales-page .product-flags > span:not(.status-chip) {
+  color: var(--ink-400);
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+}
+
+/* status do pedido no Mercado Livre */
+.sales-page .status-chip.paid {
+  background: var(--ok-tint);
+  color: var(--ok);
+}
+
+.sales-page .status-chip.confirmed {
+  background: var(--info-tint);
+  color: var(--info);
+}
+
+.sales-page .status-chip.cancelled {
+  background: var(--risk-tint);
+  color: var(--risk);
+}
+
+.sales-page .order-main > div:first-child > strong {
+  color: var(--ink-900);
+  font-size: var(--fs-14);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sales-page .order-main > div:first-child > small {
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sales-page .order-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex: none;
+  text-align: right;
+}
+
+.sales-page .order-total span {
+  color: var(--ink-500);
+  font-size: var(--fs-12);
+}
+
+.sales-page .order-total strong {
+  color: var(--ink-900);
+  font-family: var(--font-num);
+  font-size: var(--fs-22);
+  font-weight: 600;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* tarifas, frete, lucro: faixa segmentada */
+.sales-page .order-finance {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--line);
+  overflow: hidden;
+}
+
+.sales-page .order-finance > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--s-2) var(--s-3);
+  background: var(--surface-2);
+}
+
+.sales-page .order-finance span {
+  color: var(--ink-500);
+  font-size: var(--fs-12);
+}
+
+.sales-page .order-finance strong {
+  color: var(--ink-900);
+  font-family: var(--font-num);
+  font-size: var(--fs-16);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sales-page .order-finance strong.good-value {
+  color: var(--ok);
+}
+
+.sales-page .order-finance strong.danger-value {
+  color: var(--risk);
+}
+
+.sales-page .order-finance strong.is-pending {
+  color: var(--warn);
+  font-family: var(--font-ui);
+  font-size: var(--fs-13);
+  font-weight: 500;
+  line-height: 1.35;
+  padding-top: 2px;
+}
+
+.sales-page .sales-order-list .module-empty {
+  margin-top: var(--s-2);
+}
+
+.sales-page .sales-more-button {
+  align-self: flex-start;
+  margin-top: var(--s-4);
+}
+
+/* ---------------------------------------------------------------- */
+/* responsivo                                                        */
+/* ---------------------------------------------------------------- */
+
+/* desktop largo: cada pedido vira uma linha de razão (venda | tarifas | frete | lucro) */
+@media (min-width: 1180px) {
+  .sales-page .sales-order-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(460px, 0.95fr);
+    align-items: center;
+    gap: var(--s-5);
+  }
+}
+
+@media (max-width: 900px) {
+  .sales-page .top-product-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .sales-page .module-heading-actions {
+    width: 100%;
+  }
+
+  .sales-page .period-switch {
+    display: flex;
+    width: 100%;
+  }
+
+  .sales-page .period-switch button {
+    flex: 1;
+  }
+
+  .sales-page .module-heading-actions > .secondary,
+  .sales-page .sales-more-button {
+    width: 100%;
+  }
+
+  .sales-page .top-product-grid article {
+    padding: var(--s-3);
+  }
+
+  .sales-page .order-main {
+    gap: var(--s-3);
+  }
+
+  .sales-page .order-total strong {
+    font-size: var(--fs-18);
+  }
+
+  .sales-page .order-finance {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sales-page .order-finance > div {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s-3);
+  }
+
+  .sales-page .order-finance strong {
+    font-size: var(--fs-14);
+    text-align: right;
+  }
+}
+
+.sales-page .product-table { display: grid; gap: var(--s-3); margin: var(--s-4) 0; }
+.sales-page .product-table-head { display: grid; gap: var(--s-3); }
+.sales-page .product-table-head h3 { margin: 0 0 4px; }
+.sales-page .product-table-head p { margin: 0; color: var(--ink-500); }
+.sales-page .product-table-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.sales-page .product-table-filters button { font: inherit; font-size: var(--fs-13, 13px); padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface, #fff); color: var(--ink-700, inherit); cursor: pointer; }
+.sales-page .product-table-filters button b { margin-left: 4px; }
+.sales-page .product-table-filters button[aria-pressed="true"] { border-color: var(--brand, #1263ff); box-shadow: inset 0 0 0 1px var(--brand, #1263ff); }
+.sales-page .product-table-scroll { overflow-x: auto; }
+.sales-page .product-table table { width: 100%; border-collapse: collapse; font-size: var(--fs-14, 14px); }
+.sales-page .product-table th { text-align: left; font-size: var(--fs-12, 12px); font-weight: 600; color: var(--ink-500); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.sales-page .product-table td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.sales-page .product-table .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sales-page .product-table .product-cell { max-width: 380px; }
+.sales-page .product-table .product-cell strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sales-page .product-table .product-cell small, .sales-page .product-cost-msg { display: block; color: var(--ink-500); font-size: var(--fs-12, 12px); }
+.sales-page .product-status { display: inline-block; font-size: var(--fs-12, 12px); font-weight: 700; padding: 2px 10px; border-radius: 999px; white-space: nowrap; background: var(--surface-3, #eef1f6); color: var(--ink-500); }
+.sales-page .tone-good.product-status { background: var(--ok-tint); color: var(--ok-ink, #0b7a4b); }
+.sales-page .tone-warn.product-status { background: var(--warn-tint); color: var(--warn-ink); }
+.sales-page .tone-risk.product-status { background: var(--risk-tint); color: var(--risk-ink); }
+.sales-page .tone-info.product-status { background: var(--info-tint); color: var(--info); }
+.sales-page .product-suggest { display: grid; gap: 4px; margin-top: 6px; max-width: 260px; }
+.sales-page .product-suggest small { color: var(--ink-500); font-size: var(--fs-12, 12px); }
+.sales-page .product-suggest .vr-btn { justify-self: start; }
+.sales-page .product-suggest-all { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px !important; padding: 8px 12px; border-radius: var(--r-sm); background: var(--info-tint); color: var(--ink-700, inherit) !important; }
+.sales-page .product-cost-form { display: flex; gap: 6px; margin-top: 6px; }
+.sales-page .product-cost-form input { font: inherit; width: 110px; padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.sales-page .sales-orders-details > summary { cursor: pointer; list-style: none; }
+.sales-page .sales-orders-details > summary::-webkit-details-marker { display: none; }
+.sales-page .sales-orders-details > summary strong::after { content: " ▾"; color: var(--ink-500); }
+.sales-page .sales-orders-details[open] > summary strong::after { content: " ▴"; }
+@media (max-width: 640px) {
+  .sales-page .product-table .product-cell { max-width: 200px; }
+}

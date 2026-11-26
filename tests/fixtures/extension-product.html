@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Produto aberto</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #ededed;
+        font: 16px system-ui;
+      }
+      header {
+        height: 80px;
+        background: #ffe600;
+        padding: 22px;
+      }
+      main {
+        max-width: 1180px;
+        display: grid;
+        grid-template-columns: 60px 1fr 320px;
+        gap: 24px;
+        margin: 24px auto;
+        padding: 24px;
+        background: white;
+      }
+      .gallery {
+        background: #ddd;
+        min-height: 500px;
+      }
+      .ui-pdp-container--column-right {
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        padding: 20px;
+      }
+      h1 {
+        font-size: 22px;
+      }
+      button {
+        padding: 16px;
+        background: #3483fa;
+        color: white;
+        border: 0;
+        border-radius: 8px;
+      }
+      aside {
+        padding: 20px;
+        background: #f3f3f3;
+      }
+      small {
+        font-size: 12px;
+      }
+      @media (max-width: 900px) {
+        main {
+          grid-template-columns: 50px 1fr 240px;
+          gap: 12px;
+          margin: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      Mercado Livre · página representativa para regressão de layout
+    </header>
+    <main>
+      <aside>Fotos</aside>
+      <section class="gallery" aria-label="Galeria">
+        Fotografia do produto
+      </section>
+      <section class="ui-pdp-container--column-right">
+        <div class="ui-pdp-header">
+          <p class="ui-pdp-subtitle">Novo | +25 vendidos</p>
+          <h1>Fio cordone encerado preto 165m 2mm</h1>
+        </div>
+        <div class="ui-pdp-price">
+          <s class="andes-money-amount--previous"
+            ><span class="andes-money-amount__fraction">25</span></s
+          >
+          <div class="ui-pdp-price__second-line">
+            <span class="andes-money-amount__fraction">17</span
+            ><span class="andes-money-amount__cents">90</span>
+          </div>
+        </div>
+        <span class="ui-pdp-review__rating">4,8</span
+        ><span class="ui-pdp-review__amount">(100)</span>
+        <p>Frete grátis</p>
+        <p>3 vezes sem juros</p>
+        <button id="native-buy" onclick="this.dataset.clicked='yes'">
+          Comprar agora
+        </button>
+        <div class="ui-pdp-seller">
+          <b class="ui-pdp-seller__header__title">Vendedor exemplo</b>
+          <p>+50 mil vendas</p>
+        </div>
+        <small>Parcelamento não comprova modalidade Premium.</small>
+      </section>
+    </main>
+    <script type="application/json">
+      {
+        "recommendations": [
+          { "item_id": "MLB1111111111", "category_id": "MLB999" }
+        ]
+      }
+    </script>
+  </body>
+</html>

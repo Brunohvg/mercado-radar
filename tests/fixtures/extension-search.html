@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Busca representativa</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #ededed;
+        color: #333;
+        font: 14px system-ui;
+      }
+      header {
+        height: 90px;
+        background: #ffe600;
+        padding: 20px max(24px, calc((100vw - 1180px) / 2));
+        display: flex;
+        align-items: center;
+        gap: 32px;
+      }
+      header b {
+        font-size: 18px;
+        min-width: 150px;
+      }
+      input {
+        border: 0;
+        border-radius: 3px;
+        background: white;
+        padding: 14px 18px;
+        width: 550px;
+        font: 14px system-ui;
+        box-shadow: 0 2px 5px #0001;
+      }
+      main {
+        max-width: 1180px;
+        margin: 25px auto;
+        display: grid;
+        grid-template-columns: 190px minmax(0, 1fr);
+        gap: 25px;
+      }
+      aside h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      aside p {
+        font-size: 12px;
+        color: #666;
+        margin: 0 0 25px;
+      }
+      aside h3 {
+        font-size: 14px;
+        margin: 20px 0 10px;
+      }
+      aside label {
+        display: block;
+        font-size: 12px;
+        color: #666;
+        padding: 5px 0;
+      }
+      .results {
+        min-width: 0;
+      }
+      .ui-search-layout {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .ui-search-layout__item {
+        min-width: 0;
+        height: 400px;
+      }
+      .poly-card {
+        background: white;
+        border-radius: 7px;
+        overflow: hidden;
+        height: 100%;
+        border: 1px solid #ddd;
+      }
+      .poly-card__portada {
+        height: 205px;
+        position: relative;
+        display: grid;
+        place-items: center;
+        border-bottom: 1px solid #eee;
+        background: #fafafa;
+      }
+      .spool {
+        width: 85px;
+        height: 135px;
+        border-radius: 15px 15px 12px 12px;
+        background: repeating-linear-gradient(
+          0deg,
+          #17191b 0 2px,
+          #34383a 2px 3px
+        );
+        box-shadow: 5px 8px 16px #0002;
+        transform: rotate(-6deg);
+      }
+      .spool.blue {
+        filter: sepia(1) saturate(8) hue-rotate(150deg);
+      }
+      .spool.brown {
+        filter: sepia(1) saturate(3);
+      }
+      .poly-card__content {
+        padding: 14px;
+      }
+      .poly-component__title {
+        font-size: 12px;
+        line-height: 1.5;
+        color: #333;
+        text-decoration: none;
+        display: block;
+        min-height: 36px;
+      }
+      .poly-component__seller {
+        font-size: 10px;
+        color: #777;
+        margin: 6px 0;
+      }
+      .poly-price__current {
+        font-size: 24px;
+        margin-top: 8px;
+      }
+      .andes-money-amount__cents {
+        font-size: 13px;
+        vertical-align: top;
+      }
+      .shipping {
+        color: #009c58;
+        font-size: 11px;
+        font-weight: 650;
+        margin-top: 8px;
+      }
+      .poly-reviews__rating,
+      .poly-reviews__total {
+        font-size: 10px;
+        color: #777;
+      }
+      .full {
+        color: #009c58;
+        font-size: 11px;
+        font-weight: 800;
+      }
+      footer {
+        padding: 25px;
+        margin: 40px 0;
+        background: white;
+        text-align: center;
+        color: #888;
+      }
+      @media (max-width: 1000px) {
+        main {
+          margin: 16px;
+          grid-template-columns: 150px minmax(0, 1fr);
+        }
+        .ui-search-layout {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 700px) {
+        header {
+          padding: 15px;
+          height: 75px;
+          gap: 15px;
+        }
+        header b {
+          min-width: 0;
+          font-size: 13px;
+        }
+        input {
+          min-width: 0;
+          width: 100%;
+        }
+        main {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        aside {
+          display: none;
+        }
+        .ui-search-layout {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <b>Mercado Livre</b
+      ><input
+        id="cb1-edit"
+        value="fio encerado 165m 2mm"
+        aria-label="Buscar produtos"
+      />
+    </header>
+    <main>
+      <aside>
+        <h1>Fio encerado</h1>
+        <p>Resultados da busca · fixture de teste</p>
+        <h3>Entrega</h3>
+        <label>□ Full</label><label>□ Frete grátis</label>
+        <h3>Categorias</h3>
+        <label>Armarinho</label><label>Artesanato</label>
+        <h3>Preço</h3>
+        <label>Até R$ 25</label>
+      </aside>
+      <section class="results">
+        <ol class="ui-search-layout" id="results"></ol>
+        <footer>Resultados carregados nesta página</footer>
+      </section>
+    </main>
+    <script>
+      const prices = [17.9, 19.9, 21.9, 24.9, 29.9, 32.9, 16.9, 23.9];
+      for (let i = 0; i < prices.length; i++) {
+        const [whole, cents] = prices[i].toFixed(2).split(".");
+        const item = document.createElement("li");
+        item.className = "ui-search-layout__item";
+        item.innerHTML =
+          '<article class="poly-card"><a class="poly-card__portada" href="https://www.mercadolivre.com.br/fio/up/MLBU507460064' +
+          i +
+          '"><div class="spool ' +
+          (i % 3 === 1 ? "blue" : i % 3 === 2 ? "brown" : "") +
+          '"></div></a><div class="poly-card__content"><a class="poly-component__title" href="https://www.mercadolivre.com.br/fio/up/MLBU507460064' +
+          i +
+          '">Fio encerado ' +
+          (i % 3 === 1 ? "azul" : i % 3 === 2 ? "marrom" : "preto") +
+          ' 165m 2mm</a><p class="poly-component__seller">Por Loja ' +
+          (i + 1) +
+          '</p><span class="poly-reviews__rating">4,8</span> <span class="poly-reviews__total">(100)</span><div class="poly-price__current"><span class="andes-money-amount"><span class="andes-money-amount__currency-symbol">R$ </span><span class="andes-money-amount__fraction">' +
+          whole +
+          '</span><span class="andes-money-amount__cents">' +
+          cents +
+          '</span></span></div><p class="shipping">Frete grátis ' +
+          (i % 2 === 0 ? '<span class="full">Full</span>' : "") +
+          "</p></div></article>";
+        document.getElementById("results").append(item);
+      }
+    </script>
+  </body>
+</html>

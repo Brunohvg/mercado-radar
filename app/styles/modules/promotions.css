@@ -1,0 +1,25 @@
+.promotions-page .promo-kpis { margin-bottom: var(--s-4, 16px); }
+.promotions-page .promo-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3, 12px); }
+.promotions-page .promo-card { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: var(--s-4, 16px); border-left: 4px solid var(--line); }
+.promotions-page .promo-card--good { border-left-color: var(--ok, #16a36a); }
+.promotions-page .promo-card--warn { border-left-color: var(--warn-strong, #d97706); }
+.promotions-page .promo-card--risk { border-left-color: var(--risk, #d92d20); }
+.promotions-page .promo-main { display: grid; gap: 4px; min-width: 0; }
+.promotions-page .promo-tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.promotions-page .promo-verdict { font-size: var(--fs-11, 11px); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; background: var(--surface-3, #eef1f6); color: var(--ink-500); }
+.promotions-page .promo-verdict.tone-good { background: var(--ok-tint); color: #0b7a4b; }
+.promotions-page .promo-verdict.tone-warn { background: var(--warn-tint); color: var(--warn-ink); }
+.promotions-page .promo-verdict.tone-risk { background: var(--risk-tint); color: var(--risk-ink); }
+.promotions-page .promo-type, .promotions-page .promo-name { font-size: var(--fs-12, 12px); color: var(--ink-500); }
+.promotions-page .promo-title { font-size: var(--fs-16, 16px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.promotions-page .promo-prices, .promotions-page .promo-missing { margin: 0; font-size: var(--fs-14, 14px); color: var(--ink-700, inherit); }
+.promotions-page .promo-missing { color: var(--ink-500); font-size: var(--fs-13, 13px); }
+.promotions-page .promo-side { display: grid; gap: 4px; align-content: start; justify-items: end; text-align: right; }
+.promotions-page .promo-side > strong { font-size: var(--fs-20, 20px); font-variant-numeric: tabular-nums; }
+.promotions-page .promo-profit-label, .promotions-page .promo-side small { font-size: var(--fs-12, 12px); color: var(--ink-500); }
+.promotions-page .promo-confirm { display: grid; gap: 6px; justify-items: end; font-size: var(--fs-13, 13px); font-weight: 600; }
+@media (max-width: 720px) {
+  .promotions-page .promo-card { grid-template-columns: 1fr; }
+  .promotions-page .promo-side { justify-items: start; text-align: left; }
+  .promotions-page .promo-confirm { justify-items: start; }
+}

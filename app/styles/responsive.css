@@ -1,0 +1,67 @@
+/* Barra do topo no celular: menu + marca, sempre visível e sem cobrir conteúdo. */
+.mobile-topbar { display: none; }
+@media (max-width: 960px) {
+  .mobile-topbar { position: fixed; inset: 0 0 auto 0; z-index: 55; display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 12px; background: var(--night); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06), 0 6px 18px rgba(11, 17, 32, 0.18); }
+  .mobile-topbar .mobile-nav-button { position: static; box-shadow: none; width: 40px; height: 40px; background: rgba(255, 255, 255, 0.08); }
+  .mobile-topbar-brand { display: flex; align-items: center; gap: 8px; color: #fff; text-decoration: none; font-weight: 700; font-size: 16px; letter-spacing: -0.01em; }
+  .mobile-topbar-brand img { width: 28px; height: 28px; }
+  .mobile-topbar-brand b { color: var(--signal, #22d3ee); font-weight: 700; }
+  .content, .routed-content { padding-top: 76px !important; }
+}
+
+/*
+ * Celular: tabelas viram cartões, cabeçalhos e ações empilham, nada passa da
+ * largura da tela. Carregado por último; só vale abaixo de 720px.
+ */
+@media (max-width: 720px) {
+  /* Tabelas → cartões. data-label vem de components/responsive-tables.tsx. */
+  main table.is-labeled { min-width: 0 !important; width: 100% !important; border-collapse: separate; border-spacing: 0; }
+  main table.is-labeled thead { display: none; }
+  main table.is-labeled tbody { display: grid; gap: 10px; }
+  main table.is-labeled tr { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-md, 10px); background: var(--surface, #fff); }
+  main table.is-labeled td { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 0 !important; border: 0 !important; text-align: right !important; white-space: normal !important; min-width: 0; max-width: none !important; }
+  main table.is-labeled td::before { content: attr(data-label); flex: none; max-width: 45%; color: var(--ink-500); font-size: var(--fs-12, 12px); font-weight: 500; text-align: left; }
+  main table.is-labeled td[data-label=""]::before { content: none; }
+  /* Primeira coluna (produto) ocupa a linha inteira, sem rótulo. */
+  main table.is-labeled td:first-child { display: block; text-align: left !important; padding-bottom: 6px !important; border-bottom: 1px solid var(--line) !important; }
+  main table.is-labeled td:first-child::before { content: none; }
+  main table.is-labeled td:first-child strong { white-space: normal !important; max-width: none !important; }
+  /* Linha de detalhe que abre embaixo (editar, analisar): ocupa o cartão inteiro. */
+  main table.is-labeled td[colspan] { display: block; text-align: left !important; border-bottom: 0 !important; }
+  main table.is-labeled tr:has(> td[colspan]:only-child) { padding: 0; border: 0; background: transparent; }
+  main table.is-labeled td:empty { display: none; }
+  main table.is-labeled input, main table.is-labeled select { max-width: 60%; }
+  /* Célula com formulário (custo, quantidade): rótulo em cima, campos embaixo. */
+  main table.is-labeled td:has(form, button + input, input + button, .product-cost-form) { display: grid; justify-items: stretch; text-align: left !important; }
+  main table.is-labeled td:has(form, .product-cost-form) > * { justify-self: start; }
+  .product-cost-form, .cost-suggestion, [class*="cost-form"] { flex-wrap: wrap; max-width: 100%; }
+  main [class*="table-wrap"] { overflow-x: visible !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
+
+  /* Cabeçalho de página e ações. */
+  .page-header, .clean-page-header { flex-direction: column; align-items: stretch !important; gap: 12px; }
+  .page-header h1, .clean-page-header h1 { font-size: 24px; line-height: 1.2; }
+  .page-header-actions { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+  .page-header-actions > * { flex: 1 1 140px; }
+
+  /* Grades de números: duas por linha. */
+  .clean-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .clean-kpi-card strong { font-size: 22px; overflow-wrap: anywhere; }
+
+  /* Abas de seção: rolam de lado, sem cortar a página. */
+  .section-tabs { margin-left: calc(var(--s-4) * -1); margin-right: calc(var(--s-4) * -1); padding: 0 var(--s-4); scrollbar-width: none; }
+  .section-tabs::-webkit-scrollbar { display: none; }
+  .section-tabs a { padding: 10px 12px; }
+
+  /* Painéis, formulários e confirmações. */
+  .clean-panel { padding: 14px !important; }
+  input, select, textarea { font-size: 16px; } /* evita zoom do iOS */
+  .vr-btn, button { min-height: 40px; }
+  .promo-confirm, .improve-apply, .po-actions, .vr-confirm { flex-wrap: wrap; }
+  main img { max-width: 100%; }
+  .opportunity-trends { flex-wrap: wrap; }
+  .opportunity-trends small { white-space: normal; }
+}
+
+@media (max-width: 380px) {
+  .clean-kpi-grid { grid-template-columns: minmax(0, 1fr) !important; }
+}

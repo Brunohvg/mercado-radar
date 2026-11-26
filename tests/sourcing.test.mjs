@@ -410,3 +410,19 @@ test("qualificação não aprova fornecedor incompatível com CPF ou sem nota", 
   const expired = qualifySupplier(supplierBase, { unitPrice: 1, source: "COTACAO_RECEBIDA", exactMatch: true, freightCost: 0, expired: true });
   assert.equal(expired.criteria.find(c => c.key === "price").state, "PENDENTE");
 });
+
+
+test("bloqueio comercial do fornecedor impede recomendação de compra", () => {
+  const blocked = evaluateQuote(sale, { ...quote, supplierBlockReason: "Fornecedor não emite nota fiscal" });
+  assert.ok(blocked.purchasePending.includes("Fornecedor não emite nota fiscal"));
+  assert.equal(recommendNextAction({ sale, supplierCount: 1, quoteCount: 1, best: blocked }).tab, "fornecedores");
+  assert.equal(matchByCapital([{ opportunityId: "blocked", title: "Ilhós", viability: blocked, supplierKind: "FABRICANTE", sellsToCpf: true, requiresCnpj: false }], { capital: 200, profile: "CPF", minMarginPercent: 0 }).matches.length, 0);
+});
+
+test("radar de capital rejeita perfil contraditório e orçamento insuficiente", () => {
+  const good = evaluateQuote(sale, quote);
+  const poor = evaluateQuote({ ...sale, budget: 0 }, quote);
+  const base = { opportunityId: "a", title: "Ilhós", supplierKind: "FABRICANTE", sellsToCpf: true, requiresCnpj: true };
+  assert.equal(matchByCapital([{ ...base, viability: good }], { capital: 200, profile: "CPF", minMarginPercent: 0 }).matches.length, 0);
+  assert.equal(matchByCapital([{ ...base, viability: poor }], { capital: 200, profile: "TODOS", minMarginPercent: 0 }).matches.length, 0);
+});

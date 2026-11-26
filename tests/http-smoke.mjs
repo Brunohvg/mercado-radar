@@ -1,1 +1,1967 @@
-YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éíÛ9í:-jZ.¶›­–)Ş³V–×÷'B76W'Bg&öÒ&æöFS¦76W'B÷7G&–7B#°¦–×÷'B°¢&æFöÔ'—FW2À¢67'—E7–æ2À¢7&VFT6—†W&—bÀ¢7&VFTFV6—†W&—bÀ¢7&VFT†6‚À§Òg&öÒ&æöFS¦7'—Fò#°¦–×÷'B²7vâÒg&öÒ&æöFS¦6†–ÆE÷&ö6W72#°¦–×÷'Brg&öÒ'r#°¦–×÷'B²ÆöEG2Òg&öÒ"âöÆöB×G2æÖ§2#°¦6öç7B²FVfVÇD¶—E66Væ&–òÂvVæW&FT¶—D6ö×÷6—F–öç2ÒÒv—BÆöEG2€¢"ââöÆ–"ö¶—BÖ÷F–Ö—¦W"çG2"À¢“° ¦–b‡&ö6W72æVçbå$D%õDU5EôDD$4RÓÒ#"¢F‡&÷ræWrW'&÷"€¢%$D%õDU5EôDD$4SÓ—2&WV—&VBâW6Râ—6öÆFVBFW7BFF&6Râ"À¢“°§ræFVfVÇG2ç'6T–çWDFFW45UD2ÒG'VS°¦6öç7BF"ÒæWrrä6Æ–VçB‡²6öææV7F–öå7G&–æs¢&ö6W72æVçbäDD$4UõU$ÂÒ“°¦v—BF"æ6öææV7B‚“°¦6öç7B÷'BÒçVÖ&W"‡&ö6W72æVçbå$D%õDU5Eõõ%BÇÂ33’’À¢&6RÒ‡GG¢òó#rããã¢G·÷'GÖ°¦6öç7B77v÷&BÒ%&F"ÕFW7FRÓ##bÔöæÇ’#°¦6öç7B6ÇBÒ&æFöÔ'—FW2ƒb“°¦6öç7B†6‚Ò67'—C¢G·6ÇBçFõ7G&–ær‚&&6ScGW&Â"—Ó¢G·67'—E7–æ2‡77v÷&BÂ6ÇBÂcB’çFõ7G&–ær‚&&6ScGW&Â"—Ö°¦6öç7B&Vf—‚Ò'"²&æFöÔ'—FW2ƒB’çFõ7G&–ær‚&†W‚"“°¦6öç7B6†–ÆBÒ7vâ€¢&ö6W72æW†V5F‚À¢°¢"ÒÖ–×÷'B"À¢"â÷FW7G2öÖÂÖfWF6‚×7GV"æÖ§2"À¢&æöFUöÖöGVÆW2öæW‡BöF—7Bö&–âöæW‡B"À¢'7F'B"À¢"×"À¢7G&–ær‡÷'B’À¢"ÒÖ†÷7FæÖR"À¢##rããã"À¢ÒÀ¢°¢7vC¢&ö6W72æ7vB‚’À¢Vçc¢°¢ââç&ö6W72æVçbÀ¢$D%õDU5Eôd•…EU$Uõ$Td•ƒ¢&Vf—‚À¢$D%ô”åDTÄÄ”tTä4UôTä$ÄTC¢#"À¢ÔU$4DõôÄ•e$Uô4Ä”TåEô”C¢'&F"×FW7BÖ"À¢ÔU$4DõôÄ•e$Uô4Ä”TåEõ4T5$UC¢'&F"×FW7B×6V7&WB"À¢DÔ”åôTÔ”Ã¢&÷W&F÷$&F"çFW7B"À¢DÔ”åõ55tõ$Eô„4ƒ¢†6‚À¢ôTä5%•D”ôåô´U“¢'&F"×FW7F–ærÖVæ7'—F–öâÖ¶W’ÖæWfW"Öf÷"×&öGV7F–öâ"À¢äU…EõT$Ä”5ôõU$Ã¢&6RÀ¢ÒÀ¢7FF–ó¢²&–væ÷&R"Â'—R"Â'—R%ÒÀ¢ÒÀ¢“°¦ÆWBÆöw2Ò"#°¦6†–ÆBç7FF÷WBæöâ‚&FF"Â†B’Óâ°¢Æöw2³ÒC°§Ò“°¦6†–ÆBç7FFW'"æöâ‚&FF"Â†B’Óâ°¢Æöw2³ÒC°§Ò“°¦ÆWB6†V6·2Ò°¦7–æ2gVæ7F–öâ6†V6²†æÖRÂfâ’°¢v—Bfâ‚“°¢6†V6·2²³°¢6öç6öÆRæÆör‚%52"²æÖR“°§Ğ¦7–æ2gVæ7F–öâ&W‡F‚Â6öö¶–RÒ""ÂÖWF†öBÒ$tUB"Â&öG’ÂW‡G&Ò·Ò’°¢6öç7B&W7öç6RÒv—BfWF6‚†&6R²F‚Â°¢ÖWF†öBÀ¢†VFW'3¢°¢âââ†6öö¶–Rò²6öö¶–RÒ¢·Ò’À¢âââ†&öG’ò²&6öçFVçB×G—R#¢&Æ–6F–öâö§6öâ"Ò¢·Ò’À¢ââæW‡G&À¢ÒÀ¢&öG“¢&öG’ò¥4ôâç7G&–æv–g’†&öG’’¢VæFVf–æVBÀ¢&VF—&V7C¢&ÖçVÂ"À¢Ò“°¢6öç7BFW‡BÒv—B&W7öç6RçFW‡B‚“°¢ÆWB§6öã°¢G'’°¢§6öâÒ¥4ôâç'6R‡FW‡B“°¢Ò6F6‚·Ğ¢&WGW&â°¢7FGW3¢&W7öç6Rç7FGW2À¢§6öâÀ¢FW‡BÀ¢6öö¶–S¢&W7öç6Ræ†VFW'2ævWB‚'6WBÖ6öö¶–R"“òç7Æ—B‚#²"•³ÒÀ¢†VFW'3¢&W7öç6Ræ†VFW'2À¢Ó°§Ğ¦7–æ2gVæ7F–öâÆöv–â†VÖ–ÂÂrÒ77v÷&B’°¢6öç7B"Òv—B&W‚"ö’öWF‚öÆöv–â"Â""Â%õ5B"Â²VÖ–ÂÂ77v÷&C¢rÒ“°¢76W'BæWVÂ‡"ç7FGW2Â#Â"çFW‡B“°¢76W'Bæö²‡"æ6öö¶–R“°¢&WGW&â"æ6öö¶–S°§Ğ¦7–æ2gVæ7F–öâ–ç6W'B‡F&ÆRÂFF’°¢6öç7B¶W—2Òö&¦V7Bæ¶W—2†FF“°¢v—BF"çVW'’€¢”å4U%B”åDò"G·F&ÆWÒ"‚G¶¶W—2æÖ‚†²’Óâr"r²²²r"r’æ¦ö–â‚"Â"—Ò’dÅTU2‚G¶¶W—2æÖ‚…òÂ’’Óâ"B"²†’²’’æ¦ö–â‚"Â"—Ò–À¢¶W—2æÖ‚†²’ÓâFF¶µÒ’À¢“°§Ğ¦gVæ7F–öâVæ7'—B‡fÇVR’°¢6öç7B¶W’Ò7&VFT†6‚‚'6†#Sb"¢çWFFR‚'&F"×FW7F–ærÖVæ7'—F–öâÖ¶W’ÖæWfW"Öf÷"×&öGV7F–öâ"¢æF–vW7B‚’À¢—bÒ&æFöÔ'—FW2ƒ"’À¢2Ò7&VFT6—†W&—b‚&W2Ó#SbÖv6Ò"Â¶W’Â—b“°¢6öç7BVæ7'—FVBÒ'VffW"æ6öæ6B…¶2çWFFR‡fÇVRÂ'WFc‚"’Â2æf–æÂ‚•Ò“°¢&WGW&â°¢'c"À¢—bçFõ7G&–ær‚&&6ScGW&Â"’À¢2ævWDWF…Fr‚’çFõ7G&–ær‚&&6ScGW&Â"’À¢Væ7'—FVBçFõ7G&–ær‚&&6ScGW&Â"’À¢Òæ¦ö–â‚"â"“°§Ğ¦6öç7B6WGF–æw2Ò°¢æÖS¢$÷W&:|:6òFRFW7FR"À¢F…W&6VçC¢BÀ¢÷W&F–æt6÷7DFVfVÇC¢À¢FVfVÇDF—66÷VçEW&6VçC¢À¢F&vWDÖ&v–åW&6VçC¢#À¢F&vWE&ö•W&6VçC¢3À¢ÆVEF–ÖTF—3¢rÀ¢6fWG•7Fö6´F—3¢rÀ¢7Fö6´6÷fW&vTF—3¢#À§Ó°§G'’°¢f÷"†ÆWB’Ò²’Âƒ²’²²’°¢–b†6†–ÆBæW†—D6öFRÒçVÆÂ’F‡&÷ræWrW'&÷"†Æöw2“°¢G'’°¢–b‚†v—BfWF6‚†&6R²"öÆöv–â"’’ç7FGW2ÓÓÒ#’'&V³°¢Ò6F6‚·Ğ¢v—BæWr&öÖ—6R‚‡"’Óâ6WEF–ÖV÷WB‡"ÂS’“°¢–b†’ÓÓÒs’’F‡&÷ræWrW'&÷"‚%6W'fW"F–ÖV÷WC¢"²Æöw2“°¢Ğ¢v—B6†V6²‚&æöç–Ö÷W2—2&R&÷FV7FVB"Â7–æ2‚’Óà¢76W'BæWVÂ‚†v—B&W‚"ö’÷v÷&·76R"’’ç7FGW2ÂC’À¢“°¢6öç7B÷W&F÷"Òv—BÆöv–â‚&÷W&F÷$&F"çFW7B"“°¢6öç7BVÖ–ÄÒ&Vf—‚²&&F"çFW7B"À¢VÖ–Ä"Ò&Vf—‚²&$&F"çFW7B#°¢v—B6†V6²‚&÷W&F÷"&÷f—6–öç2–æF—f–GVÂ6Æ–VçG2"Â7–æ2‚’Óâ°¢f÷"†6öç7B¶VÖ–ÂÂæÖUÒöb°¢¶VÖ–ÄÂ$÷W&:|:6ò%ÒÀ¢¶VÖ–Ä"Â$÷W&:|:6ò"%ÒÀ¢Ò¢76W'BæWVÂ€¢€¢v—B&W‚"ö’÷v÷&·76Rö6Æ–VçG2"Â÷W&F÷"Â%õ5B"Â°¢æÖRÀ¢VÖ–ÂÀ¢77v÷&BÀ¢F–Ç•&WVW7DÆ–Ö—C¢SÀ¢Ò¢’ç7FGW2À¢#À¢“°¢Ò“°¢6öç7B6öö¶–TÒv—BÆöv–â†VÖ–Ä’À¢6öö¶–T"Òv—BÆöv–â†VÖ–Ä"“°¢6öç7BW6W$Ò€¢v—BF"çVW'’‚u4TÄT5B¢e$ôÒ%&F%W6W""t„U$RVÖ–ÃÒCrÂ¶VÖ–ÄÒ¢’ç&÷w5³ÒÀ¢W6W$"Ò€¢v—BF"çVW'’‚u4TÄT5B¢e$ôÒ%&F%W6W""t„U$RVÖ–ÃÒCrÂ¶VÖ–Ä%Ò¢’ç&÷w5³Ó°¢v—B6†V6²€¢&æWr6Æ–VçB7F'G2v—F†÷WB–çfVçFVB&öf—B÷"6öæf—&ÖVBF‚"À¢7–æ2‚’Óâ°¢6öç7B"Òv—B&W‚"ö’öFV6—6–öç2"Â6öö¶–T“°¢76W'BæWVÂ‡"æ§6öâæ6öææV7FVBÂfÇ6R“°¢76W'BæWVÂ‡"æ§6öâç7VÖÖ'’ÂçVÆÂ“°¢76W'BæWVÂ‡"æ§6öâæ6öæf–wW&VBÂfÇ6R“°¢ÒÀ¢“°¢v—B6†V6²‚&6Æ–VçG26ææ÷BÖævR6Æ–VçG2"Â7–æ2‚’Óà¢76W'BæWVÂ‚†v—B&W‚"ö’÷v÷&·76Rö6Æ–VçG2"Â6öö¶–T’’ç7FGW2ÂC2’À¢“°¢v—B6†V6²‚&6Æ–VçB6WGF–æw26ææ÷BVÆWfFRÆâ"Â7–æ2‚’Óâ°¢76W'BæWVÂ€¢€¢v—B&W‚"ö’÷v÷&·76R"Â6öö¶–TÂ%D4‚"Â°¢ââç6WGF–æw2À¢Æã¢$%U4”äU52"À¢Ò¢’ç7FGW2À¢#À¢“°¢76W'BæWVÂ€¢†v—B&W‚"ö’÷v÷&·76R"Â6öö¶–T’’æ§6öâçv÷&·76RçÆâÀ¢%”ÄõB"À¢“°¢Ò“°¢v—B6†V6²‚&7&÷72Ö÷&–v–â×WFF–öç2&V¦V7FVB"Â7–æ2‚’Óà¢76W'BæWVÂ€¢€¢v—B&W‚"ö’÷v÷&·76R"Â6öö¶–TÂ%D4‚"Â6WGF–æw2Â°¢÷&–v–ã¢&‡GG3¢òöæ÷B×&F"çFW7B"À¢Ò¢’ç7FGW2À¢C2À¢’À¢“°¢6öç7Bæ÷rÒæWrFFR‚’À¢gWGW&RÒæWrFFR„FFRææ÷r‚’²3có“°¢6öç7B66÷VçG2ÒµÓ°¢f÷"†6öç7B·W6W"Â6VÆÆW"ÂÆ&VÅÒöb°¢·W6W$Â&Vf—‚²#"Â$%ÒÀ¢·W6W$"Â&Vf—‚²##"Â$"%ÒÀ¢Ò’°¢6öç7B66÷VçD–BÒ&Vf—‚²&66÷VçB"²Æ&VÃ°¢66÷VçG2çW6‚†66÷VçD–B“°¢v—B–ç6W'B‚$ÖW&6FôÆ—g&T66÷VçB"Â°¢–C¢66÷VçD–BÀ¢v÷&·76T–C¢W6W"çv÷&·76T–BÀ¢ÖW&6FôÆ—g&UW6W$–C¢6VÆÆW"À¢æ–6¶æÖS¢$Æö¦"²Æ&VÂÀ¢66W75Fö¶VäVæ7'—FVC¢Væ7'—B‚'FW7BÖ66W72"’À¢&Vg&W6…Fö¶VäVæ7'—FVC¢Væ7'—B‚'FW7B×&Vg&W6‚"’À¢Fö¶VäW‡—&W4C¢gWGW&RÀ¢WFFVDC¢æ÷rÀ¢Ò“°¢v—B–ç6W'B‚$ÖW&6FôÆ—g&U&öGV7B"Â°¢–C¢&Vf—‚²'&öGV7B"²Æ&VÂÀ¢ÖÄ—FVÔ–C¢$ÔÄ""²†Æ&VÂÓÓÒ$"ò#“““"¢#“““""’À¢6VÆÆW%W6W$–C¢6VÆÆW"À¢F—FÆS ¢Æ&VÂÓÓÒ$"ò$¶—B–ÆŒ;72ì+£SBF÷W&FòR&F"¢%&öGWFò&—fFò""À¢7FGW3¢&7F—fR"À¢7W'&VçE&–6S¢À¢f–Æ&ÆUVçF—G“¢RÀ¢7WÆ–W%&–6S¢CÀ¢&s¢·ÒÀ¢WFFVDC¢æ÷rÀ¢Ò“°¢v—B–ç6W'B‚$Ö&¶WD—FVÒ"Â°¢–C¢$ÔÄ#“““"À¢v÷&·76T–C¢W6W"çv÷&·76T–BÀ¢F—FÆS¢$ö'6W'f:|:6ò&—fF"²Æ&VÂÀ¢WFFVDC¢æ÷rÀ¢Ò“°¢v—B–ç6W'B‚%&öGV7B"Â°¢–C¢&Vf—‚²&Æö6Â"²Æ&VÂÀ¢v÷&·76T–C¢W6W"çv÷&·76T–BÀ¢æÖS¢%4µR&—fFò"²Æ&VÂÀ¢6·S¢%4ÔRÕ4µR"À¢7WÆ–W%&–6S¢CÀ¢WFFVDC¢æ÷rÀ¢Ò“°¢v—B–ç6W'B‚%&öGV7DæÇ—6—2"Â°¢–C¢&Vf—‚²&æÇ—6—2"²Æ&VÂÀ¢v÷&·76T–C¢W6W"çv÷&·76T–BÀ¢&öGV7DæÖS¢$ì:Æ—6R&—fF"²Æ&VÂÀ¢7WÆ–W%&–6S¢CÀ¢F—66÷VçEW&6VçC¢À¢Væ—D6÷7C¢CÀ¢W&6†6T6÷7C¢CÀ¢6ÆU&–6S¢À¢6öÖÖ—76–öåW&6VçC¢"À¢6öÖÖ—76–öäÖ÷VçC¢"À¢f—†VDfVS¢À¢6†—–æt6÷7C¢rÀ¢÷W&F–æt6÷7C¢À¢Ö÷VçE&V6V—fVC¢ƒÀ¢&öf—C¢3bÀ¢Ö&v–åW&6VçC¢3bÀ¢&ö•W&6VçC¢ƒrã‚À¢F&vWDÖ&v–åW&6VçC¢#À¢F&vWE&ö•W&6VçC¢3À¢Ö–æ–×VÕ7VvvW7FVE&–6S¢ƒÀ¢fW&F–7C¢$tôôB"À¢Ò“°¢v—B–ç6W'B‚%7–æ5'Vâ"Â°¢–C¢&Vf—‚²'7–æ2"²Æ&VÂÀ¢v÷&·76T–C¢W6W"çv÷&·76T–BÀ¢¶–æC¢$ÔÅôõ$DU%2"À¢7FGW3¢%5T44U52"À¢f–æ—6†VDC¢æ÷rÀ¢ÖWFFF¢²F—3¢“ÂG'Væ6FVC¢fÇ6RÒÀ¢Ò“°¢Ğ¢òò#R–B÷&FW'2&÷fRF÷FÇ26÷fW"ÆÂvW3²÷F†W"7FGW6W2æWfW"&V6öÖR&WfVçVR÷&öf—Bà¢v—BF"çVW'’€¢”å4U%B”åDò$ÖW&6FôÆ—g&T÷&FW""†–BÂ&ÖÄ÷&FW$–B"Â'6VÆÆW%W6W$–B"Ç7FGW2Â&FFT7&VFVB"Â'F÷FÄÖ÷VçB"Â&Ö&¶WGÆ6TfVUF÷FÂ"Â'6†—–æt6÷7B"Ç&öf—BÂ&Ö&v–åW&6VçB"Â'&öf—F&–Æ—G•7FGW2"Â&V6öæöÖ–75fW'6–öâ"Â'F…W&6VçDÆ–VB"Â&÷W&F–æt6÷7DÆ–VB"Ç&rÂ'WFFVDB"¢4TÄT5BCÇÆâÂCÇÆâÂC"Âw–BrÄäõr‚’ÃÃ"ÃrÃ3bÃ3bÂu$TÄ•¤TBrÃÃBÃÂw·ÒrÄäõr‚’e$ôÒvVæW&FU÷6W&–W2ƒÃ#R’æÀ¢·&Vf—‚²&÷&FW$"Â&Vf—‚²#%ÒÀ¢“°¢v—BF"çVW'’€¢”å4U%B”åDò$ÖW&6FôÆ—g&T÷&FW$—FVÒ"†–BÂ&W‡FW&æÄ¶W’"Â&÷&FW$–B"Â&ÖÄ—FVÔ–B"ÇF—FÆRÇVçF—G’Â'Væ—E&–6R"Â'Væ—D6÷7B"Ç&öf—BÂ'WFFVDB"’4TÄT5B–GÇÂv—FVÒrÆ–GÇÂv¶W’rÆ–BÂtÔÄ#“““rÂt¶—B–ÆŒ;72ì+£SBF÷W&FòR&FrÃÃÃCÃ3bÄäõr‚’e$ôÒ$ÖW&6FôÆ—g&T÷&FW""t„U$R'6VÆÆW%W6W$–B#ÒCÀ¢·&Vf—‚²#%ÒÀ¢“°¢f÷"†6öç7B·7Vff—‚Â7FGW2Â&VgVæEÒöb°¢²'VæF–ær"Â&6öæf—&ÖVB"ÂfÇ6UÒÀ¢²&6æ6VÂ"Â&6æ6VÆÆVB"ÂfÇ6UÒÀ¢²'&VgVæB"Â'–B"ÂG'VUÒÀ¢Ò¢v—B–ç6W'B‚$ÖW&6FôÆ—g&T÷&FW""Â°¢–C¢&Vf—‚²7Vff—‚À¢ÖÄ÷&FW$–C¢&Vf—‚²7Vff—‚À¢6VÆÆW%W6W$–C¢&Vf—‚²#"À¢7FGW2À¢FFT7&VFVC¢æ÷rÀ¢F÷FÄÖ÷VçC¢““’À¢&öf—C¢““’À¢&VgVæDFWFV7FVC¢&VgVæBÀ¢&s¢·ÒÀ¢WFFVDC¢æ÷rÀ¢Ò“°¢v—B–ç6W'B‚$ÖW&6FôÆ—g&T÷&FW""Â°¢–C¢&Vf—‚²&÷&FW$""À¢ÖÄ÷&FW$–C¢&Vf—‚²&÷&FW$""À¢6VÆÆW%W6W$–C¢&Vf—‚²##"À¢7FGW3¢'–B"À¢FFT7&VFVC¢æ÷rÀ¢F÷FÄÖ÷VçC¢À¢&s¢·ÒÀ¢WFFVDC¢æ÷rÀ¢Ò“°¢v—B6†V6²€¢&f–ææ6–Â7VÖÖ'’6÷fW'2WfW'’vRæBW†6ÇVFW2Vç–Bö6æ6VÆÆVB÷&VgVæFVB"À¢7–æ2‚’Óâ°¢6öç7B"Òv—B&W‚"ö’öÖÂ÷6ÆW3öF—3Ó3"Â6öö¶–T“°¢76W'BæWVÂ‡"ç7FGW2Â#Â"çFW‡B“°¢76W'BæWVÂ‡"æ§6öâç7VÖÖ'’æ÷&FW'2Â#R“°¢76W'BæWVÂ‡"æ§6öâç7VÖÖ'’æw&÷75&WfVçVRÂ#S“°¢76W'BæWVÂ‡"æ§6öâç7VÖÖ'’ç&VÆ—¦VE&öf—BÂs3ƒ“°¢76W'BæWVÂ‡"æ§6öâæ÷&FW'2æÆVæwF‚Â“°¢76W'BæWVÂ‡"æ§6öâçv–æF–öâçvW2Â2“°¢76W'Bæö²„'&’æ—4'&’‡"æ§6öâæÖ—76–æt6÷7G2’“°¢6öç7B–Æ÷BÒv—B&W‚"ö’÷–Æ÷Bö'&–Vf–ær"Â6öö¶–T“°¢76W'BæWVÂ‡–Æ÷Bç7FGW2Â#Â–Æ÷BçFW‡B“°¢76W'Bæö²„'&’æ—4'&’‡–Æ÷Bæ§6öâæ7F–öç2’“°¢76W'Bæö²‡–Æ÷Bæ§6öâæ7F–öç2ç6öÖR‚†’Óâæ¶–æBÓÓÒ%TU5D”ôâ"bböF6FòòçFW7B†æ†VFÆ–æR’’Â–Æ÷BçFW‡Bç6Æ–6RƒÂc’“°¢f÷"†ÆWB’Ò²’Â–Æ÷Bæ§6öâæ7F–öç2æÆVæwFƒ²’²²¢76W'Bæö²‡–Æ÷Bæ§6öâæ7F–öç5¶’ÒÒç7F¶RãÒ–Æ÷Bæ§6öâæ7F–öç5¶•Òç7F¶R“°¢76W'BæWVÂ‚†v—B&W‚"ö’÷–Æ÷Bö'&–Vf–ær"Â""’’ç7FGW2ÂC“°¢òò:|;VW2Fò–Æ÷Fó¢W†–vVÒ6öæf—&Ö:|:6òÂ&W7V—FÒFöæòÂ6öçFFòR—6òà¢76W'BæWVÂ‚†v—B&W‚"ö’÷–Æ÷B÷VW7F–öç2ó“öç7vW""Â6öö¶–TÂ%õ5B"Â²FW‡C¢$öÌ:6–Òâ"Ò’’ç7FGW2ÂC“°¢6öç7B6öçF7BÒv—B&W‚"ö’÷–Æ÷B÷VW7F–öç2ó“öç7vW""Â6öö¶–TÂ%õ5B"Â²FW‡C¢$6†Öæòv†G23““ƒsbÓSC3""Â6öæf—&Ó¢G'VRÒ“°¢76W'BæWVÂ†6öçF7Bç7FGW2ÂC#"Â6öçF7BçFW‡B“°¢76W'BæWVÂ‚†v—B&W‚"ö’÷–Æ÷B÷VW7F–öç2ó“"öç7vW""Â6öö¶–TÂ%õ5B"Â²FW‡C¢$öÌ:6–ÒÂfVæFVÖ÷2â"Â6öæf—&Ó¢G'VRÒ’’ç7FGW2ÂCB“°¢6öç7Bç7vW&VBÒv—B&W‚"ö’÷–Æ÷B÷VW7F–öç2ó“öç7vW""Â6öö¶–TÂ%õ5B"Â²FW‡C¢$öÌ:6–ÒÂfVæFVÖ÷2æòF6FòâW7FÖ÷2:F—7÷6œ:|:6òâ"Â6öæf—&Ó¢G'VRÒ“°¢76W'BæWVÂ†ç7vW&VBç7FGW2Â#Âç7vW&VBçFW‡B“°¢6öç7B&VÆ÷rÒv—B&W‚"ö’÷–Æ÷B÷&–6R"Â6öö¶–TÂ%õ5B"Â²ÖÄ—FVÔ–C¢$ÔÄ#“““"Â&–6S¢s"ÂW‡V7FVD7W'&VçC¢Â6öæf—&Ó¢G'VRÒ“°¢76W'BæWVÂ†&VÆ÷rç7FGW2ÂC#"Â&VÆ÷rçFW‡B“°¢76W'BæÖF6‚†&VÆ÷ræ§6öâæW'&÷"Âô&—†òFò—6òò“°¢6öç7B7FÆRÒv—B&W‚"ö’÷–Æ÷B÷&–6R"Â6öö¶–TÂ%õ5B"Â²ÖÄ—FVÔ–C¢$ÔÄ#“““"Â&–6S¢“RÂW‡V7FVD7W'&VçC¢“’Â6öæf—&Ó¢G'VRÒ“°¢76W'BæWVÂ‡7FÆRç7FGW2ÂC’Â7FÆRçFW‡B“°¢76W'BæWVÂ‚†v—B&W‚"ö’÷–Æ÷B÷&–6R"Â6öö¶–T"Â%õ5B"Â²ÖÄ—FVÔ–C¢$ÔÄ#“““"Â&–6S¢“RÂW‡V7FVD7W'&VçC¢Â6öæf—&Ó¢G'VRÒ’’ç7FGW2ãÒCÂG'VR“°¢6öç7B6†ævVBÒv—B&W‚"ö’÷–Æ÷B÷&–6R"Â6öö¶–TÂ%õ5B"Â²ÖÄ—FVÔ–C¢$ÔÄ#“““"Â&–6S¢“RÂW‡V7FVD7W'&VçC¢Â6öæf—&Ó¢G'VRÒ“°¢76W'BæWVÂ†6†ævVBç7FGW2Â#Â6†ævVBçFW‡B“°¢76W'BæWVÂ†6†ævVBæ§6öâægFW"Â“R“°¢6öç7BÆörÒv—BF"çVW'’‚u4TÄT5B¶–æBÂ7FGW2e$ôÒ%–Æ÷D7F–öäÆör"õ$DU"%’&7&VFVDB"r“°¢76W'BæFVWWVÂ†Æörç&÷w2æÖ‚‡"’Óâ"æ¶–æB²#¢"²"ç7FGW2’Â²$å5tU%õTU5D”ôã¤DôäR"Â%UDDUõ$”4S¤DôäR%Ò“°¢òòVFœ:|:6òF—&WFFòì;¦æ6–ó¢6öæfW&RòVRW7L:æòÔÂÂW†–vR6öæf—&Ö:|:6òÂ&Vv—7G&à¢6öç7BVF—D&6RÒ²ÖÄ—FVÔ–C¢$ÔÄ#“““"ÂW‡V7FVC¢²&–6S¢Âf–Æ&ÆUVçF—G“¢#Â7FGW3¢&7F—fR"ÒÓ°¢76W'BæWVÂ‚†v—B&W‚"ö’öÖÂ÷&öGV7G2öVF—B"Â6öö¶–TÂ%õ5B"Â²ââæVF—D&6RÂ7FGW3¢'W6VB"Ò’’ç7FGW2ÂC“°¢6öç7B7FÆTVF—BÒv—B&W‚"ö’öÖÂ÷&öGV7G2öVF—B"Â6öö¶–TÂ%õ5B"Â²ââæVF—D&6RÂW‡V7FVC¢²ââæVF—D&6RæW‡V7FVBÂf–Æ&ÆUVçF—G“¢2ÒÂ7FGW3¢'W6VB"Â6öæf—&Ó¢G'VRÒ“°¢76W'BæWVÂ‡7FÆTVF—Bç7FGW2ÂC’Â7FÆTVF—BçFW‡B“°¢6öç7BG—òÒv—B&W‚"ö’öÖÂ÷&öGV7G2öVF—B"Â6öö¶–TÂ%õ5B"Â²ââæVF—D&6RÂ&–6S¢Â6öæf—&Ó¢G'VRÒ“°¢76W'BæWVÂ‡G—òç7FGW2ÂC#"ÂG—òçFW‡B“°¢76W'BæWVÂ‚†v—B&W‚"ö’öÖÂ÷&öGV7G2öVF—B"Â6öö¶–T"Â%õ5B"Â²ââæVF—D&6RÂ7FGW3¢'W6VB"Â6öæf—&Ó¢G'VRÒ’’ç7FGW2ãÒCÂG'VR“°¢6öç7BVF—FVBÒv—B&W‚"ö’öÖÂ÷&öGV7G2öVF—B"Â6öö¶–TÂ%õ5B"Â²ââæVF—D&6RÂf–Æ&ÆUVçF—G“¢"Â7FGW3¢'W6VB"Â6öæf—&Ó¢G'VRÒ“°¢76W'BæWVÂ†VF—FVBç7FGW2Â#ÂVF—FVBçFW‡B“°¢6öç7BVF—FVE&÷rÒ†v—BF"çVW'’‚u4TÄT5B7FGW2Â&f–Æ&ÆUVçF—G’"e$ôÒ$ÖW&6FôÆ—g&U&öGV7B"t„U$R&ÖÄ—FVÔ–B#ÒCrÂ²$ÔÄ#“““%Ò’’ç&÷w5³Ó°¢76W'BæFVWWVÂ…¶VF—FVE&÷rç7FGW2ÂVF—FVE&÷ræf–Æ&ÆUVçF—G•ÒÂ²'W6VB"Â%Ò“°¢76W'BæWVÂ‚†v—BF"çVW'’†4TÄT5B6÷VçB‚¢“£¦–çB2âe$ôÒ%–Æ÷D7F–öäÆör"t„U$R¶–æCÒtTD•EôÄ•5D”ärräB7FGW3ÒtDôäRv’’ç&÷w5³ÒæâÂ“°¢v—BF"çVW'’‚uUDDR$ÖW&6FôÆ—g&U&öGV7B"4UB7FGW2ÒC"Â&f–Æ&ÆUVçF—G’"ÒRt„U$R&ÖÄ—FVÔ–B"ÒCrÂ²$ÔÄ#“““"Â&7F—fR%Ò“°¢6öç7BòÒv—B&W‚"ö’÷W&6†6RÖ÷&FW""Â6öö¶–T“°¢76W'BæWVÂ‡òç7FGW2Â#ÂòçFW‡B“°¢76W'Bæö²„'&’æ—4'&’‡òæ§6öâæ÷&FW'2’“°¢76W'BæWVÂ‚†v—B&W‚"ö’÷W&6†6RÖ÷&FW""Â""’’ç7FGW2ÂC“°¢òò&öÖü:|;VW3¢ÇV7&òæò&\:vòF6×æ†Â<;2ì;¦æ6–÷2,;7&–÷2Â6V—FR6öÒ6öæf—&Ö:|:6òà¢6öç7B&öÖ÷2Òv—B&W‚"ö’÷&öÖ÷F–öç2"Â6öö¶–T“°¢76W'BæWVÂ‡&öÖ÷2ç7FGW2Â#Â&öÖ÷2çFW‡B“°¢76W'BæFVWWVÂ‡&öÖ÷2æ§6öâæ–çf—FW2æÖ‚†’’Óâ’æÖÄ—FVÔ–B’Â²$ÔÄ#“““%Ò“°¢6öç7B&öÖòÒ&öÖ÷2æ§6öâæ–çf—FW5³Ó°¢76W'BæWVÂ‡&öÖòæFVÅ&–6RÂ“"“°¢76W'Bæö²…²$4T•D""Â$U%DDò"Â%$T5U4""Â%4TÕôDDõ2%ÒæyÓí¢G§²ÚîÆ­yÒ&6TÖ÷VçC¢2ãrÀ¢Ò“°¢76W'BæWVÂ€¢&W7öç6Ræ§6öâç6†—–æu6÷W&6RÀ¢$ÔU$4DõôÄ•e$Uõ4´tUôU5D”ÔDR"À¢“°¢76W'BæWVÂ‡&W7öç6Ræ§6öâç6†—–æt¶æ÷vâÂfÇ6R“°¢76W'BæWVÂ‡&W7öç6Ræ§6öâç6†—–ætW7F–ÖFVBÂG'VR“°¢76W'BæWVÂ‡&W7öç6Ræ§6öâç&W7VÇBç&öf—BÂ3ãR“°¢6öç7BWFöÖF–2Òv—B&W€¢"ö’öW‡FVç6–öâ÷&öf—F&–Æ—G’"À¢""À¢%õ5B"À¢²ââç–ÆöBÂ—FVÔ–C¢$ÔÄ#“““""Â6†—–æu6¶vS¢VæFVf–æVBÒÀ¢W‡FVç6–öä†VFW'2‚’À¢“°¢76W'BæWVÂ†WFöÖF–2ç7FGW2Â#ÂWFöÖF–2çFW‡B“°¢76W'BæWVÂ†WFöÖF–2æ§6öâç6†—–ætW7F–ÖFVBÂG'VR“°¢76W'BæWVÂ†WFöÖF–2æ§6öâç6†—–æu6¶vU6÷W&6RÂ$•DTÕô’"“°¢76W'BæWVÂ†WFöÖF–2æ§6öâæfVW2ç6†—–æt6÷7BÂbãƒR“°¢6öç7B÷F†W"Òv—B&W€¢"ö’öW‡FVç6–öâ÷&öf—F&–Æ—G’"À¢""À¢%õ5B"À¢–ÆöBÀ¢²WF†÷&—¦F–öã¢$&V&W""²W‡FVç6–öä%Fö¶VâÒÀ¢“°¢76W'BæWVÂ†÷F†W"ç7FGW2Â#Â÷F†W"çFW‡B“°¢76W'BæWVÂ†÷F†W"æ§6öâæfVW2ç6†—–æt6÷7BÂ’ãƒR“°¢6öç7BÖ—76–ærÒv—B&W€¢"ö’öW‡FVç6–öâ÷&öf—F&–Æ—G’"À¢""À¢%õ5B"À¢°¢ââç–ÆöBÀ¢6†—–æu6¶vS¢²ââç6†—–æu6¶vRÂvV–v‡Dw&×3¢““““’ÒÀ¢ÒÀ¢W‡FVç6–öä†VFW'2‚’À¢“°¢òò6VÒ6÷F:|:6òFRg&WFS¢ÖçL:–Òò7W7FòFW66öæ†V6–FòR&Æ÷VV–ò&W7VÇFFòf–æÂà¢76W'BæWVÂ†Ö—76–æræ§6öâç6†—–æu6÷W&6RÂ%Täd”Ä$ÄR"“°¢76W'BæWVÂ†Ö—76–æræ§6öâæfVW2ç6†—–æt6÷7BÂçVÆÂ“°¢76W'BæWVÂ†Ö—76–æræ§6öâç6†—–æuVæF–ærÂG'VR“°¢76W'BæWVÂ†Ö—76–æræ§6öâæf–Æ&–Æ—G’Â%%D”Â"“°¢76W'Bæö²†Ö—76–æræ§6öâæ77V×F–öç2ç6öÖR‚†’Óâæf–VÆBÓÓÒ'6†—–æt6÷7B"bbæÖFW&–Â’“°¢76W'BæWVÂ†Ö—76–æræ§6öâç&W7VÇBÂçVÆÂ“°¢76W'Bæö²†Ö—76–æræ§6öâææVVG2æ–æ6ÇVFW2‚'6†—–æt6÷7B"’“°¢6öç7B–çfÆ–BÒv—B&W€¢"ö’öW‡FVç6–öâ÷&öf—F&–Æ—G’"À¢""À¢%õ5B"À¢°¢ââç–ÆöBÀ¢6†—–æu6¶vS¢²ââç6†—–æu6¶vRÂvV–v‡Dw&×3¢ãRÒÀ¢ÒÀ¢W‡FVç6–öä†VFW'2‚’À¢“°¢76W'BæWVÂ†–çfÆ–Bç7FGW2ÂC“°¢ÒÀ¢“°¢v—B6†V6²€¢'&Wf–WvVB6æ6†÷G2&W6W'fR7WÆ–W"æBG277V×F–öç2v—F†÷WB&V6öÖ–ær&VÆ—¦VB&öf—B÷"7&÷76–ær6Æ–VçG2"À¢7–æ2‚’Óâ°¢6öç7B–ÆöBÒ°¢ââç6–×VÆF–öâÀ¢—FVÔ–C¢$ÔÄ#“““""À¢6ÆU&–6S¢À¢7WÆ–W%&–6S¢CÀ¢F…W&6VçC¢bÀ¢Æ—7F–æuG—S¢$4Ä54”2"À¢6†—–æu6¶vRÀ¢GfW'F—6–æs¢²&ö5F&vWC¢RÂGG&–'WFVE6ÆW5W&6VçC¢#ÒÀ¢Ó°¢6öç7B&W7öç6RÒv—B&W€¢"ö’öW‡FVç6–öâ÷&öf—F&–Æ—G’"À¢""À¢%õ5B"À¢–ÆöBÀ¢W‡FVç6–öä†VFW'2‚’À¢“°¢76W'BæWVÂ‡&W7öç6Ræ§6öâæG56–×VÆF–öâæ6÷7EW%6ÆRÂB“°¢76W'BæWVÂ‡&W7öç6Ræ§6öâæG56–×VÆF–öâç&öf—DgFW$G2Â#rãR“°¢6öç7B6†ævVBÒv—B&W€¢"ö’öW‡FVç6–öâ÷&öf—F&–Æ—G’"À¢""À¢%õ5B"À¢²ââç–ÆöBÂ6fS¢G'VRÂ6fTÖöFS¢%4ä4„õB"ÂW‡V7FVE&öf—C¢ÒÀ¢W‡FVç6–öä†VFW'2‚’À¢“°¢76W'BæWVÂ†6†ævVBç7FGW2ÂC’“°¢6öç7B6fVBÒv—B&W€¢"ö’öW‡FVç6–öâ÷&öf—F&–Æ—G’"À¢""À¢%õ5B"À¢°¢ââç–ÆöBÀ¢6fS¢G'VRÀ¢6fTÖöFS¢%4ä4„õB"À¢W‡V7FVE&öf—C¢3ãRÀ¢7WÆ–W$æÖS¢$f÷&æV6VF÷"FW7FR"À¢ÒÀ¢W‡FVç6–öä†VFW'2‚’À¢“°¢76W'BæWVÂ‡6fVBç7FGW2Â#Â6fVBçFW‡B“°¢76W'Bæö²‡6fVBæ§6öâç6fVDæÇ—6—4–B“°¢6öç7BÆ—7BÒv—B&W‚"ö’öæÇ—6W2"Â6öö¶–T“°¢6öç7B&÷rÒÆ—7Bæ§6öâææÇ—6W2æf–æB€¢†—FVÒ’Óâ—FVÒæ–BÓÓÒ6fVBæ§6öâç6fVDæÇ—6—4–BÀ¢“°¢76W'BæWVÂ‡&÷rç6÷W&6RÂ$U…DTå4”ôåõ4”ÕTÄD”ôâ"“°¢76W'BæWVÂ‡&÷rç&öGV7D–BÂçVÆÂ“°¢76W'BæWVÂ‡&÷rç7WÆ–W"Â$f÷&æV6VF÷"FW7FR"“°¢76W'BæWVÂ‡&÷rç&öf—BÂ3ãR“°¢76W'BæWVÂ€¢&÷ræÖWFFFç6†—–æu6÷W&6RÀ¢$ÔU$4DõôÄ•e$Uõ4´tUôU5D”ÔDR"À¢“°¢76W'BæWVÂ‡&÷ræÖWFFFæG56–×VÆF–öâç&öf—DgFW$G2Â#rãR“°¢6öç7B÷F†W"Òv—B&W‚"ö’öæÇ—6W2"Â6öö¶–T"“°¢76W'Bæö²†÷F†W"æ§6öâææÇ—6W2æWfW'’‚†—FVÒ’Óâ—FVÒæ–BÓÒ&÷ræ–B’“°¢6öç7B&VÖ÷fVBÒv—B&W€¢"ö’öæÇ—6W3ö–CÒ"²&÷ræ–BÀ¢6öö¶–T"À¢$DTÄUDR"À¢“°¢76W'BæWVÂ‡&VÖ÷fVBç7FGW2ÂCB“°¢ÒÀ¢“°¢v—B6†V6²€¢&Ö—76–ærF‚÷"g&V–v‡B7F—2Væ¶æ÷vâæB&Æö6·2&WfW'6R&öf—F&–Æ—G’VçF–Â6öæf—&ÖVB"À¢7–æ2‚’Óâ°¢6öç7B"Òv—B&W€¢"ö’öW‡FVç6–öâ÷&öf—F&–Æ—G’"À¢""À¢%õ5B"À¢²ââç6–×VÆF–öâÂV÷FTöæÇ“¢G'VRÒÀ¢W‡FVç6–öä†VFW'2‚’À¢“°¢76W'BæWVÂ‡"ç7FGW2Â#Â"çFW‡B“°¢76W'BæWVÂ‡"æ§6öâç&W7VÇBÂçVÆÂ“°¢76W'BæFVWWVÂ‡"æ§6öâææVVG2Â²'6†—–æt6÷7B%Ò“°¢76W'BæWVÂ‡"æ§6öâæfVU6÷W&6RÂ$ÔU$4DõôÄ•e$Uô’"“°¢6öç7Bf–VÆG2Ò"æ§6öâæ77V×F–öç2æÖ‚†’Óâæf–VÆB’ç6÷'B‚“°¢76W'BæFVWWVÂ†f–VÆG2Â²'6†—–æt6÷7B"Â'F…W&6VçB%Ò“°¢76W'BæÖF6‚‡"æ§6öâæ77V×F–öç2æf–æB‚†’Óâæf–VÆBÓÓÒ'6†—–æt6÷7B"’çFW‡BÂöì:6ò6öæf—&ÖÒg&WFR¦W&òò“°¢6öç7B²7WÆ–W%&–6RÂââçv—F†÷WD6÷7BÒÒ6–×VÆF–öã°¢76W'Bæö²‡7WÆ–W%&–6Râ“°¢6öç7B–æ6ö×ÆWFU&WfW'6RÒv—B&W‚"ö’öW‡FVç6–öâ÷&öf—F&–Æ—G’"Â""Â%õ5B"Âv—F†÷WD6÷7BÂW‡FVç6–öä†VFW'2‚’“°¢76W'BæWVÂ†–æ6ö×ÆWFU&WfW'6Ræ§6öâæf–Æ&–Æ—G’Â%%D”Â"“°¢76W'BæWVÂ†–æ6ö×ÆWFU&WfW'6Ræ§6öâç&WfW'6RÂçVÆÂ“°¢6öç7B6ö×ÆWFU&WfW'6U–ÆöBÒ²ââçv—F†÷WD6÷7BÂ6†—–æt6÷7C¢Ó°¢6öç7B&WfW'6RÒv—B&W‚"ö’öW‡FVç6–öâ÷&öf—F&–Æ—G’"Â""Â%õ5B"Â6ö×ÆWFU&WfW'6U–ÆöBÂW‡FVç6–öä†VFW'2‚’“°¢76W'BæWVÂ‡&WfW'6Rç7FGW2Â#Â&WfW'6RçFW‡B“°¢76W'BæWVÂ‡&WfW'6Ræ§6öâæf–Æ&–Æ—G’Â%$UdU%4R"“°¢76W'BæWVÂ‡&WfW'6Ræ§6öâç&W7VÇBÂçVÆÂ“°¢76W'Bæö²‡&WfW'6Ræ§6öâç&WfW'6Ræ'&V´WfVâãÒ&WfW'6Ræ§6öâç&WfW'6Ræf÷%F&vWDÖ&v–â“°¢76W'BæWVÂ‡&WfW'6Ræ§6öâç&WfW'6RçF&vWDÖ&v–åW&6VçBÂ#“°¢76W'BæWVÂ‡&WfW'6Ræ§6öâç&WfW'6RçF&vWE&ö•W&6VçBÂ3“°¢76W'Bæö²‡&WfW'6Ræ§6öâç&WfW'6RæÖ†–×VÕ7WÆ–W$6÷7BÃÒ&WfW'6Ræ§6öâç&WfW'6Ræf÷%F&vWDÖ&v–â“°¢76W'Bæö²‡&WfW'6Ræ§6öâç&WfW'6RæÖ†–×VÕ7WÆ–W$6÷7BÃÒ&WfW'6Ræ§6öâç&WfW'6Ræf÷%F&vWE&ö’“°¢6öç7B6fU&WfW'6RÒv—B&W‚"ö’öW‡FVç6–öâ÷&öf—F&–Æ—G’"Â""Â%õ5B"Â²ââæ6ö×ÆWFU&WfW'6U–ÆöBÂ6fS¢G'VRÒÂW‡FVç6–öä†VFW'2‚’“°¢76W'BæWVÂ‡6fU&WfW'6Rç7FGW2ÂC#"“°¢òò6Æ7VÆF÷&Fò6—FRW6ÖW6Ö&Vw&FW‡FVç<:6òà¢76W'BæWVÂ‚†v—B&W‚"ö’ö6Æ7VÆF÷""Â""Â%õ5B"Âv—F†÷WD6÷7B’’ç7FGW2ÂC“°¢6öç7BvV"Òv—B&W‚"ö’ö6Æ7VÆF÷""Â6öö¶–TÂ%õ5B"Â6ö×ÆWFU&WfW'6U–ÆöB“°¢76W'BæWVÂ‡vV"ç7FGW2Â#ÂvV"çFW‡B“°¢76W'BæWVÂ‡vV"æ§6öâæf–Æ&–Æ—G’Â%$UdU%4R"“°¢76W'BæFVWWVÂ‡vV"æ§6öâç&WfW'6RÂ&WfW'6Ræ§6öâç&WfW'6R“°¢ÒÀ¢“°¢v—B6†V6²€¢&ÖçVÂfVW2æBW‡Æ–6—B¦W&òg&V–v‡B6Æ7VÆFR6÷'&V7FÇ’v—F†÷WB6ö×WF—F÷"’"À¢7–æ2‚’Óâ°¢6öç7B"Òv—B&W€¢"ö’öW‡FVç6–öâ÷&öf—F&–Æ—G’"À¢""À¢%õ5B"À¢°¢ââç6–×VÆF–öâÀ¢F…W&6VçC¢À¢6†—–æt6÷7C¢À¢ÖçVÄfVW3¢²6öÖÖ—76–öåW&6VçC¢bãRÂf—†VDfVS¢ÒÀ¢ÒÀ¢W‡FVç6–öä†VFW'2‚’À¢“°¢76W'BæWVÂ‡"ç7FGW2Â#Â"çFW‡B“°¢76W'BæWVÂ‡"æ§6öâç&W7VÇBç&öf—BÂBãR“°¢76W'BæWVÂ‡"æ§6öâæfVU6÷W&6RÂ$ÔåTÂ"“°¢76W'BæWVÂ‡"æ§6öâç6†—–æt¶æ÷vâÂfÇ6R“°¢6öç7B6fRÒv—B&W€¢"ö’öW‡FVç6–öâ÷&öf—F&–Æ—G’"À¢""À¢%õ5B"À¢°¢ââç6–×VÆF–öâÀ¢F…W&6VçC¢À¢6†—–æt6÷7C¢À¢ÖçVÄfVW3¢²6öÖÖ—76–öåW&6VçC¢bãRÂf—†VDfVS¢ÒÀ¢6fS¢G'VRÀ¢ÒÀ¢W‡FVç6–öä†VFW'2‚’À¢“°¢76W'BæWVÂ‡6fRç7FGW2ÂC#"“°¢ÒÀ¢“°¢v—B6†V6²€¢'6–×VÆFVBÖöFÆ—G’÷fW'&–FW2F†R÷&–v–æÂÆ—7F–ærÖöFÆ—G’"À¢7–æ2‚’Óâ°¢6öç7B"Òv—B&W€¢"ö’öW‡FVç6–öâ÷&öf—F&–Æ—G’"À¢""À¢%õ5B"À¢°¢ââç6–×VÆF–öâÀ¢—FVÔ–C¢$ÔÄ#“““"À¢6ÆU&–6S¢À¢F…W&6VçC¢À¢6†—–æt6÷7C¢À¢Æ—7F–æuG—S¢%$TÔ•TÒ"À¢ÒÀ¢W‡FVç6–öä†VFW'2‚’À¢“°¢76W'BæWVÂ‡"ç7FGW2Â#Â"çFW‡B“°¢76W'BæWVÂ‡"æ§6öâç&W7VÇBæ6öÖÖ—76–öåW&6VçBÂbãR“°¢76W'BæWVÂ‡"æ§6öâæ—FVÒæÆ—7F–æuG—RÂ%$TÔ•TÒ"“°¢ÒÀ¢“°¢v—B6†V6²€¢&÷F–öæÂ’&W7G&–7F–öç2Fòæ÷BÖ&²6÷&R–çFVw&F–öâVæ†VÇF‡’"À¢7–æ2‚’Óâ°¢6öç7B"Òv—B&W€¢"ö’ö–çFVw&F–öç2öÖW&6FöÆ—g&RöF–væ÷7F–72"À¢6öö¶–TÀ¢“°¢76W'BæWVÂ‡"ç7FGW2Â#Â"çFW‡B“°¢76W'BæWVÂ‡"æ§6öâç7VÖÖ'’æ†VÇF‡’ÂG'VR“°¢76W'BæWVÂ€¢"æ§6öâæ6†V6·2æf–æB‚†2’Óâ2æ¶W’ÓÓÒ'&öGV7DG2"’ç7FFRÀ¢%$U5E$”5DTB"À¢“°¢76W'Bæö²‚"æ§6öâæ6†V6·2ç6öÖR‚†2’Óâ2æ¶W’ÓÓÒ&Æ–6F–öâ"’“°¢6öç7B7FFRÒ†¶W’’Óâ"æ§6öâæ6†V6·2æf–æB‚†2’Óâ2æ¶W’ÓÓÒ¶W’“òç7FFS°¢76W'BæWVÂ‡7FFR‚&—FVÕ&–6W2"’Â$d”Ä$ÄR"“°¢76W'BæWVÂ‡7FFR‚'VW7F–öç2"’Â$d”Ä$ÄR"“°¢76W'BæWVÂ‡7FFR‚'V&Æ–5W6W""’Â$d”Ä$ÄR"“°¢76W'BæÖF6‚‡"æ§6öâæ6†V6·2æf–æB‚†2’Óâ2æ¶W’ÓÓÒ'VW7F–öç2"’æw&çBÂô6ö×Væ–6:|;VW2,:’R;72×fVæFò“°¢ÒÀ¢“°¢ÆWB6V6öæDFWf–6UFö¶Vã°¢v—B6†V6²€¢'v÷&·76RV÷F—26†&VB7&÷72W‡FVç6–öâFWf–6W2"À¢7–æ2‚’Óâ°¢6öç7B6öFS"Ò&Vf—‚²'6V6öæBÖWF†÷&—¦F–öâÖ6öFR#°¢v—B–ç6W'B‚%&F$W‡FVç6–öäWF„6öFR"Â°¢–C¢&Vf—‚²&WF†6öFS""À¢6öFT†6ƒ¢7&VFT†6‚‚'6†#Sb"’çWFFR†6öFS"’æF–vW7B‚&&6ScGW&Â"’À¢ÖW&6FôÆ—g&T66÷VçD–C¢66÷VçG5³ÒÀ¢6öFT6†ÆÆVævS¢6†ÆÆVævRÀ¢&VF—&V7EW&“ ¢&‡GG3¢òò"²&"ç&WVBƒ3"’²"æ6‡&öÖ—VÖæ÷&r÷&F"ÖWF‚"À¢FWf–6T–C¢'6V6öæBÖFWf–6RÓ#3CSb"À¢W‡—&W4C¢gWGW&RÀ¢Ò“°¢6öç7BFö¶VâÒv—B&W‚"ö’öW‡FVç6–öâöWF‚÷Fö¶Vâ"Â""Â%õ5B"Â°¢w&çE÷G—S¢&WF†÷&—¦F–öåö6öFR"À¢6öFS¢6öFS"À¢6öFU÷fW&–f–W#¢fW&–f–W"À¢&VF—&V7E÷W&“ ¢&‡GG3¢òò"²&"ç&WVBƒ3"’²"æ6‡&öÖ—VÖæ÷&r÷&F"ÖWF‚"À¢Ò“°¢76W'BæWVÂ‡Fö¶Vâç7FGW2Â#ÂFö¶VâçFW‡B“°¢6V6öæDFWf–6UFö¶VâÒFö¶Vâæ§6öâæ66W75÷Fö¶Vã°¢v—BF"çVW'’€¢uUDDR%&F%v÷&·76R"4UB&F–Ç•&WVW7DÆ–Ö—B#Ó"t„U$R–CÒCrÀ¢·W6W$çv÷&·76T–EÒÀ¢“°¢v—BF"çVW'’€¢tDTÄUDRe$ôÒ%&F%v÷&·76UW6vR"t„U$R'v÷&·76T–B#ÒCrÀ¢·W6W$çv÷&·76T–EÒÀ¢“°¢f÷"†6öç7BfÇVRöb¶66W72æ66W75÷Fö¶VâÂFö¶Vâæ§6öâæ66W75÷Fö¶VåÒ¢76W'BæWVÂ€¢€¢v—B&W‚"ö’öW‡FVç6–öâöWF‚÷6W76–öâ"Â""Â$tUB"ÂVæFVf–æVBÂ°¢WF†÷&—¦F–öã¢$&V&W""²fÇVRÀ¢Ò¢’ç7FGW2À¢#À¢“°¢76W'BæWVÂ€¢€¢v—B&W‚"ö’öW‡FVç6–öâöWF‚÷6W76–öâ"Â""Â$tUB"ÂVæFVf–æVBÂ°¢WF†÷&—¦F–öã¢$&V&W""²66W72æ66W75÷Fö¶VâÀ¢Ò¢’ç7FGW2À¢C#’À¢“°¢ÒÀ¢“°¢v—B6†V6²‚&6öæ7W'&VçB6ÆÇ2&W7V7BF†R6†&VBF–Ç’6"Â7–æ2‚’Óâ°¢v—BF"çVW'’‚tDTÄUDRe$ôÒ%&F%v÷&·76UW6vR"t„U$R'v÷&·76T–B#ÒCrÂ°¢W6W$çv÷&·76T–BÀ¢Ò“°¢6öç7B&W7VÇG2Òv—B&öÖ—6RæÆÂ€¢'&’æg&öÒ‡²ÆVæwFƒ¢‚ÒÂ…òÂ–æFW‚’Óà¢&W‚"ö’öW‡FVç6–öâöWF‚÷6W76–öâ"Â""Â$tUB"ÂVæFVf–æVBÂ°¢WF†÷&—¦F–öã ¢$&V&W""²†–æFW‚R"ò6V6öæDFWf–6UFö¶Vâ¢66W72æ66W75÷Fö¶Vâ’À¢Ò’À¢’À¢“°¢76W'BæWVÂ€¢&W7VÇG2æf–ÇFW"‚‡"’Óâ"ç7FGW2ÓÓÒ#’æÆVæwF‚À¢"À¢¥4ôâç7G&–æv–g’‡&W7VÇG2æÖ‚‡"’Óâ"çFW‡B’’À¢“°¢76W'BæWVÂ‡&W7VÇG2æf–ÇFW"‚‡"’Óâ"ç7FGW2ÓÓÒC#’’æÆVæwF‚Âb“°¢6öç7BW6VBÒ€¢v—BF"çVW'’€¢u4TÄT5B&WVW7G2e$ôÒ%&F%v÷&·76UW6vR"t„U$R'v÷&·76T–B#ÒCrÀ¢·W6W$çv÷&·76T–EÒÀ¢¢’ç&÷w3°¢76W'BæWVÂ‡W6VBæÆVæwF‚Â“°¢76W'BæWVÂ‡W6VE³Òç&WVW7G2Â"“°¢Ò“°¢v—B6†V6²€¢'7W7Vç6–öâ–ÖÖVF–FVÇ’&Wfö¶W2vV"æBW‡FVç6–öâ66W72"À¢7–æ2‚’Óâ°¢76W'BæWVÂ€¢€¢v—B&W‚"ö’÷v÷&·76Rö6Æ–VçG2"Â÷W&F÷"Â%D4‚"Â°¢–C¢W6W$æ–BÀ¢7F—fS¢fÇ6RÀ¢Ò¢’ç7FGW2À¢#À¢“°¢76W'BæWVÂ‚†v—B&W‚"ö’÷v÷&·76R"Â6öö¶–T’’ç7FGW2ÂC“°¢76W'BæWVÂ€¢€¢v—B&W‚"ö’öW‡FVç6–öâöWF‚÷6W76–öâ"Â""Â$tUB"ÂVæFVf–æVBÂ°¢WF†÷&—¦F–öã¢$&V&W""²66W72æ66W75÷Fö¶VâÀ¢Ò¢’ç7FGW2À¢CÀ¢“°¢ÒÀ¢“°¢v—B6†V6²‚&Æöv÷WB&Wfö¶W26÷–VB6öö¶–R"Â7–æ2‚’Óâ°¢76W'BæWVÂ‚†v—B&W‚"ö’öWF‚öÆöv÷WB"Â6öö¶–T"Â%õ5B"’’ç7FGW2Â#“°¢76W'BæWVÂ‚†v—B&W‚"ö’÷v÷&·76R"Â6öö¶–T"’’ç7FGW2ÂC“°¢Ò“°¢–b‡&ö6W72æVçbå$D%õõ45$TTå4„õE2’°¢v—B&W‚"ö’÷v÷&·76Rö6Æ–VçG2"Â÷W&F÷"Â%D4‚"Â°¢–C¢W6W$æ–BÀ¢7F—fS¢G'VRÀ¢Ò“°¢6öç7Bg&W6‚Òv—BÆöv–â†VÖ–Ä“°¢v—BF"çVW'’€¢uUDDR%&F%v÷&·76R"4UB&F–Ç•&WVW7DÆ–Ö—B#ÓSt„U$R–CÒCrÀ¢·W6W$çv÷&·76T–EÒÀ¢“°¢v—BF"çVW'’‚tDTÄUDRe$ôÒ%&F%v÷&·76UW6vR"t„U$R'v÷&·76T–B#ÒCrÂ°¢W6W$çv÷&·76T–BÀ¢Ò“°¢v—B–×÷'B€¢&ö6W72æVçbå$D%õô%$õu4U%ôÔôETÄRóò"âö–çFVÆÆ–vVæ6RÖÖ'&÷w6W"æÖ§2 ¢’çF†Vâ†7–æ2‡²'Vä'&÷w6W$6†V6·2Ò’Óà¢'Vä'&÷w6W$6†V6·2‡²&6RÂ6öö¶–S¢g&W6‚Â÷W&F÷$6öö¶–S¢÷W&F÷"Ò’À¢“°¢Ğ¢v—B6†V6²€¢&÷&FW"7–æ2ÆÆö6FW26†&VB6†—ÖVçBöæ6RæB&W6W'fW2Væ¶æ÷vâ6†—–ær"À¢7–æ2‚’Óâ°¢6öç7B7F—fFVBÒv—B&W‚"ö’÷v÷&·76Rö6Æ–VçG2"Â÷W&F÷"Â%D4‚"Â°¢–C¢W6W$æ–BÀ¢7F—fS¢G'VRÀ¢Ò“°¢76W'BæWVÂ†7F—fFVBç7FGW2Â#Â7F—fFVBçFW‡B“°¢6öç7Bg&W6‚Òv—BÆöv–â†VÖ–Ä“°¢6öç7B"Òv—B&W‚"ö’öÖÂ÷6ÆW3öF—3Ó3g&Vg&W6ƒÓ"Âg&W6‚“°¢76W'BæWVÂ‡"ç7FGW2Â#Â"çFW‡B“°¢6öç7B&÷w2Ò€¢v—BF"çVW'’€¢u4TÄT5B&ÖÄ÷&FW$–B"Ç&öf—BÂ'6†—–æt6÷7B"Â'&öf—F&–Æ—G•7FGW2"e$ôÒ$ÖW&6FôÆ—g&T÷&FW""t„U$R&ÖÄ÷&FW$–B#Ôå’‚C£§FW‡EµÒ’rÀ¢°¢°¢&Vf—‚²'6²Ö"À¢&Vf—‚²'6²Ö""À¢&Vf—‚²&Ö—76–ær×6†—–ær"À¢&Vf—‚²&6æ6VÆÆVB"À¢ÒÀ¢ÒÀ¢¢’ç&÷w3°¢76W'BæWVÂ‡&÷w2æÆVæwF‚ÂB“°¢6öç7B6¶VBÒ&÷w2æf–ÇFW"‚†ò’ÓâòæÖÄ÷&FW$–Bæ–æ6ÇVFW2‚'6²Ò"’“°¢76W'BæWVÂ€¢6¶VBç&VGV6R‚‡2Âò’Óâ2²çVÖ&W"†òç6†—–æt6÷7B’Â’À¢#À¢“°¢76W'BæWVÂ€¢6¶VBç&VGV6R‚‡2Âò’Óâ2²çVÖ&W"†òç&öf—B’Â’À¢SÀ¢“°¢76W'BæWVÂ€¢&÷w2æf–æB‚†ò’ÓâòæÖÄ÷&FW$–BÓÓÒ&Vf—‚²&Ö—76–ær×6†—–ær"’ç&öf—BÀ¢çVÆÂÀ¢“°¢76W'BæWVÂ€¢&÷w2æf–æB‚†ò’ÓâòæÖÄ÷&FW$–BÓÓÒ&Vf—‚²&6æ6VÆÆVB"’ç&öf—BÀ¢çVÆÂÀ¢“°¢ÒÀ¢“°¢6öç6öÆRæÆör†…EEõ4Ôô´Uôô²G¶6†V6·7Ò6†V6·6“°§Ò6F6‚†W'&÷"’°¢6öç6öÆRæW'&÷"†Æöw2ç6Æ–6R‚ÓS’“°¢F‡&÷rW'&÷#°§Òf–æÆÇ’°¢6†–ÆBæ¶–ÆÂ‚%4”uDU$Ò"“°¢v—BF"æVæB‚“°§Ğ
+import assert from "node:assert/strict";
+import {
+  randomBytes,
+  scryptSync,
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+} from "node:crypto";
+import { spawn } from "node:child_process";
+import pg from "pg";
+import { loadTs } from "./load-ts.mjs";
+const { defaultKitScenario, generateKitCompositions } = await loadTs(
+  "../lib/kit-optimizer.ts",
+);
+
+if (process.env.RADAR_TEST_DATABASE !== "1")
+  throw new Error(
+    "RADAR_TEST_DATABASE=1 is required. Use an isolated test database.",
+  );
+pg.defaults.parseInputDatesAsUTC = true;
+const db = new pg.Client({ connectionString: process.env.DATABASE_URL });
+await db.connect();
+const port = Number(process.env.RADAR_TEST_PORT || 3319),
+  base = `http://127.0.0.1:${port}`;
+const password = "Radar-Teste-2026-Only";
+const salt = randomBytes(16);
+const hash = `scrypt:${salt.toString("base64url")}:${scryptSync(password, salt, 64).toString("base64url")}`;
+const prefix = "qa" + randomBytes(4).toString("hex");
+const child = spawn(
+  process.execPath,
+  [
+    "--import",
+    "./tests/ml-fetch-stub.mjs",
+    "node_modules/next/dist/bin/next",
+    "start",
+    "-p",
+    String(port),
+    "--hostname",
+    "127.0.0.1",
+  ],
+  {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      RADAR_TEST_FIXTURE_PREFIX: prefix,
+      RADAR_INTELLIGENCE_ENABLED: "1",
+      MERCADO_LIVRE_CLIENT_ID: "radar-test-app",
+      MERCADO_LIVRE_CLIENT_SECRET: "radar-test-secret",
+      ADMIN_EMAIL: "operator@radar.test",
+      ADMIN_PASSWORD_HASH: hash,
+      APP_ENCRYPTION_KEY: "radar-testing-encryption-key-never-for-production",
+      NEXT_PUBLIC_APP_URL: base,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  },
+);
+let logs = "";
+child.stdout.on("data", (d) => {
+  logs += d;
+});
+child.stderr.on("data", (d) => {
+  logs += d;
+});
+let checks = 0;
+async function check(name, fn) {
+  await fn();
+  checks++;
+  console.log("PASS " + name);
+}
+async function req(path, cookie = "", method = "GET", body, extra = {}) {
+  const response = await fetch(base + path, {
+    method,
+    headers: {
+      ...(cookie ? { cookie } : {}),
+      ...(body ? { "content-type": "application/json" } : {}),
+      ...extra,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+    redirect: "manual",
+  });
+  const text = await response.text();
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch {}
+  return {
+    status: response.status,
+    json,
+    text,
+    cookie: response.headers.get("set-cookie")?.split(";")[0],
+    headers: response.headers,
+  };
+}
+async function login(email, pw = password) {
+  const r = await req("/api/auth/login", "", "POST", { email, password: pw });
+  assert.equal(r.status, 200, r.text);
+  assert.ok(r.cookie);
+  return r.cookie;
+}
+async function insert(table, data) {
+  const keys = Object.keys(data);
+  await db.query(
+    `INSERT INTO "${table}" (${keys.map((k) => '"' + k + '"').join(",")}) VALUES (${keys.map((_, i) => "$" + (i + 1)).join(",")})`,
+    keys.map((k) => data[k]),
+  );
+}
+function encrypt(value) {
+  const key = createHash("sha256")
+      .update("radar-testing-encryption-key-never-for-production")
+      .digest(),
+    iv = randomBytes(12),
+    c = createCipheriv("aes-256-gcm", key, iv);
+  const encrypted = Buffer.concat([c.update(value, "utf8"), c.final()]);
+  return [
+    "v1",
+    iv.toString("base64url"),
+    c.getAuthTag().toString("base64url"),
+    encrypted.toString("base64url"),
+  ].join(".");
+}
+const settings = {
+  name: "OperaÃ§Ã£o de teste A",
+  taxPercent: 4,
+  operatingCostDefault: 1,
+  defaultDiscountPercent: 10,
+  targetMarginPercent: 20,
+  targetRoiPercent: 30,
+  leadTimeDays: 7,
+  safetyStockDays: 7,
+  stockCoverageDays: 21,
+};
+try {
+  for (let i = 0; i < 180; i++) {
+    if (child.exitCode != null) throw new Error(logs);
+    try {
+      if ((await fetch(base + "/login")).status === 200) break;
+    } catch {}
+    await new Promise((r) => setTimeout(r, 500));
+    if (i === 179) throw new Error("Server timeout: " + logs);
+  }
+  await check("anonymous APIs are protected", async () =>
+    assert.equal((await req("/api/workspace")).status, 401),
+  );
+  const operator = await login("operator@radar.test");
+  const emailA = prefix + "a@radar.test",
+    emailB = prefix + "b@radar.test";
+  await check("operator provisions individual clients", async () => {
+    for (const [email, name] of [
+      [emailA, "OperaÃ§Ã£o A"],
+      [emailB, "OperaÃ§Ã£o B"],
+    ])
+      assert.equal(
+        (
+          await req("/api/workspace/clients", operator, "POST", {
+            name,
+            email,
+            password,
+            dailyRequestLimit: 500,
+          })
+        ).status,
+        201,
+      );
+  });
+  const cookieA = await login(emailA),
+    cookieB = await login(emailB);
+  const userA = (
+      await db.query('SELECT * FROM "RadarUser" WHERE email=$1', [emailA])
+    ).rows[0],
+    userB = (
+      await db.query('SELECT * FROM "RadarUser" WHERE email=$1', [emailB])
+    ).rows[0];
+  await check(
+    "new client starts without invented profit or confirmed tax",
+    async () => {
+      const r = await req("/api/decisions", cookieA);
+      assert.equal(r.json.connected, false);
+      assert.equal(r.json.summary, null);
+      assert.equal(r.json.configured, false);
+    },
+  );
+  await check("clients cannot manage clients", async () =>
+    assert.equal((await req("/api/workspace/clients", cookieA)).status, 403),
+  );
+  await check("client settings cannot elevate a plan", async () => {
+    assert.equal(
+      (
+        await req("/api/workspace", cookieA, "PATCH", {
+          ...settings,
+          plan: "BUSINESS",
+        })
+      ).status,
+      200,
+    );
+    assert.equal(
+      (await req("/api/workspace", cookieA)).json.workspace.plan,
+      "PILOT",
+    );
+  });
+  await check("cross-origin mutations rejected", async () =>
+    assert.equal(
+      (
+        await req("/api/workspace", cookieA, "PATCH", settings, {
+          origin: "https://not-radar.test",
+        })
+      ).status,
+      403,
+    ),
+  );
+  const now = new Date(),
+    future = new Date(Date.now() + 3600_000);
+  const accounts = [];
+  for (const [user, seller, label] of [
+    [userA, prefix + "100", "A"],
+    [userB, prefix + "200", "B"],
+  ]) {
+    const accountId = prefix + "account" + label;
+    accounts.push(accountId);
+    await insert("MercadoLivreAccount", {
+      id: accountId,
+      workspaceId: user.workspaceId,
+      mercadoLivreUserId: seller,
+      nickname: "Loja " + label,
+      accessTokenEncrypted: encrypt("test-access"),
+      refreshTokenEncrypted: encrypt("test-refresh"),
+      tokenExpiresAt: future,
+      updatedAt: now,
+    });
+    await insert("MercadoLivreProduct", {
+      id: prefix + "product" + label,
+      mlItemId: "MLB" + (label === "A" ? "999000001" : "999000002"),
+      sellerUserId: seller,
+      title:
+        label === "A" ? "Kit ilhÃ³s nÂº54 dourado e prata" : "Produto privado B",
+      status: "active",
+      currentPrice: 100,
+      availableQuantity: 5,
+      supplierPrice: 40,
+      raw: {},
+      updatedAt: now,
+    });
+    await insert("MarketItem", {
+      id: "MLB999000100",
+      workspaceId: user.workspaceId,
+      title: "ObservaÃ§Ã£o privada " + label,
+      updatedAt: now,
+    });
+    await insert("Product", {
+      id: prefix + "local" + label,
+      workspaceId: user.workspaceId,
+      name: "SKU privado " + label,
+      sku: "SAME-SKU",
+      supplierPrice: 40,
+      updatedAt: now,
+    });
+    await insert("ProductAnalysis", {
+      id: prefix + "analysis" + label,
+      workspaceId: user.workspaceId,
+      productName: "AnÃ¡lise privada " + label,
+      supplierPrice: 40,
+      discountPercent: 0,
+      unitCost: 40,
+      purchaseCost: 40,
+      salePrice: 100,
+      commissionPercent: 12,
+      commissionAmount: 12,
+      fixedFee: 0,
+      shippingCost: 7,
+      operatingCost: 1,
+      amountReceived: 81,
+      profit: 36,
+      marginPercent: 36,
+      roiPercent: 87.8,
+      targetMarginPercent: 20,
+      targetRoiPercent: 30,
+      minimumSuggestedPrice: 80,
+      verdict: "GOOD",
+    });
+    await insert("SyncRun", {
+      id: prefix + "sync" + label,
+      workspaceId: user.workspaceId,
+      kind: "ML_ORDERS",
+      status: "SUCCESS",
+      finishedAt: now,
+      metadata: { days: 90, truncated: false },
+    });
+  }
+  // 205 paid orders prove totals cover all pages; other statuses never become revenue/profit.
+  await db.query(
+    `INSERT INTO "MercadoLivreOrder" (id,"mlOrderId","sellerUserId",status,"dateCreated","totalAmount","marketplaceFeeTotal","shippingCost",profit,"marginPercent","profitabilityStatus","economicsVersion","taxPercentApplied","operatingCostApplied",raw,"updatedAt")
+ SELECT $1||n,$1||n,$2,'paid',NOW(),100,12,7,36,36,'REALIZED',1,4,1,'{}',NOW() FROM generate_series(1,205) n`,
+    [prefix + "orderA", prefix + "100"],
+  );
+  await db.query(
+    `INSERT INTO "MercadoLivreOrderItem" (id,"externalKey","orderId","mlItemId",title,quantity,"unitPrice","unitCost",profit,"updatedAt") SELECT id||'item',id||'key',id,'MLB999000001','Kit ilhÃ³s nÂº54 dourado e prata',1,100,40,36,NOW() FROM "MercadoLivreOrder" WHERE "sellerUserId"=$1`,
+    [prefix + "100"],
+  );
+  for (const [suffix, status, refund] of [
+    ["pending", "confirmed", false],
+    ["cancel", "cancelled", false],
+    ["refund", "paid", true],
+  ])
+    await insert("MercadoLivreOrder", {
+      id: prefix + suffix,
+      mlOrderId: prefix + suffix,
+      sellerUserId: prefix + "100",
+      status,
+      dateCreated: now,
+      totalAmount: 999,
+      profit: 999,
+      refundDetected: refund,
+      raw: {},
+      updatedAt: now,
+    });
+  await insert("MercadoLivreOrder", {
+    id: prefix + "orderB",
+    mlOrderId: prefix + "orderB",
+    sellerUserId: prefix + "200",
+    status: "paid",
+    dateCreated: now,
+    totalAmount: 10000,
+    raw: {},
+    updatedAt: now,
+  });
+  await check(
+    "financial summary covers every page and excludes unpaid/cancelled/refunded",
+    async () => {
+      const r = await req("/api/ml/sales?days=30", cookieA);
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.summary.orders, 205);
+      assert.equal(r.json.summary.grossRevenue, 20500);
+      assert.equal(r.json.summary.realizedProfit, 7380);
+      assert.equal(r.json.orders.length, 100);
+      assert.equal(r.json.pagination.pages, 3);
+      assert.ok(Array.isArray(r.json.missingCosts));
+      const pilot = await req("/api/pilot/briefing", cookieA);
+      assert.equal(pilot.status, 200, pilot.text);
+      assert.ok(Array.isArray(pilot.json.actions));
+      assert.ok(pilot.json.actions.some((a) => a.kind === "QUESTION" && /atacado/.test(a.headline)), pilot.text.slice(0, 600));
+      for (let i = 1; i < pilot.json.actions.length; i++)
+        assert.ok(pilot.json.actions[i - 1].stake >= pilot.json.actions[i].stake);
+      assert.equal((await req("/api/pilot/briefing", "")).status, 401);
+      // AÃ§Ãµes do Piloto: exigem confirmaÃ§Ã£o, respeitam dono, contato e piso.
+      assert.equal((await req("/api/pilot/questions/9001/answer", cookieA, "POST", { text: "OlÃ¡! Sim." })).status, 400);
+      const contact = await req("/api/pilot/questions/9001/answer", cookieA, "POST", { text: "Chama no whats 31 99876-5432", confirm: true });
+      assert.equal(contact.status, 422, contact.text);
+      assert.equal((await req("/api/pilot/questions/9002/answer", cookieA, "POST", { text: "OlÃ¡! Sim, vendemos.", confirm: true })).status, 404);
+      const answered = await req("/api/pilot/questions/9001/answer", cookieA, "POST", { text: "OlÃ¡! Sim, vendemos no atacado. Estamos Ã  disposiÃ§Ã£o.", confirm: true });
+      assert.equal(answered.status, 200, answered.text);
+      const below = await req("/api/pilot/price", cookieA, "POST", { mlItemId: "MLB999000001", price: 72, expectedCurrent: 100, confirm: true });
+      assert.equal(below.status, 422, below.text);
+      assert.match(below.json.error, /Abaixo do piso/);
+      const stale = await req("/api/pilot/price", cookieA, "POST", { mlItemId: "MLB999000001", price: 95, expectedCurrent: 99, confirm: true });
+      assert.equal(stale.status, 409, stale.text);
+      assert.equal((await req("/api/pilot/price", cookieB, "POST", { mlItemId: "MLB999000001", price: 95, expectedCurrent: 100, confirm: true })).status >= 400, true);
+      const changed = await req("/api/pilot/price", cookieA, "POST", { mlItemId: "MLB999000001", price: 95, expectedCurrent: 100, confirm: true });
+      assert.equal(changed.status, 200, changed.text);
+      assert.equal(changed.json.after, 95);
+      const log = await db.query('SELECT kind, status FROM "PilotActionLog" ORDER BY "createdAt"');
+      assert.deepEqual(log.rows.map((r) => r.kind + ":" + r.status), ["ANSWER_QUESTION:DONE", "UPDATE_PRICE:DONE"]);
+      // EdiÃ§Ã£o direta do anÃºncio: confere o que estÃ¡ no ML, exige confirmaÃ§Ã£o, registra.
+      const editBase = { mlItemId: "MLB999000001", expected: { price: 100, availableQuantity: 20, status: "active" } };
+      assert.equal((await req("/api/ml/products/edit", cookieA, "POST", { ...editBase, status: "paused" })).status, 400);
+      const staleEdit = await req("/api/ml/products/edit", cookieA, "POST", { ...editBase, expected: { ...editBase.expected, availableQuantity: 3 }, status: "paused", confirm: true });
+      assert.equal(staleEdit.status, 409, staleEdit.text);
+      const typo = await req("/api/ml/products/edit", cookieA, "POST", { ...editBase, price: 1000, confirm: true });
+      assert.equal(typo.status, 422, typo.text);
+      assert.equal((await req("/api/ml/products/edit", cookieB, "POST", { ...editBase, status: "paused", confirm: true })).status >= 400, true);
+      const edited = await req("/api/ml/products/edit", cookieA, "POST", { ...editBase, availableQuantity: 12, status: "paused", confirm: true });
+      assert.equal(edited.status, 200, edited.text);
+      const editedRow = (await db.query('SELECT status, "availableQuantity" FROM "MercadoLivreProduct" WHERE "mlItemId"=$1', ["MLB999000001"])).rows[0];
+      assert.deepEqual([editedRow.status, editedRow.availableQuantity], ["paused", 12]);
+      assert.equal((await db.query(`SELECT count(*)::int AS n FROM "PilotActionLog" WHERE kind='EDIT_LISTING' AND status='DONE'`)).rows[0].n, 1);
+      await db.query('UPDATE "MercadoLivreProduct" SET status = $2, "availableQuantity" = 5 WHERE "mlItemId" = $1', ["MLB999000001", "active"]);
+      const po = await req("/api/purchase-order", cookieA);
+      assert.equal(po.status, 200, po.text);
+      assert.ok(Array.isArray(po.json.orders));
+      assert.equal((await req("/api/purchase-order", "")).status, 401);
+      // PromoÃ§Ãµes: lucro no preÃ§o da campanha, sÃ³ anÃºncios prÃ³prios, aceite com confirmaÃ§Ã£o.
+      const promos = await req("/api/promotions", cookieA);
+      assert.equal(promos.status, 200, promos.text);
+      assert.deepEqual(promos.json.invites.map((i) => i.mlItemId), ["MLB999000001"]);
+      const promo = promos.json.invites[0];
+      assert.equal(promo.dealPrice, 92);
+      assert.ok(["ACEITAR", "APERTADO", "RECUSAR", "SEM_DADOS"].includes(promo.verdict));
+      const joinReq = { mlItemId: "MLB999000001", promotionId: "P-MLB1", promotionType: "DEAL" };
+      assert.equal((await req("/api/promotions/join", cookieA, "POST", joinReq)).status, 400);
+      assert.equal((await req("/api/promotions/join", cookieA, "POST", { ...joinReq, mlItemId: "MLB999000002", confirm: true })).status, 404);
+      const join = await req("/api/promotions/join", cookieA, "POST", { ...joinReq, allowTight: true, confirm: true });
+      if (promo.verdict === "ACEITAR" || promo.verdict === "APERTADO") {
+        assert.equal(join.status, 200, join.text);
+        assert.equal((await db.query(`SELECT count(*)::int AS n FROM "PilotActionLog" WHERE kind='JOIN_PROMOTION' AND status='DONE'`)).rows[0].n, 1);
+      } else assert.equal(join.status, 422, join.text);
+      // Melhorar anÃºncio: diagnÃ³stico sÃ³ leitura; tÃ­tulo, descriÃ§Ã£o e ficha sÃ³ com confirmaÃ§Ã£o.
+      const qList = await req("/api/ml/listing-quality", cookieA);
+      assert.equal(qList.status, 200, qList.text);
+      assert.ok(qList.json.products.some((p) => p.mlItemId === "MLB999000001"));
+      const quality = await req("/api/ml/listing-quality?id=MLB999000001", cookieA);
+      assert.equal(quality.status, 200, quality.text);
+      assert.equal(typeof quality.json.diagnosis.score, "number");
+      assert.ok(quality.json.diagnosis.checks.some((c) => c.id === "GTIN"));
+      assert.equal(quality.json.item.description, "IlhÃ³s dourado.");
+      assert.equal((await req("/api/ml/listing-quality?id=MLB999000002", cookieA)).status, 404);
+      assert.equal((await req("/api/ml/listing-quality?id=MLB999000001", "")).status, 401);
+      assert.ok([503, 200].includes((await req("/api/ml/listing-quality/suggest", cookieA, "POST", { mlItemId: "MLB999000001" })).status));
+      const apply = (body) => req("/api/ml/listing-quality/apply", cookieA, "POST", { mlItemId: "MLB999000001", confirm: true, ...body });
+      const liveTitle = quality.json.item.title;
+      assert.equal((await req("/api/ml/listing-quality/apply", cookieA, "POST", { mlItemId: "MLB999000001", field: "title", title: "IlhÃ³s NÂº54 Dourado Baxmann", expectedTitle: liveTitle })).status, 400);
+      assert.equal((await apply({ field: "title", title: "IlhÃ³s NÂº54 Dourado Baxmann", expectedTitle: "outro" })).status, 409);
+      const tOk = await apply({ field: "title", title: "IlhÃ³s NÂº54 Dourado Baxmann", expectedTitle: liveTitle });
+      assert.equal(tOk.status, 200, tOk.text);
+      assert.equal((await apply({ field: "description", description: "IlhÃ³s nÂº54 dourado da Baxmann, para banner e lona." })).status, 200);
+      assert.equal((await apply({ field: "attributes", attributes: [{ id: "INVENTADO", valueName: "x" }] })).status, 422);
+      assert.equal((await apply({ field: "attributes", attributes: [{ id: "BRAND", valueName: "Baxmann" }] })).status, 200);
+      assert.equal((await req("/api/ml/listing-quality/apply", cookieA, "POST", { mlItemId: "MLB999000002", confirm: true, field: "description", description: "x".repeat(30) })).status, 404);
+      assert.equal((await db.query(`SELECT count(*)::int AS n FROM "PilotActionLog" WHERE kind='IMPROVE_LISTING' AND status='DONE'`)).rows[0].n, 3);
+      await db.query('UPDATE "MercadoLivreProduct" SET "currentPrice" = 100 WHERE "mlItemId" = $1', ["MLB999000001"]);
+      await db.query('UPDATE "MercadoLivreProduct" SET "categoryId" = $2 WHERE "mlItemId" = $1', ["MLB999000001", "MLB1234"]);
+      const hunter = await req("/api/hunter?refresh=1", cookieA);
+      assert.equal(hunter.status, 200, hunter.text);
+      assert.equal(hunter.json.seeds[0].id, "MLB1234");
+      const found = hunter.json.candidates.find((c) => c.productId === "MLB88800001");
+      assert.ok(found, hunter.text.slice(0, 800));
+      assert.ok(found.reasons.some((r) => /3Âº mais vendido/.test(r)));
+      assert.ok(found.maxCost == null || found.formula);
+      for (const row of r.json.missingCosts) {
+        assert.match(row.mlItemId, /^MLB/);
+        assert.ok(row.units > 0);
+      }
+    },
+  );
+  await check(
+    "sourcing journey: product, supplier, CNPJ, quote, viability and isolation",
+    async () => {
+      const created = await req("/api/sourcing/opportunities", cookieA, "POST", {
+        title: "IlhÃ³s nÂº 54 Baxmann 1000 unidades",
+        brand: "Baxmann",
+        referencePrice: 42.9,
+        referenceSource: "MANUAL",
+      });
+      assert.equal(created.status, 201, created.text);
+      const id = created.json.opportunity.id;
+      assert.equal(created.json.opportunity.packQuantity, 1000);
+      let view = (await req("/api/sourcing/opportunities/" + id, cookieA)).json;
+      assert.equal(view.nextAction.title, "Encontrar fornecedores");
+      const search = await req(`/api/sourcing/opportunities/${id}/search`, cookieA, "POST");
+      assert.equal(search.status, 200, search.text);
+      assert.equal(search.json.search.status, "DESLIGADO");
+      assert.equal(search.json.search.candidates.length, 0);
+      assert.ok(search.json.search.manualLinks.length >= 3);
+      const bad = await req("/api/sourcing/suppliers", cookieA, "POST", {
+        name: "CNPJ errado", cnpj: "00.000.000/0001-92",
+      });
+      assert.equal(bad.status, 400);
+      const supplier = await req("/api/sourcing/suppliers", cookieA, "POST", {
+        name: "Distribuidor Teste",
+        kind: "DISTRIBUIDOR",
+        cnpj: "00.000.000/0001-91",
+        sellsToCpf: true,
+        opportunityId: id,
+      });
+      assert.equal(supplier.status, 201, supplier.text);
+      const supplierId = supplier.json.supplier.id;
+      const checked = await req(`/api/sourcing/suppliers/${supplierId}/cnpj`, cookieA, "POST");
+      assert.equal(checked.status, 200, checked.text);
+      assert.equal(checked.json.supplier.cnpjCheck.status, "ATIVA");
+      assert.equal(checked.json.supplier.state, "MG");
+      // Cadastro completo: CNPJ preenche, campos novos voltam, outra conta nÃ£o enxerga.
+      const lookup = await req("/api/sourcing/cnpj?cnpj=00.000.000/0001-91", cookieA);
+      assert.equal(lookup.status, 200, lookup.text);
+      assert.equal(lookup.json.check.legalName, "FORNECEDOR TESTE SA");
+      assert.equal((await req("/api/sourcing/cnpj?cnpj=123", cookieA)).status, 400);
+      assert.equal((await req("/api/sourcing/cnpj?cnpj=00000000000191", "")).status, 401);
+      const edited = await req(`/api/sourcing/suppliers/${supplierId}`, cookieA, "PATCH", { contactName: "Ana", paymentTerms: "Boleto 28 dias", address: "Rua A, 1", zipCode: "30180-100" });
+      assert.equal(edited.status, 200, edited.text);
+      assert.equal(edited.json.supplier.paymentTerms, "Boleto 28 dias");
+      assert.equal(edited.json.supplier.contactName, "Ana");
+      assert.equal((await req(`/api/sourcing/suppliers/${supplierId}`, cookieB, "PATCH", { contactName: "X" })).status, 404);
+      view = (await req("/api/sourcing/opportunities/" + id, cookieA)).json;
+      assert.equal(view.nextAction.title, "Solicitar cotaÃ§Ã£o de atacado");
+      assert.equal(
+        view.suppliers[0].qualification.criteria.find((c) => c.key === "cnpj").state,
+        "OK",
+      );
+      const quote = await req("/api/sourcing/quotes", cookieA, "POST", {
+        opportunityId: id,
+        supplierId,
+        unitPrice: 0.018,
+        unitsPerPack: 1000,
+        minUnits: 5000,
+        freightCost: 30,
+        exactMatch: true,
+        source: "COTACAO_RECEBIDA",
+      });
+      assert.equal(quote.status, 201, quote.text);
+      assert.equal(quote.json.best.status, "FALTAM_DADOS");
+      assert.equal(quote.json.nextAction.title, "Completar custos de venda");
+      assert.equal(quote.json.nextAction.tab, "mercado");
+      assert.ok(quote.json.best.missing.includes("frete do vendedor"));
+      const quotePath = `/api/sourcing/quotes/${quote.json.quotes[0].id}`;
+      const updatedQuote = { unitPrice: 0.01799, freightCost: null, source: "COTACAO_RECEBIDA" };
+      assert.equal((await req(quotePath, cookieB, "PATCH", updatedQuote)).status, 404);
+      const pending = await req(quotePath, cookieA, "PATCH", updatedQuote);
+      assert.equal(pending.status, 200, pending.text);
+      assert.equal(pending.json.quotes[0].unitPrice, 0.01799);
+      assert.equal(pending.json.best.freightPending, true);
+      assert.equal(pending.json.best.perSale, null);
+      assert.equal((await req(quotePath, cookieA, "PATCH", { ...updatedQuote, freightCost: 30 })).status, 200);
+      const filled = await req("/api/sourcing/opportunities/" + id, cookieA, "PATCH", {
+        commissionPercent: 12,
+        fixedFee: 6.25,
+        shippingCost: 0,
+        taxPercent: 6,
+        operatingCost: 1,
+        budget: 500,
+      });
+      assert.equal(filled.status, 200, filled.text);
+      assert.equal(filled.json.best.status, "CALCULADO");
+      assert.equal(filled.json.best.landedUnitCost < 0.03, true);
+      assert.notEqual(filled.json.best.landedUnitCost, 0.02);
+      assert.equal(filled.json.best.order.limitedBy, "ORCAMENTO");
+      assert.ok(filled.json.best.order.capital <= 500);
+      assert.ok(filled.json.best.perSale.profit > 0);
+      const capital = await req("/api/sourcing/capital", cookieA, "POST", {
+        capital: 200, profile: "CPF", minMarginPercent: 5,
+      });
+      assert.equal(capital.status, 200, capital.text);
+      assert.equal(capital.json.matches.length, 1);
+      const link = { supplierId, opportunityId: id };
+      assert.equal((await req("/api/sourcing/suppliers", cookieB, "POST", link)).status, 404);
+      assert.equal((await req("/api/sourcing/suppliers", cookieA, "POST", link)).status, 200);
+      assert.equal((await req("/api/sourcing/suppliers", cookieA, "POST", link)).status, 200);
+      const resumed = await req("/api/sourcing/opportunities/" + id, cookieA);
+      assert.equal(resumed.json.suppliers.filter((entry) => entry.id === supplierId).length, 1);
+      // Workspace B never sees or changes A's sourcing data.
+      assert.equal((await req("/api/sourcing/opportunities/" + id, cookieB)).status, 404);
+      assert.equal((await req("/api/sourcing/opportunities", cookieB)).json.opportunities.length, 0);
+      assert.equal((await req("/api/sourcing/suppliers", cookieB)).json.suppliers.length, 0);
+      assert.equal(
+        (await req("/api/sourcing/quotes", cookieB, "POST", {
+          opportunityId: id, supplierId, unitPrice: 1, source: "ESTIMATIVA_USUARIO",
+        })).status,
+        404,
+      );
+      assert.equal(
+        (await req("/api/sourcing/opportunities/" + id, cookieB, "PATCH", { supplierIds: [supplierId] })).status,
+        404,
+      );
+      assert.equal((await req(`/api/sourcing/suppliers/${supplierId}/cnpj`, cookieB, "POST")).status, 404);
+      assert.equal((await req("/api/sourcing/opportunities")).status, 401);
+    },
+  );
+  await check("market signals: quantity tiers, seller, questions and category from official API", async () => {
+    const created = await req("/api/sourcing/opportunities", cookieA, "POST", {
+      title: "Kit ilhÃ³s nÂº54 dourado e prata",
+      mlItemId: "MLB999000001",
+    });
+    assert.equal(created.status, 201, created.text);
+    const id = created.json.opportunity.id;
+    const signals = created.json.opportunity.marketInsights;
+    assert.equal(signals.marketplace, "MERCADO_LIVRE");
+    assert.deepEqual(signals.price.data.tiers, [
+      { minUnits: 10, unitPrice: 82, businessOnly: false },
+      { minUnits: 50, unitPrice: 75, businessOnly: true },
+    ]);
+    assert.equal(signals.seller.data.state, "MG");
+    assert.equal(signals.seller.data.medal, "MercadoLÃ­der Gold");
+    assert.equal(signals.questions.data.total, 31);
+    assert.equal(signals.reviews.status, "SEM_DADOS", "no reviews must not become a zero rating");
+    assert.deepEqual(signals.category.data.missingInReference.map((a) => a.id), ["GTIN"]);
+    const refreshed = await req(`/api/sourcing/opportunities/${id}/insights`, cookieA, "POST");
+    assert.equal(refreshed.status, 200, refreshed.text);
+    assert.equal(refreshed.json.insights.price.data.consumerPrice, 100);
+    assert.equal((await req(`/api/sourcing/opportunities/${id}/insights`, cookieB, "POST")).status, 404);
+    const manual = await req("/api/sourcing/opportunities", cookieA, "POST", { title: "Produto sem anÃºncio" });
+    assert.equal((await req(`/api/sourcing/opportunities/${manual.json.opportunity.id}/insights`, cookieA, "POST")).status, 422);
+  });
+  await check("sales never leak another client", async () => {
+    const r = await req("/api/ml/sales?days=30", cookieB);
+    assert.equal(r.json.summary.grossRevenue, 10000);
+    assert.equal(r.json.orders.length, 1);
+  });
+  await check(
+    "market observations are scoped even with identical item ID",
+    async () => {
+      const a = await req("/api/market/items?scope=all", cookieA),
+        b = await req("/api/market/items?scope=all", cookieB);
+      assert.equal(a.status, 200, a.text);
+      assert.equal(a.json.items[0].title, "ObservaÃ§Ã£o privada A");
+      assert.equal(b.json.items[0].title, "ObservaÃ§Ã£o privada B");
+    },
+  );
+  await check(
+    "intelligence endpoints require a session and reject arbitrary URL imports",
+    async () => {
+      assert.equal(
+        (await req("/api/intelligence/competitors?q=Caneta")).status,
+        401,
+      );
+      assert.equal((await req("/api/intelligence/drafts")).status, 401);
+      for (const q of [
+        "https://127.0.0.1/MLB777000000",
+        "https://mercadolivre.com.br.evil.test/MLB777000000",
+      ])
+        assert.equal(
+          (
+            await req(
+              "/api/intelligence/competitors?q=" + encodeURIComponent(q),
+              cookieA,
+            )
+          ).status,
+          400,
+        );
+    },
+  );
+  await check(
+    "competitor API supports bulk status_code, pagination and absent versus zero sold",
+    async () => {
+      const first = await req(
+        "/api/intelligence/competitors?q=Caneta",
+        cookieA,
+      );
+      assert.equal(first.status, 200, first.text);
+      const up = await req(
+        "/api/intelligence/competitors?q=" +
+          encodeURIComponent(
+            "https://www.mercadolivre.com.br/kit-caneta/up/MLBU5074600649?pdp_filters=item_id:MLB777000000",
+          ),
+        cookieA,
+      );
+      assert.equal(up.status, 200, up.text);
+      assert.equal(up.json.referenceId, "MLB777000000");
+      assert.ok(up.json.items.some((i) => i.id === "MLB777000000"));
+      assert.equal(first.json.items.length, 20);
+      assert.equal(first.json.paging.nextOffset, 20);
+      assert.equal(first.json.paging.total, 27);
+      assert.equal(first.json.items[0].sold, 0);
+      assert.equal(first.json.items[1].sold, null);
+      assert.equal(first.json.items[0].unitPrice, 8.99);
+      assert.equal(first.json.items[0].brand, "Montovani");
+      const next = await req(
+        "/api/intelligence/competitors?q=Caneta&offset=20",
+        cookieA,
+      );
+      assert.equal(next.json.items.length, 7);
+      assert.equal(
+        next.json.items.find((i) => i.id === "MLB777000026").price,
+        null,
+      );
+      assert.equal(
+        next.json.items.find((i) => i.id === "MLB777000025").status,
+        "paused",
+      );
+      assert.equal(next.json.paging.hasMore, false);
+      assert.equal(
+        first.json.items.some((i) => i.id === next.json.items[0].id),
+        false,
+      );
+      assert.equal(JSON.stringify(first.json).includes("accessToken"), false);
+      assert.equal(JSON.stringify(first.json).includes("supplierPrice"), false);
+    },
+  );
+  await check(
+    "competitor API retries transient failures and preserves permission diagnostics",
+    async () => {
+      for (const suffix of ["429", "500", "timeout"]) {
+        const r = await req(
+          "/api/intelligence/competitors?q=qa-research-" + suffix,
+          cookieA,
+        );
+        assert.equal(r.status, 200, r.text);
+        assert.equal(r.json.items.length, 20, suffix);
+        assert.equal(r.json.apiSucceeded, true);
+      }
+      for (const [suffix, code] of [
+        ["401", "UNAUTHORIZED"],
+        ["403", "FORBIDDEN"],
+      ]) {
+        const r = await req(
+          "/api/intelligence/competitors?q=qa-research-" + suffix,
+          cookieA,
+        );
+        assert.equal(r.json.apiSucceeded, false);
+        assert.equal(
+          r.json.notices.some((n) => n.code === code),
+          true,
+        );
+      }
+      const blocked = await req("/api/intelligence/competitors?q=qa-research-403", cookieA);
+      assert.match(blocked.json.notices.find((n) => n.code === "FORBIDDEN").message, /Fonte bloqueada/);
+      const viaCatalog = await req("/api/intelligence/competitors?q=qa-research-403-catalogo", cookieA);
+      assert.equal(viaCatalog.status, 200, viaCatalog.text);
+      assert.equal(viaCatalog.json.apiSucceeded, true);
+      assert.ok(viaCatalog.json.items.some((i) => i.id === "MLB880000001"), viaCatalog.text);
+      assert.ok(viaCatalog.json.notices.some((n) => n.code === "SEARCH_CATALOGO"));
+    },
+  );
+  await check(
+    "saved competitor research and manual classifications cannot cross workspaces or accounts",
+    async () => {
+      const payload = {
+        query: "Caneta",
+        categoryId: "",
+        referenceId: "MLB777000000",
+        selectedIds: ["MLB777000000", "MLB777000001"],
+        overrides: [{ id: "MLB777000001", level: "SIMILAR" }],
+      };
+      const saved = await req("/api/intelligence/drafts", cookieA, "POST", {
+        kind: "RESEARCH",
+        name: "Pesquisa privada A",
+        payload,
+      });
+      assert.equal(saved.status, 201, saved.text);
+      assert.equal(
+        (await req("/api/intelligence/drafts", cookieB)).json.drafts.length,
+        0,
+      );
+      assert.equal(
+        (
+          await req("/api/intelligence/drafts", cookieB, "POST", {
+            id: saved.json.id,
+            kind: "RESEARCH",
+            name: "Ataque",
+            payload,
+          })
+        ).status,
+        404,
+      );
+      assert.equal(
+        (
+          await req(
+            "/api/intelligence/drafts?id=" + saved.json.id,
+            cookieB,
+            "DELETE",
+          )
+        ).status,
+        404,
+      );
+      const own = (await req("/api/intelligence/drafts", cookieA)).json.drafts;
+      assert.deepEqual(own[0].payload, payload);
+      await db.query(
+        'UPDATE "RadarResearchDraft" SET "accountId"=$1 WHERE id=$2',
+        [accounts[1], saved.json.id],
+      );
+      assert.equal(
+        (await req("/api/intelligence/drafts", cookieA)).json.drafts.length,
+        0,
+      );
+      await db.query(
+        'UPDATE "RadarResearchDraft" SET "accountId"=$1 WHERE id=$2',
+        [accounts[0], saved.json.id],
+      );
+      assert.equal(
+        (
+          await req(
+            "/api/intelligence/drafts?id=" + saved.json.id,
+            cookieA,
+            "DELETE",
+          )
+        ).status,
+        200,
+      );
+    },
+  );
+  await check(
+    "monitoring a saved observation preserves its date and cannot read a foreign workspace",
+    async () => {
+      const at = new Date(Date.now() - 86400000 * 3);
+      await db.query(
+        'UPDATE "MarketItem" SET "lastSeenAt"=$1,"lastPrice"=42,"lastSoldLower"=100 WHERE "workspaceId"=$2 AND id=$3',
+        [at, userA.workspaceId, "MLB999000100"],
+      );
+      const r = await req(
+        "/api/intelligence/competitors/watch",
+        cookieA,
+        "POST",
+        { itemId: "MLB999000100" },
+      );
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.trackingMode, "PAGE");
+      const stored = (
+        await db.query(
+          'SELECT w."lastCheckedAt",s."capturedAt" FROM "RadarWatchItem" w JOIN "RadarWatchSnapshot" s ON s."watchItemId"=w.id WHERE w."sellerUserId"=$1 AND w."mlItemId"=$2',
+          [prefix + "100", "MLB999000100"],
+        )
+      ).rows[0];
+      assert.equal(new Date(stored.lastCheckedAt).getTime(), at.getTime());
+      assert.equal(new Date(stored.capturedAt).getTime(), at.getTime());
+      assert.equal(
+        (
+          await req("/api/intelligence/competitors/watch", cookieB, "POST", {
+            itemId: "MLB777000000",
+          })
+        ).status,
+        404,
+      );
+    },
+  );
+  const kitScenario = {
+    ...defaultKitScenario(),
+    productName: "Caneta Fantasminha Montovani",
+    brand: "Montovani",
+    model: "Fantasminha",
+    categoryId: "MLB1234",
+    unitCost: 4.5,
+    variants: ["Azul", "Preta", "Vermelha", "Rosa"].map((label, i) => ({
+      id: "v" + i,
+      label,
+      stock: 12,
+      unitCost: null,
+    })),
+    packageCost: 1,
+    operatingCost: 0.8,
+    taxPercent: 4,
+    commissionPercent: null,
+    fixedFee: null,
+    shippingCost: null,
+    pricePerUnit: 10,
+    unitWeightGrams: 10,
+    packageWeightGrams: 20,
+    dimensions: { heightCm: 5, widthCm: 10, lengthCm: 20 },
+  };
+  const kitBody = {
+    quantity: 8,
+    salePrice: 80,
+    categoryId: "MLB1234",
+    listingType: "CLASSIC",
+    logisticType: "drop_off",
+    freeShipping: true,
+    shippingPackage: {
+      weightGrams: 100,
+      heightCm: 5,
+      widthCm: 10,
+      lengthCm: 20,
+    },
+  };
+  await check(
+    "kit context and quotes use only the current account and preserve missing costs",
+    async () => {
+      assert.equal((await req("/api/intelligence/kits/context")).status, 401);
+      const a = await req("/api/intelligence/kits/context", cookieA),
+        b = await req("/api/intelligence/kits/context", cookieB);
+      assert.equal(a.json.accountId, accounts[0]);
+      assert.equal(b.json.accountId, accounts[1]);
+      assert.equal(b.json.defaults.taxPercent, null);
+      const qa = await req(
+          "/api/intelligence/kits/quote",
+          cookieA,
+          "POST",
+          kitBody,
+        ),
+        qb = await req(
+          "/api/intelligence/kits/quote",
+          cookieB,
+          "POST",
+          kitBody,
+        );
+      assert.equal(qa.status, 200, qa.text);
+      assert.equal(qb.status, 200, qb.text);
+      assert.equal(qa.json.fee.saleFeeAmount, 13.6);
+      assert.equal(qa.json.fee.fixedFee, 4);
+      assert.equal(qa.json.shipping.shippingCost, 6.85);
+      assert.equal(qb.json.shipping.shippingCost, 9.85);
+      assert.equal(qa.json.accountId, accounts[0]);
+      assert.equal(JSON.stringify(qa.json).includes("accessToken"), false);
+      assert.equal(
+        (
+          await req("/api/intelligence/kits/quote", cookieA, "POST", {
+            ...kitBody,
+            accountId: accounts[1],
+          })
+        ).status,
+        400,
+      );
+      const partial = await req(
+        "/api/intelligence/kits/quote",
+        cookieA,
+        "POST",
+        { ...kitBody, shippingPackage: null },
+      );
+      assert.equal(partial.json.shipping, null);
+      assert.ok(
+        partial.json.notices.some((n) => n.code === "PACKAGE_REQUIRED"),
+      );
+      const restricted = await req(
+        "/api/intelligence/kits/quote",
+        cookieA,
+        "POST",
+        {
+          ...kitBody,
+          shippingPackage: { ...kitBody.shippingPackage, weightGrams: 99999 },
+        },
+      );
+      assert.equal(restricted.json.shipping, null);
+      assert.ok(restricted.json.notices.some((n) => n.code === "FORBIDDEN"));
+    },
+  );
+  await check(
+    "kit quote cache preserves timestamp and re-quotes after price or listing change",
+    async () => {
+      const body = { ...kitBody, salePrice: 83.21 },
+        a = await req("/api/intelligence/kits/quote", cookieA, "POST", body),
+        b = await req("/api/intelligence/kits/quote", cookieA, "POST", body);
+      assert.equal(a.json.quotedAt, b.json.quotedAt);
+      assert.deepEqual(a.json.context, b.json.context);
+      const changed = await req(
+        "/api/intelligence/kits/quote",
+        cookieA,
+        "POST",
+        { ...body, listingType: "PREMIUM" },
+      );
+      assert.equal(changed.json.fee.commissionPercent, 16.5);
+      assert.notEqual(changed.json.fee.saleFeeAmount, a.json.fee.saleFeeAmount);
+    },
+  );
+  await check(
+    "kit drafts freeze server quote and canonical finances without creating an ML listing",
+    async () => {
+      const row = generateKitCompositions(kitScenario).find(
+        (r) => r.label === "2 Azul + 2 Preta + 2 Vermelha + 2 Rosa",
+      );
+      const body = {
+        kind: "KIT",
+        name: "Kit privado A",
+        payload: { scenario: kitScenario, selectedKitId: row.id },
+      };
+      const before = (
+        await db.query('SELECT COUNT(*)::int AS count FROM "ProductAnalysis"')
+      ).rows[0].count;
+      const created = await req(
+        "/api/intelligence/drafts",
+        cookieA,
+        "POST",
+        body,
+      );
+      assert.equal(created.status, 201, created.text);
+      const draft = (
+        await req("/api/intelligence/drafts", cookieA)
+      ).json.drafts.find((d) => d.id === created.json.id);
+      assert.equal(draft.payload.snapshot.financial.profit, 18.55);
+      assert.equal(
+        draft.payload.snapshot.financial.minimumSuggestedPrice,
+        76.02,
+      );
+      assert.equal(draft.payload.snapshot.quote.accountId, accounts[0]);
+      assert.equal(draft.payload.snapshot.feeSource, "ML_API_ESTIMATE");
+      assert.equal(draft.payload.snapshot.shippingSource, "ML_API_ESTIMATE");
+      assert.equal(
+        (await db.query('SELECT COUNT(*)::int AS count FROM "ProductAnalysis"'))
+          .rows[0].count,
+        before,
+      );
+      assert.ok(
+        !(await req("/api/intelligence/drafts", cookieB)).json.drafts.some(
+          (d) => d.id === created.json.id,
+        ),
+      );
+      assert.equal(
+        (
+          await req("/api/intelligence/drafts", cookieB, "POST", {
+            ...body,
+            id: created.json.id,
+          })
+        ).status,
+        404,
+      );
+      assert.equal(
+        (
+          await req("/api/intelligence/drafts", cookieA, "POST", {
+            ...body,
+            payload: { ...body.payload, snapshot: { profit: 999999 } },
+          })
+        ).status,
+        400,
+      );
+      assert.equal(
+        (
+          await req("/api/intelligence/drafts", cookieA, "POST", {
+            ...body,
+            payload: {
+              ...body.payload,
+              scenario: {
+                ...kitScenario,
+                variants: kitScenario.variants.map((v) => ({ ...v, stock: 0 })),
+              },
+            },
+          })
+        ).status,
+        400,
+      );
+      await req(
+        "/api/intelligence/drafts?id=" + created.json.id,
+        cookieA,
+        "DELETE",
+      );
+    },
+  );
+  await check(
+    "turning intelligence off blocks new modules and preserves existing workspace",
+    async () => {
+      const offPort = port + 1,
+        offBase = `http://127.0.0.1:${offPort}`;
+      const disabled = spawn(
+        process.execPath,
+        [
+          "--import",
+          "./tests/ml-fetch-stub.mjs",
+          "node_modules/next/dist/bin/next",
+          "start",
+          "-p",
+          String(offPort),
+          "--hostname",
+          "127.0.0.1",
+        ],
+        {
+          env: {
+            ...process.env,
+            RADAR_INTELLIGENCE_ENABLED: "0",
+            RADAR_TEST_FIXTURE_PREFIX: prefix,
+            APP_ENCRYPTION_KEY:
+              "radar-testing-encryption-key-never-for-production",
+            NEXT_PUBLIC_APP_URL: offBase,
+          },
+          stdio: "ignore",
+        },
+      );
+      try {
+        let ready = false;
+        for (let i = 0; i < 60; i++) {
+          try {
+            if ((await fetch(offBase + "/login")).status === 200) {
+              ready = true;
+              break;
+            }
+          } catch {}
+          await new Promise((r) => setTimeout(r, 200));
+        }
+        assert.equal(ready, true);
+        for (const path of [
+          "/api/intelligence/kits/context",
+          "/api/intelligence/drafts",
+          "/api/intelligence/competitors?q=Caneta",
+          "/kits",
+          "/concorrentes",
+        ])
+          assert.equal(
+            (await fetch(offBase + path, { headers: { cookie: cookieA } }))
+              .status,
+            404,
+            path,
+          );
+        assert.equal(
+          (
+            await fetch(offBase + "/api/workspace", {
+              headers: { cookie: cookieA },
+            })
+          ).status,
+          200,
+        );
+      } finally {
+        disabled.kill("SIGTERM");
+      }
+    },
+  );
+  await check("analysis history and deletion respect ownership", async () => {
+    const r = await req("/api/analyses", cookieB);
+    assert.equal(r.json.analyses.length, 1);
+    assert.equal(r.json.analyses[0].productName, "AnÃ¡lise privada B");
+    assert.equal(
+      (await req("/api/analyses?id=" + prefix + "analysisA", cookieB, "DELETE"))
+        .status,
+      404,
+    );
+  });
+  await check("foreign product cost cannot be updated", async () =>
+    assert.equal(
+      (
+        await req("/api/ml/products/cost", cookieB, "PATCH", {
+          mlItemId: "MLB999000001",
+          supplierPrice: 1,
+          discountPercent: 0,
+        })
+      ).status,
+      404,
+    ),
+  );
+  await check("new cost preserves established historical costs", async () => {
+    const r = await req("/api/ml/products/cost", cookieA, "PATCH", {
+      mlItemId: "MLB999000001",
+      supplierPrice: 50,
+      discountPercent: 0,
+    });
+    assert.equal(r.status, 200, r.text);
+    const row = (
+      await db.query(
+        'SELECT "unitCost" FROM "MercadoLivreOrderItem" WHERE "orderId"=$1',
+        [prefix + "orderA1"],
+      )
+    ).rows[0];
+    assert.equal(Number(row.unitCost), 40);
+  });
+  await check("changed cost blocks a restock recommendation", async () => {
+    const r = await req("/api/decisions?days=30", cookieA);
+    assert.equal(r.json.decisions[0].action, "VALIDATE_PROFIT");
+  });
+  await req("/api/ml/products/cost", cookieA, "PATCH", {
+    mlItemId: "MLB999000001",
+    supplierPrice: 40,
+    discountPercent: 0,
+  });
+  await check("supplier can be renamed and removed across products, scoped to the account", async () => {
+    await req("/api/ml/products/cost", cookieA, "PATCH", { mlItemId: "MLB999000001", supplier: "Fornecedor Smoke", supplierPrice: 40, discountPercent: 0 });
+    assert.equal((await req("/api/ml/products/supplier", cookieB, "PATCH", { from: "Fornecedor Smoke", to: "X" })).status, 404);
+    const renamed = await req("/api/ml/products/supplier", cookieA, "PATCH", { from: "Fornecedor Smoke", to: "Fornecedor Novo" });
+    assert.equal(renamed.status, 200, renamed.text);
+    let row = (await db.query('SELECT supplier, "supplierPrice" FROM "MercadoLivreProduct" WHERE "mlItemId"=$1', ["MLB999000001"])).rows[0];
+    assert.equal(row.supplier, "Fornecedor Novo");
+    assert.equal((await req("/api/ml/products/supplier", cookieA, "PATCH", { from: "Fornecedor Novo", to: null })).status, 200);
+    row = (await db.query('SELECT supplier, "supplierPrice" FROM "MercadoLivreProduct" WHERE "mlItemId"=$1', ["MLB999000001"])).rows[0];
+    assert.equal(row.supplier, null);
+    assert.equal(Number(row.supplierPrice), 40);
+  });
+  await check(
+    "decision center sorts useful actions with known stock and history",
+    async () => {
+      const r = await req("/api/decisions?days=30", cookieA);
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.decisions.length, 1);
+      assert.equal(r.json.decisions[0].action, "RESTOCK");
+      assert.ok(r.json.decisions[0].suggestedReorder > 0);
+    },
+  );
+  await check("CSV exports full period scoped to client", async () => {
+    const r = await req("/api/ml/sales/export?days=30", cookieA);
+    assert.equal(r.status, 200, r.text);
+    assert.ok(r.text.includes(prefix + "orderA205"));
+    assert.ok(!r.text.includes(prefix + "orderB"));
+  });
+  const verifier = "q".repeat(64),
+    code = prefix + "authorization-code-sample",
+    codeHash = createHash("sha256").update(code).digest("base64url"),
+    challenge = createHash("sha256").update(verifier).digest("base64url");
+  await insert("RadarExtensionAuthCode", {
+    id: prefix + "authcode",
+    codeHash,
+    mercadoLivreAccountId: accounts[0],
+    codeChallenge: challenge,
+    redirectUri: "https://" + "a".repeat(32) + ".chromiumapp.org/radar-auth",
+    deviceId: "test-device-123456",
+    expiresAt: future,
+  });
+  let access;
+  await check(
+    "extension authorization code can only be consumed once",
+    async () => {
+      const payload = {
+        code,
+        code_verifier: verifier,
+        redirect_uri:
+          "https://" + "a".repeat(32) + ".chromiumapp.org/radar-auth",
+        grant_type: "authorization_code",
+      };
+      const responses = await Promise.all([
+        req("/api/extension/auth/token", "", "POST", payload),
+        req("/api/extension/auth/token", "", "POST", payload),
+      ]);
+      const good = responses.filter((r) => r.status === 200);
+      assert.equal(
+        good.length,
+        1,
+        JSON.stringify(
+          responses.map((r) => ({ status: r.status, body: r.json })),
+        ),
+      );
+      access = good[0].json;
+    },
+  );
+  await check(
+    "extension refresh tokens rotate and old token is rejected",
+    async () => {
+      const body = {
+        grant_type: "refresh_token",
+        refresh_token: access.refresh_token,
+        device_id: "test-device-123456",
+      };
+      const a = await req("/api/extension/auth/refresh", "", "POST", body);
+      assert.equal(a.status, 200, a.text);
+      assert.notEqual(
+        (await req("/api/extension/auth/refresh", "", "POST", body)).status,
+        200,
+      );
+      access = a.json;
+    },
+  );
+  await check(
+    "concurrent ML refresh is serialized in the database",
+    async () => {
+      await db.query(
+        'UPDATE "MercadoLivreAccount" SET "tokenExpiresAt"=$2 WHERE id=$1',
+        [accounts[0], new Date(Date.now() - 60000)],
+      );
+      const responses = await Promise.all(
+        Array.from({ length: 4 }, () =>
+          req("/api/extension/auth/session", "", "GET", undefined, {
+            authorization: "Bearer " + access.access_token,
+          }),
+        ),
+      );
+      assert.ok(
+        responses.every((r) => r.status === 200),
+        JSON.stringify(responses.map((r) => r.text)),
+      );
+      const row = (
+        await db.query(
+          'SELECT "accessTokenEncrypted" FROM "MercadoLivreAccount" WHERE id=$1',
+          [accounts[0]],
+        )
+      ).rows[0];
+      const [, iv, tag, encrypted] = row.accessTokenEncrypted.split(".");
+      const c = createDecipheriv(
+        "aes-256-gcm",
+        createHash("sha256")
+          .update("radar-testing-encryption-key-never-for-production")
+          .digest(),
+        Buffer.from(iv, "base64url"),
+      );
+      c.setAuthTag(Buffer.from(tag, "base64url"));
+      assert.equal(
+        Buffer.concat([
+          c.update(Buffer.from(encrypted, "base64url")),
+          c.final(),
+        ]).toString(),
+        prefix + "ml-refresh-1",
+      );
+    },
+  );
+  const extensionHeaders = () => ({
+    authorization: "Bearer " + access.access_token,
+  });
+  const pageReading = {
+    id: "MLBU5074600649",
+    referenceKind: "USER_PRODUCT",
+    title: "Fio cordone encerado preto 165m 2mm",
+    price: 17.9,
+    soldLower: 25,
+    soldHasPlus: true,
+    soldLabel: "+25 vendidos",
+    reviews: 100,
+    rating: 4.8,
+    permalink: "https://www.mercadolivre.com.br/fio/up/MLBU5074600649",
+  };
+  let extensionBToken;
+  await check(
+    "automatic analysis reuses only exact own listing or workspace SKU costs",
+    async () => {
+      const path = "/api/extension/item?id=MLB999000001&kind=ITEM";
+      await db.query(
+        'UPDATE "MercadoLivreProduct" SET "discountPercent"=10 WHERE "mlItemId"=$1',
+        ["MLB999000001"],
+      );
+      const own = await req(path, "", "GET", undefined, extensionHeaders());
+      assert.equal(own.status, 200, own.text);
+      assert.equal(own.json.item.isOwn, true);
+      assert.equal(own.json.savedCost.supplierPrice, 40);
+      assert.equal(own.json.savedCost.discountPercent, 10);
+      assert.equal(own.json.savedCost.source, "LISTING");
+      await db.query(
+        'UPDATE "MercadoLivreProduct" SET "supplierPrice"=NULL, sku=$2 WHERE "mlItemId"=$1',
+        ["MLB999000001", "SAME-SKU"],
+      );
+      await db.query(
+        'UPDATE "Product" SET "supplierPrice"=999 WHERE "workspaceId"=$1',
+        [userB.workspaceId],
+      );
+      const sku = await req(path, "", "GET", undefined, extensionHeaders());
+      assert.equal(sku.json.savedCost.supplierPrice, 40);
+      assert.equal(sku.json.savedCost.source, "SKU");
+      const codeB = prefix + "cost-isolation-code";
+      await insert("RadarExtensionAuthCode", {
+        id: prefix + "authcodeB",
+        codeHash: createHash("sha256").update(codeB).digest("base64url"),
+        mercadoLivreAccountId: accounts[1],
+        codeChallenge: challenge,
+        redirectUri:
+          "https://" + "a".repeat(32) + ".chromiumapp.org/radar-auth",
+        deviceId: "cost-isolation-device-b",
+        expiresAt: future,
+      });
+      const tokenB = await req("/api/extension/auth/token", "", "POST", {
+        grant_type: "authorization_code",
+        code: codeB,
+        code_verifier: verifier,
+        redirect_uri:
+          "https://" + "a".repeat(32) + ".chromiumapp.org/radar-auth",
+      });
+      assert.equal(tokenB.status, 200, tokenB.text);
+      extensionBToken = tokenB.json.access_token;
+      const other = await req(path, "", "GET", undefined, {
+        authorization: "Bearer " + tokenB.json.access_token,
+      });
+      assert.equal(other.status, 200, other.text);
+      assert.equal(other.json.item.isOwn, false);
+      assert.equal(other.json.savedCost, null);
+      await db.query(
+        'UPDATE "MercadoLivreProduct" SET "supplierPrice"=40, "discountPercent"=0, sku=NULL WHERE "mlItemId"=$1',
+        ["MLB999000001"],
+      );
+      await db.query(
+        'UPDATE "Product" SET "supplierPrice"=40 WHERE "workspaceId"=$1',
+        [userB.workspaceId],
+      );
+    },
+  );
+  await check(
+    "restricted User Product keeps a useful page-only response",
+    async () => {
+      const r = await req(
+        "/api/extension/item?id=" + pageReading.id,
+        "",
+        "GET",
+        undefined,
+        extensionHeaders(),
+      );
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.availability, "PAGE_ONLY");
+      assert.equal(r.json.item, null);
+    },
+  );
+  await check(
+    "observations accept MLBU and do not fabricate competitor velocity",
+    async () => {
+      const r = await req(
+        "/api/extension/observations",
+        "",
+        "POST",
+        { page: "product", items: [pageReading] },
+        extensionHeaders(),
+      );
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.items[0].id, pageReading.id);
+      assert.equal(r.json.items[0].score, null);
+      assert.equal(r.json.items[0].demand, null);
+      assert.equal(r.json.items[0].estimate.visitsPerDay.value, null);
+    },
+  );
+  await check(
+    "page monitoring saves without private API access and stays isolated",
+    async () => {
+      const r = await req(
+        "/api/extension/watchlist",
+        "",
+        "POST",
+        { itemId: pageReading.id, observation: pageReading },
+        extensionHeaders(),
+      );
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.trackingMode, "PAGE");
+      const a = await req("/api/monitoring/watchlist", cookieA),
+        b = await req("/api/monitoring/watchlist", cookieB);
+      const item = a.json.items.find((i) => i.mlItemId === pageReading.id);
+      assert.equal(item.soldQuantity, 25);
+      assert.equal(item.soldIsLowerBound, true);
+      assert.equal(item.score, null);
+      assert.ok(!b.json.items.some((i) => i.mlItemId === pageReading.id));
+      const bad = await req(
+        "/api/extension/watchlist",
+        "",
+        "POST",
+        { itemId: "MLBU12345678", observation: pageReading },
+        extensionHeaders(),
+      );
+      assert.equal(bad.status, 400);
+      await insert("RadarWatchItem", {
+        id: prefix + "api-watch",
+        sellerUserId: prefix + "100",
+        mlItemId: "MLB999000001",
+        title: "API existente",
+        currentPrice: 100,
+        score: 80,
+        active: true,
+        updatedAt: now,
+      });
+      const preserve = await req(
+        "/api/extension/watchlist",
+        "",
+        "POST",
+        {
+          itemId: "MLB999000001",
+          observation: {
+            ...pageReading,
+            id: "MLB999000001",
+            referenceKind: "ITEM",
+            price: 99,
+          },
+        },
+        extensionHeaders(),
+      );
+      assert.equal(preserve.status, 200, preserve.text);
+      assert.equal(preserve.json.trackingMode, "API");
+      assert.equal(Number(preserve.json.watchItem.currentPrice), 100);
+    },
+  );
+  await check(
+    "revisiting a watched page updates price and marks missing counters unknown",
+    async () => {
+      const r = await req(
+        "/api/extension/observations",
+        "",
+        "POST",
+        {
+          page: "product",
+          items: [
+            { ...pageReading, price: 19.9, soldLower: null, soldLabel: null },
+          ],
+        },
+        extensionHeaders(),
+      );
+      assert.equal(r.status, 200, r.text);
+      const list = await req(
+        "/api/extension/watchlist",
+        "",
+        "GET",
+        undefined,
+        extensionHeaders(),
+      );
+      const item = list.json.items.find((i) => i.mlItemId === pageReading.id);
+      assert.equal(item.currentPrice, 19.9);
+      assert.equal(item.soldQuantity, null);
+      assert.equal(item.trackingMode, "PAGE");
+      assert.ok(item.snapshots.length >= 2);
+    },
+  );
+  await check(
+    "price range uses workspace observations when catalogue access is denied",
+    async () => {
+      const readings = [20, 30, 40].map((price, i) => ({
+        ...pageReading,
+        id: "MLBU800000000" + i,
+        price,
+      }));
+      const obs = await req(
+        "/api/extension/observations",
+        "",
+        "POST",
+        { page: "search", query: "Fio cordone", items: readings },
+        extensionHeaders(),
+      );
+      assert.equal(obs.status, 200, obs.text);
+      const r = await req(
+        "/api/extension/market?" +
+          new URLSearchParams({
+            title: pageReading.title,
+            itemId: pageReading.id,
+            currentPrice: "17.9",
+          }),
+        "",
+        "GET",
+        undefined,
+        extensionHeaders(),
+      );
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.apiStatus, 403);
+      assert.equal(r.json.market.count, 3);
+      assert.equal(r.json.market.median, 30);
+      assert.ok(
+        r.json.competitors.every(
+          (i) => i.source === "OBSERVED_PAGE" && i.id !== "MLB999000001",
+        ),
+      );
+      assert.equal(r.json.needsReview, true);
+    },
+  );
+  const simulation = {
+    itemId: pageReading.id,
+    title: pageReading.title,
+    salePrice: 17.9,
+    supplierPrice: 10.9,
+    listingType: "PREMIUM",
+  };
+  await check(
+    "catalog analytics measures a dated sample and never calls it unique catalog visitors",
+    async () => {
+      const response = await req(
+        "/api/extension/item?id=MLB999000001&kind=ITEM&catalogProductId=MLB88800001&analyticsOnly=1",
+        "",
+        "GET",
+        undefined,
+        extensionHeaders(),
+      );
+      assert.equal(response.status, 200, response.text);
+      const analytics = response.json.analytics,
+        c = analytics.catalog;
+      assert.equal(analytics.itemVisits.perDay, 20);
+      assert.deepEqual(analytics.visitSales.salesPer30Days, { low: 7, high: 30 });
+      assert.match(analytics.visitSales.formula, /visitas em 30 dias/);
+      assert.equal(c.offersObserved, 5);
+      assert.equal(c.totalReported, 52);
+      assert.equal(c.fullOffersObserved, 2);
+      assert.equal(c.visitsSample.offersMeasured, 5);
+      assert.equal(c.visitsSample.perDay, 76);
+      assert.ok(Math.abs(c.visitsSample.fullVisitSharePercent - 55) < 1e-8);
+      assert.match(c.note, /nÃ£o sÃ£o visitantes Ãºnicos/);
+      const unavailable = await req(
+        "/api/extension/item?id=MLB777777777&kind=ITEM&catalogProductId=MLB7777777&analyticsOnly=1",
+        "",
+        "GET",
+        undefined,
+        extensionHeaders(),
+      );
+      assert.equal(unavailable.json.analytics.itemVisits, null);
+      assert.equal(unavailable.json.analytics.catalog.offersObserved, null);
+      assert.equal(unavailable.json.analytics.catalog.visitsSample, null);
+    },
+  );
+  const shippingPackage = {
+    weightGrams: 500,
+    heightCm: 10,
+    widthCm: 15,
+    lengthCm: 20,
+    freeShipping: true,
+  };
+  await check(
+    "package shipping quotes use each client's account and remain estimates",
+    async () => {
+      const payload = {
+        ...simulation,
+        salePrice: 100,
+        supplierPrice: 40,
+        taxPercent: 6,
+        listingType: "CLASSIC",
+        shippingPackage,
+        logisticType: "drop_off",
+      };
+      const response = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        payload,
+        extensionHeaders(),
+      );
+      assert.equal(response.status, 200, response.text);
+      assert.equal(response.json.fees.shippingCost, 6.85);
+      assert.deepEqual(response.json.shippingDiscount, {
+        rate: 0.5,
+        baseAmount: 13.7,
+      });
+      assert.equal(
+        response.json.shippingSource,
+        "MERCADO_LIVRE_PACKAGE_ESTIMATE",
+      );
+      assert.equal(response.json.shippingKnown, false);
+      assert.equal(response.json.shippingEstimated, true);
+      assert.equal(response.json.result.profit, 31.15);
+      assert.equal(response.json.availability, "ASSUMED");
+      const automatic = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        { ...payload, itemId: "MLB999000002", shippingPackage: undefined },
+        extensionHeaders(),
+      );
+      assert.equal(automatic.status, 200, automatic.text);
+      assert.equal(automatic.json.shippingEstimated, true);
+      assert.equal(automatic.json.shippingPackageSource, "ITEM_API");
+      assert.equal(automatic.json.fees.shippingCost, 6.85);
+      const other = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        payload,
+        { authorization: "Bearer " + extensionBToken },
+      );
+      assert.equal(other.status, 200, other.text);
+      assert.equal(other.json.fees.shippingCost, 9.85);
+      const missing = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        {
+          ...payload,
+          shippingPackage: { ...shippingPackage, weightGrams: 99999 },
+        },
+        extensionHeaders(),
+      );
+      // Sem cotaÃ§Ã£o de frete, o custo fica desconhecido e bloqueia resultado final.
+      assert.equal(missing.json.shippingSource, "UNAVAILABLE");
+      assert.equal(missing.json.fees.shippingCost, null);
+      assert.equal(missing.json.shippingPending, true);
+      assert.equal(missing.json.availability, "PARTIAL");
+      assert.ok(missing.json.assumptions.some((a) => a.field === "shippingCost" && a.material));
+      assert.equal(missing.json.result, null);
+      const invalid = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        {
+          ...payload,
+          shippingPackage: { ...shippingPackage, weightGrams: 0.5 },
+        },
+        extensionHeaders(),
+      );
+      assert.equal(invalid.status, 400);
+    },
+  );
+  await check(
+    "reviewed snapshots preserve supplier and Ads assumptions without becoming realized profit or crossing clients",
+    async () => {
+      const payload = {
+        ...simulation,
+        itemId: "MLB999000002",
+        salePrice: 100,
+        supplierPrice: 40,
+        taxPercent: 6,
+        listingType: "CLASSIC",
+        shippingPackage,
+        advertising: { roasTarget: 5, attributedSalesPercent: 20 },
+      };
+      const response = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        payload,
+        extensionHeaders(),
+      );
+      assert.equal(response.json.adsSimulation.costPerSale, 4);
+      assert.equal(response.json.adsSimulation.profitAfterAds, 27.15);
+      const changed = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        { ...payload, save: true, saveMode: "SNAPSHOT", expectedProfit: 1 },
+        extensionHeaders(),
+      );
+      assert.equal(changed.status, 409);
+      const saved = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        {
+          ...payload,
+          save: true,
+          saveMode: "SNAPSHOT",
+          expectedProfit: 31.15,
+          supplierName: "Fornecedor teste",
+        },
+        extensionHeaders(),
+      );
+      assert.equal(saved.status, 200, saved.text);
+      assert.ok(saved.json.savedAnalysisId);
+      const list = await req("/api/analyses", cookieA);
+      const row = list.json.analyses.find(
+        (item) => item.id === saved.json.savedAnalysisId,
+      );
+      assert.equal(row.source, "EXTENSION_SIMULATION");
+      assert.equal(row.productId, null);
+      assert.equal(row.supplier, "Fornecedor teste");
+      assert.equal(row.profit, 31.15);
+      assert.equal(
+        row.metadata.shippingSource,
+        "MERCADO_LIVRE_PACKAGE_ESTIMATE",
+      );
+      assert.equal(row.metadata.adsSimulation.profitAfterAds, 27.15);
+      const other = await req("/api/analyses", cookieB);
+      assert.ok(other.json.analyses.every((item) => item.id !== row.id));
+      const removed = await req(
+        "/api/analyses?id=" + row.id,
+        cookieB,
+        "DELETE",
+      );
+      assert.equal(removed.status, 404);
+    },
+  );
+  await check(
+    "missing tax or freight stays unknown and blocks reverse profitability until confirmed",
+    async () => {
+      const r = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        { ...simulation, quoteOnly: true },
+        extensionHeaders(),
+      );
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.result, null);
+      assert.ok(r.json.needs.includes("shippingCost"));
+      assert.equal(r.json.feeSource, "MERCADO_LIVRE_API");
+      const fields = r.json.assumptions.map((a) => a.field).sort();
+      assert.deepEqual(fields, ["shippingCost", "taxPercent"]);
+      assert.match(r.json.assumptions.find((a) => a.field === "shippingCost").text, /nÃ£o confirmam frete zero/);
+      const { supplierPrice, ...withoutCost } = simulation;
+      assert.ok(supplierPrice > 0);
+      const incompleteReverse = await req("/api/extension/profitability", "", "POST", withoutCost, extensionHeaders());
+      assert.equal(incompleteReverse.json.availability, "PARTIAL");
+      assert.equal(incompleteReverse.json.reverse, null);
+      const completeReversePayload = { ...withoutCost, shippingCost: 0, taxPercent: 4 };
+      const reverse = await req("/api/extension/profitability", "", "POST", completeReversePayload, extensionHeaders());
+      assert.equal(reverse.status, 200, reverse.text);
+      assert.equal(reverse.json.availability, "REVERSE");
+      assert.equal(reverse.json.result, null);
+      assert.ok(reverse.json.reverse.breakEven >= reverse.json.reverse.forTargetMargin);
+      assert.equal(reverse.json.reverse.targetMarginPercent, 20);
+      assert.equal(reverse.json.reverse.targetRoiPercent, 30);
+      assert.ok(reverse.json.reverse.maximumSupplierCost <= reverse.json.reverse.forTargetMargin);
+      assert.ok(reverse.json.reverse.maximumSupplierCost <= reverse.json.reverse.forTargetRoi);
+      const saveReverse = await req("/api/extension/profitability", "", "POST", { ...completeReversePayload, save: true }, extensionHeaders());
+      assert.equal(saveReverse.status, 422);
+      // A calculadora do site usa a mesma regra da extensÃ£o.
+      assert.equal((await req("/api/calculator", "", "POST", withoutCost)).status, 401);
+      const web = await req("/api/calculator", cookieA, "POST", completeReversePayload);
+      assert.equal(web.status, 200, web.text);
+      assert.equal(web.json.availability, "REVERSE");
+      assert.deepEqual(web.json.reverse, reverse.json.reverse);
+    },
+  );
+  await check(
+    "manual fees and explicit zero freight calculate correctly without competitor API",
+    async () => {
+      const r = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        {
+          ...simulation,
+          taxPercent: 0,
+          shippingCost: 0,
+          manualFees: { commissionPercent: 16.5, fixedFee: 0 },
+        },
+        extensionHeaders(),
+      );
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.result.profit, 4.05);
+      assert.equal(r.json.feeSource, "MANUAL");
+      assert.equal(r.json.shippingKnown, false);
+      const save = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        {
+          ...simulation,
+          taxPercent: 0,
+          shippingCost: 0,
+          manualFees: { commissionPercent: 16.5, fixedFee: 0 },
+          save: true,
+        },
+        extensionHeaders(),
+      );
+      assert.equal(save.status, 422);
+    },
+  );
+  await check(
+    "simulated modality overrides the original listing modality",
+    async () => {
+      const r = await req(
+        "/api/extension/profitability",
+        "",
+        "POST",
+        {
+          ...simulation,
+          itemId: "MLB999000001",
+          salePrice: 100,
+          taxPercent: 0,
+          shippingCost: 0,
+          listingType: "PREMIUM",
+        },
+        extensionHeaders(),
+      );
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.result.commissionPercent, 16.5);
+      assert.equal(r.json.item.listingType, "PREMIUM");
+    },
+  );
+  await check(
+    "optional API restrictions do not mark core integration unhealthy",
+    async () => {
+      const r = await req(
+        "/api/integrations/mercadolivre/diagnostics",
+        cookieA,
+      );
+      assert.equal(r.status, 200, r.text);
+      assert.equal(r.json.summary.healthy, true);
+      assert.equal(
+        r.json.checks.find((c) => c.key === "productAds").state,
+        "RESTRICTED",
+      );
+      assert.ok(!r.json.checks.some((c) => c.key === "application"));
+      const state = (key) => r.json.checks.find((c) => c.key === key)?.state;
+      assert.equal(state("itemPrices"), "AVAILABLE");
+      assert.equal(state("questions"), "AVAILABLE");
+      assert.equal(state("publicUser"), "AVAILABLE");
+      assert.match(r.json.checks.find((c) => c.key === "questions").grant, /ComunicaÃ§Ãµes prÃ© e pÃ³s-venda/);
+    },
+  );
+  let secondDeviceToken;
+  await check(
+    "workspace quota is shared across extension devices",
+    async () => {
+      const code2 = prefix + "second-authorization-code";
+      await insert("RadarExtensionAuthCode", {
+        id: prefix + "authcode2",
+        codeHash: createHash("sha256").update(code2).digest("base64url"),
+        mercadoLivreAccountId: accounts[0],
+        codeChallenge: challenge,
+        redirectUri:
+          "https://" + "a".repeat(32) + ".chromiumapp.org/radar-auth",
+        deviceId: "second-device-123456",
+        expiresAt: future,
+      });
+      const token = await req("/api/extension/auth/token", "", "POST", {
+        grant_type: "authorization_code",
+        code: code2,
+        code_verifier: verifier,
+        redirect_uri:
+          "https://" + "a".repeat(32) + ".chromiumapp.org/radar-auth",
+      });
+      assert.equal(token.status, 200, token.text);
+      secondDeviceToken = token.json.access_token;
+      await db.query(
+        'UPDATE "RadarWorkspace" SET "dailyRequestLimit"=2 WHERE id=$1',
+        [userA.workspaceId],
+      );
+      await db.query(
+        'DELETE FROM "RadarWorkspaceUsage" WHERE "workspaceId"=$1',
+        [userA.workspaceId],
+      );
+      for (const value of [access.access_token, token.json.access_token])
+        assert.equal(
+          (
+            await req("/api/extension/auth/session", "", "GET", undefined, {
+              authorization: "Bearer " + value,
+            })
+          ).status,
+          200,
+        );
+      assert.equal(
+        (
+          await req("/api/extension/auth/session", "", "GET", undefined, {
+            authorization: "Bearer " + access.access_token,
+          })
+        ).status,
+        429,
+      );
+    },
+  );
+  await check("concurrent calls respect the shared daily cap", async () => {
+    await db.query('DELETE FROM "RadarWorkspaceUsage" WHERE "workspaceId"=$1', [
+      userA.workspaceId,
+    ]);
+    const results = await Promise.all(
+      Array.from({ length: 8 }, (_, index) =>
+        req("/api/extension/auth/session", "", "GET", undefined, {
+          authorization:
+            "Bearer " + (index % 2 ? secondDeviceToken : access.access_token),
+        }),
+      ),
+    );
+    assert.equal(
+      results.filter((r) => r.status === 200).length,
+      2,
+      JSON.stringify(results.map((r) => r.text)),
+    );
+    assert.equal(results.filter((r) => r.status === 429).length, 6);
+    const used = (
+      await db.query(
+        'SELECT requests FROM "RadarWorkspaceUsage" WHERE "workspaceId"=$1',
+        [userA.workspaceId],
+      )
+    ).rows;
+    assert.equal(used.length, 1);
+    assert.equal(used[0].requests, 2);
+  });
+  await check(
+    "suspension immediately revokes web and extension access",
+    async () => {
+      assert.equal(
+        (
+          await req("/api/workspace/clients", operator, "PATCH", {
+            id: userA.id,
+            active: false,
+          })
+        ).status,
+        200,
+      );
+      assert.equal((await req("/api/workspace", cookieA)).status, 401);
+      assert.equal(
+        (
+          await req("/api/extension/auth/session", "", "GET", undefined, {
+            authorization: "Bearer " + access.access_token,
+          })
+        ).status,
+        401,
+      );
+    },
+  );
+  await check("logout revokes a copied cookie", async () => {
+    assert.equal((await req("/api/auth/logout", cookieB, "POST")).status, 200);
+    assert.equal((await req("/api/workspace", cookieB)).status, 401);
+  });
+  if (process.env.RADAR_QA_SCREENSHOTS) {
+    await req("/api/workspace/clients", operator, "PATCH", {
+      id: userA.id,
+      active: true,
+    });
+    const fresh = await login(emailA);
+    await db.query(
+      'UPDATE "RadarWorkspace" SET "dailyRequestLimit"=500 WHERE id=$1',
+      [userA.workspaceId],
+    );
+    await db.query('DELETE FROM "RadarWorkspaceUsage" WHERE "workspaceId"=$1', [
+      userA.workspaceId,
+    ]);
+    await import(
+      process.env.RADAR_QA_BROWSER_MODULE ?? "./intelligence-app-browser.mjs"
+    ).then(async ({ runBrowserChecks }) =>
+      runBrowserChecks({ base, cookie: fresh, operatorCookie: operator }),
+    );
+  }
+  await check(
+    "order sync allocates a shared shipment once and preserves unknown shipping",
+    async () => {
+      const activated = await req("/api/workspace/clients", operator, "PATCH", {
+        id: userA.id,
+        active: true,
+      });
+      assert.equal(activated.status, 200, activated.text);
+      const fresh = await login(emailA);
+      const r = await req("/api/ml/sales?days=30&refresh=1", fresh);
+      assert.equal(r.status, 200, r.text);
+      const rows = (
+        await db.query(
+          'SELECT "mlOrderId",profit,"shippingCost","profitabilityStatus" FROM "MercadoLivreOrder" WHERE "mlOrderId"=ANY($1::text[])',
+          [
+            [
+              prefix + "pack-a",
+              prefix + "pack-b",
+              prefix + "missing-shipping",
+              prefix + "cancelled",
+            ],
+          ],
+        )
+      ).rows;
+      assert.equal(rows.length, 4);
+      const packed = rows.filter((o) => o.mlOrderId.includes("pack-"));
+      assert.equal(
+        packed.reduce((s, o) => s + Number(o.shippingCost), 0),
+        20,
+      );
+      assert.equal(
+        packed.reduce((s, o) => s + Number(o.profit), 0),
+        150,
+      );
+      assert.equal(
+        rows.find((o) => o.mlOrderId === prefix + "missing-shipping").profit,
+        null,
+      );
+      assert.equal(
+        rows.find((o) => o.mlOrderId === prefix + "cancelled").profit,
+        null,
+      );
+    },
+  );
+  console.log(`HTTP_SMOKE_OK ${checks} checks`);
+} catch (error) {
+  console.error(logs.slice(-5000));
+  throw error;
+} finally {
+  child.kill("SIGTERM");
+  await db.end();
+}

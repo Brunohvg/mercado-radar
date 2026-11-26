@@ -1,6 +1,1819 @@
-YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éíÛ^öÕ:-jZ.¶›­–)Ş³Rò¢öæRæÇ—6—27W&f6RâvRFF7F—2W6VgVÂv†Vâ÷F–öæÂÔÂ—2&R&W7G&–7FVBâ¢ğ¢‚‚’Óâ°¢'W6R7G&–7B#°¢6öç7BBÒ†–B’ÓâFö7VÖVçBævWDVÆVÖVçD'”–B†–B“°¢6öç7BÒÒvÆö&ÅF†—2å&F%æVÄÖöFVÃ°¢6öç7BÒvÆö&ÅF†—2å&F%&öGV7DæÇ—6—3°¢6öç7B7FFRÒ°¢6öçFW‡C¢çVÆÂÀ¢—FVÓ¢çVÆÂÀ¢WFƒ¢çVÆÂÀ¢¶W“¢""À¢&Wf—6–öã¢À¢6Æ5&Wf—6–öã¢À¢6Æ4'W7“¢fÇ6RÀ¢6æF–FFW3¢µÒÀ¢6VÆV7FVC¢æWr6WB‚’À¢&W7VÇC¢çVÆÂÀ¢6ö×&—6öåF&vWC¢çVÆÂÀ¢fö7W6VD–C¢çVÆÂÀ¢Æ7D–çFVçC¢çVÆÂÀ¢6öçFW‡E&WVW7C¢À¢6W'fW#¢&‡GG3¢ò÷&F"æ÷F'—2æ6öÒæ'""À¢VF—FVC¢æWr6WB‚’À¢WFöÖF–5F–ÖW#¢çVÆÂÀ¢6Æ7VÆF÷%V÷FS¢çVÆÂÀ¢VF—D6÷7D–çWG3¢fÇ6RÀ¢Ó°¢6öç7B'&ÂÒ†â’Óà¢âÓÒçVÆÂÇÂçVÖ&W"æ—4f–æ—FR„çVÖ&W"†â’¢ò.(	B ¢¢„ö&¦V7Bæ—2„çVÖ&W"†â’ÂÓ’ò¢çVÖ&W"†â’’çFôÆö6ÆU7G&–ær‚'BÔ%""Â°¢7G–ÆS¢&7W'&Væ7’"À¢7W'&Væ7“¢$%$Â"À¢Ò“°¢6öç7B7BÒ†â’Óà¢âÓÒçVÆÀ¢ò.(	B ¢¢çVÖ&W"†â’çFôÆö6ÆU7G&–ær‚'BÔ%""Â²Ö†–×VÔg&7F–öäF–v—G3¢"Ò’²"R#°¢6öç7B6÷VçBÒ†â’Óâ†âÓÒçVÆÂò.(	B"¢çVÖ&W"†â’çFôÆö6ÆU7G&–ær‚'BÔ%""’“°¢6öç7B7F×Ò‡fÇVR’Óà¢æWrFFR‡fÇVR’çFôÆö6ÆU7G&–ær‚'BÔ%""Â°¢F“¢#"ÖF–v—B"À¢ÖöçFƒ¢#"ÖF–v—B"À¢†÷W#¢#"ÖF–v—B"À¢Ö–çWFS¢#"ÖF–v—B"À¢Ò“°¢6öç7B7W'&VçBÒ‚’Óà¢7FFRæfö7W6VD–@¢ò7FFRæ6öçFW‡Còæ—FV×3òæf–æB‚†—FVÒ’Óâ—FVÒæ–BÓÓÒ7FFRæfö7W6VD–B’ÇÀ¢çVÆÀ¢¢7FFRæ6öçFW‡CòçvRÓÓÒ'&öGV7B ¢ò7FFRæ6öçFW‡Bæ—FV×3òå³Ğ¢¢çVÆÃ°¢6öç7BæÇ—6—2Òæ7&VFT6öçG&öÆÆW"‡°¢6VæC¢†ÖW76vR’Óâ6‡&öÖRç'VçF–ÖRç6VæDÖW76vR†ÖW76vR’À¢&VfW&Væ6W3¢‚’Óà¢6‡&öÖRç7F÷&vRç7–æ2ævWB…°¢'&F%F…W&6VçB"À¢'&F$÷W&F–æt6÷7B"À¢'&F%F&vWDÖ&v–åW&6VçB"À¢'&F%F&vWE&ö•W&6VçB"À¢Ò’À¢6†ævVC¢&VæFW$WFöÖF–2À¢Ò“°¢gVæ7F–öâ&VæFW$WFöÖF–2‡2’°¢6öç7Bö'2Ò7W'&VçB‚“°¢B‚&WFôæÇ—6—2"’æ†–FFVâÒ2æö'2ÇÂ2æö'2æ–BÓÒö'3òæ–C°¢–b‚2æö'2ÇÂ2æö'2æ–BÓÒö'3òæ–B’&WGW&ã°¢6öç7BWFöÖF–4–G2Ò°¢'7WÆ–W%&–6R"À¢&Æ—7F–æuG—R"À¢&Æöv—7F–5G—R"À¢'6¶vUvV–v‡B"À¢'6¶vT†V–v‡B"À¢'6¶vUv–GF‚"À¢'6¶vTÆVæwF‚"À¢'6¶vTg&VU6†—–ær"À¢Ó°¢6öç7B&Vf÷&RÒWFöÖF–4–G0¢æÖ‚†–B’Óâ‚B†–B’çG—RÓÓÒ&6†V6¶&÷‚"òB†–B’æ6†V6¶VB¢B†–B’çfÇVR’¢æ¦ö–â‚'Â"“°¢6öç7BBÒæFVÖæB‡2æ–ç6–v‡B’À¢òÒæFV6—6–öâ†ö'2Â2æ–ç6–v‡BÂ2ç&W7VÇB’À¢V÷FRÒ2çV÷FW5·2æÆ—7F–æuG—UÒÀ¢–÷WBÒç&V6V—B‡V÷FRÂö'2ç&–6R“°¢6öç7B&VF–ærÒvÆö&ÅF†—2å&F$Ö&¶WDÖöFVÂæ76W74Ö&¶WB†ö'2Â2æ–ç6–v‡B’À¢6&BÒæ6&DÖWG&–72†ö'2Â2æ–ç6–v‡B“°¢òò6VÒW,:ÖöFòFRfVæF3¢f—†W7F–ÖF‡f—6—F29r6öçfW'<:6ò’Â&÷GVÆFR6öÒ6öçFà¢6öç7BW7F–ÖFRÒBç&FRÓÒçVÆÂòçf—6—E6ÆW2‡2ææÇ—F–72’¢çVÆÃ°¢B‚&WFôFVÖæB"’çFW‡D6öçFVçBÒW7F–ÖFP¢òç&ævUFW‡B†W7F–ÖFR’²"fVæF2öÜ:§2+rW7F–ÖF—f ¢¢&VF–æræFVÖæBçFW‡B²"+r"²&VF–æræFVÖæBæÆ&VÃ°¢B‚&WFôFVÖæB"’çF—FÆRÒW7F–ÖFRòW7F–ÖFRæf÷&×VÆ¢&VF–æræFVÖæBæ&6—3°¢B‚&WFõfW&F–7B"’çFW‡D6öçFVçBÒòçF—FÆS°¢B‚&WFõfW&F–7B"’æ6Æ74æÖRÒ&æÇ—6—2×fW&F–7B"²òçFöæS°¢B‚&WFôÖWG&–72"’ç&WÆ6T6†–ÆG&Vâ€¢ÖWG&–2†6&BæÆ&VÂÂ6&BæÖ÷VçBÂ&VF–ærç6öÆEFW‡B’À¢ââäæÖ&¶WDÖWG&–72‡2¢æf–ÇFW"€¢†f7B’Óà¢²%6VÒ6W76ò"Â%6VÒW,:ÖöFò"Â$ì:6òF—7öì:×fVÂ%Òæ–æ6ÇVFW2€¢f7BçfÇVRÀ¢’À¢¢æÖ‚†f7B’Óâ°¢6öç7B&÷‚ÒÖWG&–2†f7BæÆ&VÂÂf7BçfÇVR“°¢&÷‚çF—FÆRÒf7BæFWF–Ã°¢&WGW&â&÷ƒ°¢Ò’À¢“°¢B‚&WFôWf–FVæ6R"’çFW‡D6öçFVçBĞ¢†W7F–ÖFRò$W7F–ÖF—fFRfVæF3¢"²W7F–ÖFRæf÷&×VÆ²""¢""’°¢&VF–æræFVÖæBæ&6—2°¢‡2ææÇ—F–73òæ6FÆösòçf—6—G56×ÆP¢ò"f—6—F3¢6öÖF2öfW'F2ÖVF–F3²6ö&W'GW&öFR6W"&6–Ââ ¢¢""“°¢B‚&WFõ–÷WDÆ&VÂ"’çFW‡D6öçFVçBÒ2ç&W7VÇ@¢ò$ÇV7&ò6–×VÆFò÷"fVæF ¢¢–÷WCòæÆ&VÂÇÂ%&W76R;72F&–f2#°¢B‚&WFõ–÷WB"’çFW‡D6öçFVçBÒ'&Â‡2ç&W7VÇCòç&öf—Bóò–÷WCòçfÇVR“°¢B‚&WFôfVW2"’çFW‡D6öçFVçBĞ¢V÷FSòæfVW3òæ6öÖÖ—76–öåW&6VçBÓÒçVÆÀ¢ò%F&–f2–æF–æF—7öì:×fV—2â6öæf—&6öæWŒ:6ò÷RW6RF&–f2fW&–f–6F2æ6Æ7VÆF÷&â ¢¢$6öÖ—7<:6ò"°¢7B‡V÷FRæfVW2æ6öÖÖ—76–öåW&6VçB’°¢"+rF&–ff—†"°¢'&Â‡V÷FRæfVW2æf—†VDfVR“°¢B‚&WFõ6†—–ær"’çFW‡D6öçFVçBÒ–÷WCòç6†—–ætÆ–V@¢ò‡–÷WBç6†—–ætW7F–ÖFV@¢ò$g&WFRW7F–ÖFòVÆ“¢ ¢¢$g&WFR6÷FFòæ“¢"’°¢'&Â‡V÷FRæfVW2ç6†—–æt6÷7B’°¢"âò7W7Fòf–æÂFWVæFRFòVçf–òâ ¢¢V÷FSòç6†—–ætæ÷FP¢òV÷FRç6†—–ætæ÷FP¢¢$g&WFRFòfVæFVF÷"6öæf—&Ö"âò&W76R6–Ö–æFì:6òFW66öçFg&WFRâ#°¢B‚&WFôæ÷FR"’çFW‡D6öçFVçBĞ¢2ç7FGW2ÓÓÒ'V&Æ–2 ¢ò$ì:Æ—6R;¦&Æ–6F—7öì:×fVÂâ6öçF÷6–öæÂ&F&–f2öf–6–—2R†—7L;7&–6òâ ¢¢‡V÷FSòæ6FVv÷'•6÷W&6RÓÓÒ%$TD”5DTB ¢ò$6FVv÷&–7VvW&–FVÆòL:×GVÆòâ ¢¢""’°¢‡2ç&W7VÇ@¢ò$Ö&vVÒ"°¢7B‡2ç&W7VÇBæÖ&v–åW&6VçB’°¢"+r$ô’"°¢7B‡2ç&W7VÇBç&ö•W&6VçB¢¢%&W76Rì:6ò:’ÇV7&ó¢6ö×ÆWFR6ö×&Â–×÷7FòR÷W&:|:6òâ"“°¢f÷"†6öç7B'WGFöâöbFö7VÖVçBçVW'•6VÆV7F÷$ÆÂ‚%¶FFÖWFò×G—UÒ"’’°¢6öç7BG—RÒ'WGFöâæFF6WBæWFõG—RÀ¢fVRÒ2çV÷FW5·G—UÓòæfVW3òæ6öÖÖ—76–öåW&6VçC°¢'WGFöâç6WDGG&–'WFR‚&&–×&W76VB"Â7G&–ær‡G—RÓÓÒ2æÆ—7F–æuG—R’“°¢'WGFöâçFW‡D6öçFVçBĞ¢‡G—RÓÓÒ$4Ä54”2"ò$6Ì:76–6ò"¢%&VÖ—VÒ"’°¢†fVRÓÒçVÆÂò""¢"+r"²7B†fVR’“°¢Ğ¢–b‡2æ—FVÒ’7FFRæ—FVÒÒ2æ—FVÓ°¢–b‡2æ—FVÓòç6†—–æu6¶vR’°¢f÷"†6öç7B¶–BÂ¶W•Òöb°¢²'6¶vUvV–v‡B"Â'vV–v‡Dw&×2%ÒÀ¢²'6¶vT†V–v‡B"Â&†V–v‡D6Ò%ÒÀ¢²'6¶vUv–GF‚"Â'v–GF„6Ò%ÒÀ¢²'6¶vTÆVæwF‚"Â&ÆVæwF„6Ò%ÒÀ¢Ò¢–b‚7FFRæVF—FVBæ†2†–B’¢B†–B’çfÇVRÒ7G&–ær‡2æ—FVÒç6†—–æu6¶vU¶¶W•Ò“°¢–b‚7FFRæVF—FVBæ†2‚'6¶vTg&VU6†—–ær"’¢B‚'6¶vTg&VU6†—–ær"’æ6†V6¶VBÒ&ööÆVâ‡2æ—FVÒæg&VU6†—–ær“°¢–b‚B‚'6¶vU7FGW2"’çFW‡D6öçFVçB¢B‚'6¶vU7FGW2"’çFW‡D6öçFVçBĞ¢$ÖVF–F2FRVçf–ò&V6V&–F2F’Fòì;¦æ6–òâ6öæf—&&7VVÖ&ÆvVÒâ#°¢Ğ¢–b‡2æ6æF–FFW2æÆVæwF‚bb7FFRæ6æF–FFW2æÆVæwF‚’°¢7FFRæ6ö×&—6öåF&vWBÒö'3°¢6WD6æF–FFW2‡2æ6æF–FFW2“°¢Ğ¢f÷"†6öç7B¶–BÂfÇVUÒöb°¢²'7WÆ–W%&–6R"Â2æf–VÆG2æ6÷7EÒÀ¢²&Æ—7F–æuG—R"Â2æÆ—7F–æuG—UÒÀ¢°¢&Æöv—7F–5G—R"À¢2æ—FVÓòæÆöv—7F–5G—RÇÂ†ö'2ægVÆf–ÆÆÖVçBò&gVÆf–ÆÆÖVçB"¢&G&÷ööfb"’À¢ÒÀ¢Ò¢–b‚7FFRæVF—FVBæ†2†–B’bbfÇVRÓÒ""’B†–B’çfÇVRÒfÇVS°¢7–æ46†ö–6W2‚“°¢–b€¢&Vf÷&RÓĞ¢WFöÖF–4–G0¢æÖ‚†–B’Óâ‚B†–B’çG—RÓÓÒ&6†V6¶&÷‚"òB†–B’æ6†V6¶VB¢B†–B’çfÇVR’¢æ¦ö–â‚'Â"¢’°¢7FFRæ6Æ5&Wf—6–öâ²³°¢7FFRç&W7VÇBÒçVÆÃ°¢B‚&6Æ5&W7VÇB"’æ†–FFVâÒG'VS°¢Ğ¢–b€¢V÷FRb`¢B‚&ÖçVÄfVW2"’æ6†V6¶VBb`¢ÒæÖöæW’‚B‚'6ÆU&–6R"’çfÇVR’ÓÓÒö'2ç&–6Rb`¢B‚&Æ—7F–æuG—R"’çfÇVRÓÓÒ2æÆ—7F–æuG—Rb`¢°¢'6ÆU&–6R"À¢&Æ—7F–æuG—R"À¢&Æöv—7F–5G—R"À¢'6¶vUvV–v‡B"À¢'6¶vT†V–v‡B"À¢'6¶vUv–GF‚"À¢'6¶vTÆVæwF‚"À¢Òç6öÖR‚†–B’Óâ7FFRæVF—FVBæ†2†–B’¢¢7FFRæ6Æ7VÆF÷%V÷FRÒV÷FS°¢&VæFW$6Æ7VÆF÷$f–VÆG2‚“°¢–b€¢B‚&6Æ7VÆF÷""’æ†–FFVâb`¢7FFRç&W7VÇBb`¢7FFRæ6Æ4'W7’b`¢ÒæÖöæW’‚B‚'7WÆ–W%&–6R"’çfÇVR’ÒçVÆÂb`¢ÒæÖöæW’‚B‚'F…W&6VçB"’çfÇVR’ÒçVÆÀ¢¢66†VGVÆT6Æ7VÆF–öâ‚“°¢Ğ¢gVæ7F–öâ&VæFW$6Æ7VÆF÷$f–VÆG2‚’°¢6öç7BÒ7FFRæ6Æ7VÆF÷%V÷FRÀ¢&–6RÒÒæÖöæW’‚B‚'6ÆU&–6R"’çfÇVR’À¢ÖçVÅ6†—–ærÒÒæÖöæW’‚B‚'6†—–æt6÷7B"’çfÇVR’À¢F‚ÒÒæÖöæW’‚B‚'F…W&6VçB"’çfÇVR’À¢V÷FVE6†—–ærĞ¢‡òç6†—–æt¶æ÷vâÇÂòç6†—–ætW7F–ÖFVB’b`¢G—VöbòæfVW3òç6†—–æt6÷7BÓÓÒ&çVÖ&W""b`¢çVÖ&W"æ—4f–æ—FR‡æfVW2ç6†—–æt6÷7B¢òæfVW2ç6†—–æt6÷7@¢¢çVÆÃ°¢B‚'6ÆU&–6U&VF÷WB"’çFW‡D6öçFVçBÒ'&Â‡&–6R“°¢f÷"†6öç7B¶–BÂ¶æ÷våÒöb°¢²'6†—–ætf–VÆB"ÂÖçVÅ6†—–ærÒçVÆÂÇÂV÷FVE6†—–ærÒçVÆÅÒÀ¢²'F„f–VÆB"ÂF‚ÒçVÆÂbbF‚ÃÒSÒÀ¢Ò’°¢6öç7Bw&÷WÒB†–B“°¢–b‚w&÷Wæ6öçF–ç2†Fö7VÖVçBæ7F—fTVÆVÖVçB’¢w&÷Wæ†–FFVâÒ7FFRæVF—D6÷7D–çWG2bb¶æ÷vã°¢Ğ¢òòF‡&VR6ö×7Bf7G2&WÆ6RF†RÆöærÂ†&B×Fò×66â6Æ7VÆF–öâ6VçFVæ6Rà¢òòF†Rg&V–v‡B—2öæÇ’6ÆÆVB'V÷FVB"f÷"F†R6VÆÆW"w2÷vâWF†÷&—¦VB—FVÒà¢6öç7BV÷FTF—66÷VçBÒòç6†—–ætF—66÷VçCòç&FRâ ¢ò7B‡ç6†—–ætF—66÷VçBç&FR¢’²"FRFW66öçFòÆ–6Fò ¢¢"#°¢6öç7Bg&V–v‡BÒÖçVÅ6†—–ærÒçVÆÀ¢ò²fÇVS¢'&Â†ÖçVÅ6†—–ær’Â6÷W&6S¢$–æf÷&ÖFò÷"fö<:¢"ÂFöæS¢&ÖçVÂ"Ğ¢¢V÷FVE6†—–ærÒçVÆÀ¢ò°¢fÇVS¢'&Â‡V÷FVE6†—–ær’À¢6÷W&6S¢‡ç6†—–ætW7F–ÖFVBò$W7F–ÖFòæ7V6öçF"¢$6÷FFòæ7V6öçF"’°¢‡V÷FTF—66÷VçBò"+r"²V÷FTF—66÷VçB¢""’À¢FöæS¢ç6†—–ætW7F–ÖFVBò&W7F–ÖFVB"¢&6öæf—&ÖVB"À¢Ğ¢¢°¢fÇVS¢%VæFVçFR"À¢6÷W&6S¢$–æf÷&ÖRVÖ&ÆvVÒ&W7F–Ö"÷RVÒ7W7FòfW&–f–6Fò"À¢FöæS¢'VæF–ær"À¢Ó°¢6öç7Bf7G2ÒB‚&6Æ4WFôf7G2"“°¢f7G2ç&WÆ6T6†–ÆG&Vâ‚“°¢f÷"†6öç7B¶Æ&VÂÂfÇVRÂ6÷W&6RÂFöæUÒöb°¢°¢B‚&Æ—7F–æuG—R"’çfÇVRÓÓÒ%$TÔ•TÒ"ò%F&–f2+r&VÖ—VÒ"¢%F&–f2+r6Ì:76–6ò"À¢òæfVW3òæ6öÖÖ—76–öåW&6VçBÓÒçVÆÀ¢ò$6öæf—&Ö" ¢¢7B‡æfVW2æ6öÖÖ—76–öåW&6VçB’²"²"²'&Â‡æfVW2æf—†VDfVR’À¢òæfVU6÷W&6RÓÓÒ$ÔåTÂ"ò$–æf÷&ÖF2÷"fö<:¢"¢$6÷F:|:6òÖW&6FòÆ—g&R"À¢òæfVW3òæ6öÖÖ—76–öåW&6VçBÓÒçVÆÂò'VæF–ær"¢&6öæf—&ÖVB"À¢ÒÀ¢²$g&WFRFòfVæFVF÷""Âg&V–v‡BçfÇVRÂg&V–v‡Bç6÷W&6RÂg&V–v‡BçFöæUÒÀ¢°¢$–×÷7Fò"À¢F‚ÓÒçVÆÂò%VæFVçFR"¢7B‡F‚’À¢F‚ÓÒçVÆÂò$6öæf—&ÖRÌ:×V÷FF7V÷W&:|:6ò"¢$6öæf–wW&:|:6òF7V÷W&:|:6ò"À¢F‚ÓÒçVÆÂò'VæF–ær"¢&6öæf—&ÖVB"À¢ÒÀ¢Ò’°¢6öç7Bf7BÒæöFR‚'7â"ÂçVÆÂÂ&6Æ2Öf7B"²FöæR“°¢f7BæVæB†æöFR‚'6ÖÆÂ"ÂÆ&VÂ’ÂæöFR‚'7G&öær"ÂfÇVR’ÂæöFR‚'6ÖÆÂ"Â6÷W&6R’“°¢f7G2æVæB†f7B“°¢Ğ¢B‚&VF—D6÷7D–çWG2"’çFW‡D6öçFVçBÒ7FFRæVF—D6÷7D–çWG0¢ò%&V6öÆ†W"7W7F÷26öæf—&ÖF÷2 ¢¢%&Wf—6"g&WFRR–×÷7Fò#°¢&VæFW$6Æ7VÆF÷$6ö×&—6öâ‚“°¢Ğ¢gVæ7F–öâ&VæFW$6Æ7VÆF÷$6ö×&—6öâ‚’°¢6öç7B&–6W2Ò7FFRæ6æF–FFW0¢æf–ÇFW"€¢†—FVÒ’Óâ7FFRç6VÆV7FVBæ†2†—FVÒæ–B’bb—FVÒæ–BÓÒ7W'&VçB‚“òæ–BÀ¢¢æÖ‚†—FVÒ’ÓâçVÖ&W"†—FVÒç&–6R’“°¢6öç7B6×ÆRÒÒç6×ÆR‡&–6W2ÂÒæÖöæW’‚B‚'6ÆU&–6R"’çfÇVR’“°¢B‚&6Æ46ö×&—6öâ"’æ†–FFVâÒ6×ÆSòævÓÒçVÆÃ°¢B‚&6Æ46ö×&—6öâ"’çFW‡D6öçFVçBĞ¢6×ÆSòævÓÒçVÆÀ¢ò" ¢¢%6WR&\:vòW7L:"°¢7B„ÖF‚æ'2‡6×ÆRæv’’°¢‡6×ÆRævâ ¢ò"6–Ö ¢¢6×ÆRævÂ ¢ò"&—†ò ¢¢"æf—†"’°¢"FÖVF–æFR"°¢6×ÆRæ6÷VçB°¢"ì;¦æ6–÷26VÆV6–öæF÷2â6ö×&RòÖW6Öò¶—BR6öæFœ:|:6òâ#°¢Ğ¢gVæ7F–öâ66†VGVÆT6Æ7VÆF–öâ‚’°¢6ÆV%F–ÖV÷WB‡7FFRæWFöÖF–5F–ÖW"“°¢7FFRæWFöÖF–5F–ÖW"Ò6WEF–ÖV÷WB‚‚’Óâ°¢–b‡7FFRæ6Æ4'W7’’°¢66†VGVÆT6Æ7VÆF–öâ‚“°¢&WGW&ã°¢Ğ¢–b€¢ÒæÖöæW’‚B‚'7WÆ–W%&–6R"’çfÇVR’ÓÒçVÆÂÇÀ¢ÒæÖöæW’‚B‚'F…W&6VçB"’çfÇVR’ÓÒçVÆÀ¢’°¢–b‚7FFRæ6Æ7VÆF÷%V÷FRbbÒæÖöæW’‚B‚'6ÆU&–6R"’çfÇVR’â¢fö–B6Æ7VÆFR‡G'VR“°¢&WGW&ã°¢Ğ¢–b‚B‚&G4Væ&ÆVB"’æ6†V6¶VBbb„ÒæÖöæW’‚B‚&G5&ö2"’çfÇVR’â’’&WGW&ã°¢fö–B6Æ7VÆFR‚“°¢ÒÂSS“°¢Ğ¢gVæ7F–öâæöFR‡FrÂFW‡BÂ6Æ74æÖR’°¢6öç7BVÂÒFö7VÖVçBæ7&VFTVÆVÖVçB‡Fr“°¢–b‡FW‡BÒçVÆÂ’VÂçFW‡D6öçFVçBÒ7G&–ær‡FW‡B“°¢–b†6Æ74æÖR’VÂæ6Æ74æÖRÒ6Æ74æÖS°¢&WGW&âVÃ°¢Ğ¢gVæ7F–öâæ÷F–6R†–BÂFW‡BÂFöæRÒ""’°¢6öç7BVÂÒB†–B“°¢VÂæ†–FFVâÒFW‡C°¢VÂçFW‡D6öçFVçBÒFW‡BÇÂ"#°¢VÂæ6Æ74æÖRÒ&æ÷F–6R"²‡FöæRò""²FöæR¢""“°¢Ğ¢gVæ7F–öâÖWG&–2†Æ&VÂÂfÇVRÂFWF–Â’°¢6öç7BVÂÒæöFR‚&F—b"ÂçVÆÂÂ&ÖWG&–2"“°¢VÂæVæB†æöFR‚'6ÖÆÂ"ÂÆ&VÂ’ÂæöFR‚'7G&öær"ÂfÇVR’“°¢–b†FWF–Â’VÂæVæB†æöFR‚'7â"ÂFWF–ÂÂ&×WFVB"’“°¢&WGW&âVÃ°¢Ğ¢gVæ7F–öâ6fTÆ–æ²‡fÇVR’°¢G'’°¢6öç7BRÒæWrU$Â‡fÇVR“°¢&WGW&âRç&÷Fö6öÂÓÓÒ&‡GG3¢"b`¢ò…çÅÂâ–ÖW&6FöÆ—g&UÂæ6öÕÂæ'"Bö’çFW7B‡Ræ†÷7FæÖR¢òRæ‡&V`¢¢çVÆÃ°¢Ò6F6‚°¢&WGW&âçVÆÃ°¢Ğ¢Ğ¢7–æ2gVæ7F–öâ&WVW7B‡F‚ÂÖWF†öBÒ$tUB"Â&öG’’°¢ÆWBF–ÖW#°¢G'’°¢&WGW&âv—B&öÖ—6Rç&6R…°¢6‡&öÖRç'VçF–ÖRç6VæDÖW76vR‡²G—S¢%$D%ôdUD4‚"ÂF‚ÂÖWF†öBÂ&öG’Ò’À¢æWr&öÖ—6R‚‡&W6öÇfR’Óâ°¢F–ÖW"Ò6WEF–ÖV÷WB€¢‚’Óà¢&W6öÇfR‡°¢ö³¢fÇ6RÀ¢7FGW3¢À¢&öG“¢²W'&÷#¢$6öç7VÇFFVÖ÷&÷RâFVçFRæ÷fÖVçFRâ"ÒÀ¢Ò’À¢3À¢“°¢Ò’À¢Ò“°¢Ò6F6‚°¢&WGW&â°¢ö³¢fÇ6RÀ¢7FGW3¢À¢&öG“¢°¢W'&÷# ¢$ì:6òfö’÷7<:×fVÂfÆ"6öÒò&F"â6öæf—&ò6W'f–F÷"÷R&V6'&VwVRW‡FVç<:6òâ"À¢ÒÀ¢Ó°¢Òf–æÆÇ’°¢6ÆV%F–ÖV÷WB‡F–ÖW"“°¢Ğ¢Ğ¢gVæ7F–öâW'&÷%FW‡B‡&W7öç6R’°¢–b‡&W7öç6Sòç7FGW2ÓÓÒC¢&WGW&â%7V6W7<:6òFò&F"W‡—&÷RâVçG&Ræ÷fÖVçFRæ6öæWŒ:6ò&—†òâ#°¢–b‡&W7öç6Sòç7FGW2ÓÓÒC#’¢&WGW&â€¢&W7öç6Ræ&öG“òæW'&÷"ÇÀ¢$Æ–Ö—FRFR6öç7VÇF2F–æv–FòâwV&FRçFW2FRFVçF"æ÷fÖVçFRâ ¢“°¢&WGW&â&W7öç6Sòæ&öG“òæW'&÷"ÇÂ$ò&F"ì:6ò&W7öæFWRâFVçFRæ÷fÖVçFRâ#°¢Ğ¢gVæ7F–öâ6†÷uF"†æÖR’°¢B‚&6öçFW‡D6&B"’æ6Æ74Æ—7BçFövvÆR‚&6ö×7B"ÂæÖRÓÒ'7VÖÖ'’"“°¢f÷"†6öç7B6V7F–öâöbFö7VÖVçBçVW'•6VÆV7F÷$ÆÂ‚"çF"×vR"’¢6V7F–öâæ†–FFVâÒ6V7F–öâæ–BÓÒæÖS°¢f÷"†6öç7B'WGFöâöbFö7VÖVçBçVW'•6VÆV7F÷$ÆÂ‚"çF'2'WGFöâ"’’°¢–b†'WGFöâæFF6WBçF"ÓÓÒæÖR¢'WGFöâç6WDGG&–'WFR‚&&–Ö7W'&VçB"Â'vR"“°¢VÇ6R'WGFöâç&VÖ÷fTGG&–'WFR‚&&–Ö7W'&VçB"“°¢Ğ¢–b†æÖRÓÓÒ&6Æ7VÆF÷""’°¢&VæFW$6Æ7VÆF÷$f–VÆG2‚“°¢–b‚7FFRç&W7VÇB’66†VGVÆT6Æ7VÆF–öâ‚“°¢Ğ¢Ğ¢gVæ7F–öâ÷VäG&gD76—7FçB‚’°¢6öç7Bö'6W'fF–öâÒ7W'&VçB‚“°¢6öç7B&öGV7DæÖRÒö'6W'fF–öãòçF—FÆRÇÂ7FFRæ6öçFW‡CòçVW'’ÇÂ7FFRæ6öçFW‡CòçF—FÆRÇÂ"#°¢6öç7B&VfW&Væ6RÒö'6W'fF–öãòæ–BÇÂ7FFRæ6öçFW‡Còç&VfW&Væ6T–BÇÂ"#°¢6öç7BW&ÂÒæWrU$Â‚"ö76—7FVçFRÖçVæ6–÷2"Â7FFRç6W'fW"“°¢W&Âç6V&6…&×2ç6WB‚&÷&–vVÒ"Â&W‡FVç6ò"“°¢–b‡&öGV7DæÖR’W&Âç6V&6…&×2ç6WB‚'&öGWFò"Â7G&–ær‡&öGV7DæÖRuïmm¢G§²ÚîÆ­yÒB‚&Ö&¶WD'WGFöâ"’æF—6&ÆVBÒG'VS°¢æ÷F–6R€¢&Ö&¶WE7FGW2"À¢$'W66æFò6æF–FF÷2æ7VæfVv:|:6òRæò6L:ÆövòF—7öì:×fVÎ(
-b"À¢“°¢G'’°¢6öç7B&×2ÒæWrU$Å6V&6…&×2‡²F—FÆS¢ö'2çF—FÆRÂ—FVÔ–C¢ö'2æ–BÒ“°¢–b†ö'2ç&–6R’&×2ç6WB‚&7W'&VçE&–6R"Â7G&–ær†ö'2ç&–6R’“°¢6öç7B&W7öç6RÒv—B&WVW7B‚"ö’öW‡FVç6–öâöÖ&¶WCò"²&×2“°¢–b‡&Wf—6–öâÓÒ7FFRç&Wf—6–öâ’&WGW&ã°¢–b‚&W7öç6Sòæö²’°¢æ÷F–6R‚&Ö&¶WE7FGW2"ÂW'&÷%FW‡B‡&W7öç6R’Â&W'&÷""“°¢&WGW&ã°¢Ğ¢6WD6æF–FFW2‡&W7öç6Ræ&öG’æ6ö×WF—F÷'2ÇÂµÒ“°¢æ÷F–6R€¢&Ö&¶WE7FGW2"À¢&W7öç6Ræ&öG’ææ÷FRÀ¢7FFRæ6æF–FFW2æÆVæwF‚ò""¢'v&â"À¢“°¢Òf–æÆÇ’°¢–b‡&Wf—6–öâÓÓÒ7FFRç&Wf—6–öâ’B‚&Ö&¶WD'WGFöâ"’æF—6&ÆVBÒfÇ6S°¢Ğ¢Ğ¢B‚'6V&6„'WGFöâ"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â7–æ2‚’Óâ°¢6öç7BF&vWBÒ7W'&VçB‚’ÇÂ7FFRæ6ö×&—6öåF&vWC°¢6öç7BVW'’ÒF&vWCòçF—FÆRÇÂ7FFRæ6öçFW‡CòçVW'“°¢–b‚VW'’’°¢æ÷F–6R€¢&Ö&¶WE7FGW2"À¢$'&VÒì;¦æ6–ò÷RVÖ'W66çFW2FR6ö×&"â"À¢'v&â"À¢“°¢&WGW&ã°¢Ğ¢–b‡F&vWB¢v—B6‡&öÖRç7F÷&vRç6W76–öâç6WB‡²&F$6ö×&—6öåF&vWC¢F&vWBÒ“°¢v—B6‡&öÖRçF'2æ7&VFR‡°¢W&Ã ¢&‡GG3¢òöÆ—7FæÖW&6FöÆ—g&Ræ6öÒæ'"ò"°¢Væ6öFUU$”6ö×öæVçB‡VW'’ç&WÆ6R‚õÇ2²örÂ"Ò"’’À¢Ò“°¢Ò“°¢B‚'6VÆV7DÆÂ"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â‚’Óâ°¢f÷"†6öç7B–çWBöbB‚&6æF–FFW2"’çVW'•6VÆV7F÷$ÆÂ‚&–çWB"’’°¢–çWBæ6†V6¶VBÒG'VS°¢7FFRç6VÆV7FVBæFB†–çWBçfÇVR“°¢Ğ¢&VæFW%6×ÆR‚“°¢Ò“°¢B‚&f–æE7WÆ–W'2"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â7–æ2‚’Óâ°¢6öç7Bö'2Ò7W'&VçB‚“°¢–b‚ö'2ÇÂW6&ÆR‚’’&WGW&ã°¢–b‚õäÔÄ%SõÆG³RÇÒBö’çFW7B†ö'2æ–BÇÂ""’’°¢B‚'7WÆ–W%7FGW2"’çFW‡D6öçFVçBĞ¢$'&:v–æFRVÒì;¦æ6–ò†<;6F–vòÔÄ"’&'W66"f÷&æV6VF÷&W2â#°¢&WGW&ã°¢Ğ¢6öç7B&Wf—6–öâÒ7FFRç&Wf—6–öã°¢B‚&f–æE7WÆ–W'2"’æF—6&ÆVBÒG'VS°¢B‚'7WÆ–W%7FGW2"’çFW‡D6öçFVçBÒ$–FVçF–f–6æFòò&öGWFş(
-b#°¢6öç7B&W7öç6RÒv—B&WVW7B‚"ö’öW‡FVç6–öâ÷6÷W&6–ær"Â%õ5B"Â°¢—FVÔ–C¢ö'2æ–BÀ¢F—FÆS¢ö'2çF—FÆRÀ¢&–6S¢ö'2ç&–6RÇÂçVÆÂÀ¢W&ÖÆ–æ³¢6fTÆ–æ²†ö'2çW&ÂÇÂ""’ÇÂVæFVf–æVBÀ¢Ò“°¢–b‡&Wf—6–öâÓÒ7FFRç&Wf—6–öâ’&WGW&ã°¢B‚&f–æE7WÆ–W'2"’æF—6&ÆVBÒfÇ6S°¢–b‚&W7öç6Sòæö²’°¢B‚'7WÆ–W%7FGW2"’çFW‡D6öçFVçBÒW'&÷%FW‡B‡&W7öç6R“°¢&WGW&ã°¢Ğ¢6öç7Bf7G2Ò&W7öç6Ræ&öG’æ–FVçF—G’ÇÂ·Ó°¢6öç7B6–væÇ2Ò'&’æ—4'&’‡&W7öç6Ræ&öG’ç6–væÇ2’ò&W7öç6Ræ&öG’ç6–væÇ2¢µÓ°¢6öç7B&÷w2Ò°¢²$Ö&6"Âf7G2æ'&æEÒÀ¢²$ÖöFVÆò"Âf7G2æÖöFVÅÒÀ¢²$uD”âôTâ"Âf7G2æwF–åÒÀ¢²%Væ–FFW2÷"ì;¦æ6–ò"Âf7G2ç6µVçF—G•ÒÀ¢²%&\:vòFR&VfW,:¦æ6–"Âf7G2ç&VfW&Væ6U&–6RÓÒçVÆÂòçVÆÂ¢'&Â†f7G2ç&VfW&Væ6U&–6R•ÒÀ¢òò6–æ—2öf–6–—2Fòì;¦æ6–ò‡&\:vò÷"VçF–FFRÂfVæFVF÷"ÂW&wVçF2Âf–6†’à¢ââç6–væÇ0¢æf–ÇFW"‚‡&÷r’Óâ&÷rbbG—Vöb&÷ræÆ&VÂÓÓÒ'7G&–ær"bbG—Vöb&÷rçfÇVRÓÓÒ'7G&–ær"¢ç6Æ–6RƒÂb¢æÖ‚‡&÷r’Óâ·&÷ræÆ&VÂç6Æ–6RƒÂC’Â&÷rçfÇVRç6Æ–6RƒÂc•Ò’À¢Ó°¢B‚'7WÆ–W$–FVçF—G’"’ç&WÆ6T6†–ÆG&Vâ€¢ââç&÷w2æÖ‚…¶Æ&VÂÂfÇVUÒ’Óâ°¢6öç7B&÷rÒæöFR‚&F—b"“°¢&÷ræVæB†æöFR‚&GB"ÂÆ&VÂ’ÂæöFR‚&FB"ÂfÇVRÓÒçVÆÂò&ì:6ò–æf÷&ÖFò"¢7G&–ær‡fÇVR’’“°¢&WGW&â&÷s°¢Ò’À¢“°¢B‚'7WÆ–W$–FVçF—G’"’æ†–FFVâÒfÇ6S°¢6öç7BÆ–æ²ÒB‚'7WÆ–W$Æ–æ²"“°¢G'’°¢6öç7BF&vWBÒæWrU$Â‡&W7öç6Ræ&öG’çW&Â“°¢6öç7B6W'fW"ÒæWrU$Â‡7FFRç6W'fW"“°¢–b‡F&vWBæ÷&–v–âÓÓÒ6W'fW"æ÷&–v–â’°¢Æ–æ²æ‡&VbÒF&vWBæ‡&Vc°¢Æ–æ²æ†–FFVâÒfÇ6S°¢v–æF÷ræ÷Vâ‡F&vWBæ‡&VbÂ%ö&Ææ²"Â&æö÷VæW"Ææ÷&VfW'&W""“°¢Ğ¢Ò6F6‚°¢Æ–æ²æ†–FFVâÒG'VS°¢Ğ¢6öç7Bæ÷FW2Ò‡&W7öç6Ræ&öG’ææ÷FW2ÇÂµÒ’æ¦ö–â‚""“°¢B‚'7WÆ–W%7FGW2"’çFW‡D6öçFVçBĞ¢‡&W7öç6Ræ&öG’ç&WW6VBò%&öGWFò¬:W7FfVÒW7GVFòâ"¢%&öGWFò6Çfòæò6WR–æVÂâ"’²æ÷FW3°¢Ò“°¢B‚'vF6„'WGFöâ"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â7–æ2‚’Óâ°¢6öç7Bö'2Ò7W'&VçB‚“°¢–b‚ö'2ÇÂW6&ÆR‚’’&WGW&ã°¢6öç7B&Wf—6–öâÒ7FFRç&Wf—6–öã°¢B‚'vF6„'WGFöâ"’æF—6&ÆVBÒG'VS°¢B‚'vF6…7FGW2"’çFW‡D6öçFVçBÒ%6ÇfæFòÆV—GW&(
-b#°¢6öç7B&W7öç6RÒv—B&WVW7B‚"ö’öW‡FVç6–öâ÷vF6†Æ—7B"Â%õ5B"Â°¢—FVÔ–C¢ö'2æ–BÀ¢&VfW&Væ6T–C¢ö'2æ–BÀ¢ö'6W'fF–öã¢ö'2À¢Ò“°¢–b‡&Wf—6–öâÓÒ7FFRç&Wf—6–öâ’&WGW&ã°¢B‚'vF6„'WGFöâ"’æF—6&ÆVBÒ&ööÆVâ‡&W7öç6Sòæö²“°¢B‚'vF6„'WGFöâ"’çFW‡D6öçFVçBÒ&W7öç6Sòæö°¢ò%6Çfòæò6WRÖöæ—F÷&ÖVçFò ¢¢%FVçF"Ööæ—F÷&"æ÷fÖVçFR#°¢B‚'vF6…7FGW2"’çFW‡D6öçFVçBÒ&W7öç6Sòæö°¢ò&W7öç6Ræ&öG’ææ÷FP¢¢W'&÷%FW‡B‡&W7öç6R“°¢Ò“°¢B‚&6Æ7VÆF÷$f÷&Ò"’æFDWfVçDÆ—7FVæW"‚'7V&Ö—B"Â†WfVçB’Óâ°¢WfVçBç&WfVçDFVfVÇB‚“°¢fö–B6Æ7VÆFR‚“°¢Ò“°¢B‚&6Æ7VÆF÷$f÷&Ò"’æFDWfVçDÆ—7FVæW"‚&–çWB"Â‚’Óâ°¢7FFRæ6Æ5&Wf—6–öâ²³°¢7FFRç&W7VÇBÒçVÆÃ°¢B‚&6Æ5&W7VÇB"’æ†–FFVâÒG'VS°¢æ÷F–6R‚&6Æ57FGW2"Â""“°¢–b‚B‚'V÷FU7FGW2"’çFW‡D6öçFVçB¢B‚'V÷FU7FGW2"’çFW‡D6öçFVçBĞ¢%,:&ÖWG&÷2ÇFW&F÷2â6öç7VÇFRæ÷fÖVçFR&GVÆ—¦"F&–fâ#°¢Ò“°¢B‚&6Æ7VÆF÷$f÷&Ò"’æFDWfVçDÆ—7FVæW"‚&–çWB"Â†WfVçB’Óâ°¢7–æ46†ö–6W2‚“°¢7FFRæVF—FVBæFB†WfVçBçF&vWBæ–B“°¢–b€¢°¢'6ÆU&–6R"À¢&Æ—7F–æuG—R"À¢&Æöv—7F–5G—R"À¢'6¶vUvV–v‡B"À¢'6¶vT†V–v‡B"À¢'6¶vUv–GF‚"À¢'6¶vTÆVæwF‚"À¢&ÖçVÄfVW2"À¢&6öÖÖ—76–öåW&6VçB"À¢&f—†VDfVR"À¢Òæ–æ6ÇVFW2†WfVçBçF&vWBæ–B¢¢7FFRæ6Æ7VÆF÷%V÷FRÒçVÆÃ°¢&VæFW$6Æ7VÆF÷$f–VÆG2‚“°¢66†VGVÆT6Æ7VÆF–öâ‚“°¢Ò“°¢f÷"†6öç7B–çWBöbB‚&6Æ7VÆF÷$f÷&Ò"’çVW'•6VÆV7F÷$ÆÂ€¢'6VÆV7BÂ–çWE·G—SÖ6†V6¶&÷…Ò"À¢’¢–çWBæFDWfVçDÆ—7FVæW"‚&6†ævR"Â‚’Óà¢–çWBæF—7F6„WfVçB†æWrWfVçB‚&–çWB"Â²'V&&ÆW3¢G'VRÒ’’À¢“°¢f÷"†6öç7B'WGFöâöbFö7VÖVçBçVW'•6VÆV7F÷$ÆÂ‚%¶FFÖ–çWEÒ"’¢'WGFöâæFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â‚’Óâ°¢6öç7B–çWBÒB†'WGFöâæFF6WBæ–çWB“°¢–çWBçfÇVRÒ'WGFöâæFF6WBçfÇVS°¢–çWBæF—7F6„WfVçB†æWrWfVçB‚&–çWB"Â²'V&&ÆW3¢G'VRÒ’“°¢Ò“°¢gVæ7F–öâ7–æ46†ö–6W2‚’°¢f÷"†6öç7B'WGFöâöbFö7VÖVçBçVW'•6VÆV7F÷$ÆÂ€¢%¶FF×6VÆV7EÒÂ¶FFÖ–çWEÒ"À¢’¢'WGFöâç6WDGG&–'WFR€¢&&–×&W76VB"À¢7G&–ær€¢B†'WGFöâæFF6WBç6VÆV7BÇÂ'WGFöâæFF6WBæ–çWB’çfÇVRÓÓĞ¢'WGFöâæFF6WBçfÇVRÀ¢’À¢“°¢Ğ¢f÷"†6öç7B'WGFöâöbFö7VÖVçBçVW'•6VÆV7F÷$ÆÂ‚%¶FF×6VÆV7EÒ"’¢'WGFöâæFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â‚’Óâ°¢6öç7B–çWBÒB†'WGFöâæFF6WBç6VÆV7B“°¢–çWBçfÇVRÒ'WGFöâæFF6WBçfÇVS°¢–çWBæF—7F6„WfVçB†æWrWfVçB‚&–çWB"Â²'V&&ÆW3¢G'VRÒ’“°¢Ò“°¢B‚&7W7FöÕF‚"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â‚’ÓâB‚'F…W&6VçB"’æfö7W2‚’“°¢B‚&G4Væ&ÆVB"’æFDWfVçDÆ—7FVæW"‚&6†ævR"Â‚’Óâ°¢B‚&G4f–VÆG2"’æ†–FFVâÒB‚&G4Væ&ÆVB"’æ6†V6¶VC°¢Ò“°¢B‚&W7F–ÖFU6¶vR"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â‚’Óâ°¢–b‚W6&ÆUV–WFÇ’‚’’°¢B‚'6¶vU7FGW2"’çFW‡D6öçFVçBĞ¢$6÷F:|:6òVÆ’W†–vRVÖ6öçFFRfVæFVF÷"6öæV7FFâW6R2ÖVF–F26öÖò&VfW,:¦æ6–R–æf÷&ÖRò7W7FòFòg&WFRfW&–f–6Fòæò6×òÖçVÃ²ì:6ò77VÖ–Ö÷2"Bâ#°¢B‚'6†—–ætf–VÆB"’æ†–FFVâÒfÇ6S°¢&WGW&ã°¢Ğ¢7FFRæVF—FVBæFB‚'6¶vUvV–v‡B"“°¢–b„ÒæÖöæW’‚B‚'6†—–æt6÷7B"’çfÇVR’ÒçVÆÂ’°¢B‚'6†—–æt6÷7B"’çfÇVRÒ"#°¢B‚'6†—–æt6÷7B"’æF—7F6„WfVçB†æWrWfVçB‚&–çWB"Â²'V&&ÆW3¢G'VRÒ’“°¢Ğ¢fö–B6Æ7VÆFR‡G'VR“°¢Ò“°¢gVæ7F–öâ÷Vå6†—–ær‚’°¢6†÷uF"‚&6Æ7VÆF÷""“°¢B‚&6Æ4÷F–öç2"’æ÷VâÒG'VS°¢B‚'6¶vTFWF–Ç2"’æ÷VâÒG'VS°¢B‚'6¶vTFWF–Ç2"’ç67&öÆÄ–çFõf–Wr‡²&Æö6³¢'7F'B"Â&V†f–÷#¢'6Öö÷F‚"Ò“°¢Ğ¢B‚&W7F–ÖFU6†—–ær"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â÷Vå6†—–ær“°¢B‚&÷Vå6†—–ær"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â÷Vå6†—–ær“°¢f÷"†6öç7B'WGFöâöbFö7VÖVçBçVW'•6VÆV7F÷$ÆÂ‚%¶FFÖWFò×G—UÒ"’¢'WGFöâæFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â‚’Óà¢æÇ—6—2ç6VÆV7EG—R†'WGFöâæFF6WBæWFõG—R’À¢“°¢B‚'W6UvU&–6R"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â‚’Óâ°¢6öç7B&–6RÒ7W'&VçB‚“òç&–6S°¢–b‚‡&–6Râ’’&WGW&ã°¢B‚'6ÆU&–6R"’çfÇVRÒçVÖ&W"‡&–6R’çFôf—†VBƒ"’ç&WÆ6R‚"â"Â"Â"“°¢B‚'6ÆU&–6R"’æF—7F6„WfVçB†æWrWfVçB‚&–çWB"Â²'V&&ÆW3¢G'VRÒ’“°¢B‚'&–6Tf–VÆB"’æ†–FFVâÒG'VS°¢Ò“°¢B‚&VF—E6ÆU&–6R"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â‚’Óâ°¢B‚'&–6Tf–VÆB"’æ†–FFVâÒB‚'&–6Tf–VÆB"’æ†–FFVã°¢–b‚B‚'&–6Tf–VÆB"’æ†–FFVâ’B‚'6ÆU&–6R"’æfö7W2‚“°¢Ò“°¢B‚&VF—D6÷7D–çWG2"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â‚’Óâ°¢7FFRæVF—D6÷7D–çWG2Ò7FFRæVF—D6÷7D–çWG3°¢&VæFW$6Æ7VÆF÷$f–VÆG2‚“°¢Ò“°¢B‚&ÖçVÄfVW2"’æFDWfVçDÆ—7FVæW"‚&6†ævR"Â‚’Óâ°¢B‚&ÖçVÄfVTf–VÆG2"’æ†–FFVâÒB‚&ÖçVÄfVW2"’æ6†V6¶VC°¢Ò“°¢B‚'V÷FT'WGFöâ"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â‚’Óâfö–B6Æ7VÆFR‡G'VR’“°¢B‚'6fU6–×VÆF–öâ"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â‚’Óâ°¢–b‚7FFRç&W7VÇB’&WGW&ã°¢6öç7B&öG’Ò7FFRç&W7VÇBÀ¢&W7VÇBÒ&öG’ç&W7VÇBÀ¢G2Ò&öG’æG56–×VÆF–öã°¢G'’°¢7FFRçVæF–æu6æ6†÷BÒ°¢ââæ6Æ5–ÆöB‚’À¢6fS¢G'VRÀ¢6fTÖöFS¢%4ä4„õB"À¢W‡V7FVE&öf—C¢&W7VÇBç&öf—BÀ¢Ó°¢Ò6F6‚°¢&WGW&ã°¢Ğ¢B‚'6fU&öGV7B"’çFW‡D6öçFVçBÒ7W'&VçB‚’çF—FÆS°¢B‚'6fTf7G2"’ç&WÆ6T6†–ÆG&Vâ€¢ÖWG&–2‚%&\:vòFRfVæF"Â'&Â‡&W7VÇBç6ÆU&–6R’’À¢ÖWG&–2‚$7W7FòFR6ö×&"Â'&Â‡&W7VÇBçW&6†6T6÷7B’’À¢ÖWG&–2€¢G2ò$ÇV7&ò;72G2"¢$ÇV7&ò6–×VÆFò"À¢'&Â†G3òç&öf—DgFW$G2óò&W7VÇBç&öf—B’À¢’À¢ÖWG&–2€¢$Ö&vVÒ6–×VÆF"À¢7B†G3òæÖ&v–ägFW$G5W&6VçBóò&W7VÇBæÖ&v–åW&6VçB’À¢’À¢“°¢B‚'6fU6÷W&6R"’çFW‡D6öçFVçBĞ¢V÷FUFW‡B†&öG’’²†G2ò"V&Æ–6–FFS¢†—;7FW6W27V2â"¢""“°¢B‚'6æ6†÷E7WÆ–W""’çfÇVRÒ"#°¢B‚&6öæf—&Õ6æ6†÷B"’æF—6&ÆVBÒfÇ6S°¢B‚&6öæf—&Õ6æ6†÷B"’æ†–FFVâÒfÇ6S°¢B‚&†—7F÷'”Æ–æ²"’æ†–FFVâÒG'VS°¢æ÷F–6R‚'6fU7FGW2"Â""“°¢B‚'6fTF–Æör"’ç6†÷tÖöFÂ‚“°¢Ò“°¢B‚&6öæf—&Õ6æ6†÷B"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â7–æ2‚’Óâ°¢6öç7B–ÆöBÒ7FFRçVæF–æu6æ6†÷C°¢–b‚–ÆöBÇÂW6&ÆR‚’’&WGW&ã°¢6öç7B&Wf—6–öâÒ7FFRç&Wf—6–öã°¢B‚&6öæf—&Õ6æ6†÷B"’æF—6&ÆVBÒG'VS°¢æ÷F–6R‚'6fU7FGW2"Â$6öæfW&–æFò6÷F:|:6òR6ÇfæFş(
-b"“°¢6öç7B&W7öç6RÒv—B&WVW7B‚"ö’öW‡FVç6–öâ÷&öf—F&–Æ—G’"Â%õ5B"Â°¢ââç–ÆöBÀ¢7WÆ–W$æÖS¢B‚'6æ6†÷E7WÆ–W""’çfÇVRçG&–Ò‚’À¢Ò“°¢–b‡&Wf—6–öâÓÒ7FFRç&Wf—6–öâ’&WGW&ã°¢B‚&6öæf—&Õ6æ6†÷B"’æF—6&ÆVBÒfÇ6S°¢–b‚&W7öç6Sòæö²ÇÂ&W7öç6Ræ&öG“òç6fVDæÇ—6—4–B’°¢æ÷F–6R€¢'6fU7FGW2"À¢&W7öç6Sòæ&öG“òæW'&÷"ÇÂ$ì:6òfö’÷7<:×fVÂ6Çf"âFVçFRæ÷fÖVçFRâ"À¢&W'&÷""À¢“°¢&WGW&ã°¢Ğ¢7FFRçVæF–æu6æ6†÷BÒçVÆÃ°¢B‚&6öæf—&Õ6æ6†÷B"’æ†–FFVâÒG'VS°¢B‚&†—7F÷'”Æ–æ²"’æ‡&VbÒ7FFRç6W'fW"²"ö†—7F÷&–6ò#°¢B‚&†—7F÷'”Æ–æ²"’æ†–FFVâÒfÇ6S°¢æ÷F–6R‚'6fU7FGW2"Â%6–×VÆ:|:6ò6Çfæò†—7L;7&–6òF7V÷W&:|:6òâ"“°¢Ò“°¢B‚&6÷•&W7VÇB"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â7–æ2‚’Óâ°¢–b‚7FFRç&W7VÇB’&WGW&ã°¢6öç7BFW‡BÒ°¢7W'&VçB‚“òçF—FÆRÀ¢B‚'&W7VÇE6÷W&6R"’çFW‡D6öçFVçBÀ¢ââå²âââB‚&'&V¶F÷vâ"’æ6†–ÆG&VåÒæÖ‚‡&÷r’Óâ&÷rçFW‡D6öçFVçB’À¢B‚'&–6TfÆö÷""’çFW‡D6öçFVçBÀ¢B‚&6Æ46fVB"’çFW‡D6öçFVçBÀ¢Òæ¦ö–â‚%Æâ"“°¢G'’°¢v—Bæf–vF÷"æ6Æ—&ö&Bçw&—FUFW‡B‡FW‡B“°¢æ÷F–6R‚&6Æ57FGW2"Â$ÖVÜ;7&–FR<:Æ7VÆò6÷–Fâ"“°¢Ò6F6‚°¢æ÷F–6R€¢&6Æ57FGW2"À¢$ò6‡&öÖRì:6òWF÷&—¦÷R6÷–"âÖVÜ;7&–6öçF–çVf—<:×fVÂâ"À¢'v&â"À¢“°¢Ğ¢Ò“°¢B‚&Ö&¶WD'WGFöâ"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â‚’Óâfö–BÆöDÖ&¶WB‚’“°¢B‚'&WG'”’"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â‚’Óâfö–BÆöDFWF–Ç2‚’“°¢B‚'&Vg&W6‚"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â7–æ2‚’Óâ°¢B‚'&Vg&W6‚"’æF—6&ÆVBÒG'VS°¢G'’°¢v—BWF…7FGW2‚“°¢v—B&VfW&Væ6W2‚“°¢v—BÆöD6öçFW‡B‡G'VR“°¢Òf–æÆÇ’°¢B‚'&Vg&W6‚"’æF—6&ÆVBÒfÇ6S°¢Ğ¢Ò“°¢B‚&Æöv–ä'WGFöâ"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â7–æ2‚’Óâ°¢B‚&Æöv–ä'WGFöâ"’æF—6&ÆVBÒG'VS°¢B‚&WF…7FGW2"’çFW‡D6öçFVçBÒ$'&–æFò7VWF÷&—¦:|:6ş(
-b#°¢G'’°¢6öç7B"Òv—B6‡&öÖRç'VçF–ÖRç6VæDÖW76vR‡²G—S¢%$D%ôUD…ôÄôt”â"Ò“°¢–b‚#òæWF†VçF–6FVB’°¢B‚&WF…7FGW2"’çFW‡D6öçFVçBÒ#òæÖW76vRÇÂ#òæW'&÷"ÇÂ$Æöv–âì:6ò6öæ6Ç\:ÖFòâ#°¢&WGW&ã°¢Ğ¢v—BWF…7FGW2‚“°¢v—B&VfW&Væ6W2‚“°¢v—BÆöD6öçFW‡B‡G'VR“°¢Ò6F6‚°¢B‚&WF…7FGW2"’çFW‡D6öçFVçBÒ$ì:6òfö’÷7<:×fVÂ6öæ6ÇV—"6öæWŒ:6òâ#°¢Òf–æÆÇ’°¢B‚&Æöv–ä'WGFöâ"’æF—6&ÆVBÒfÇ6S°¢Ğ¢Ò“°¢B‚&Æöv÷WD'WGFöâ"’æFDWfVçDÆ—7FVæW"‚&6Æ–6²"Â7–æ2‚’Óâ°¢v—B6‡&öÖRç'VçF–ÖRç6VæDÖW76vR‡²G—S¢%$D%ôUD…ôÄôtõUB"Ò“°¢7FFRç&W7VÇBÒçVÆÃ°¢7FFRæ6Æ7VÆF÷%V÷FRÒçVÆÃ°¢&VæFW$6Æ7VÆF÷$f–VÆG2‚“°¢B‚&6Æ5&W7VÇB"’æ†–FFVâÒG'VS°¢v—BWF…7FGW2‚“°¢v—B&VfW&Væ6W2‚“°¢v—BÆöD6öçFW‡B‡G'VR“°¢Ò“°¢6‡&öÖRç7F÷&vRæöä6†ævVBæFDÆ—7FVæW"‚†6†ævW2Â&V’Óâ°¢–b€¢†&VÓÓÒ&Æö6Â"bb6†ævW2ç&F$66W75Fö¶Vâ’ÇÀ¢†&VÓÓÒ'7–æ2"b`¢°¢'&F%&VfW&Væ6W5v÷&·76R"À¢'&F%F…W&6VçB"À¢'&F$÷W&F–æt6÷7B"À¢'&F%F&vWDÖ&v–åW&6VçB"À¢'&F%F&vWE&ö•W&6VçB"À¢Òç6öÖR‚†²’Óâ6†ævW5¶µÒ’¢’°¢æÇ—6—2æ6ÆV"‚“°¢7FFRç&Wf—6–öâ²³°¢7FFRæ6öçFW‡E&WVW7B²³°¢B‚'6fTF–Æör"’æ6Æ÷6R‚“°¢7FFRçVæF–æu6æ6†÷BÒçVÆÃ°¢7FFRæWF‚ÒçVÆÃ°¢7FFRæ—FVÒÒçVÆÃ°¢7FFRæ6æF–FFW2ÒµÓ°¢7FFRç6VÆV7FVBæ6ÆV"‚“°¢B‚&6æF–FFW2"’ç&WÆ6T6†–ÆG&Vâ‚“°¢B‚&Ö&¶WE&ævR"’ç&WÆ6T6†–ÆG&Vâ‚“°¢f÷"†6öç7B–Böb²'7WÆ–W%&–6R"Â'6†—–æt6÷7B"Â'F…W&6VçB%Ò¢B†–B’çfÇVRÒ"#°¢7FFRç&W7VÇBÒçVÆÃ°¢7FFRæ6Æ7VÆF÷%V÷FRÒçVÆÃ°¢7FFRæVF—D6÷7D–çWG2ÒfÇ6S°¢&VæFW$6Æ7VÆF÷$f–VÆG2‚“°¢7FFRæ6Æ5&Wf—6–öâ²³°¢B‚&6Æ5&W7VÇB"’æ†–FFVâÒG'VS°¢fö–BWF…7FGW2‚¢çF†Vâ‚‚’Óâ&VfW&Væ6W2‚’¢çF†Vâ‚‚’ÓâÆöD6öçFW‡B‡G'VR’“°¢Ğ¢–b†&VÓÓÒ'6W76–öâ"bb6†ævW2ç&F%æVÄ–çFVçB¢fö–BÆöD6öçFW‡B‚’çF†Vâ‚‚’Óà¢Ç”–çFVçB†6†ævW2ç&F%æVÄ–çFVçBææWufÇVR’À¢“°¢–b€¢&VÓÓÒ'6W76–öâ"b`¢ö&¦V7Bæ¶W—2†6†ævW2’ç6öÖR‚†²’Óâ²ç7F'G5v—F‚‚'&F$6öçFW‡C¢"’¢¢fö–BÆöD6öçFW‡B‚“°¢Ò“°¢6‡&öÖRçF'2æöä7F—fFVBæFDÆ—7FVæW"‚‚’Óâfö–BÆöD6öçFW‡B‚’“°¢6‡&öÖRçF'2æöåWFFVBæFDÆ—7FVæW"‚…ö–BÂ6†ævR’Óâ°¢–b†6†ævRç7FGW2ÓÓÒ&6ö×ÆWFR"ÇÂ6†ævRç7FGW2ÓÓÒ&ÆöF–ær"¢fö–BÆöD6öçFW‡B‚“°¢Ò“°¢†7–æ2‚’Óâ°¢v—BWF…7FGW2‚“°¢v—B&VfW&Væ6W2‚“°¢v—BÆöD6öçFW‡B‡G'VR“°¢Ò’‚’æ6F6‚‚‚’Óà¢æ÷F–6R€¢&vÆö&Å7FGW2"À¢$ì:6òfö’÷7<:×fVÂ–æ–6–"ò–æVÂâ&V6'&VwVRW‡FVç<:6òâ"À¢&W'&÷""À¢’À¢“°§Ò’‚“° 
+/* One analysis surface. Page data stays useful when optional ML APIs are restricted. */
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const M = globalThis.RadarPanelModel;
+  const A = globalThis.RadarProductAnalysis;
+  const state = {
+    context: null,
+    item: null,
+    auth: null,
+    key: "",
+    revision: 0,
+    calcRevision: 0,
+    calcBusy: false,
+    candidates: [],
+    selected: new Set(),
+    result: null,
+    comparisonTarget: null,
+    focusedId: null,
+    lastIntent: null,
+    contextRequest: 0,
+    server: "https://radar.optarys.com.br",
+    edited: new Set(),
+    automaticTimer: null,
+    calculatorQuote: null,
+    editCostInputs: false,
+  };
+  const brl = (n) =>
+    n == null || !Number.isFinite(Number(n))
+      ? "â€”"
+      : (Object.is(Number(n), -0) ? 0 : Number(n)).toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        });
+  const pct = (n) =>
+    n == null
+      ? "â€”"
+      : Number(n).toLocaleString("pt-BR", { maximumFractionDigits: 2 }) + "%";
+  const count = (n) => (n == null ? "â€”" : Number(n).toLocaleString("pt-BR"));
+  const stamp = (value) =>
+    new Date(value).toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  const current = () =>
+    state.focusedId
+      ? state.context?.items?.find((item) => item.id === state.focusedId) ||
+        null
+      : state.context?.page === "product"
+        ? state.context.items?.[0]
+        : null;
+  const analysis = A.createController({
+    send: (message) => chrome.runtime.sendMessage(message),
+    preferences: () =>
+      chrome.storage.sync.get([
+        "radarTaxPercent",
+        "radarOperatingCost",
+        "radarTargetMarginPercent",
+        "radarTargetRoiPercent",
+      ]),
+    changed: renderAutomatic,
+  });
+  function renderAutomatic(s) {
+    const obs = current();
+    $("autoAnalysis").hidden = !s.obs || s.obs.id !== obs?.id;
+    if (!s.obs || s.obs.id !== obs?.id) return;
+    const automaticIds = [
+      "supplierPrice",
+      "listingType",
+      "logisticType",
+      "packageWeight",
+      "packageHeight",
+      "packageWidth",
+      "packageLength",
+      "packageFreeShipping",
+    ];
+    const before = automaticIds
+      .map((id) => ($(id).type === "checkbox" ? $(id).checked : $(id).value))
+      .join("|");
+    const d = A.demand(s.insight),
+      o = A.decision(obs, s.insight, s.result),
+      quote = s.quotes[s.listingType],
+      payout = A.receipt(quote, obs.price);
+    const reading = globalThis.RadarMarketModel.assessMarket(obs, s.insight),
+      card = A.cardMetrics(obs, s.insight);
+    // Sem perÃ­odo de vendas: faixa estimada (visitas Ã— conversÃ£o), rotulada e com a conta.
+    const estimate = d.rate == null ? A.visitSales(s.analytics) : null;
+    $("autoDemand").textContent = estimate
+      ? A.rangeText(estimate) + " vendas/mÃªs Â· estimativa"
+      : reading.demand.text + " Â· " + reading.demand.label;
+    $("autoDemand").title = estimate ? estimate.formula : reading.demand.basis;
+    $("autoVerdict").textContent = o.title;
+    $("autoVerdict").className = "analysis-verdict " + o.tone;
+    $("autoMetrics").replaceChildren(
+      metric(card.label, card.amount, reading.soldText),
+      ...A.marketMetrics(s)
+        .filter(
+          (fact) =>
+            !["Sem acesso", "Sem perÃ­odo", "NÃ£o disponÃ­vel"].includes(
+              fact.value,
+            ),
+        )
+        .map((fact) => {
+          const box = metric(fact.label, fact.value);
+          box.title = fact.detail;
+          return box;
+        }),
+    );
+    $("autoEvidence").textContent =
+      (estimate ? "Estimativa de vendas: " + estimate.formula + " " : "") +
+      reading.demand.basis +
+      (s.analytics?.catalog?.visitsSample
+        ? " Visitas: soma das ofertas medidas; cobertura pode ser parcial."
+        : "");
+    $("autoPayoutLabel").textContent = s.result
+      ? "Lucro simulado por venda"
+      : payout?.label || "Repasse apÃ³s tarifas";
+    $("autoPayout").textContent = brl(s.result?.profit ?? payout?.value);
+    $("autoFees").textContent =
+      quote?.fees?.commissionPercent == null
+        ? "Tarifas ainda indisponÃ­veis. Confira a conexÃ£o ou use tarifas verificadas na calculadora."
+        : "ComissÃ£o " +
+          pct(quote.fees.commissionPercent) +
+          " Â· tarifa fixa " +
+          brl(quote.fees.fixedFee);
+    $("autoShipping").textContent = payout?.shippingApplied
+      ? (payout.shippingEstimated
+          ? "Frete estimado pela API: "
+          : "Frete cotado na API: ") +
+        brl(quote.fees.shippingCost) +
+        ". O custo final depende do envio."
+      : quote?.shippingNote
+        ? quote.shippingNote
+        : "Frete do vendedor a confirmar. O repasse acima ainda nÃ£o desconta frete.";
+    $("autoNote").textContent =
+      s.status === "public"
+        ? "AnÃ¡lise pÃºblica disponÃ­vel. Conta opcional para tarifas oficiais e histÃ³rico."
+        : (quote?.categorySource === "PREDICTED"
+            ? "Categoria sugerida pelo tÃ­tulo. "
+            : "") +
+          (s.result
+            ? "Margem " +
+              pct(s.result.marginPercent) +
+              " Â· ROI " +
+              pct(s.result.roiPercent)
+            : "Repasse nÃ£o Ã© lucro: complete compra, imposto e operaÃ§Ã£o.");
+    for (const button of document.querySelectorAll("[data-auto-type]")) {
+      const type = button.dataset.autoType,
+        fee = s.quotes[type]?.fees?.commissionPercent;
+      button.setAttribute("aria-pressed", String(type === s.listingType));
+      button.textContent =
+        (type === "CLASSIC" ? "ClÃ¡ssico" : "Premium") +
+        (fee == null ? "" : " Â· " + pct(fee));
+    }
+    if (s.item) state.item = s.item;
+    if (s.item?.shippingPackage) {
+      for (const [id, key] of [
+        ["packageWeight", "weightGrams"],
+        ["packageHeight", "heightCm"],
+        ["packageWidth", "widthCm"],
+        ["packageLength", "lengthCm"],
+      ])
+        if (!state.edited.has(id))
+          $(id).value = String(s.item.shippingPackage[key]);
+      if (!state.edited.has("packageFreeShipping"))
+        $("packageFreeShipping").checked = Boolean(s.item.freeShipping);
+      if (!$("packageStatus").textContent)
+        $("packageStatus").textContent =
+          "Medidas de envio recebidas da API do anÃºncio. Confira para a sua embalagem.";
+    }
+    if (s.candidates.length && !state.candidates.length) {
+      state.comparisonTarget = obs;
+      setCandidates(s.candidates);
+    }
+    for (const [id, value] of [
+      ["supplierPrice", s.fields.cost],
+      ["listingType", s.listingType],
+      [
+        "logisticType",
+        s.item?.logisticType || (obs.fulfillment ? "fulfillment" : "drop_off"),
+      ],
+    ])
+      if (!state.edited.has(id) && value !== "") $(id).value = value;
+    syncChoices();
+    if (
+      before !==
+      automaticIds
+        .map((id) => ($(id).type === "checkbox" ? $(id).checked : $(id).value))
+        .join("|")
+    ) {
+      state.calcRevision++;
+      state.result = null;
+      $("calcResult").hidden = true;
+    }
+    if (
+      quote &&
+      !$("manualFees").checked &&
+      M.money($("salePrice").value) === obs.price &&
+      $("listingType").value === s.listingType &&
+      ![
+        "salePrice",
+        "listingType",
+        "logisticType",
+        "packageWeight",
+        "packageHeight",
+        "packageWidth",
+        "packageLength",
+      ].some((id) => state.edited.has(id))
+    )
+      state.calculatorQuote = quote;
+    renderCalculatorFields();
+    if (
+      !$("calculator").hidden &&
+      !state.result &&
+      !state.calcBusy &&
+      M.money($("supplierPrice").value) != null &&
+      M.money($("taxPercent").value) != null
+    )
+      scheduleCalculation();
+  }
+  function renderCalculatorFields() {
+    const q = state.calculatorQuote,
+      price = M.money($("salePrice").value),
+      manualShipping = M.money($("shippingCost").value),
+      tax = M.money($("taxPercent").value),
+      quotedShipping =
+        (q?.shippingKnown || q?.shippingEstimated) &&
+        typeof q?.fees?.shippingCost === "number" &&
+        Number.isFinite(q.fees.shippingCost)
+          ? q.fees.shippingCost
+          : null;
+    $("salePriceReadout").textContent = brl(price);
+    for (const [id, known] of [
+      ["shippingField", manualShipping != null || quotedShipping != null],
+      ["taxField", tax != null && tax <= 50],
+    ]) {
+      const group = $(id);
+      if (!group.contains(document.activeElement))
+        group.hidden = !state.editCostInputs && known;
+    }
+    // Three compact facts replace the long, hard-to-scan calculation sentence.
+    // The freight is only called "quoted" for the seller's own authorized item.
+    const quoteDiscount = q?.shippingDiscount?.rate > 0
+      ? pct(q.shippingDiscount.rate * 100) + " de desconto aplicado"
+      : "";
+    const freight = manualShipping != null
+      ? { value: brl(manualShipping), source: "Informado por vocÃª", tone: "manual" }
+      : quotedShipping != null
+        ? {
+            value: brl(quotedShipping),
+            source: (q.shippingEstimated ? "Estimado na sua conta" : "Cotado na sua conta") +
+              (quoteDiscount ? " Â· " + quoteDiscount : ""),
+            tone: q.shippingEstimated ? "estimated" : "confirmed",
+          }
+        : {
+            value: "Pendente",
+            source: "Informe a embalagem para estimar ou um custo verificado",
+            tone: "pending",
+          };
+    const facts = $("calcAutoFacts");
+    facts.replaceChildren();
+    for (const [label, value, source, tone] of [
+      [
+        $("listingType").value === "PREMIUM" ? "Tarifas Â· Premium" : "Tarifas Â· ClÃ¡ssico",
+        q?.fees?.commissionPercent == null
+          ? "A confirmar"
+          : pct(q.fees.commissionPercent) + " + " + brl(q.fees.fixedFee),
+        q?.feeSource === "MANUAL" ? "Informadas por vocÃª" : "CotaÃ§Ã£o Mercado Livre",
+        q?.fees?.commissionPercent == null ? "pending" : "confirmed",
+      ],
+      ["Frete do vendedor", freight.value, freight.source, freight.tone],
+      [
+        "Imposto",
+        tax == null ? "Pendente" : pct(tax),
+        tax == null ? "Confirme a alÃ­quota da sua operaÃ§Ã£o" : "ConfiguraÃ§Ã£o da sua operaÃ§Ã£o",
+        tax == null ? "pending" : "confirmed",
+      ],
+    ]) {
+      const fact = node("span", null, "calc-fact " + tone);
+      fact.append(node("small", label), node("strong", value), node("small", source));
+      facts.append(fact);
+    }
+    $("editCostInputs").textContent = state.editCostInputs
+      ? "Recolher custos confirmados"
+      : "Revisar frete e imposto";
+    renderCalculatorComparison();
+  }
+  function renderCalculatorComparison() {
+    const prices = state.candidates
+      .filter(
+        (item) => state.selected.has(item.id) && item.id !== current()?.id,
+      )
+      .map((item) => Number(item.price));
+    const sample = M.sample(prices, M.money($("salePrice").value));
+    $("calcComparison").hidden = sample?.gap == null;
+    $("calcComparison").textContent =
+      sample?.gap == null
+        ? ""
+        : "Seu preÃ§o estÃ¡ " +
+          pct(Math.abs(sample.gap)) +
+          (sample.gap > 0
+            ? " acima"
+            : sample.gap < 0
+              ? " abaixo"
+              : " na faixa") +
+          " da mediana de " +
+          sample.count +
+          " anÃºncios selecionados. Compare o mesmo kit e condiÃ§Ã£o.";
+  }
+  function scheduleCalculation() {
+    clearTimeout(state.automaticTimer);
+    state.automaticTimer = setTimeout(() => {
+      if (state.calcBusy) {
+        scheduleCalculation();
+        return;
+      }
+      if (
+        M.money($("supplierPrice").value) == null ||
+        M.money($("taxPercent").value) == null
+      ) {
+        if (!state.calculatorQuote && M.money($("salePrice").value) > 0)
+          void calculate(true);
+        return;
+      }
+      if ($("adsEnabled").checked && !(M.money($("adsRoas").value) > 0)) return;
+      void calculate();
+    }, 550);
+  }
+  function node(tag, text, className) {
+    const el = document.createElement(tag);
+    if (text != null) el.textContent = String(text);
+    if (className) el.className = className;
+    return el;
+  }
+  function notice(id, text, tone = "") {
+    const el = $(id);
+    el.hidden = !text;
+    el.textContent = text || "";
+    el.className = "notice" + (tone ? " " + tone : "");
+  }
+  function metric(label, value, detail) {
+    const el = node("div", null, "metric");
+    el.append(node("small", label), node("strong", value));
+    if (detail) el.append(node("span", detail, "muted"));
+    return el;
+  }
+  function safeLink(value) {
+    try {
+      const u = new URL(value);
+      return u.protocol === "https:" &&
+        /(^|\.)mercadolivre\.com\.br$/i.test(u.hostname)
+        ? u.href
+        : null;
+    } catch {
+      return null;
+    }
+  }
+  async function request(path, method = "GET", body) {
+    let timer;
+    try {
+      return await Promise.race([
+        chrome.runtime.sendMessage({ type: "RADAR_FETCH", path, method, body }),
+        new Promise((resolve) => {
+          timer = setTimeout(
+            () =>
+              resolve({
+                ok: false,
+                status: 0,
+                body: { error: "A consulta demorou. Tente novamente." },
+              }),
+            30000,
+          );
+        }),
+      ]);
+    } catch {
+      return {
+        ok: false,
+        status: 0,
+        body: {
+          error:
+            "NÃ£o foi possÃ­vel falar com o Radar. Confira o servidor ou recarregue a extensÃ£o.",
+        },
+      };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  function errorText(response) {
+    if (response?.status === 401)
+      return "Sua sessÃ£o do Radar expirou. Entre novamente na conexÃ£o abaixo.";
+    if (response?.status === 429)
+      return (
+        response.body?.error ||
+        "Limite de consultas atingido. Aguarde antes de tentar novamente."
+      );
+    return response?.body?.error || "O Radar nÃ£o respondeu. Tente novamente.";
+  }
+  function showTab(name) {
+    $("contextCard").classList.toggle("compact", name !== "summary");
+    for (const section of document.querySelectorAll(".tab-page"))
+      section.hidden = section.id !== name;
+    for (const button of document.querySelectorAll(".tabs button")) {
+      if (button.dataset.tab === name)
+        button.setAttribute("aria-current", "page");
+      else button.removeAttribute("aria-current");
+    }
+    if (name === "calculator") {
+      renderCalculatorFields();
+      if (!state.result) scheduleCalculation();
+    }
+  }
+  function openDraftAssistant() {
+    const observation = current();
+    const productName = observation?.title || state.context?.query || state.context?.title || "";
+    const reference = observation?.id || state.context?.referenceId || "";
+    const url = new URL("/assistente-anuncios", state.server);
+    url.searchParams.set("origem", "extensao");
+    if (productName) url.searchParams.set("produto", String(productName).slice(0, 180));
+    if (/^MLB(?:U)?\d{5,}$/.test(reference)) url.searchParams.set("referencia", reference);
+    window.open(url.toString(), "_blank", "noopener,noreferrer");
+  }
+  $("prepareDraft").addEventListener("click", openDraftAssistant);
+  $("menuPrepareDraft").addEventListener("click", () => {
+    $("toolMenu").open = false;
+    openDraftAssistant();
+  });
+  for (const button of document.querySelectorAll(".tabs button"))
+    button.addEventListener("click", () => showTab(button.dataset.tab));
+  for (const button of document.querySelectorAll("[data-tool]"))
+    button.addEventListener("click", () => {
+      $("toolMenu").open = false;
+      if (button.dataset.tool === "connection") {
+        $("connectionCard").open = true;
+        $("connectionCard").scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      } else {
+        showTab(button.dataset.tool);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
+  function evidenceLine(title, description, pending = false) {
+    const el = node("div", null, "evidence-line");
+    el.append(node("span", null, "evidence-dot" + (pending ? " pending" : "")));
+    const text = node("div");
+    text.append(node("b", title), node("div", description));
+    el.append(text);
+    return el;
+  }
+  function renderPage() {
+    const obs = current(),
+      search = state.context?.page === "search" && !obs;
+    $("backToSearch").hidden = !(obs && state.context?.page === "search");
+    $("productTitle").textContent =
+      obs?.title ||
+      (search
+        ? "AnÃºncios desta busca"
+        : "Abra um anÃºncio ou uma busca do Mercado Livre");
+    const kind =
+      obs?.referenceKind === "USER_PRODUCT"
+        ? "Produto do vendedor"
+        : obs?.referenceKind === "CATALOG"
+          ? "Produto de catÃ¡logo"
+          : "AnÃºncio";
+    $("reference").textContent = obs
+      ? kind + " Â· " + obs.id
+      : search
+        ? state.context.query || "Resultados visÃ­veis"
+        : "O painel acompanha a aba ativa.";
+    $("readAt").textContent = state.context?.updatedAt
+      ? "Lido nesta aba em " + stamp(state.context.updatedAt)
+      : "";
+    $("pageFacts").replaceChildren();
+    if (obs) {
+      $("pageFacts").append(
+        metric("PreÃ§o na pÃ¡gina", brl(obs.price), "PreÃ§o exibido agora"),
+        metric(
+          "Vendidos na pÃ¡gina",
+          obs.soldLabel ||
+            (obs.soldLower == null
+              ? "NÃ£o informado"
+              : (obs.soldHasPlus ? "+" : "") + count(obs.soldLower)),
+          "Acumulado; sem perÃ­odo informado",
+        ),
+      );
+      if (obs.rating != null)
+        $("pageFacts").append(
+          metric(
+            "Nota do produto",
+            count(obs.rating) + " / 5",
+            "Pode reunir avaliaÃ§Ãµes de vÃ¡rias ofertas",
+          ),
+        );
+      if (obs.reviews != null)
+        $("pageFacts").append(
+          metric(
+            "AvaliaÃ§Ãµes",
+            count(obs.reviews),
+            "NÃ£o equivale a vendas deste vendedor",
+          ),
+        );
+    } else if (search)
+      $("pageFacts").append(
+        metric(
+          "AnÃºncios reconhecidos",
+          String(state.context.items.length),
+          "Somente os cards carregados nesta pÃ¡gina",
+        ),
+      );
+    $("pageNote").textContent = obs
+      ? "Leitura pÃºblica deste anÃºncio. Simule a margem com os custos da sua operaÃ§Ã£o."
+      : search
+        ? "Selecione anÃºncios equivalentes em PreÃ§os. VocÃª pode simular um produto sem sair da busca."
+        : "O Radar nÃ£o lÃª outras abas nem navega por anÃºncios automaticamente.";
+    $("watchCard").hidden = !obs;
+    $("autoAnalysis").hidden = !obs;
+    $("searchActions").hidden = !search;
+    $("calcEmpty").hidden = Boolean(obs);
+    $("calculatorForm").hidden = !obs;
+    $("retryApi").hidden = !obs;
+    $("evidence").replaceChildren(
+      evidenceLine(
+        "PÃ¡gina aberta por vocÃª",
+        "PreÃ§o, texto de vendidos e avaliaÃ§Ãµes, quando exibidos.",
+      ),
+      evidenceLine(
+        "Dados disponibilizados pela API",
+        "Pedidos e estoque privados pertencem Ã  conta autorizada. Visitas e ofertas dependem do recurso, da referÃªncia e da permissÃ£o liberada pela API.",
+        true,
+      ),
+    );
+    $("apiFacts").replaceChildren();
+    $("apiStatus").textContent = "";
+  }
+  async function authStatus() {
+    try {
+      const result = await chrome.runtime.sendMessage({
+        type: "RADAR_AUTH_STATUS",
+      });
+      state.auth = result;
+      $("authTitle").textContent = result?.authenticated
+        ? result.account?.nickname || "Conectado"
+        : "Modo pÃºblico Â· sem login";
+      $("authDot").classList.toggle("online", Boolean(result?.authenticated));
+      // Guest mode is immediately usable; account linking is opt-in.
+      $("connectionCard").open = false;
+      $("loginButton").textContent = result?.authenticated
+        ? "Reconectar conta"
+        : "Conectar conta para recursos privados";
+      $("logoutButton").hidden = !result?.authenticated;
+      $("authSubtitle").textContent = result?.authenticated
+        ? "Conta individual Â· " +
+          (result.access?.plan || "piloto") +
+          ". Cada cliente mantÃ©m seus dados separados."
+        : "A anÃ¡lise pÃºblica e a simulaÃ§Ã£o manual funcionam sem login. Conecte sua conta apenas para tarifas/frete oficiais, histÃ³rico e recursos do vendedor.";
+      $("authStatus").textContent = result?.error || "";
+      const compatibility = $("publishingCompatibility");
+      if (!result?.authenticated) {
+        compatibility.textContent = "PublicaÃ§Ã£o e cotaÃ§Ãµes da sua conta exigem autorizaÃ§Ã£o. A leitura pÃºblica permanece disponÃ­vel.";
+      } else if (result.extensionProtocol === 2) {
+        compatibility.textContent = "Verificando compatibilidade com a API de publicaÃ§Ã£oâ€¦";
+        const checked = await request("/api/extension/publication-capabilities");
+        if (checked.ok) {
+          const c = checked.body;
+          compatibility.textContent =
+            "Modelo do vendedor: " + (c.model === "USER_PRODUCTS" ? "User Products" : "Tradicional") +
+            ". Escrita: " + (c.canRequestPublishing ? "autorizada" : "nÃ£o autorizada") +
+            ". CatÃ¡logo exige confirmaÃ§Ã£o por produto.";
+        } else {
+          compatibility.textContent = "Modelo de publicaÃ§Ã£o indisponÃ­vel. Confira a integraÃ§Ã£o no painel Radar.";
+        }
+      }
+      if (result?.authenticated && result.extensionProtocol !== 2)
+        notice(
+          "globalStatus",
+          "A extensÃ£o foi atualizada, mas o servidor ainda usa o protocolo anterior. Implante a mesma branch no Radar para usar os fluxos novos.",
+          "warn",
+        );
+      return result;
+    } catch {
+      $("authStatus").textContent =
+        "Recarregue a extensÃ£o para verificar a conexÃ£o.";
+      return null;
+    }
+  }
+  function usable() {
+    if (!state.auth?.authenticated) {
+      notice(
+        "globalStatus",
+        "Esta funÃ§Ã£o exige sua conta do Radar. A anÃ¡lise pÃºblica e a simulaÃ§Ã£o com valores manuais continuam disponÃ­veis.",
+        "warn",
+      );
+      return false;
+    }
+    if (state.auth.extensionProtocol !== 2) {
+      notice(
+        "globalStatus",
+        "Atualize o backend e a extensÃ£o para a mesma versÃ£o antes de continuar.",
+        "warn",
+      );
+      return false;
+    }
+    return true;
+  }
+  async function preferences() {
+    const p = await chrome.storage.sync.get([
+      "radarTaxPercent",
+      "radarOperatingCost",
+      "radarTargetMarginPercent",
+      "radarTargetRoiPercent",
+    ]);
+    $("taxPercent").value =
+      p.radarTaxPercent == null ? "" : String(p.radarTaxPercent);
+    $("operatingCost").value = String(p.radarOperatingCost ?? 0);
+    $("targetMargin").value = String(p.radarTargetMarginPercent ?? 20);
+    $("targetRoi").value = String(p.radarTargetRoiPercent ?? 30);
+    // This is replaced with the deployment's origin during installation.
+    state.server = "https://radar.optarys.com.br";
+    $("dashboardLink").href = state.server;
+    $("monitorLink").href = state.server + "/monitoramento";
+    $("menuMonitorLink").href = state.server + "/monitoramento";
+  }
+  function resetAnalysis() {
+    $("saveDialog").close();
+    state.pendingSnapshot = null;
+    analysis.clear();
+    clearTimeout(state.automaticTimer);
+    state.edited.clear();
+    state.item = null;
+    state.revision++;
+    state.calcRevision++;
+    state.result = null;
+    state.calculatorQuote = null;
+    state.editCostInputs = false;
+    $("priceField").hidden = true;
+    state.calcBusy = false;
+    for (const id of [
+      "calculate",
+      "quoteButton",
+      "marketButton",
+      "retryApi",
+      "watchButton",
+      "findSuppliers",
+    ])
+      $(id).disabled = false;
+    $("supplierIdentity").hidden = true;
+    $("supplierIdentity").replaceChildren();
+    $("supplierLink").hidden = true;
+    $("supplierStatus").textContent = "";
+    state.candidates = [];
+    state.selected.clear();
+    $("calcResult").hidden = true;
+    $("reverseResult").hidden = true;
+    renderAssumptions([]);
+    $("candidates").replaceChildren();
+    $("marketRange").replaceChildren();
+    $("sampleNote").textContent = "";
+    $("candidateFilter").value = "";
+    $("candidateSort").value = "position";
+    $("candidateTools").hidden = true;
+    $("selectAll").hidden = true;
+    $("clearSelection").hidden = true;
+    $("watchButton").textContent = "Monitorar por novas leituras";
+    $("watchStatus").textContent = "";
+    notice("calcStatus", "");
+    notice("marketStatus", "");
+    $("quoteStatus").textContent = "";
+    renderPage();
+    const obs = current();
+    $("salePrice").value =
+      obs?.price == null
+        ? ""
+        : Number(obs.price).toLocaleString("pt-BR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
+    $("supplierPrice").value = "";
+    $("shippingCost").value = "";
+    $("kitQuantity").value = "1";
+    $("discountPercent").value = "0";
+    $("packageFreeShipping").checked = Boolean(obs?.freeShipping);
+    for (const id of [
+      "calcOptions",
+      "costDetails",
+      "packageDetails",
+      "adsDetails",
+      "advancedDetails",
+    ])
+      $(id).open = false;
+    for (const id of [
+      "packageWeight",
+      "packageHeight",
+      "packageWidth",
+      "packageLength",
+    ])
+      $(id).value = "";
+    $("packageStatus").textContent = "";
+    $("adsEnabled").checked = false;
+    $("adsFields").hidden = true;
+    $("adsRoas").value = "";
+    $("adsShare").value = "100";
+    $("listingType").value = "CLASSIC";
+    $("logisticType").value = obs?.fulfillment ? "fulfillment" : "drop_off";
+    syncChoices();
+    $("manualFees").checked = false;
+    $("manualFeeFields").hidden = true;
+    for (const input of $("calculatorForm").querySelectorAll("[aria-invalid]"))
+      input.removeAttribute("aria-invalid");
+    if (obs) void analysis.load(obs);
+  }
+  function focusProduct(id) {
+    state.focusedId = id;
+    resetAnalysis();
+    state.comparisonTarget = current();
+  }
+  function applyIntent(intent) {
+    if (
+      !intent ||
+      intent.id === state.lastIntent ||
+      intent.tabId !== state.context?.tabId ||
+      Date.now() - intent.issuedAt > 120000 ||
+      intent.issuedAt > Date.now() + 5000
+    )
+      return;
+    if (
+      intent.referenceId &&
+      !state.context.items.some((i) => i.id === intent.referenceId)
+    )
+      return;
+    state.lastIntent = intent.id;
+    if (intent.referenceId) focusProduct(intent.referenceId);
+    else if (state.focusedId && state.context.page === "search")
+      focusProduct(null);
+    if (intent.tab === "connection") {
+      $("connectionCard").open = true;
+      $("connectionCard").scrollIntoView({ block: "start" });
+      return;
+    }
+    if (intent.tab === "market" && state.context.page === "search") {
+      setCandidates(
+        state.context.items.map((item) => ({
+          ...item,
+          source: "VISIBLE_SEARCH",
+          capturedAt: state.context.updatedAt,
+        })),
+      );
+      for (const id of intent.selectedIds || [])
+        if (state.candidates.some((i) => i.id === id)) state.selected.add(id);
+      renderCandidates();
+      renderSample();
+    }
+    showTab(
+      ["summary", "calculator", "market"].includes(intent.tab)
+        ? intent.tab
+        : "summary",
+    );
+    window.scrollTo({ top: 0 });
+  }
+  $("backToSearch").addEventListener("click", () => {
+    focusProduct(null);
+    setCandidates(
+      state.context.items.map((item) => ({
+        ...item,
+        source: "VISIBLE_SEARCH",
+        capturedAt: state.context.updatedAt,
+      })),
+    );
+    showTab("market");
+  });
+  async function loadContext(force = false) {
+    const requestId = ++state.contextRequest;
+    const context = await chrome.runtime
+      .sendMessage({ type: "RADAR_CONTEXT_GET" })
+      .catch(() => null);
+    if (requestId !== state.contextRequest) return;
+    const key = JSON.stringify(
+      context ? { ...context, updatedAt: null } : null,
+    );
+    if (!force && key === state.key) return;
+    state.key = key;
+    const keepFocus =
+      state.context?.tabId === context?.tabId &&
+      state.context?.url === context?.url &&
+      context?.items?.some((i) => i.id === state.focusedId);
+    if (!keepFocus) state.focusedId = null;
+    state.context = context;
+    resetAnalysis();
+    if (context?.page === "search" && !current()) {
+      const stored = await chrome.storage.session.get([
+        "radarComparisonTarget",
+      ]);
+      if (requestId !== state.contextRequest) return;
+      state.comparisonTarget = stored.radarComparisonTarget || null;
+      setCandidates(
+        context.items.map((item) => ({
+          ...item,
+          source: "VISIBLE_SEARCH",
+          capturedAt: context.updatedAt,
+        })),
+      );
+      showTab("market");
+    } else {
+      state.comparisonTarget = current();
+    }
+    const intents = await chrome.storage.session.get(["radarPanelIntent"]);
+    if (requestId !== state.contextRequest) return;
+    applyIntent(intents.radarPanelIntent);
+    const revision = state.revision,
+      obs = current();
+    if (context?.items?.length && !obs && usableQuietly()) {
+      const response = await request("/api/extension/observations", "POST", {
+        page: context.page,
+        query: context.query,
+        items: context.items,
+      });
+      if (revision !== state.revision) return;
+      if (!response?.ok)
+        notice(
+          "globalStatus",
+          "A leitura local estÃ¡ disponÃ­vel. NÃ£o foi possÃ­vel salvar histÃ³rico: " +
+            errorText(response),
+          "warn",
+        );
+      else {
+        notice("globalStatus", "");
+        const insight = response.body.items?.find(
+          (item) => item.id === obs?.id,
+        );
+        if (obs && insight?.isOwn && insight.estimate?.method === "OFICIAL") {
+          const e = insight.estimate;
+          $("evidence").append(
+            evidenceLine(
+              "Pedidos da sua conta",
+              count(Math.round(e.salesPerDay.value * e.windowDays)) +
+                " unidades em " +
+                e.windowDays +
+                " dias. Receita exige conciliaÃ§Ã£o de preÃ§os e estornos no painel.",
+            ),
+          );
+        }
+      }
+    }
+  }
+  function usableQuietly() {
+    return state.auth?.authenticated && state.auth.extensionProtocol === 2;
+  }
+  async function loadDetails() {
+    const obs = current();
+    if (!obs || !usable()) return;
+    const revision = state.revision;
+    $("retryApi").disabled = true;
+    $("apiStatus").textContent = "Consultando detalhes disponÃ­veisâ€¦";
+    try {
+      const params = new URLSearchParams({
+        id: obs.id,
+        kind:
+          obs.referenceKind ||
+          (obs.id.startsWith("MLBU") ? "USER_PRODUCT" : "ITEM"),
+      });
+      const response = await request("/api/extension/item?" + params);
+      if (revision !== state.revision) return;
+      if (!response?.ok) {
+        $("apiStatus").textContent = errorText(response);
+        return;
+      }
+      state.item = response.body.item || null;
+      $("apiStatus").textContent =
+        response.body.note ||
+        "Dados disponÃ­veis pela API para esta oferta. A calculadora simula as modalidades que vocÃª escolher.";
+      $("apiFacts").replaceChildren();
+      for (const [label, value] of [
+        ["AnÃºncio confirmado", state.item?.id],
+        ["Categoria", state.item?.categoryId],
+        [
+          "Modalidade no ML",
+          state.item?.listingTypeId === "gold_pro"
+            ? "Premium"
+            : state.item?.listingTypeId === "gold_special"
+              ? "ClÃ¡ssico"
+              : null,
+        ],
+        [
+          "Pertence Ã  sua conta",
+          state.item ? (state.item.isOwn ? "Sim" : "NÃ£o") : null,
+        ],
+      ]) {
+        if (value == null) continue;
+        const row = node("div");
+        row.append(node("span", label), node("b", value));
+        $("apiFacts").append(row);
+      }
+    } finally {
+      if (revision === state.revision) $("retryApi").disabled = false;
+    }
+  }
+  function inputNumber(id, min, max, required = true) {
+    const el = $(id),
+      value = M.money(el.value);
+    const valid = value != null && value >= min && value <= max;
+    el.setAttribute(
+      "aria-invalid",
+      String(!valid && (required || el.value !== "")),
+    );
+    if (!valid && required)
+      throw new Error(
+        "Confira o campo â€œ" +
+          document.querySelector('label[for="' + id + '"]').textContent +
+          "â€.",
+      );
+    return valid ? value : undefined;
+  }
+  function renderAssumptions(list) {
+    const items = Array.isArray(list)
+      ? list.filter((a) => a && typeof a.text === "string").slice(0, 4)
+      : [];
+    $("calcAssumptions").replaceChildren(
+      ...items.map((a) => node("li", a.text.slice(0, 240), a.material ? "material" : "")),
+    );
+    $("calcAssumptions").hidden = items.length === 0;
+  }
+  function calcPayload(quoteOnly = false) {
+    const obs = current();
+    if (!obs) throw new Error("Abra um anÃºncio para simular.");
+    const quantity = inputNumber("kitQuantity", 1, 1000);
+    if (!Number.isInteger(quantity))
+      throw new Error("A quantidade do kit precisa ser inteira.");
+    const data = {
+      itemId: state.item?.id || obs.id,
+      title: obs.title,
+      categoryId: state.item?.categoryId || obs.categoryId || undefined,
+      salePrice: inputNumber("salePrice", 0.01, 10000000),
+      // Logado: custo e imposto sÃ£o opcionais (modo reverso / suposiÃ§Ã£o visÃ­vel).
+      supplierPrice: quoteOnly ? 0 : inputNumber("supplierPrice", 0, 10000000, !state.auth?.authenticated),
+      kitQuantity: quantity,
+      discountPercent: inputNumber("discountPercent", 0, 95),
+      taxPercent: inputNumber("taxPercent", 0, 50, !quoteOnly && !state.auth?.authenticated),
+      operatingCost: inputNumber("operatingCost", 0, 10000000),
+      targetMarginPercent: inputNumber("targetMargin", 0, 80),
+      targetRoiPercent: inputNumber("targetRoi", 0, 500),
+      shippingCost: inputNumber("shippingCost", 0, 10000, false),
+      listingType: $("listingType").value,
+      logisticType: $("logisticType").value,
+      freeShipping: obs.freeShipping,
+      quoteOnly,
+    };
+    if ($("manualFees").checked)
+      data.manualFees = {
+        commissionPercent: inputNumber("commissionPercent", 0, 50),
+        fixedFee: inputNumber("fixedFee", 0, 10000),
+      };
+    const packageFields = [
+      "packageWeight",
+      "packageHeight",
+      "packageWidth",
+      "packageLength",
+    ];
+    if (
+      data.shippingCost == null &&
+      packageFields.some((id) => $(id).value !== "") &&
+      [...packageFields, "packageFreeShipping"].some((id) =>
+        state.edited.has(id),
+      )
+    ) {
+      const weight = inputNumber("packageWeight", 1, 100000);
+      if (!Number.isInteger(weight))
+        throw new Error("Informe o peso em gramas inteiras.");
+      data.shippingPackage = {
+        weightGrams: weight,
+        heightCm: inputNumber("packageHeight", 1, 300),
+        widthCm: inputNumber("packageWidth", 1, 300),
+        lengthCm: inputNumber("packageLength", 1, 300),
+        freeShipping: $("packageFreeShipping").checked,
+      };
+    }
+    if (!quoteOnly && $("adsEnabled").checked) {
+      const roas = inputNumber("adsRoas", 0.01, 1000);
+      data.advertising = {
+        roasTarget: roas,
+        attributedSalesPercent: inputNumber("adsShare", 0, 100),
+      };
+    }
+    return data;
+  }
+  function quoteText(body) {
+    const fee = body.fees;
+    const text =
+      fee?.commissionPercent == null
+        ? "Tarifa indisponÃ­vel pela API. VocÃª pode informar comissÃ£o e tarifa fixa conferidas no simulador oficial em â€œMetas e tarifas manuaisâ€."
+        : "ComissÃ£o " +
+          pct(fee.commissionPercent) +
+          " + tarifa fixa " +
+          brl(fee.fixedFee) +
+          (body.feeSource === "MANUAL"
+            ? " Â· valores manuais."
+            : " Â· cotaÃ§Ã£o da API para esta simulaÃ§Ã£o.");
+    return (
+      text +
+      (body.categorySource === "PREDICTED"
+        ? " Categoria sugerida pelo tÃ­tulo; confira antes de decidir."
+        : "") +
+      (body.fees?.shippingCost == null
+        ? " Falta informar o seu frete; zero tambÃ©m precisa ser confirmado."
+        : " Frete " +
+          (body.shippingEstimated
+            ? "estimado pela API: "
+            : body.shippingKnown
+              ? "cotado pela API: "
+              : "informado: ") +
+          brl(body.fees.shippingCost) +
+          ".") +
+      (body.shippingNote ? " " + body.shippingNote : "")
+    );
+  }
+  async function calculate(quoteOnly = false) {
+    if (state.calcBusy) return;
+    const guest = !state.auth?.authenticated;
+    if (!guest && !usable()) return;
+    if (guest && quoteOnly) {
+      $("calcOptions").open = true;
+      $("advancedDetails").open = true;
+      notice("calcStatus",
+        "A cotaÃ§Ã£o oficial requer a conta do vendedor. Sem login, informe comissÃ£o, tarifa fixa e frete conferidos para simular localmente.",
+        "warn");
+      return;
+    }
+    if (guest && !$("manualFees").checked) {
+      $("manualFees").checked = true;
+      $("manualFeeFields").hidden = false;
+      $("calcOptions").open = true;
+      $("advancedDetails").open = true;
+      notice("calcStatus",
+        "Modo pÃºblico: informe comissÃ£o e tarifa fixa verificadas. O frete tambÃ©m precisa ser informado, mesmo quando for zero.",
+        "warn");
+      return;
+    }
+    clearTimeout(state.automaticTimer);
+    let payload;
+    try {
+      payload = calcPayload(quoteOnly);
+    } catch (error) {
+      notice("calcStatus", error.message, "error");
+      return;
+    }
+    const revision = state.revision,
+      calcRevision = state.calcRevision;
+    state.calcBusy = true;
+    $("calculate").disabled = true;
+    $("quoteButton").disabled = true;
+    $("saveSimulation").disabled = true;
+    notice(
+      "calcStatus",
+      quoteOnly
+        ? "Consultando tarifaâ€¦"
+        : "Calculando com os parÃ¢metros informadosâ€¦",
+    );
+    state.result = null;
+    $("calcResult").hidden = true;
+    $("reverseResult").hidden = true;
+    try {
+      let response;
+      try {
+        response = guest
+          ? { ok: true, body: M.manualProfitability(payload) }
+          : await request("/api/extension/profitability", "POST", payload);
+      } catch (error) {
+        notice("calcStatus",
+          error instanceof Error ? error.message : "Valores manuais invÃ¡lidos.",
+          "error");
+        return;
+      }
+      if (revision !== state.revision || calcRevision !== state.calcRevision)
+        return;
+      if (!response?.ok) {
+        notice("calcStatus", errorText(response), "error");
+        return;
+      }
+      const body = response.body;
+      state.calculatorQuote = body;
+      renderCalculatorFields();
+      $("quoteStatus").textContent = quoteText(body);
+      $("packageStatus").textContent = body.shippingEstimated
+        ? "Frete estimado: " +
+          brl(body.fees.shippingCost) +
+          ". " +
+          body.shippingNote
+        : body.shippingNote || "";
+      renderAssumptions(body.assumptions);
+      $("reverseResult").hidden = true;
+      if (!quoteOnly && body.reverse) {
+        const r = body.reverse;
+        $("reverseMax").textContent =
+          brl(r.maximumSupplierCost ?? r.forTargetMargin) + " por unidade";
+        $("reverseDetail").textContent =
+          "Teto para alcanÃ§ar margem de " + pct(r.targetMarginPercent) +
+          " e ROI de " + pct(r.targetRoiPercent) + ". Limite individual: margem " +
+          brl(r.forTargetMargin) + ", ROI " + brl(r.forTargetRoi) +
+          ". Empate em " + brl(r.breakEven) + ". Confirme os custos antes de comprar.";
+        $("reverseResult").hidden = false;
+        notice("calcStatus", "");
+        return;
+      }
+      if (!body.result) {
+        // Logado: com a tarifa em mÃ£os jÃ¡ calcula (com custo, lucro; sem custo, modo reverso).
+        if (
+          quoteOnly &&
+          !(body.needs || []).length &&
+          (state.auth?.authenticated ||
+            (M.money($("supplierPrice").value) != null &&
+              M.money($("taxPercent").value) != null))
+        )
+          state.automaticTimer = setTimeout(() => void calculate(), 0);
+        notice(
+          "calcStatus",
+          quoteOnly
+            ? "Consulta concluÃ­da. Complete os custos para simular lucro."
+            : "Ainda faltam custos: " +
+                (body.needs || [])
+                  .map(
+                    (n) =>
+                      ({
+                        fees: "comissÃ£o e tarifa fixa",
+                        taxPercent: "imposto",
+                        shippingCost: "seu frete por venda",
+                      })[n] || n,
+                  )
+                  .join(", ") +
+                ".",
+          "warn",
+        );
+        return;
+      }
+      state.result = body;
+      const r = body.result;
+      $("calcResult").hidden = false;
+      const ads = body.adsSimulation;
+      const conclusion = A.decision(current(), analysis.state.insight, r, ads);
+      $("calcDecision").textContent = conclusion.title;
+      $("calcDecision").className = "calc-decision " + conclusion.tone;
+      $("calcDecisionReason").textContent = conclusion.reason;
+      $("profit").textContent = brl(ads?.profitAfterAds ?? r.profit);
+      $("margin").textContent = pct(
+        ads?.marginAfterAdsPercent ?? r.marginPercent,
+      );
+      $("margin").previousElementSibling.textContent = ads
+        ? "Margem apÃ³s Ads"
+        : "Margem";
+      $("roi").previousElementSibling.textContent = ads
+        ? "Retorno sobre o custo Â· antes de Ads"
+        : "Retorno sobre o custo Â· ROI";
+      $("roi").textContent =
+        r.purchaseCost + payload.operatingCost > 0
+          ? pct(r.roiPercent)
+          : "Sem capital";
+      $("profit").parentElement.classList.toggle(
+        "loss",
+        (ads?.profitAfterAds ?? r.profit) < 0,
+      );
+      $("adsResult").hidden = !ads;
+      $("adsResult").replaceChildren();
+      if (ads)
+        $("adsResult").append(
+          metric("Lucro antes de Ads", brl(r.profit)),
+          metric("Ads mÃ©dios por venda", brl(ads.costPerSale)),
+          metric("TACOS simulado", pct(ads.tacosPercent)),
+          metric(
+            "ROAS mÃ­nimo por venda de Ads",
+            ads.breakEvenRoas == null
+              ? "InviÃ¡vel neste preÃ§o"
+              : count(ads.breakEvenRoas) + "Ã—",
+          ),
+        );
+      $("resultSource").textContent = ads
+        ? "CenÃ¡rio apÃ³s Ads Â· hipÃ³teses suas"
+        : body.shippingEstimated
+          ? "Frete estimado"
+          : body.feeSource === "MANUAL"
+            ? "Tarifas manuais"
+            : "Tarifas Mercado Livre";
+      $("priceGoalLabel").textContent = ads
+        ? "Meta antes de Ads"
+        : "PreÃ§o para sua meta";
+      $("priceFloorValue").textContent =
+        r.minimumSuggestedPrice == null
+          ? "Meta inviÃ¡vel"
+          : brl(r.minimumSuggestedPrice);
+      $("breakdown").replaceChildren();
+      const rows = [
+        ["PreÃ§o de venda", r.salePrice],
+        ["ComissÃ£o Â· " + pct(r.commissionPercent), -r.commissionAmount],
+        ["Tarifa fixa", -r.fixedFee],
+        [
+          body.shippingEstimated
+            ? "Frete estimado pela API"
+            : body.shippingKnown
+              ? "Frete cotado"
+              : "Frete informado",
+          -r.shippingCost,
+        ],
+        ["Imposto Â· " + pct(r.taxPercent), -r.taxAmount],
+        ["Compra Â· " + payload.kitQuantity + " un.", -r.purchaseCost],
+        ["Embalagem e operaÃ§Ã£o", -r.operatingCost],
+        ["Lucro simulado", r.profit],
+        ...(ads
+          ? [
+              ["Ads mÃ©dios por venda", -ads.costPerSale],
+              ["Lucro apÃ³s Ads", ads.profitAfterAds],
+            ]
+          : []),
+      ];
+      for (const [label, value] of rows) {
+        const row = node("div");
+        row.append(node("dt", label), node("dd", brl(value)));
+        $("breakdown").append(row);
+      }
+      $("priceFloor").textContent =
+        (ads ? "Piso teÃ³rico antes de Ads: " : "Piso teÃ³rico para as metas: ") +
+        (r.minimumSuggestedPrice == null
+          ? "meta inviÃ¡vel com estas taxas"
+          : brl(r.minimumSuggestedPrice)) +
+        (guest
+          ? ". CenÃ¡rio local com valores informados: revise as taxas e o frete antes de vender."
+          : ". Taxas e frete podem mudar ao alterar o preÃ§o; consulte novamente.");
+      $("calcCaveat").textContent =
+        (body.note || "") +
+        (ads
+          ? " Inclui o cenÃ¡rio mÃ©dio de Ads informado."
+          : " NÃ£o inclui Ads.") +
+        " NÃ£o inclui devoluÃ§Ãµes, tributos adicionais ou custos que vocÃª nÃ£o informou.";
+      $("saveSimulation").hidden = guest || r.minimumSuggestedPrice == null;
+      notice("calcStatus", "");
+    } finally {
+      if (revision === state.revision) {
+        state.calcBusy = false;
+        $("calculate").disabled = false;
+        $("quoteButton").disabled = false;
+        $("saveSimulation").disabled = false;
+      }
+    }
+  }
+  function setCandidates(items) {
+    state.candidates = [
+      ...new Map(
+        items
+          .filter((i) => Number(i.price) > 0 && i.id !== current()?.id)
+          .map((i) => [i.id, i]),
+      ).values(),
+    ];
+    state.selected.clear();
+    renderCandidates();
+    renderSample();
+  }
+  function visibleCandidates() {
+    const query = $("candidateFilter").value.trim().toLocaleLowerCase("pt-BR");
+    const items = state.candidates.filter(
+      (i) => !query || i.title.toLocaleLowerCase("pt-BR").includes(query),
+    );
+    if ($("candidateSort").value === "price-asc")
+      items.sort((a, b) => a.price - b.price);
+    if ($("candidateSort").value === "price-desc")
+      items.sort((a, b) => b.price - a.price);
+    return items;
+  }
+  function renderCandidates() {
+    $("candidates").replaceChildren();
+    $("candidateTools").hidden = !state.candidates.length;
+    const visible = visibleCandidates();
+    $("selectAll").hidden = !visible.length;
+    $("candidateCount").textContent =
+      visible.length +
+      " de " +
+      state.candidates.length +
+      " anÃºncios Â· " +
+      state.selected.size +
+      " selecionados";
+    for (const item of visible) {
+      const row = node("article", null, "candidate"),
+        label = node("label", null, "check"),
+        input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = item.id;
+      input.checked = state.selected.has(item.id);
+      label.append(input, node("span", item.title));
+      input.addEventListener("change", () => {
+        if (input.checked) state.selected.add(item.id);
+        else state.selected.delete(item.id);
+        renderSample();
+      });
+      row.append(label, node("div", brl(item.price), "candidate-price"));
+      const info = node(
+        "small",
+        (item.source === "CATALOG_API" ? "CatÃ¡logo API" : "PÃ¡gina observada") +
+          " Â· " +
+          stamp(item.capturedAt || new Date()),
+      );
+      row.append(info);
+      if (
+        state.context?.page === "search" &&
+        state.context.items.some((i) => i.id === item.id)
+      ) {
+        const analyze = node(
+          "button",
+          "Simular lucro",
+          "candidate-action secondary",
+        );
+        analyze.type = "button";
+        analyze.addEventListener("click", () => {
+          focusProduct(item.id);
+          showTab("calculator");
+          window.scrollTo({ top: 0 });
+        });
+        row.append(analyze);
+      }
+      const href = safeLink(item.permalink);
+      if (href) {
+        const link = node("a", "Ver anÃºncio â†—");
+        link.href = href;
+        link.target = "_blank";
+        link.rel = "noopener";
+        info.append(document.createTextNode(" Â· "), link);
+      }
+      $("candidates").append(row);
+    }
+  }
+  $("candidateFilter").addEventListener("input", renderCandidates);
+  $("candidateSort").addEventListener("change", renderCandidates);
+  $("clearSelection").addEventListener("click", () => {
+    state.selected.clear();
+    renderCandidates();
+    renderSample();
+  });
+  function renderSample() {
+    renderCalculatorComparison();
+    $("clearSelection").hidden = !state.selected.size;
+    $("candidateCount").textContent =
+      visibleCandidates().length +
+      " de " +
+      state.candidates.length +
+      " anÃºncios Â· " +
+      state.selected.size +
+      " selecionados";
+    const prices = state.candidates
+      .filter((i) => state.selected.has(i.id))
+      .map((i) => Number(i.price));
+    const target = current() || state.comparisonTarget;
+    const summary = M.sample(prices, target?.price);
+    $("marketRange").replaceChildren();
+    $("sampleNote").textContent = summary
+      ? summary.count +
+        " anÃºncios selecionados por vocÃª. Frete do comprador, prazo e reputaÃ§Ã£o nÃ£o entram nessa faixa." +
+        (target?.title ? " ReferÃªncia: " + target.title + "." : "")
+      : prices.length +
+        " selecionados. Selecione pelo menos 3 anÃºncios equivalentes para calcular uma faixa.";
+    if (!summary) return;
+    $("marketRange").append(
+      metric("Mediana da amostra", brl(summary.median)),
+      metric(
+        "Faixa central Â· P25â€“P75",
+        brl(summary.p25) + " â€“ " + brl(summary.p75),
+      ),
+    );
+    if (summary.gap != null)
+      $("marketRange").append(
+        metric(
+          "ReferÃªncia vs. mediana",
+          (summary.gap > 0 ? "+" : "") + pct(summary.gap),
+          "ComparaÃ§Ã£o de preÃ§o, sem previsÃ£o de vendas",
+        ),
+      );
+  }
+  async function loadMarket() {
+    if (state.context?.page === "search") {
+      setCandidates(
+        state.context.items.map((i) => ({
+          ...i,
+          source: "VISIBLE_SEARCH",
+          capturedAt: state.context.updatedAt,
+        })),
+      );
+      notice(
+        "marketStatus",
+        "Selecione os produtos equivalentes que vocÃª conferiu nos cards.",
+      );
+      return;
+    }
+    const obs = current();
+    if (!obs || !usable()) return;
+    const revision = state.revision;
+    $("marketButton").disabled = true;
+    notice(
+      "marketStatus",
+      "Buscando candidatos na sua navegaÃ§Ã£o e no catÃ¡logo disponÃ­velâ€¦",
+    );
+    try {
+      const params = new URLSearchParams({ title: obs.title, itemId: obs.id });
+      if (obs.price) params.set("currentPrice", String(obs.price));
+      const response = await request("/api/extension/market?" + params);
+      if (revision !== state.revision) return;
+      if (!response?.ok) {
+        notice("marketStatus", errorText(response), "error");
+        return;
+      }
+      setCandidates(response.body.competitors || []);
+      notice(
+        "marketStatus",
+        response.body.note,
+        state.candidates.length ? "" : "warn",
+      );
+    } finally {
+      if (revision === state.revision) $("marketButton").disabled = false;
+    }
+  }
+  $("searchButton").addEventListener("click", async () => {
+    const target = current() || state.comparisonTarget;
+    const query = target?.title || state.context?.query;
+    if (!query) {
+      notice(
+        "marketStatus",
+        "Abra um anÃºncio ou uma busca antes de comparar.",
+        "warn",
+      );
+      return;
+    }
+    if (target)
+      await chrome.storage.session.set({ radarComparisonTarget: target });
+    await chrome.tabs.create({
+      url:
+        "https://lista.mercadolivre.com.br/" +
+        encodeURIComponent(query.replace(/\s+/g, "-")),
+    });
+  });
+  $("selectAll").addEventListener("click", () => {
+    for (const input of $("candidates").querySelectorAll("input")) {
+      input.checked = true;
+      state.selected.add(input.value);
+    }
+    renderSample();
+  });
+  $("findSuppliers").addEventListener("click", async () => {
+    const obs = current();
+    if (!obs || !usable()) return;
+    if (!/^MLBU?\d{5,}$/i.test(obs.id || "")) {
+      $("supplierStatus").textContent =
+        "Abra a pÃ¡gina de um anÃºncio (cÃ³digo MLB) para buscar fornecedores.";
+      return;
+    }
+    const revision = state.revision;
+    $("findSuppliers").disabled = true;
+    $("supplierStatus").textContent = "Identificando o produtoâ€¦";
+    const response = await request("/api/extension/sourcing", "POST", {
+      itemId: obs.id,
+      title: obs.title,
+      price: obs.price || null,
+      permalink: safeLink(obs.url || "") || undefined,
+    });
+    if (revision !== state.revision) return;
+    $("findSuppliers").disabled = false;
+    if (!response?.ok) {
+      $("supplierStatus").textContent = errorText(response);
+      return;
+    }
+    const facts = response.body.identity || {};
+    const signals = Array.isArray(response.body.signals) ? response.body.signals : [];
+    const rows = [
+      ["Marca", facts.brand],
+      ["Modelo", facts.model],
+      ["GTIN/EAN", facts.gtin],
+      ["Unidades por anÃºncio", facts.packQuantity],
+      ["PreÃ§o de referÃªncia", facts.referencePrice == null ? null : brl(facts.referencePrice)],
+      // Sinais oficiais do anÃºncio (preÃ§o por quantidade, vendedor, perguntas, ficha).
+      ...signals
+        .filter((row) => row && typeof row.label === "string" && typeof row.value === "string")
+        .slice(0, 6)
+        .map((row) => [row.label.slice(0, 40), row.value.slice(0, 160)]),
+    ];
+    $("supplierIdentity").replaceChildren(
+      ...rows.map(([label, value]) => {
+        const row = node("div");
+        row.append(node("dt", label), node("dd", value == null ? "nÃ£o informado" : String(value)));
+        return row;
+      }),
+    );
+    $("supplierIdentity").hidden = false;
+    const link = $("supplierLink");
+    try {
+      const target = new URL(response.body.url);
+      const server = new URL(state.server);
+      if (target.origin === server.origin) {
+        link.href = target.href;
+        link.hidden = false;
+        window.open(target.href, "_blank", "noopener,noreferrer");
+      }
+    } catch {
+      link.hidden = true;
+    }
+    const notes = (response.body.notes || []).join(" ");
+    $("supplierStatus").textContent =
+      (response.body.reused ? "Produto jÃ¡ estava em estudo. " : "Produto salvo no seu painel. ") + notes;
+  });
+  $("watchButton").addEventListener("click", async () => {
+    const obs = current();
+    if (!obs || !usable()) return;
+    const revision = state.revision;
+    $("watchButton").disabled = true;
+    $("watchStatus").textContent = "Salvando leituraâ€¦";
+    const response = await request("/api/extension/watchlist", "POST", {
+      itemId: obs.id,
+      referenceId: obs.id,
+      observation: obs,
+    });
+    if (revision !== state.revision) return;
+    $("watchButton").disabled = Boolean(response?.ok);
+    $("watchButton").textContent = response?.ok
+      ? "Salvo no seu monitoramento"
+      : "Tentar monitorar novamente";
+    $("watchStatus").textContent = response?.ok
+      ? response.body.note
+      : errorText(response);
+  });
+  $("calculatorForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    void calculate();
+  });
+  $("calculatorForm").addEventListener("input", () => {
+    state.calcRevision++;
+    state.result = null;
+    $("calcResult").hidden = true;
+    notice("calcStatus", "");
+    if ($("quoteStatus").textContent)
+      $("quoteStatus").textContent =
+        "ParÃ¢metros alterados. Consulte novamente para atualizar a tarifa.";
+  });
+  $("calculatorForm").addEventListener("input", (event) => {
+    syncChoices();
+    state.edited.add(event.target.id);
+    if (
+      [
+        "salePrice",
+        "listingType",
+        "logisticType",
+        "packageWeight",
+        "packageHeight",
+        "packageWidth",
+        "packageLength",
+        "manualFees",
+        "commissionPercent",
+        "fixedFee",
+      ].includes(event.target.id)
+    )
+      state.calculatorQuote = null;
+    renderCalculatorFields();
+    scheduleCalculation();
+  });
+  for (const input of $("calculatorForm").querySelectorAll(
+    "select, input[type=checkbox]",
+  ))
+    input.addEventListener("change", () =>
+      input.dispatchEvent(new Event("input", { bubbles: true })),
+    );
+  for (const button of document.querySelectorAll("[data-input]"))
+    button.addEventListener("click", () => {
+      const input = $(button.dataset.input);
+      input.value = button.dataset.value;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  function syncChoices() {
+    for (const button of document.querySelectorAll(
+      "[data-select], [data-input]",
+    ))
+      button.setAttribute(
+        "aria-pressed",
+        String(
+          $(button.dataset.select || button.dataset.input).value ===
+            button.dataset.value,
+        ),
+      );
+  }
+  for (const button of document.querySelectorAll("[data-select]"))
+    button.addEventListener("click", () => {
+      const input = $(button.dataset.select);
+      input.value = button.dataset.value;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  $("customTax").addEventListener("click", () => $("taxPercent").focus());
+  $("adsEnabled").addEventListener("change", () => {
+    $("adsFields").hidden = !$("adsEnabled").checked;
+  });
+  $("estimatePackage").addEventListener("click", () => {
+    if (!usableQuietly()) {
+      $("packageStatus").textContent =
+        "CotaÃ§Ã£o pela API exige uma conta de vendedor conectada. Use as medidas como referÃªncia e informe o custo do frete verificado no campo manual; nÃ£o assumimos R$ 0.";
+      $("shippingField").hidden = false;
+      return;
+    }
+    state.edited.add("packageWeight");
+    if (M.money($("shippingCost").value) != null) {
+      $("shippingCost").value = "";
+      $("shippingCost").dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    void calculate(true);
+  });
+  function openShipping() {
+    showTab("calculator");
+    $("calcOptions").open = true;
+    $("packageDetails").open = true;
+    $("packageDetails").scrollIntoView({ block: "start", behavior: "smooth" });
+  }
+  $("estimateShipping").addEventListener("click", openShipping);
+  $("openShipping").addEventListener("click", openShipping);
+  for (const button of document.querySelectorAll("[data-auto-type]"))
+    button.addEventListener("click", () =>
+      analysis.selectType(button.dataset.autoType),
+    );
+  $("usePagePrice").addEventListener("click", () => {
+    const price = current()?.price;
+    if (!(price > 0)) return;
+    $("salePrice").value = Number(price).toFixed(2).replace(".", ",");
+    $("salePrice").dispatchEvent(new Event("input", { bubbles: true }));
+    $("priceField").hidden = true;
+  });
+  $("editSalePrice").addEventListener("click", () => {
+    $("priceField").hidden = !$("priceField").hidden;
+    if (!$("priceField").hidden) $("salePrice").focus();
+  });
+  $("editCostInputs").addEventListener("click", () => {
+    state.editCostInputs = !state.editCostInputs;
+    renderCalculatorFields();
+  });
+  $("manualFees").addEventListener("change", () => {
+    $("manualFeeFields").hidden = !$("manualFees").checked;
+  });
+  $("quoteButton").addEventListener("click", () => void calculate(true));
+  $("saveSimulation").addEventListener("click", () => {
+    if (!state.result) return;
+    const body = state.result,
+      result = body.result,
+      ads = body.adsSimulation;
+    try {
+      state.pendingSnapshot = {
+        ...calcPayload(),
+        save: true,
+        saveMode: "SNAPSHOT",
+        expectedProfit: result.profit,
+      };
+    } catch {
+      return;
+    }
+    $("saveProduct").textContent = current().title;
+    $("saveFacts").replaceChildren(
+      metric("PreÃ§o de venda", brl(result.salePrice)),
+      metric("Custo de compra", brl(result.purchaseCost)),
+      metric(
+        ads ? "Lucro apÃ³s Ads" : "Lucro simulado",
+        brl(ads?.profitAfterAds ?? result.profit),
+      ),
+      metric(
+        "Margem simulada",
+        pct(ads?.marginAfterAdsPercent ?? result.marginPercent),
+      ),
+    );
+    $("saveSource").textContent =
+      quoteText(body) + (ads ? " Publicidade: hipÃ³teses suas." : "");
+    $("snapshotSupplier").value = "";
+    $("confirmSnapshot").disabled = false;
+    $("confirmSnapshot").hidden = false;
+    $("historyLink").hidden = true;
+    notice("saveStatus", "");
+    $("saveDialog").showModal();
+  });
+  $("confirmSnapshot").addEventListener("click", async () => {
+    const payload = state.pendingSnapshot;
+    if (!payload || !usable()) return;
+    const revision = state.revision;
+    $("confirmSnapshot").disabled = true;
+    notice("saveStatus", "Conferindo a cotaÃ§Ã£o e salvandoâ€¦");
+    const response = await request("/api/extension/profitability", "POST", {
+      ...payload,
+      supplierName: $("snapshotSupplier").value.trim(),
+    });
+    if (revision !== state.revision) return;
+    $("confirmSnapshot").disabled = false;
+    if (!response?.ok || !response.body?.savedAnalysisId) {
+      notice(
+        "saveStatus",
+        response?.body?.error || "NÃ£o foi possÃ­vel salvar. Tente novamente.",
+        "error",
+      );
+      return;
+    }
+    state.pendingSnapshot = null;
+    $("confirmSnapshot").hidden = true;
+    $("historyLink").href = state.server + "/historico";
+    $("historyLink").hidden = false;
+    notice("saveStatus", "SimulaÃ§Ã£o salva no histÃ³rico da sua operaÃ§Ã£o.");
+  });
+  $("copyResult").addEventListener("click", async () => {
+    if (!state.result) return;
+    const text = [
+      current()?.title,
+      $("resultSource").textContent,
+      ...[...$("breakdown").children].map((row) => row.textContent),
+      $("priceFloor").textContent,
+      $("calcCaveat").textContent,
+    ].join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      notice("calcStatus", "MemÃ³ria de cÃ¡lculo copiada.");
+    } catch {
+      notice(
+        "calcStatus",
+        "O Chrome nÃ£o autorizou copiar. A memÃ³ria continua visÃ­vel.",
+        "warn",
+      );
+    }
+  });
+  $("marketButton").addEventListener("click", () => void loadMarket());
+  $("retryApi").addEventListener("click", () => void loadDetails());
+  $("refresh").addEventListener("click", async () => {
+    $("refresh").disabled = true;
+    try {
+      await authStatus();
+      await preferences();
+      await loadContext(true);
+    } finally {
+      $("refresh").disabled = false;
+    }
+  });
+  $("loginButton").addEventListener("click", async () => {
+    $("loginButton").disabled = true;
+    $("authStatus").textContent = "Abrindo sua autorizaÃ§Ã£oâ€¦";
+    try {
+      const r = await chrome.runtime.sendMessage({ type: "RADAR_AUTH_LOGIN" });
+      if (!r?.authenticated) {
+        $("authStatus").textContent = r?.message || r?.error || "Login nÃ£o concluÃ­do.";
+        return;
+      }
+      await authStatus();
+      await preferences();
+      await loadContext(true);
+    } catch {
+      $("authStatus").textContent = "NÃ£o foi possÃ­vel concluir a conexÃ£o.";
+    } finally {
+      $("loginButton").disabled = false;
+    }
+  });
+  $("logoutButton").addEventListener("click", async () => {
+    await chrome.runtime.sendMessage({ type: "RADAR_AUTH_LOGOUT" });
+    state.result = null;
+    state.calculatorQuote = null;
+    renderCalculatorFields();
+    $("calcResult").hidden = true;
+    await authStatus();
+    await preferences();
+    await loadContext(true);
+  });
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (
+      (area === "local" && changes.radarAccessToken) ||
+      (area === "sync" &&
+        [
+          "radarPreferencesWorkspace",
+          "radarTaxPercent",
+          "radarOperatingCost",
+          "radarTargetMarginPercent",
+          "radarTargetRoiPercent",
+        ].some((k) => changes[k]))
+    ) {
+      analysis.clear();
+      state.revision++;
+      state.contextRequest++;
+      $("saveDialog").close();
+      state.pendingSnapshot = null;
+      state.auth = null;
+      state.item = null;
+      state.candidates = [];
+      state.selected.clear();
+      $("candidates").replaceChildren();
+      $("marketRange").replaceChildren();
+      for (const id of ["supplierPrice", "shippingCost", "taxPercent"])
+        $(id).value = "";
+      state.result = null;
+      state.calculatorQuote = null;
+      state.editCostInputs = false;
+      renderCalculatorFields();
+      state.calcRevision++;
+      $("calcResult").hidden = true;
+      void authStatus()
+        .then(() => preferences())
+        .then(() => loadContext(true));
+    }
+    if (area === "session" && changes.radarPanelIntent)
+      void loadContext().then(() =>
+        applyIntent(changes.radarPanelIntent.newValue),
+      );
+    if (
+      area === "session" &&
+      Object.keys(changes).some((k) => k.startsWith("radarContext:"))
+    )
+      void loadContext();
+  });
+  chrome.tabs.onActivated.addListener(() => void loadContext());
+  chrome.tabs.onUpdated.addListener((_id, change) => {
+    if (change.status === "complete" || change.status === "loading")
+      void loadContext();
+  });
+  (async () => {
+    await authStatus();
+    await preferences();
+    await loadContext(true);
+  })().catch(() =>
+    notice(
+      "globalStatus",
+      "NÃ£o foi possÃ­vel iniciar o painel. Recarregue a extensÃ£o.",
+      "error",
+    ),
+  );
+})();

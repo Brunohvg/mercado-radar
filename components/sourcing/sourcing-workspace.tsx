@@ -158,62 +158,45 @@ export function SourcingWorkspace({ id }: { id: string }) {
 
   const o = view.opportunity;
   return (
-    <div className="vr">
+    <div className="vr vr-workspace-clean">
       <nav className="vr-crumbs"><Link href="/onde-comprar">Onde comprar</Link></nav>
-      <header className="vr-product">
+      <header className="vr-product vr-study-header">
         <div>
           <h1>{o.title}</h1>
-          <p className="vr-muted">
-            {[o.brand, o.model && `modelo ${o.model}`, o.packQuantity && `${o.packQuantity} un. por anúncio`].filter(Boolean).join(" · ") || "Marca e modelo não informados"}
-          </p>
+          <p className="vr-muted">{[o.brand, o.model && `modelo ${o.model}`, o.packQuantity && `${o.packQuantity} un. por anúncio`].filter(Boolean).join(" · ") || "Marca e modelo não informados"}</p>
         </div>
-        <div className="vr-product-price">
-          <span>Preço de referência</span>
-          <strong className="vr-num">{brl(o.referencePrice)}</strong>
-          <span className={`vr-status vr-status--${o.status.toLowerCase()}`}>{STATUS_LABEL[o.status] ?? o.status}</span>
-        </div>
+        <span className={`vr-status vr-status--${o.status.toLowerCase()}`}>{STATUS_LABEL[o.status] ?? o.status}</span>
       </header>
 
-      <section className="vr-card">
-        <strong>Limite de compra por pacote de venda</strong>
-        {view.purchaseLimit.perListing == null
-          ? <p>Para calcular, confirme {view.purchaseLimit.missing.join(", ")}. <button className="vr-btn vr-btn--ghost vr-btn--small" onClick={() => setTab("mercado")}>Completar custos</button></p>
-          : <p>{brl(view.purchaseLimit.perListing)} por {o.packQuantity} un., incluindo o frete de compra, para uma margem de {pct(view.sale.targetMarginPercent)}.</p>}
-        {o.budget != null && <small>Orçamento para o lote: {brl(o.budget)}</small>}
+      <section className="vr-study-summary" aria-label="Resumo do estudo">
+        <dl className="vr-summary-metrics">
+          <div><dt>Preço de venda</dt><dd>{brl(o.referencePrice)}</dd></div>
+          <div><dt>Orçamento para o lote</dt><dd>{brl(o.budget)}</dd></div>
+          <div><dt>Meta de margem</dt><dd>{pct(view.sale.targetMarginPercent)}</dd></div>
+          <div><dt>Limite de compra por pacote</dt><dd>{view.purchaseLimit.perListing == null ? "A calcular" : brl(view.purchaseLimit.perListing)}</dd></div>
+        </dl>
+        {view.best && (
+          <div className="vr-summary-quote">
+            <div><small>{view.best.status === "CALCULADO" && !view.best.purchasePending.length ? "Cotação em destaque" : "Cotação preliminar"}</small><strong>{view.best.supplierName}</strong></div>
+            <div><small>Margem estimada</small><strong>{view.best.perSale ? pct(view.best.perSale.marginPercent) : "A calcular"}</strong></div>
+            <div><small>Investimento simulado{view.best.freightPending ? " (sem frete)" : ""}</small><strong>{brl(view.best.order.capital)}</strong></div>
+          </div>
+        )}
+        <aside className="vr-summary-action" aria-label="Próximo passo">
+          <div><small>Próximo passo</small><strong>{view.nextAction.title}</strong><p>{view.nextAction.detail}</p></div>
+          {tab !== view.nextAction.tab && <button className="vr-btn vr-btn--small" onClick={() => setTab(view.nextAction.tab)}>Ir para {TABS.find(([key]) => key === view.nextAction.tab)?.[1]}</button>}
+        </aside>
       </section>
 
-      <ol className="vr-steps" role="tablist" aria-label="Etapas">
-        {TABS.map(([key, label], index) => {
-          const done = stepDone(view, key);
-          return (
-            <li key={key}>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === key}
-                className={(done ? "is-done " : "") + (view.nextAction.tab === key ? "is-next" : "")}
-                onClick={() => setTab(key)}
-              >
-                <span className="vr-step-num" aria-hidden="true">{done ? "✓" : index + 1}</span>
-                <span className="vr-step-label">
-                  {label}
-                  {key === "fornecedores" && view.suppliers.length > 0 && <small>{view.suppliers.length} cadastrado(s)</small>}
-                  {key === "margem" && view.best?.perSale && <small>{pct(view.best.perSale.marginPercent)} de margem</small>}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
-
-      <aside className="vr-next" aria-label="Próximo passo">
-        <span className="vr-next-label">Próximo passo</span>
-        <strong>{view.nextAction.title}</strong>
-        <span>{view.nextAction.detail}</span>
-        {tab !== view.nextAction.tab && (
-          <button className="vr-btn vr-btn--small" onClick={() => setTab(view.nextAction.tab)}>Ir para {TABS.find(([key]) => key === view.nextAction.tab)?.[1]}</button>
-        )}
-      </aside>
+      <nav className="vr-study-tabs" aria-label="Etapas do estudo">
+        <div className="vr-tabs" role="tablist" aria-label="Etapas">
+          {TABS.map(([key, label]) => (
+            <button key={key} type="button" role="tab" aria-selected={tab === key} onClick={() => setTab(key)}>
+              {label}{stepDone(view, key) && <span className="vr-tab-done" aria-label="Concluído">✓</span>}
+            </button>
+          ))}
+        </div>
+      </nav>
 
       {error && <p className="vr-alert" role="alert">{error}</p>}
       {notice && !error && <p className="vr-notice" role="status">{notice}</p>}
@@ -624,8 +607,8 @@ function SuppliersTab({
                       }</span>
                       <strong>{candidate.name}</strong>
                       <a href={candidate.url} target="_blank" rel="noopener noreferrer">{candidate.domain} ↗</a>
-                      <small>{[KIND_LABEL[candidate.kind], candidate.snippet || candidate.reasons.join(" · ")].filter(Boolean).join(" · ")}</small>
-                      {candidate.origin === "IA" && <AiDetails candidate={candidate} />}
+                      <small>{KIND_LABEL[candidate.kind]}</small>
+                      <details className="vr-disclosure"><summary>Ver evidências</summary><p>{candidate.snippet || candidate.reasons.join(" · ")}</p>{candidate.origin === "IA" && <AiDetails candidate={candidate} />}</details>
                     </div>
                     <button
                       className="vr-btn vr-btn--ghost vr-btn--small"
@@ -655,7 +638,7 @@ function SuppliersTab({
                 ))}
               </ul>
             )}
-            {search.ai && <AiResearchNote research={search.ai} />}
+            {search.ai && <details className="vr-disclosure"><summary>Fontes e diagnóstico da pesquisa</summary><AiResearchNote research={search.ai} /></details>}
             <p className="vr-hint">Busca de {dateBr(search.searchedAt)}{search.discarded ? ` · ${search.discarded} resultado(s) sem evidência suficiente descartado(s)` : ""}.</p>
           </>
         )}
@@ -789,14 +772,16 @@ function SuppliersTab({
                 <button className="vr-link" disabled={Boolean(busy)} onClick={() => removeQuote(quote.id)}>Remover cotação</button>
               </div>
             ))}
+            {supplier.qualification.nextAsk && <p className="vr-supplier-next">A confirmar: {supplier.qualification.nextAsk}</p>}
             <div className="vr-actions">
-              {supplier.qualification.nextAsk && <span className="vr-ask">Pergunte: {supplier.qualification.nextAsk}</span>}
               <button className="vr-btn vr-btn--small" disabled={Boolean(busy)} onClick={() => {
                 setEditingQuote(null);
                 setPriceByPack(true);
                 setQuoting(supplier.id);
               }}>Registrar cotação</button>
               <button className="vr-btn vr-btn--ghost vr-btn--small" onClick={() => copyQuoteRequest(supplier)}>Copiar pedido de cotação</button>
+            </div>
+            <details className="vr-disclosure"><summary>Contatos e outras ações</summary><div className="vr-actions vr-secondary-actions">
               {supplier.website && <a href={supplier.website} target="_blank" rel="noopener noreferrer">Site ↗</a>}
               {supplier.phone && <a href={`tel:${supplier.phone.replace(/[^+\d]/g, "")}`}>{supplier.phone}</a>}
               {supplier.email && <a href={`mailto:${supplier.email}`}>E-mail</a>}
@@ -817,8 +802,7 @@ function SuppliersTab({
               ) : (
                 <button className="vr-link" onClick={() => setDeleting(supplier.id)}>Excluir</button>
               )}
-              {supplier.website && <a href={supplier.website} target="_blank" rel="noopener noreferrer">Site ↗</a>}
-            </div>
+            </div></details>
             {quoting === supplier.id && (
               <form key={editingQuote?.id ?? "new"} className="vr-form vr-quote-form" onSubmit={(event) => saveQuote(event, supplier.id)}>
                 <div className="vr-form--row vr-form--three">
@@ -901,7 +885,8 @@ function MarginTab({ view, onMarket, onSuppliers }: { view: View; onMarket: () =
             {!best.purchasePending.length && <span className={`vr-verdict vr-verdict--${VERDICT[best.perSale.verdict]?.[1]}`}>{VERDICT[best.perSale.verdict]?.[0]}</span>}
           </div>
           {best.purchasePending.length > 0 && <p className="vr-warn">Confirme: {best.purchasePending.join(", ")}.</p>}
-          <Waterfall v={best} />
+          <dl className="vr-summary-metrics vr-margin-metrics"><div><dt>Margem estimada</dt><dd>{pct(best.perSale.marginPercent)}</dd></div><div><dt>Resultado por venda</dt><dd>{brl(best.perSale.profit)}</dd></div><div><dt>Preço de equilíbrio</dt><dd>{brl(best.perSale.breakEvenPrice)}</dd></div></dl>
+          <details className="vr-disclosure"><summary>Ver composição do resultado</summary><Waterfall v={best} /></details>
           <p className="vr-hint">
             Custo entregue de {brl(best.landedUnitCost)} por peça (preço + frete e custos rateados no lote de {best.order.units.toLocaleString("pt-BR")} un.). Origem: {SOURCE_LABEL[best.source]}.
             {best.maxUnitCostForTarget != null && ` Para a meta de ${view.sale.targetMarginPercent}% de margem, o custo de compra pode ir até ${brl(best.maxUnitCostForTarget)} por peça.`}

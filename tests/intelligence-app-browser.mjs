@@ -163,7 +163,12 @@ export async function runBrowserChecks({ base, cookie }) {
     await page.getByRole("button", { name: "Buscar fornecedores", exact: true }).click();
     await page.waitForURL(/\/onde-comprar\/[^/]+/);
     await page.getByRole("heading", { name: "Fornecedores para este produto" }).waitFor();
-    await page.getByText(/Orçamento para o lote: R\$\s*500,00/).waitFor();
+    const summary = page.getByRole("region", { name: "Resumo do estudo" });
+    await summary.waitFor();
+    await summary.getByText("Orçamento para o lote", { exact: true }).waitFor();
+    assert.match(await summary.innerText(), /R\$\s*500,00/);
+    assert.equal(await page.getByRole("tablist", { name: "Etapas" }).count(), 1);
+    assert.equal(await page.getByLabel("Próximo passo", { exact: true }).count(), 1);
     await page.getByText(/Busca automática desligada/).waitFor();
     // Simula apenas a resposta do provedor para validar filtros e cadastro de candidatos.
     await page.route("**/api/sourcing/opportunities/*/search", async (route) => {
@@ -182,6 +187,11 @@ export async function runBrowserChecks({ base, cookie }) {
     await page.getByLabel("Somente resultados com sinal do produto").uncheck();
     await page.getByLabel("Tipo de fornecedor", { exact: true }).selectOption("DISTRIBUIDOR");
     await page.getByText("Distribuidor fixture", { exact: true }).waitFor();
+    const evidence = page.locator(".vr-candidates details").first();
+    assert.equal(await evidence.evaluate((element) => element.open), false);
+    await evidence.locator("summary").click();
+    await page.getByText("Venda para CPF: possivelmente sim", { exact: false }).waitFor();
+    await evidence.locator("summary").click();
     assert.equal(await page.getByText("Fabricante fixture", { exact: true }).count(), 0);
     await page.getByRole("button", { name: "Adicionar", exact: true }).click();
     assert.equal(await page.getByLabel("Cidade", { exact: true }).inputValue(), "");

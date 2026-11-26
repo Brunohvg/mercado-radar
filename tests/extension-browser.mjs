@@ -1461,9 +1461,11 @@ try {
       const before = { cost: await page.locator("#supplierPrice").inputValue() };
       await page.locator("#supplierPrice").fill("");
       await page.locator("#calculate").click();
-      await page.locator("#calcStatus").filter({ hasText: "frete efetivo" }).waitFor();
+      await page.locator("#calcStatus").filter({ hasText: "seu frete por venda" }).waitFor();
       assert.equal(await page.locator("#reverseResult").isVisible(), false);
       assert.equal(await page.locator("#calcResult").isVisible(), false);
+      if (!(await page.locator("#shippingCost").isVisible()))
+        await page.locator("#editCostInputs").click();
       await page.locator("#shippingCost").fill("0");
       await page.locator("#taxPercent").fill("6");
       await page.locator("#calculate").click();

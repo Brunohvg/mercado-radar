@@ -132,7 +132,10 @@ test("instalador da homologação serve os próprios arquivos e Docker inclui ex
   const docker = await readFile(new URL("../Dockerfile", import.meta.url), "utf8");
   const cmd = await readFile(new URL("../app/api/extension/dev-installer-cmd/route.ts", import.meta.url), "utf8");
   assert.match(docker, /\/app\/extension \.\/extension/);
-  assert.match(cmd, /new URL\(request\.url\)\.origin/);
+  assert.match(cmd, /getInstallerOrigin\(request\)/);
+  assert.match(cmd, /ErrorActionPreference.*Stop/);
+  assert.match(cmd, /Test-Path -LiteralPath \$ps1/);
+  assert.match(cmd, /finally.*Remove-Item -LiteralPath \$ps1/);
   assert.doesNotMatch(cmd, /set \\"URL=https:\/\/radar\.optarys\.com\.br/);
   const installer = await readFile(new URL("../app/api/extension/dev-installer/route.ts", import.meta.url), "utf8");
   assert.match(installer, /ExtensionBeta/);
@@ -758,4 +761,32 @@ test("o painel pode consultar compatibilidade do vendedor mas não possui rota d
   const publish = await h.call({ type: "RADAR_FETCH", path: "/api/listing-drafts/publication", method: "POST" });
   assert.equal(publish.ok, false);
   assert.equal(h.fetches.length, 1);
+});
+
+
+test("instalador usa domínio público do proxy, rejeita bind interno e preserva ambiente", async () => {
+  const { getInstallerOrigin } = await loadTs("../lib/public-url.ts");
+  const before = process.env.NEXT_PUBLIC_APP_URL;
+  try {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+    const proxied = new Request("https://0.0.0.0:3000/api/extension/dev-installer-cmd", {
+      headers: { "x-forwarded-host": "radar.optarys.com.br", "x-forwarded-proto": "https" },
+    });
+    assert.equal(getInstallerOrigin(proxied), "https://radar.optarys.com.br");
+    assert.equal(getInstallerOrigin(new Request("https://0.0.0.0:3000/api/extension/dev-installer-cmd")), null);
+    assert.equal(getInstallerOrigin(new Request("https://0.0.0.0:3000/api/extension/dev-installer-cmd", {
+      headers: { host: "radar.optarys.com.br" },
+    })), "https://radar.optarys.com.br");
+    process.env.NEXT_PUBLIC_APP_URL = "https://radar-homolog.example.com/";
+    assert.equal(getInstallerOrigin(proxied), "https://radar-homolog.example.com");
+    process.env.NEXT_PUBLIC_APP_URL = "http://127.0.0.1:3319";
+    assert.equal(getInstallerOrigin(proxied), "http://127.0.0.1:3319");
+    process.env.NEXT_PUBLIC_APP_URL = "https://0.0.0.0:3000";
+    assert.equal(getInstallerOrigin(proxied), null);
+    process.env.NEXT_PUBLIC_APP_URL = "https://user:password@radar.optarys.com.br";
+    assert.equal(getInstallerOrigin(proxied), null);
+  } finally {
+    if (before === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
+    else process.env.NEXT_PUBLIC_APP_URL = before;
+  }
 });

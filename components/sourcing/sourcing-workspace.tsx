@@ -110,9 +110,9 @@ const TABS: Array<[Tab, string]> = [
 ];
 
 function stepDone(view: View, tab: Tab) {
-  if (tab === "mercado") return view.opportunity.referencePrice != null;
+  if (tab === "mercado") return view.purchaseLimit.missing.length === 0;
   if (tab === "fornecedores") return view.suppliers.length > 0;
-  if (tab === "margem") return view.quotes.length > 0;
+  if (tab === "margem") return view.quotes.some(({ viability }) => viability.status === "CALCULADO" && viability.purchasePending.length === 0 && viability.perSale != null);
   return ["VIAVEL", "COMPRANDO", "DESCARTADA"].includes(view.opportunity.status);
 }
 
@@ -367,6 +367,8 @@ function SuppliersTab({
   const [quoteZip, setQuoteZip] = useState("");
   const [buyerProfile, setBuyerProfile] = useState("");
   const [copyError, setCopyError] = useState("");
+  const [candidateKind, setCandidateKind] = useState("TODOS");
+  const [productEvidenceOnly, setProductEvidenceOnly] = useState(false);
 
   const runSearch = useCallback(async () => {
     setBusy("search");
@@ -577,6 +579,9 @@ function SuppliersTab({
     brand: o.brand,
   });
   const savedOptions = directory?.filter((supplier) => !view.suppliers.some((item) => item.id === supplier.id));
+  const visibleCandidates = (search?.candidates ?? []).filter((candidate) =>
+    (candidateKind === "TODOS" || candidate.kind === candidateKind) &&
+    (!productEvidenceOnly || candidate.evidence === "PRODUTO"));
 
   return (
     <section className="vr-panel">
@@ -598,8 +603,19 @@ function SuppliersTab({
           <>
             {search.message && <p className="vr-warn">{search.message}</p>}
             {search.candidates.length > 0 && (
+              <div className="vr-form vr-form--row">
+                <label>Tipo de fornecedor<select value={candidateKind} onChange={(event) => setCandidateKind(event.target.value)}>
+                  <option value="TODOS">Todos</option>
+                  {Object.entries(KIND_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select></label>
+                <label><input type="checkbox" checked={productEvidenceOnly} onChange={(event) => setProductEvidenceOnly(event.target.checked)} /> Somente resultados com sinal do produto</label>
+              </div>
+            )}
+            {search.candidates.length > 0 && <p className="vr-hint" role="status">{visibleCandidates.length} de {search.candidates.length} candidatos. Confira as fontes e confirme o atendimento no atacado antes de comprar.</p>}
+            {search.candidates.length > 0 && !visibleCandidates.length && <p className="vr-muted">Nenhum candidato corresponde aos filtros. Altere os filtros para ver os outros resultados.</p>}
+            {visibleCandidates.length > 0 && (
               <ul className="vr-candidates">
-                {search.candidates.map((candidate) => (
+                {visibleCandidates.map((candidate) => (
                   <li key={candidate.url}>
                     <div>
                       <span className="vr-tag">{
@@ -625,9 +641,11 @@ function SuppliersTab({
                           phone: candidate.phone?.verified ? candidate.phone.value : null,
                           email: candidate.email?.verified ? candidate.email.value : null,
                           cnpj: candidate.cnpj?.verified ? candidate.cnpj.value : null,
-                          city: candidate.city ?? null,
-                          state: candidate.state ?? null,
-                          sellsToCpf: candidate.sellsToCpf ?? null,
+                          // Localização e atendimento CPF sugeridos pela IA não foram verificados por campo.
+                          // O comprador deve confirmar essas condições antes de salvá-las.
+                          city: null,
+                          state: null,
+                          sellsToCpf: null,
                         })
                       }
                     >
@@ -1046,7 +1064,8 @@ function AiDetails({ candidate }: { candidate: Candidate }) {
       <ContactLine label="Telefone" contact={candidate.phone} />
       <ContactLine label="E-mail" contact={candidate.email} />
       <ContactLine label="CNPJ" contact={candidate.cnpj} />
-      {(candidate.city || candidate.state) && <span className="vr-contact">{[candidate.city, candidate.state].filter(Boolean).join(" / ")}</span>}
+      {(candidate.city || candidate.state) && <span className="vr-contact">{[candidate.city, candidate.state].filter(Boolean).join(" / ")} <em>a confirmar</em></span>}
+      {candidate.sellsToCpf != null && <span className="vr-contact">Venda para CPF: {candidate.sellsToCpf ? "possivelmente sim" : "possivelmente não"} <em>a confirmar</em></span>}
       {candidate.minimumOrder && <span className="vr-contact">Pedido mínimo: {candidate.minimumOrder} <em>a confirmar</em></span>}
       {candidate.sources?.length ? (
         <span className="vr-sources">

@@ -277,3 +277,54 @@
 }
 
 .vr-table-detail { display: block; overflow-wrap: anywhere; margin-top: var(--s-1); color: var(--ink-500); font-size: var(--fs-12); white-space: normal; }
+
+
+/* Workspace de abastecimento — hierarquia visual, não novos cards. */
+.vr-workspace-clean { max-width: 1180px; width: 100%; margin-inline: auto; gap: 22px; }
+.vr-workspace-clean .vr-study-header { align-items: flex-start; gap: 12px; }
+.vr-workspace-clean .vr-study-header h1 { font-size: clamp(22px, 2.5vw, 30px); font-weight: 650; line-height: 1.25; overflow-wrap: anywhere; }
+.vr-workspace-clean .vr-study-header .vr-muted { margin-top: 6px; }
+.vr-study-summary { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 22px 24px; display: grid; gap: 18px; min-width: 0; }
+.vr-summary-metrics { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); margin: 0; gap: 18px; }
+.vr-summary-metrics > div { min-width: 0; }
+.vr-summary-metrics dt, .vr-summary-quote small, .vr-summary-action small { display: block; font-size: var(--fs-13); color: var(--ink-500); font-weight: 500; margin-bottom: 6px; }
+.vr-summary-metrics dd { margin: 0; font-size: clamp(18px,2vw,23px); font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; line-height: 1.25; }
+.vr-summary-quote { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+.vr-summary-quote strong { display: block; font-size: var(--fs-16); font-weight: 650; overflow-wrap: anywhere; }
+.vr-summary-action { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-top: 1px solid var(--line); padding-top: 18px; }
+.vr-summary-action strong { font-size: var(--fs-16); font-weight: 650; }
+.vr-summary-action p { color: var(--ink-500); font-size: var(--fs-14); margin: 4px 0 0; overflow-wrap: anywhere; }
+.vr-summary-action .vr-btn { align-self: center; flex-shrink: 0; }
+.vr-study-tabs .vr-tabs { gap: 24px; }
+.vr-study-tabs .vr-tabs button { padding: 10px 0 13px; border-bottom-width: 2px; gap: 6px; }
+.vr-study-tabs .vr-tabs button[aria-selected="true"] { border-bottom-color: var(--brand); color: var(--brand); }
+.vr-tab-done { color: var(--ok); font-size: 12px; }
+.vr-workspace-clean .vr-panel { gap: 20px; }
+.vr-workspace-clean .vr-card { padding: 22px 24px; gap: 14px; box-shadow: none; }
+.vr-workspace-clean .vr-card-head { align-items: center; }
+.vr-workspace-clean .vr-candidates { gap: 0; }
+.vr-workspace-clean .vr-candidates li { border: 0; border-radius: 0; border-top: 1px solid var(--line); padding: 16px 0; gap: 16px; }
+.vr-workspace-clean .vr-candidates li strong { font-size: var(--fs-16); }
+.vr-workspace-clean .vr-candidates li .vr-tag { align-self: flex-start; margin: 0; padding: 0; background: none; text-transform: none; letter-spacing: 0; font-size: var(--fs-12); font-weight: 500; color: var(--ink-500); }
+.vr-workspace-clean .vr-form input[type="checkbox"] { width: 16px; height: 16px; padding: 0; flex-shrink: 0; }
+.vr-workspace-clean .vr-form label:has(> input[type="checkbox"]) { flex-direction: row; align-items: center; gap: 8px; font-weight: 500; align-self: end; min-height: 38px; }
+.vr-disclosure { font-size: var(--fs-13); color: var(--ink-500); min-width: 0; }
+.vr-disclosure summary, .vr-workspace-clean details > summary { cursor: pointer; font-weight: 600; padding-block: 5px; color: var(--ink-700); }
+.vr-disclosure p { margin: 6px 0; overflow-wrap: anywhere; }
+.vr-secondary-actions { margin-top: 10px; gap: 10px; }
+.vr-supplier-next { color: var(--ink-700); font-size: var(--fs-13); margin: 0; }
+.vr-workspace-clean .vr-supplier .vr-tag { background: transparent; padding: 0; font-weight: 500; text-transform: none; letter-spacing: 0; }
+.vr-workspace-clean .vr-supplier h3 { font-size: var(--fs-18); }
+.vr-margin-metrics { grid-template-columns: repeat(3,minmax(0,1fr)); padding-block: 8px; }
+@media (max-width: 760px) {
+  .vr-workspace-clean { gap: 16px; }
+  .vr-study-summary, .vr-workspace-clean .vr-card { padding: 16px; }
+  .vr-summary-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+  .vr-summary-quote { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .vr-summary-quote > div:first-child { grid-column: 1 / -1; }
+  .vr-summary-action { flex-direction: column; align-items: flex-start; }
+  .vr-summary-action .vr-btn { align-self: flex-start; }
+  .vr-study-tabs .vr-tabs { gap: 18px; }
+  .vr-workspace-clean .vr-candidates li { align-items: flex-start; }
+  .vr-workspace-clean .vr-form label:has(> input[type="checkbox"]) { min-height: 0; }
+}

@@ -199,7 +199,10 @@ export function classifyResult(
 }
 
 function words(value: string): string[] {
-  return value.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  return value.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase()
+    .replace(/(\d+(?:[.,]\d+)?)\s*(mm|cm|kg)\b/g, "$1 $2")
+    .replace(/\bilhoses\b/g, "ilhos")
+    .match(/[a-z0-9]+/g) ?? [];
 }
 
 function productEvidence(identity: ProductIdentity, text: string, kind: SupplierKind): SupplierCandidate["evidence"] | null {
@@ -215,6 +218,12 @@ function productEvidence(identity: ProductIdentity, text: string, kind: Supplier
   const modelMatches = model.length === 0 || model.every((word) => resultWords.has(word));
   // Modelo explícito diferente não pode virar candidato de produto por similaridade textual.
   const explicitModel = text.match(/(?:n[º°]|número|modelo)\s*[:#-]?\s*(\d+)/i)?.[1];
+  // Uma única medida conflitante é evidência negativa, não equivalência de produto.
+  // Listagens com várias medidas continuam candidatas: podem conter a variante correta.
+  const dimensions = (value: string) => [...new Set([...value.toLowerCase().matchAll(/(\d+(?:[.,]\d+)?)\s*(mm|cm)\b/g)].map((m) => Number(m[1].replace(",", ".")) * (m[2] === "cm" ? 10 : 1)))];
+  const expectedDimensions = dimensions(identity.title);
+  const foundDimensions = dimensions(text);
+  if (!gtinMatches && expectedDimensions.length === 1 && foundDimensions.length === 1 && expectedDimensions[0] !== foundDimensions[0]) return null;
   if (model.length === 1 && /^\d+$/.test(model[0]) && explicitModel && explicitModel !== model[0] && !gtinMatches) return null;
   if (gtinMatches || (modelMatches && matchedTerms >= Math.min(2, uniqueTerms.length) && matchedTerms > 0 && (!brand.length || brandMatches)))
     return "PRODUTO";

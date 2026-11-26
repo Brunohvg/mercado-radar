@@ -34,6 +34,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Configure NEXT_PUBLIC_APP_URL com o endereço público HTTPS do Radar." }, { status: 400 });
     }
 
+    const isProduction = origin === "https://radar.optarys.com.br";
+    const destination = isProduction ? "ExtensionDev" : "ExtensionBeta";
+    const installDirLine = '$installDir = Join-Path $env:LOCALAPPDATA "MercadoRadar\\' + destination + '"';
+    const root = path.join(process.cwd(), "extension");
+
     // Bind beta files only to the Coolify deployment they came from.
     // No production seller token or session is carried into homologation.
     const files = await Promise.all(
@@ -115,6 +120,7 @@ export async function GET(request: Request) {
         "Content-Disposition":
           'attachment; filename="MercadoRadar-Instalar.ps1"',
         "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
         "X-Content-Type-Options": "nosniff",
       },
     });

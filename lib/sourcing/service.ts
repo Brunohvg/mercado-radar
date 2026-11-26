@@ -163,8 +163,6 @@ export function sourcingSaleContext(opportunity: SaleFields, settings: Awaited<R
 
 export function purchaseLimit(sale: SaleContext) {
   const missing = missingSaleData(sale);
-  if (sale.taxPercent == null) missing.push("imposto");
-  if (sale.operatingCost == null) missing.push("custo operacional");
   const limit = missing.length ? null : maxUnitCostForMargin({ ...sale, saleUnits: 1 });
   return { perListing: limit == null ? null : Math.floor(limit * 100 + 1e-8) / 100, missing };
 }
@@ -205,6 +203,11 @@ export async function loadOpportunityView(workspaceId: string, id: string, budge
       source: quote.source as QuoteSource,
       exactMatch: quote.exactMatch,
       expired: quote.validUntil != null && quote.validUntil.getTime() <= Date.now(),
+      supplierBlockReason: quote.supplier.issuesInvoice === false
+        ? "Fornecedor não emite nota fiscal"
+        : (quote.supplier.cnpjCheck as CnpjCheck | null)?.status && (quote.supplier.cnpjCheck as CnpjCheck).status !== "ATIVA"
+          ? "Situação cadastral do fornecedor não está ativa"
+          : null,
       supplierMinOrderUnits: quote.supplier.minOrderUnits,
       supplierMinOrderValue: num(quote.supplier.minOrderValue),
     });
@@ -249,6 +252,7 @@ export async function loadOpportunityView(workspaceId: string, id: string, budge
             source: latest.source as QuoteSource,
             exactMatch: latest.exactMatch,
             freightCost: num(latest.freightCost),
+            expired: latest.validUntil != null && latest.validUntil.getTime() <= Date.now(),
           }
         : null,
     );

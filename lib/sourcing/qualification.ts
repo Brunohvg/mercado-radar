@@ -35,6 +35,7 @@ export type QuoteFacts = {
   source: "COTACAO_RECEBIDA" | "PRECO_PUBLICADO" | "ESTIMATIVA_USUARIO";
   exactMatch: boolean | null;
   freightCost: number | null;
+  expired?: boolean;
 } | null;
 
 export type Qualification = {
@@ -98,13 +99,15 @@ export function qualifySupplier(
     key: "price",
     label: "Preço de atacado",
     importance: "ESSENCIAL",
-    state: !quote
+    state: !quote || quote.expired || !Number.isFinite(quote.unitPrice) || quote.unitPrice <= 0
       ? "PENDENTE"
       : quote.source === "ESTIMATIVA_USUARIO"
         ? "PENDENTE"
         : "OK",
     detail: !quote
       ? "Solicitar cotação"
+      : quote.expired ? "Renovar cotação vencida"
+      : !Number.isFinite(quote.unitPrice) || quote.unitPrice <= 0 ? "Confirmar preço válido"
       : quote.source === "COTACAO_RECEBIDA"
         ? "Cotação recebida do fornecedor"
         : quote.source === "PRECO_PUBLICADO"
@@ -136,9 +139,9 @@ export function qualifySupplier(
   {
     let state: CriterionState = "PENDENTE";
     let detail = "Perguntar se vende para CPF ou exige CNPJ";
-    if (supplier.requiresCnpj === true && context.buyerHasCnpj === false) {
+    if ((supplier.requiresCnpj === true || supplier.sellsToCpf === false) && context.buyerHasCnpj === false) {
       state = "FALHA";
-      detail = "Exige CNPJ e você comprará como CPF";
+      detail = "Não atende compra por CPF";
     } else if (supplier.sellsToCpf === true || supplier.servesSmall === true) {
       state = "OK";
       detail = supplier.sellsToCpf ? "Vende para CPF" : "Atende pequenos revendedores";
@@ -205,7 +208,7 @@ export function qualifySupplier(
   const confirmed = criteria.filter((item) => item.state === "OK").length;
   const essential = criteria.filter((item) => item.importance === "ESSENCIAL");
   const blocked = criteria.some((item) => item.state === "FALHA" && item.importance === "ESSENCIAL") ||
-    criteria.some((item) => item.key === "small" && item.state === "FALHA");
+    criteria.some((item) => (item.key === "small" || item.key === "invoice") && item.state === "FALHA");
   const essentialOk = essential.every((item) => item.state === "OK");
   const level: Qualification["level"] = blocked
     ? "BLOQUEADO"

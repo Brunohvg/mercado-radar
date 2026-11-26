@@ -328,3 +328,44 @@
   .vr-workspace-clean .vr-candidates li { align-items: flex-start; }
   .vr-workspace-clean .vr-form label:has(> input[type="checkbox"]) { min-height: 0; }
 }
+
+
+/* Entrada de abastecimento: pesquisa, histórico e ferramentas sob demanda. */
+.vr-sourcing-home { width: 100%; max-width: 1100px; margin-inline: auto; gap: 30px; }
+.vr-sourcing-home .vr-home-header { margin: 0; }
+.vr-sourcing-home .vr-home-header h1 { font-size: clamp(26px,3vw,34px); line-height: 1.2; font-weight: 650; }
+.vr-sourcing-home .vr-home-header p { margin-top: 7px; color: var(--ink-500); }
+.vr-sourcing-home .vr-start { border-top: 1px solid var(--line); padding: 26px; gap: 18px; box-shadow: none; }
+.vr-sourcing-home .vr-start h2 { font-size: var(--fs-20); font-weight: 650; line-height: 1.35; }
+.vr-sourcing-home .vr-start-row { gap: 10px; align-items: stretch; }
+.vr-sourcing-home .vr-start-row .vr-btn { align-self: stretch; }
+.vr-sourcing-home .vr-home-options { font-size: var(--fs-14); }
+.vr-home-option-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; margin-top: 10px; }
+.vr-sourcing-home .vr-home-option-fields label { max-width: none; margin: 0; }
+.vr-sourcing-home .vr-home-option-fields input { width: 100%; background: var(--surface); color: var(--ink-900); }
+.vr-home-studies, .vr-home-tools { display: grid; gap: 14px; min-width: 0; }
+.vr-home-studies > header { align-items: baseline; }
+.vr-home-studies h2, .vr-home-tools > h2 { margin: 0; font-size: var(--fs-18); font-weight: 650; }
+.vr-home-studies .vr-study-list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); gap: 0; }
+.vr-home-studies .vr-study-list li + li { border-top: 1px solid var(--line); }
+.vr-home-studies .vr-study { border: 0; border-radius: 0; padding: 16px 20px; background: transparent; }
+.vr-home-studies .vr-study:hover { background: var(--surface-2); }
+.vr-home-studies .vr-study strong { white-space: normal; overflow-wrap: anywhere; }
+.vr-home-studies .vr-study-next { font-weight: 500; }
+.vr-home-empty { padding: 14px 0; }
+.vr-home-tools { gap: 0; border-top: 1px solid var(--line); padding-top: 22px; }
+.vr-home-tools > h2 { margin-bottom: 10px; }
+.vr-home-tool { padding: 16px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+.vr-home-tool > summary { cursor: pointer; color: var(--ink-900); font-size: var(--fs-14); }
+.vr-home-tool > summary strong { font-weight: 600; }
+.vr-home-tool > summary span { display: block; color: var(--ink-500); margin: 5px 0 0 18px; font-weight: 400; }
+.vr-home-tool[open] > summary { margin-bottom: 16px; }
+.vr-home-tool .hunter { border-top: 1px solid var(--line); }
+.vr-home-tool .vr-capital { display: grid; gap: 16px; padding: 16px; background: var(--surface); border-radius: var(--r-lg); border: 1px solid var(--line); }
+@media (max-width: 720px) {
+  .vr-sourcing-home { gap: 24px; }
+  .vr-sourcing-home .vr-start { padding: 18px; }
+  .vr-home-option-fields { grid-template-columns: 1fr; }
+  .vr-home-studies .vr-study { padding: 14px 16px; }
+  .vr-home-studies .vr-study-next { grid-row: auto; white-space: normal; }
+}

@@ -33,6 +33,8 @@ export function SourcingHome({ reference }: { reference: { id: string; title: st
   const [rows, setRows] = useState<OpportunityRow[] | null>(null);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
+  const [showAllStudies, setShowAllStudies] = useState(false);
+  const [hunterStarted, setHunterStarted] = useState(false);
   const queryRef = useRef<HTMLInputElement>(null);
 
   // Vem do "O que você quer revender?" do Início: link vai no campo de link,
@@ -100,24 +102,24 @@ export function SourcingHome({ reference }: { reference: { id: string; title: st
   }
 
   return (
-    <div className="vr">
-      <header className="page-header clean-page-header">
+    <div className="vr vr-sourcing-home">
+      <header className="page-header clean-page-header vr-home-header">
         <div>
-          <p className="page-kicker">Comprar</p>
           <h1>Onde comprar</h1>
-          <p>Ache quem vende o produto para você e descubra se vale a pena revender.</p>
+          <p>Encontre fornecedores, compare cotações e decida quanto investir.</p>
         </div>
       </header>
 
       <form className="vr-start" onSubmit={create}>
-        <h2>Qual produto você quer comprar para revender?</h2>
+        <h2>Encontre fornecedores para um produto</h2>
         {reference && <p>{reference.id} · Leitura em {dateBr(reference.observed)} · Preço observado {brl(reference.price)}</p>}
         <div className="vr-start-row">
           <input ref={queryRef} readOnly={Boolean(reference)} defaultValue={reference?.title} name="query" required maxLength={500} aria-label="Link do anúncio ou nome do produto" placeholder="Cole o link do anúncio no Mercado Livre ou escreva o nome" />
           <button className="vr-btn" disabled={creating}>{creating ? "Preparando a busca…" : "Buscar fornecedores"}</button>
         </div>
-        <details open={reference ? true : undefined}>
+        <details className="vr-home-options" open={reference ? true : undefined}>
           <summary>Orçamento e preço de venda (opcionais)</summary>
+          <div className="vr-home-option-fields">
           <label>
             Quanto pode investir?<input name="budget" placeholder="R$ 500,00" inputMode="decimal" />
           </label>
@@ -125,16 +127,17 @@ export function SourcingHome({ reference }: { reference: { id: string; title: st
             Preço de venda para simular
             <input defaultValue={reference?.price ?? ""} name="price" placeholder="R$ 42,90" inputMode="decimal" />
           </label>
+          </div>
         </details>
       </form>
 
       {error && <p className="vr-alert" role="alert">{error}</p>}
 
       {rows && rows.length > 0 && (
-        <section aria-labelledby="vr-list">
-          <h2 id="vr-list" className="vr-section-title">Continue de onde parou</h2>
+        <section className="vr-home-studies" aria-labelledby="vr-list">
+          <header className="vr-card-head"><h2 id="vr-list">Seus estudos</h2><span className="vr-muted">{rows.length} {rows.length === 1 ? "produto" : "produtos"}</span></header>
           <ul className="vr-study-list">
-            {rows.map((row) => {
+            {(showAllStudies ? rows : rows.slice(0, 5)).map((row) => {
               const step = studyStep(row);
               return (
                 <li key={row.id}>
@@ -142,27 +145,30 @@ export function SourcingHome({ reference }: { reference: { id: string; title: st
                     <strong>{row.title}</strong>
                     <span className="vr-study-next">{step.next} →</span>
                     <small>
-                      <span className="vr-dots" aria-label={`Etapa ${step.done} de 3`}>
-                        {[1, 2, 3].map((n) => <i key={n} className={n <= step.done ? "on" : ""} />)}
-                      </span>{" "}
-                      {row.supplierCount} fornecedor(es) · {row.quoteCount} preço(s) · venda {brl(row.referencePrice)} · {dateBr(row.updatedAt)}
+                      {row.supplierCount} fornecedor(es) · {row.quoteCount} cotação(ões) · {dateBr(row.updatedAt)}
                     </small>
                   </Link>
                 </li>
               );
             })}
           </ul>
+          {rows.length > 5 && <button type="button" className="vr-btn vr-btn--ghost vr-btn--small" aria-expanded={showAllStudies} onClick={() => setShowAllStudies(!showAllStudies)}>{showAllStudies ? "Mostrar menos" : `Ver todos os ${rows.length} estudos`}</button>}
         </section>
       )}
-      {!rows && !error && <p className="vr-muted">Carregando…</p>}
+      {rows?.length === 0 && <p className="vr-muted vr-home-empty">Seus estudos aparecerão aqui depois da primeira pesquisa.</p>}
+      {!rows && !error && <p className="vr-muted" role="status">Carregando estudos…</p>}
 
-      <h2 className="vr-section-title">Não sabe o que revender?</h2>
-      <HunterPanel />
-
-      <details className="vr-card">
-        <summary><strong>Tenho um valor para investir</strong> <span className="vr-muted">— veja quais produtos estudados cabem nele</span></summary>
-        <CapitalRadar />
-      </details>
+      <section className="vr-home-tools" aria-labelledby="vr-tools-title">
+        <h2 id="vr-tools-title">Outras formas de começar</h2>
+        <details className="vr-home-tool" onToggle={(event) => { if (event.currentTarget.open) setHunterStarted(true); }}>
+          <summary><strong>Descobrir produtos para revender</strong><span>Explore sinais de mercado nas suas categorias.</span></summary>
+          {hunterStarted && <HunterPanel />}
+        </details>
+        <details className="vr-home-tool">
+          <summary><strong>Encontrar opções pelo meu orçamento</strong><span>Compare os produtos já estudados com seu capital.</span></summary>
+          <CapitalRadar />
+        </details>
+      </section>
     </div>
   );
 }
@@ -243,7 +249,7 @@ function CapitalRadar() {
             <Link key={match.title} className="vr-capital-item" href={`/onde-comprar/${match.opportunityId}`}>
               <strong>{match.title}</strong>
               <span>
-                Lote mínimo {brl(match.viability.order.capital)} · margem {pct(match.viability.perSale?.marginPercent)}
+                Investimento simulado {brl(match.viability.order.capital)} · margem {pct(match.viability.perSale?.marginPercent)}
                 {match.viability.source === "ESTIMATIVA_USUARIO" && " · custo estimado"}
               </span>
             </Link>

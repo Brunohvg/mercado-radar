@@ -26,10 +26,26 @@ test("repõe só o que não cobre entrega + segurança, agrupado por fornecedor"
   assert.equal(orders.some((o) => o.lines.some((l) => l.mlItemId === "D")), false); // sem venda, sem compra
 });
 
-test("mensagem lista itens e só fala de valor quando todos têm custo", () => {
-  const m = orderMessage({ name: "X", contact: { name: "Ana" } }, [{ title: "Kit", quantity: 10, unitCost: 2 }]);
+test("mensagem lista somente linhas financeiramente elegíveis", () => {
+  const m = orderMessage({ name: "X", contact: { name: "Ana" } }, [{ title: "Kit", quantity: 10, unitCost: 2, purchaseEligible: true }]);
   assert.match(m, /Olá, Ana!/);
   assert.match(m, /10 un\. — Kit/);
   assert.match(m, /R\$\s20,00/);
-  assert.doesNotMatch(orderMessage({ name: "X", contact: null }, [{ title: "Kit", quantity: 1, unitCost: null }]), /R\$/);
+  assert.throws(
+    () => orderMessage({ name: "X", contact: null }, [{ title: "Kit", quantity: 1, unitCost: null, purchaseEligible: false }]),
+    /linhas não elegíveis/,
+  );
+});
+
+test("pedido mantém a necessidade preliminar visível, mas marca a linha sem gate", () => {
+  const [order] = buildPurchaseOrders({
+    products: [p("A", 0, 8, "Fornecedor")],
+    unitsSold: { A: 30 },
+    days: 30,
+    settings,
+    suppliers: [],
+  });
+  assert.equal(order.lines[0].purchaseEligible, false);
+  assert.equal(order.lines[0].decisionAction, "VALIDATE_PROFIT");
+  assert.match(order.lines[0].eligibilityReason, /financeira/);
 });

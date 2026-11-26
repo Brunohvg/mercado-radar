@@ -67,6 +67,7 @@ export async function loadPilotData(input: { workspaceId: string; sellerId: stri
     status: p.status,
     cost: p.supplierPrice == null ? null : Number(p.supplierPrice) * (1 - Number(p.discountPercent) / 100),
     supplier: p.supplier?.trim() || null,
+    listingCreatedAt: p.listingCreatedAt,
   }));
   const pilotSettings: PilotSettings = {
     taxPercent: settings.taxPercent == null ? null : Number(settings.taxPercent),

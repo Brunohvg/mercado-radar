@@ -13,7 +13,15 @@ type Response = {
   fees?: { commissionPercent: number | null; fixedFee: number | null; shippingCost: number | null; taxPercent: number | null };
   assumptions?: Assumption[];
   note?: string;
-  reverse?: { forTargetMargin: number | null; breakEven: number | null; targetMarginPercent: number } | null;
+  reverse?: {
+    forTargetMargin: number | null;
+    forTargetRoi?: number | null;
+    maximumSupplierCost?: number | null;
+    limitingTarget?: "margin" | "ROI" | null;
+    breakEven: number | null;
+    targetMarginPercent: number;
+    targetRoiPercent?: number;
+  } | null;
   result?: { profit: number; marginPercent: number; roiPercent: number | null; minimumSuggestedPrice: number | null } | null;
 };
 
@@ -35,6 +43,7 @@ export function QuickCalculator() {
   const [listing, setListing] = useState("");
   const [salePrice, setSalePrice] = useState("");
   const [cost, setCost] = useState("");
+  const [shippingCost, setShippingCost] = useState("");
   const [tax, setTax] = useState("");
   const [busy, setBusy] = useState(false);
   const [data, setData] = useState<Response | null>(null);
@@ -55,6 +64,7 @@ export function QuickCalculator() {
           itemId,
           ...(num(salePrice) ? { salePrice: num(salePrice) } : {}),
           ...(num(cost) != null ? { supplierPrice: num(cost) } : {}),
+          ...(num(shippingCost) != null ? { shippingCost: num(shippingCost) } : {}),
           ...(num(tax) != null ? { taxPercent: num(tax) } : {}),
         }),
       });
@@ -72,7 +82,7 @@ export function QuickCalculator() {
     <section className="clean-panel quick-calc" aria-labelledby="quick-calc-title">
       <header>
         <h1 id="quick-calc-title">Calculadora de lucro</h1>
-        <p>Cole o anúncio. Custo e imposto são opcionais: sem custo, mostramos quanto você pode pagar no produto.</p>
+        <p>Sem custo de compra, mostramos o teto que atende margem e ROI. Frete ou imposto ausentes precisam de cotação ou confirmação antes do resultado.</p>
       </header>
       <form onSubmit={calculate} className="quick-calc-form">
         <label className="quick-calc-wide">
@@ -86,6 +96,10 @@ export function QuickCalculator() {
         <label>
           <span>Custo do produto (opcional)</span>
           <input inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="Sem custo? Calculamos o teto" />
+        </label>
+        <label>
+          <span>Frete pago pelo vendedor (opcional)</span>
+          <input inputMode="decimal" value={shippingCost} onChange={(e) => setShippingCost(e.target.value)} placeholder="Informe ou confirme zero" />
         </label>
         <label>
           <span>Imposto % (opcional)</span>
@@ -105,9 +119,11 @@ export function QuickCalculator() {
           {data.reverse && (
             <div className="quick-calc-big">
               <span>Você pode pagar até</span>
-              <strong className={data.reverse.forTargetMargin == null || data.reverse.forTargetMargin <= 0 ? "danger-value" : "good-value"}>{data.reverse.forTargetMargin == null || data.reverse.forTargetMargin <= 0 ? "inviável na meta" : money.format(data.reverse.forTargetMargin)}</strong>
+              <strong className={(data.reverse.maximumSupplierCost ?? data.reverse.forTargetMargin) == null || (data.reverse.maximumSupplierCost ?? data.reverse.forTargetMargin)! <= 0 ? "danger-value" : "good-value"}>{(data.reverse.maximumSupplierCost ?? data.reverse.forTargetMargin) == null || (data.reverse.maximumSupplierCost ?? data.reverse.forTargetMargin)! <= 0 ? "inviável na meta" : money.format((data.reverse.maximumSupplierCost ?? data.reverse.forTargetMargin)!)}</strong>
               <small>
-                por unidade para ter {pct(data.reverse.targetMarginPercent)} de margem.
+                por unidade para atingir {pct(data.reverse.targetMarginPercent)} de margem
+                {data.reverse.targetRoiPercent != null && ` e ${pct(data.reverse.targetRoiPercent)} de ROI`}.
+                {data.reverse.limitingTarget && ` Limite por ${data.reverse.limitingTarget === "ROI" ? "ROI" : "margem"}.`}
                 {data.reverse.breakEven != null && ` Acima de ${money.format(data.reverse.breakEven)} você tem prejuízo.`}
               </small>
             </div>

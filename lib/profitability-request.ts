@@ -273,21 +273,27 @@ export async function runProfitability(session: MlSession, parsed: { data: Profi
     const shippingDiscount = parseShippingDiscount(
       shipping?.raw?.coverage?.all_country?.discount,
     );
-    // Calcula com o que se tem: imposto e frete ausentes viram suposições
-    // visíveis (nunca silenciosas); só a tarifa continua obrigatória.
+    // Valores ausentes permanecem desconhecidos e bloqueiam uma conclusão.
     const settings = await getWorkspaceSettings(session.account.workspaceId).catch(() => null);
     const filled = fillMissingCosts({
-      price,
       shippingCost: knownShippingCost,
       taxPercent: parsed.data.taxPercent ?? null,
       workspaceTaxPercent: settings?.taxPercent == null ? null : Number(settings.taxPercent),
-      logisticType,
-      freeShipping: Boolean(parsed.data.freeShipping ?? item.freeShipping),
     });
     const shippingCost = filled.shippingCost;
     const taxPercent = filled.taxPercent;
-    const assumptions = filled.assumptions;
-    const needs = [!fee ? "fees" : null].filter(Boolean);
+    const assumptions = [...filled.assumptions];
+    if (shippingEstimated && parsed.data.shippingCost == null && knownShippingCost != null)
+      assumptions.push({
+        field: "shippingCost",
+        text: "Frete estimado pela embalagem e conta conectada; confirme o valor final antes de tratar o cenário como realizado.",
+        material: true,
+      });
+    const needs = [
+      !fee ? "fees" : null,
+      shippingCost == null ? "shippingCost" : null,
+      taxPercent == null ? "taxPercent" : null,
+    ].filter((value): value is string => value != null);
     const partial = {
       item: { ...item, price, listingType, isOwn: isOwnItem },
       feeSource,
@@ -317,11 +323,19 @@ export async function runProfitability(session: MlSession, parsed: { data: Profi
       assumptions,
       shippingPending: filled.shippingPending,
       result: null,
-      reverse: null as null | ReturnType<typeof maxSupplierCost> & { targetMarginPercent: number },
+      reverse: null as null | ReturnType<typeof maxSupplierCost> & {
+        targetMarginPercent: number;
+        targetRoiPercent: number;
+      },
       adsSimulation: null,
       availability: needs.length ? "PARTIAL" : "READY",
       note: !fee
         ? "A API não retornou tarifas. Informe comissão e tarifa fixa do simulador oficial para fazer uma simulação manual."
+        : shippingCost == null || taxPercent == null
+          ? `Simulação incompleta: ${[
+              shippingCost == null ? "confirme o frete efetivo do vendedor" : null,
+              taxPercent == null ? "informe o imposto aplicável" : null,
+            ].filter(Boolean).join(" e ")}. Nenhum custo desconhecido foi considerado zero.`
         : categorySource === "PREDICTED"
           ? "Categoria sugerida pelo título. Confira a categoria antes de decidir."
           : "Cotação para os parâmetros informados; não é um custo de venda realizada.",
@@ -338,6 +352,8 @@ export async function runProfitability(session: MlSession, parsed: { data: Profi
       return NextResponse.json(partial);
     }
     if (!fee) throw new Error("Custos incompletos.");
+    if (shippingCost == null || taxPercent == null)
+      return NextResponse.json({ ...partial, availability: "PARTIAL" });
 
     // Modo reverso: sem o custo do produto, diz quanto dá para pagar.
     if (parsed.data.supplierPrice == null) {
@@ -364,7 +380,11 @@ export async function runProfitability(session: MlSession, parsed: { data: Profi
       return NextResponse.json({
         ...partial,
         availability: "REVERSE",
-        reverse: { ...reverse, targetMarginPercent: parsed.data.targetMarginPercent },
+        reverse: {
+          ...reverse,
+          targetMarginPercent: parsed.data.targetMarginPercent,
+          targetRoiPercent: parsed.data.targetRoiPercent,
+        },
       });
     }
     if (parsed.data.save && parsed.data.saveMode !== "SNAPSHOT" && assumptions.some((a) => a.material))

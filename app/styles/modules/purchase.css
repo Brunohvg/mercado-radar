@@ -16,6 +16,8 @@
 .po-page .po-table .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .po-page .po-table td strong { display: block; max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .po-page .po-table td small { color: var(--ink-500); font-size: var(--fs-12, 12px); }
+.po-page .po-table td small.po-eligible { display: block; color: var(--success-ink, #087443); }
+.po-page .po-table td small.po-ineligible { display: block; max-width: 420px; color: var(--warn-ink); }
 .po-page .po-table input { font: inherit; width: 72px; text-align: right; padding: 5px 8px; border: 1px solid var(--line); border-radius: var(--r-sm); }
 .po-page .po-warn { margin: 0; padding: 8px 12px; border-radius: var(--r-sm); background: var(--warn-tint); color: var(--warn-ink); font-size: var(--fs-13, 13px); }
 .po-page .po-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }

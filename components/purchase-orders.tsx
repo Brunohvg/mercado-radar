@@ -36,8 +36,8 @@ export function PurchaseOrders() {
           <p className="page-kicker">Comprar</p>
           <h1>Pedido de compra</h1>
           <p>
-            O que vai acabar antes da próxima entrega, separado por fornecedor, com a quantidade e o valor. Ajuste as
-            quantidades e mande a mensagem pronta.
+            Produtos com necessidade de estoque aparecem com quantidade e custo. A mensagem de compra só libera quando
+            histórico e resultado financeiro confirmam a decisão.
           </p>
         </div>
       </header>
@@ -76,14 +76,16 @@ function OrderCard({ order }: { order: PurchaseOrder }) {
   const lines = order.lines
     .map((l) => ({ ...l, quantity: Math.max(0, Math.floor(Number(qty[l.mlItemId]) || 0)) }))
     .filter((l) => l.quantity > 0);
+  const canContactSupplier = lines.length > 0 && lines.every((line) => line.purchaseEligible);
   const total = lines.reduce((s, l) => s + (l.unitCost ?? 0) * l.quantity, 0);
   const missingCost = lines.some((l) => l.unitCost == null);
-  const message = orderMessage(order, lines);
+  const message = canContactSupplier ? orderMessage(order, lines) : "";
   const phone = order.contact?.phone?.replace(/\D/g, "");
   const valueGap = order.minOrderGap == null ? null : order.minOrderGap - (total - order.total);
   const unitsGap = order.minUnitsGap == null ? null : order.minUnitsGap - (lines.reduce((s, l) => s + l.quantity, 0) - order.units);
 
   async function copy() {
+    if (!canContactSupplier) return;
     try {
       await navigator.clipboard.writeText(message);
       setCopied(true);
@@ -131,6 +133,9 @@ function OrderCard({ order }: { order: PurchaseOrder }) {
                   <td>
                     <strong title={l.title}>{l.title}</strong>
                     <small>vende {l.dailyUnits.toLocaleString("pt-BR")} por dia</small>
+                    <small className={l.purchaseEligible ? "po-eligible" : "po-ineligible"}>
+                      {l.purchaseEligible ? "Elegível para reposição" : l.eligibilityReason}
+                    </small>
                   </td>
                   <td className="num">{l.stock}</td>
                   <td className={`num ${l.urgent ? "danger-value" : ""}`}>{l.stockDays} dia(s)</td>
@@ -159,15 +164,15 @@ function OrderCard({ order }: { order: PurchaseOrder }) {
       )}
 
       <div className="po-actions">
-        <button type="button" className="vr-btn vr-btn--small" disabled={!lines.length} onClick={() => void copy()}>
+        <button type="button" className="vr-btn vr-btn--small" disabled={!canContactSupplier} title={!canContactSupplier ? "Remova as linhas pendentes ou valide margem e histórico antes de preparar o pedido." : undefined} onClick={() => void copy()}>
           {copied ? "Mensagem copiada" : "Copiar mensagem"}
         </button>
-        {phone && phone.length >= 10 && (
+        {canContactSupplier && phone && phone.length >= 10 && (
           <a className="vr-btn vr-btn--ghost vr-btn--small" href={`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`} target="_blank" rel="noreferrer">
             Abrir no WhatsApp
           </a>
         )}
-        {order.contact?.email && (
+        {canContactSupplier && order.contact?.email && (
           <a className="vr-btn vr-btn--ghost vr-btn--small" href={`mailto:${order.contact.email}?subject=${encodeURIComponent("Pedido de compra")}&body=${encodeURIComponent(message)}`}>
             Abrir e-mail
           </a>
@@ -176,7 +181,7 @@ function OrderCard({ order }: { order: PurchaseOrder }) {
       </div>
       <details className="po-preview">
         <summary>Ver mensagem</summary>
-        <pre>{message}</pre>
+        {canContactSupplier ? <pre>{message}</pre> : <p>Mensagem bloqueada até validar a decisão de reposição. Linhas sem aprovação financeira não podem ser enviadas ao fornecedor.</p>}
       </details>
     </article>
   );

@@ -1,7 +1,24 @@
 // Pedido de compra por fornecedor: o que vai acabar antes da próxima entrega,
-// quanto comprar e quanto custa. Puro. Usa vendas pagas dos últimos 30 dias.
+// quanto comprar e quanto custa. A saída estima necessidade de estoque; a
+// mensagem de compra só pode ser usada após o gate do motor de decisões.
 
-export type PoProduct = { mlItemId: string; title: string; stock: number; cost: number | null; supplier: string | null; status: string };
+export type PurchaseEligibility = {
+  action: string;
+  eligible: boolean;
+  reason: string;
+  marginPercent: number | null;
+  profitCoveragePercent: number | null;
+};
+
+export type PoProduct = {
+  mlItemId: string;
+  title: string;
+  stock: number;
+  cost: number | null;
+  supplier: string | null;
+  status: string;
+  eligibility?: PurchaseEligibility;
+};
 export type PoSupplier = {
   id: string;
   name: string;
@@ -42,6 +59,12 @@ export function buildPurchaseOrders(input: {
       quantity,
       unitCost: p.cost,
       subtotal: p.cost == null ? null : round2(p.cost * quantity),
+      purchaseEligible: p.eligibility?.eligible === true,
+      eligibilityReason:
+        p.eligibility?.reason ?? "Validação financeira pendente.",
+      decisionAction: p.eligibility?.action ?? "VALIDATE_PROFIT",
+      marginPercent: p.eligibility?.marginPercent ?? null,
+      profitCoveragePercent: p.eligibility?.profitCoveragePercent ?? null,
     };
   }
 
@@ -91,7 +114,9 @@ export function buildPurchaseOrders(input: {
 export type PurchaseOrder = ReturnType<typeof buildPurchaseOrders>[number];
 
 /** Mensagem pronta para mandar ao fornecedor (WhatsApp ou e-mail). */
-export function orderMessage(order: Pick<PurchaseOrder, "name" | "contact">, lines: Array<{ title: string; quantity: number; unitCost: number | null }>) {
+export function orderMessage(order: Pick<PurchaseOrder, "name" | "contact">, lines: Array<{ title: string; quantity: number; unitCost: number | null; purchaseEligible?: boolean }>) {
+  if (lines.some((line) => line.purchaseEligible !== true))
+    throw new Error("Remova as linhas não elegíveis antes de preparar a mensagem de compra.");
   const hello = order.contact?.name ? `Olá, ${order.contact.name}! Tudo bem?` : "Olá! Tudo bem?";
   const total = lines.reduce((s, l) => s + (l.unitCost ?? 0) * l.quantity, 0);
   const known = lines.every((l) => l.unitCost != null);

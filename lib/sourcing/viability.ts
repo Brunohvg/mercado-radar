@@ -46,6 +46,7 @@ export type QuoteInput = {
   source: QuoteSource;
   exactMatch: boolean | null;
   expired?: boolean;
+  supplierBlockReason?: string | null;
   supplierMinOrderUnits: number | null;
   supplierMinOrderValue: number | null;
 };
@@ -168,10 +169,12 @@ export function evaluateQuote(sale: SaleContext, quote: QuoteInput): Viability {
   const freightPending = quote.freightCost == null;
   const purchasePending: string[] = [];
   if (quote.expired) purchasePending.push("validade da cotação");
+  if (quote.supplierBlockReason) purchasePending.push(quote.supplierBlockReason);
   if (quote.exactMatch !== true) purchasePending.push("correspondência do produto");
   if (freightPending) purchasePending.push("frete do fornecedor");
   if (quote.source !== "COTACAO_RECEBIDA") purchasePending.push("preço confirmado pelo fornecedor");
   const risks: Risk[] = [];
+  if (quote.supplierBlockReason) risks.push({ level: "ALTO", text: quote.supplierBlockReason });
   if (quote.source === "ESTIMATIVA_USUARIO")
     risks.push({ level: "ALTO", text: "Preço é estimativa sua, não cotação do fornecedor." });
   if (quote.exactMatch !== true)

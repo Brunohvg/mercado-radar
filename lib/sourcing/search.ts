@@ -67,7 +67,7 @@ export function withAiResearch(
     provider: outcome.provider === "BRAVE" ? "BRAVE_IA" : "IA",
     status: aiOk || webOk ? "OK" : outcome.status === "DESLIGADO" ? "INDISPONIVEL" : outcome.status,
     message: merged.length
-      ? null
+      ? (!aiOk || !webOk) && outcome.provider === "BRAVE" ? "Parte das fontes não respondeu. Os resultados são parciais." : null
       : research.message ?? outcome.message,
     candidates: merged.slice(0, 20),
     ai: research,
@@ -144,7 +144,7 @@ export function buildSupplierQueries(identity: ProductIdentity): SearchQuery[] {
   });
   if (identity.gtin && identity.gtinValid)
     queries.push({ intent: "Código de barras", query: identity.gtin });
-  return queries.length > 4 ? [...queries.slice(0, 3), queries[queries.length - 1]] : queries;
+  return queries;
 }
 
 const RULES: Array<{ kind: SupplierKind; pattern: RegExp; reason: string }> = [
@@ -162,6 +162,8 @@ export function classifyResult(
 ): SupplierCandidate | null {
   const domain = domainOf(result.url);
   if (!domain || isRetail(domain)) return null;
+  const parsed = new URL(result.url);
+  if (parsed.username || parsed.password || !domain.includes(".") || /^(?:\d{1,3}\.){3}\d{1,3}$/.test(domain) || domain.endsWith(".local")) return null;
   const text = `${result.title} ${result.description ?? ""} ${domain}`;
   const reasons: string[] = [];
   let kind: SupplierKind = "OUTRO";
@@ -211,6 +213,9 @@ function productEvidence(identity: ProductIdentity, text: string, kind: Supplier
   const gtinMatches = identity.gtin && identity.gtinValid && resultWords.has(identity.gtin);
   const matchedTerms = uniqueTerms.filter((word) => resultWords.has(word)).length;
   const modelMatches = model.length === 0 || model.every((word) => resultWords.has(word));
+  // Modelo explícito diferente não pode virar candidato de produto por similaridade textual.
+  const explicitModel = text.match(/(?:n[º°]|número|modelo)\s*[:#-]?\s*(\d+)/i)?.[1];
+  if (model.length === 1 && /^\d+$/.test(model[0]) && explicitModel && explicitModel !== model[0] && !gtinMatches) return null;
   if (gtinMatches || (modelMatches && matchedTerms >= Math.min(2, uniqueTerms.length) && matchedTerms > 0 && (!brand.length || brandMatches)))
     return "PRODUTO";
   if (brandMatches && (kind === "FABRICANTE" || kind === "DISTRIBUIDOR")) return "MARCA";

@@ -371,3 +371,149 @@
   .setup-list li { grid-template-columns: 24px minmax(0, 1fr); }
   .setup-list li .vr-btn { grid-column: 2; justify-self: start; }
 }
+
+/* Jornada principal: conecta descoberta, fornecedor, capital e lucro. */
+.radar-journey {
+  display: grid;
+  gap: var(--s-4);
+  padding: var(--s-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.radar-journey-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.radar-journey-heading > div {
+  display: grid;
+  gap: var(--s-1);
+}
+
+.radar-journey-heading h2 {
+  font-size: var(--fs-18);
+  color: var(--ink-900);
+}
+
+.radar-journey-heading > p {
+  max-width: 38ch;
+  color: var(--ink-500);
+  font-size: var(--fs-13);
+  text-align: right;
+}
+
+.radar-journey-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.radar-journey-list li + li {
+  border-left: 1px solid var(--line);
+}
+
+.radar-journey-list a {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  align-content: start;
+  gap: var(--s-2);
+  min-height: 178px;
+  height: 100%;
+  padding: var(--s-4);
+  color: var(--ink-900);
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.radar-journey-list a:hover {
+  background: var(--brand-tint-2);
+}
+
+.radar-journey-step {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--brand-tint);
+  color: var(--brand-700);
+  font-size: var(--fs-12);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.radar-journey-list strong {
+  font-size: var(--fs-14);
+}
+
+.radar-journey-list a > span:not(.radar-journey-step) {
+  color: var(--ink-500);
+  font-size: var(--fs-12);
+  line-height: 1.45;
+}
+
+.radar-journey-list a > b {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  padding-top: var(--s-2);
+  border-top: 1px solid var(--line);
+  color: var(--brand-700);
+  font-size: var(--fs-12);
+  font-weight: 700;
+}
+
+.radar-journey-list i {
+  font-size: var(--fs-16);
+  font-style: normal;
+}
+
+@media (max-width: 1100px) {
+  .radar-journey-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .radar-journey-list li:nth-child(3) {
+    border-left: 0;
+  }
+
+  .radar-journey-list li:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 640px) {
+  .radar-journey {
+    padding: var(--s-4);
+  }
+
+  .radar-journey-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .radar-journey-heading > p {
+    text-align: left;
+  }
+
+  .radar-journey-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .radar-journey-list li + li,
+  .radar-journey-list li:nth-child(3) {
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .radar-journey-list a {
+    min-height: 140px;
+  }
+}

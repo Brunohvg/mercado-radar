@@ -28,13 +28,14 @@ type CapitalMatch = {
   };
 };
 
-export function SourcingHome({ reference }: { reference: { id: string; title: string; price: number | null; observed: string; permalink: string | null } | null }) {
+export function SourcingHome({ reference, focusCapital = false }: { reference: { id: string; title: string; price: number | null; observed: string; permalink: string | null } | null; focusCapital?: boolean }) {
   const router = useRouter();
   const [rows, setRows] = useState<OpportunityRow[] | null>(null);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
   const [showAllStudies, setShowAllStudies] = useState(false);
   const [hunterStarted, setHunterStarted] = useState(false);
+  const [capitalOpen, setCapitalOpen] = useState(focusCapital);
   const queryRef = useRef<HTMLInputElement>(null);
 
   // Vem do "O que você quer revender?" do Início: link vai no campo de link,
@@ -45,6 +46,13 @@ export function SourcingHome({ reference }: { reference: { id: string; title: st
     if (!q) return;
     if (queryRef.current) { queryRef.current.value = q.slice(0, 300); queryRef.current.focus(); }
   }, [reference]);
+
+  useEffect(() => {
+    if (!focusCapital) return;
+    window.requestAnimationFrame(() => {
+      document.getElementById("vr-capital-tool")?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  }, [focusCapital]);
 
   useEffect(() => {
     api<{ opportunities: OpportunityRow[] }>("/api/sourcing/opportunities")
@@ -164,8 +172,8 @@ export function SourcingHome({ reference }: { reference: { id: string; title: st
           <summary><strong>Descobrir produtos para revender</strong><span>Explore sinais de mercado nas suas categorias.</span></summary>
           {hunterStarted && <HunterPanel />}
         </details>
-        <details className="vr-home-tool">
-          <summary><strong>Encontrar opções pelo meu orçamento</strong><span>Compare os produtos já estudados com seu capital.</span></summary>
+        <details id="vr-capital-tool" className="vr-home-tool" open={capitalOpen} onToggle={(event) => setCapitalOpen(event.currentTarget.open)}>
+          <summary><strong>Quanto investir?</strong><span>Veja quais estudos cabem no seu capital, respeitando mínimos e margem.</span></summary>
           <CapitalRadar />
         </details>
       </section>

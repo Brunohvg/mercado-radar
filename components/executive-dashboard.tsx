@@ -156,6 +156,49 @@ export function ExecutiveDashboard() {
           </button>
         </div>
       </header>
+      <section className="radar-journey" aria-labelledby="radar-journey-title">
+        <div className="radar-journey-heading">
+          <div>
+            <p className="page-kicker">Do produto à decisão</p>
+            <h2 id="radar-journey-title">Quatro respostas antes de comprar</h2>
+          </div>
+          <p>Avance com dados e condições confirmadas, sem pular custos.</p>
+        </div>
+        <ol className="radar-journey-list">
+          <li>
+            <Link href="/oportunidades">
+              <span className="radar-journey-step">01</span>
+              <strong>O que vender?</strong>
+              <span>Explore oportunidades e confira as evidências de mercado.</span>
+              <b>Explorar produtos <i aria-hidden="true">→</i></b>
+            </Link>
+          </li>
+          <li>
+            <Link href="/onde-comprar">
+              <span className="radar-journey-step">02</span>
+              <strong>Onde comprar?</strong>
+              <span>Pesquise fornecedores e registre cotações por produto.</span>
+              <b>Buscar fornecedores <i aria-hidden="true">→</i></b>
+            </Link>
+          </li>
+          <li>
+            <Link href="/onde-comprar?modo=capital">
+              <span className="radar-journey-step">03</span>
+              <strong>Quanto investir?</strong>
+              <span>Compare mínimos de compra com o capital disponível.</span>
+              <b>Planejar investimento <i aria-hidden="true">→</i></b>
+            </Link>
+          </li>
+          <li>
+            <Link href="/analisar">
+              <span className="radar-journey-step">04</span>
+              <strong>Quanto posso ganhar?</strong>
+              <span>Simule preço e custos; veja o que ainda falta confirmar.</span>
+              <b>Calcular lucro <i aria-hidden="true">→</i></b>
+            </Link>
+          </li>
+        </ol>
+      </section>
       <SetupChecklist />
       <PilotBriefing />
       {error && (

@@ -32,29 +32,32 @@ type MenuItem = {
   also?: string[];
 };
 
-// Menu por tarefa: vender, comprar e acompanhar o mercado. Cada item abre uma
-// tela com abas para as telas irmãs; nenhuma rota foi removida.
+// Navegação acompanha o caminho do vendedor: descobrir → cotar → calcular → operar.
+// As rotas antigas continuam acessíveis por abas e ferramentas complementares.
 type MenuGroup = { label: string | null; items: MenuItem[] };
 const menuGroups: MenuGroup[] = [
   { label: null, items: [{ href: "/", label: "Início", icon: "dashboard", also: ["/onboarding"] }] },
   {
-    label: "Vender",
+    label: "Descobrir",
+    items: [
+      { href: "/oportunidades", label: "O que vender", icon: "market", also: ["/mercado", "/monitoramento", "/concorrentes", "/ean"] },
+      { href: "/onde-comprar", label: "Onde comprar", icon: "suppliers", also: ["/fornecedores"] },
+    ],
+  },
+  {
+    label: "Planejar",
+    items: [
+      { href: "/onde-comprar?modo=capital", label: "Quanto investir", icon: "products" },
+      { href: "/analisar", label: "Quanto posso ganhar", icon: "analysis" },
+    ],
+  },
+  {
+    label: "Operar",
     items: [
       { href: "/vendas", label: "Vendas e lucro", icon: "sales" },
       { href: "/anuncios", label: "Anúncios", icon: "listings", also: ["/melhorar-anuncio", "/promocoes", "/publicidade"] },
-    ],
-  },
-  {
-    label: "Comprar",
-    items: [
-      { href: "/reposicao", label: "Estoque e compras", icon: "products", also: ["/produtos", "/fornecedores"] },
-      { href: "/onde-comprar", label: "Onde comprar", icon: "suppliers" },
-    ],
-  },
-  {
-    label: "Mercado",
-    items: [
-      { href: "/monitoramento", label: "Concorrência", icon: "monitoring", also: ["/mercado", "/oportunidades"] },
+      { href: "/reposicao", label: "Estoque e compras", icon: "products", also: ["/produtos"] },
+      { href: "/assistente-anuncios", label: "Criar anúncio", icon: "listings" },
     ],
   },
   { label: null, items: [{ href: "/configuracoes", label: "Configurações", icon: "integrations", also: ["/integracoes", "/extensao"] }] },
@@ -62,11 +65,10 @@ const menuGroups: MenuGroup[] = [
 const mainItems: MenuItem[] = menuGroups.flatMap((g) => g.items);
 
 const moreItems: MenuItem[] = [
-  { href: "/analisar", label: "Calculadora de lucro", icon: "analysis" },
-  { href: "/assistente-anuncios", label: "Criar anúncio", icon: "listings" },
-  { href: "/ean", label: "EAN em lote", icon: "ean" },
   { href: "/historico", label: "Histórico de análises", icon: "history" },
   { href: "/onboarding", label: "Primeiros passos", icon: "steps" },
+  { href: "/concorrentes", label: "Comparar concorrentes", icon: "market" },
+  { href: "/kits", label: "Simulador de kits", icon: "products" },
 ];
 
 function MenuIcon({ name }: { name: IconName }) {
@@ -227,6 +229,7 @@ export function AppNavigation() {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [capitalMode, setCapitalMode] = useState(false);
   const [intelligenceEnabled, setIntelligenceEnabled] = useState(false);
   const [account, setAccount] = useState<{
     loaded: boolean;
@@ -237,6 +240,13 @@ export function AppNavigation() {
   useEffect(() => {
     setCollapsed(window.localStorage.getItem("radar.sidebar.collapsed") === "1");
   }, []);
+
+  useEffect(() => {
+    const syncCapitalMode = () => setCapitalMode(new URLSearchParams(window.location.search).get("modo") === "capital");
+    syncCapitalMode();
+    window.addEventListener("popstate", syncCapitalMode);
+    return () => window.removeEventListener("popstate", syncCapitalMode);
+  }, [pathname]);
 
   useEffect(() => {
     let active = true;
@@ -290,8 +300,12 @@ export function AppNavigation() {
   }
 
   function isActive(href: string) {
-    if (href === "/") return pathname === "/";
-    return pathname === href || pathname.startsWith(href + "/");
+    const [targetPath, query = ""] = href.split("?");
+    if (targetPath === "/") return pathname === "/";
+    if (pathname !== targetPath && !pathname.startsWith(targetPath + "/")) return false;
+    if (query.includes("modo=capital")) return capitalMode;
+    if (targetPath === "/onde-comprar" && capitalMode) return false;
+    return true;
   }
 
   function isMainActive(item: MenuItem) {
@@ -304,7 +318,10 @@ export function AppNavigation() {
         className={"nav-item " + (active ? "active" : "")}
         href={item.href}
         key={item.href}
-        onClick={() => setOpen(false)}
+        onClick={() => {
+          if (item.href.startsWith("/onde-comprar")) setCapitalMode(item.href.includes("modo=capital"));
+          setOpen(false);
+        }}
         title={collapsed ? item.label : undefined}
         aria-current={active ? "page" : undefined}
       >
@@ -389,12 +406,9 @@ export function AppNavigation() {
             </div>
           ))}
           <details className="nav-group nav-more" open={moreOpen} onToggle={(event) => setMoreOpen((event.target as HTMLDetailsElement).open)}>
-            <summary className="nav-group-label">Mais ferramentas</summary>
+          <summary className="nav-group-label">Mais ferramentas</summary>
             <div className="nav-group-items">
-              {[...moreItems, ...(intelligenceEnabled ? [
-                { href: "/concorrentes", label: "Concorrentes", icon: "market" as const },
-                { href: "/kits", label: "Simulador de kits", icon: "products" as const },
-              ] : [])].map((item) => renderItem(item, isActive(item.href)))}
+              {[...moreItems.filter((item) => item.href !== "/concorrentes" && item.href !== "/kits"), ...(intelligenceEnabled ? moreItems.filter((item) => item.href === "/concorrentes" || item.href === "/kits") : [])].map((item) => renderItem(item, isActive(item.href)))}
             </div>
           </details>
         </nav>

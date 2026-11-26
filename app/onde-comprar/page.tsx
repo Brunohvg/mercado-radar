@@ -5,8 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { sourcingUser } from "@/lib/sourcing/service";
 import { redirect } from "next/navigation";
 
-export default async function WhereToBuyPage({ searchParams }: { searchParams: Promise<{ referencia?: string }> }) {
-  const id = (await searchParams).referencia;
+export default async function WhereToBuyPage({ searchParams }: { searchParams: Promise<{ referencia?: string; modo?: string }> }) {
+  const params = await searchParams;
+  const id = params.referencia;
   let reference = null;
   if (typeof id === "string" && /^MLBU?\d{5,15}$/.test(id)) {
     const user = await sourcingUser();
@@ -25,7 +26,7 @@ export default async function WhereToBuyPage({ searchParams }: { searchParams: P
     <main className="shell">
       <AppNavigation />
       <section className="content routed-content">
-        <SourcingHome reference={reference} />
+        <SourcingHome reference={reference} focusCapital={params.modo === "capital"} />
       </section>
     </main>
   );

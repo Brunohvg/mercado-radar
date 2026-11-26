@@ -36,21 +36,33 @@ type MenuItem = {
 // tela com abas para as telas irmãs; nenhuma rota foi removida.
 type MenuGroup = { label: string | null; items: MenuItem[] };
 const menuGroups: MenuGroup[] = [
-  { label: null, items: [
-    { href: "/", label: "Início", icon: "dashboard" },
-    { href: "/mercado", label: "Explorar mercado", icon: "market", also: ["/monitoramento", "/oportunidades"] },
-    { href: "/onde-comprar", label: "Onde comprar", icon: "suppliers" },
-    { href: "/analisar", label: "Rentabilidade", icon: "analysis" },
-  ] },
-  { label: "Minha operação", items: [
-    { href: "/anuncios", label: "Anúncios", icon: "listings", also: ["/melhorar-anuncio", "/promocoes", "/publicidade"] },
-    { href: "/vendas", label: "Vendas", icon: "sales" },
-    { href: "/reposicao", label: "Estoque e compras", icon: "products", also: ["/produtos", "/fornecedores"] },
-  ] },
+  { label: null, items: [{ href: "/", label: "Início", icon: "dashboard", also: ["/onboarding"] }] },
+  {
+    label: "Vender",
+    items: [
+      { href: "/vendas", label: "Vendas e lucro", icon: "sales" },
+      { href: "/anuncios", label: "Anúncios", icon: "listings", also: ["/melhorar-anuncio", "/promocoes", "/publicidade"] },
+    ],
+  },
+  {
+    label: "Comprar",
+    items: [
+      { href: "/reposicao", label: "Estoque e compras", icon: "products", also: ["/produtos", "/fornecedores"] },
+      { href: "/onde-comprar", label: "Onde comprar", icon: "suppliers" },
+    ],
+  },
+  {
+    label: "Mercado",
+    items: [
+      { href: "/monitoramento", label: "Concorrência", icon: "monitoring", also: ["/mercado", "/oportunidades"] },
+    ],
+  },
   { label: null, items: [{ href: "/configuracoes", label: "Configurações", icon: "integrations", also: ["/integracoes", "/extensao"] }] },
 ];
 const mainItems: MenuItem[] = menuGroups.flatMap((g) => g.items);
+
 const moreItems: MenuItem[] = [
+  { href: "/analisar", label: "Calculadora de lucro", icon: "analysis" },
   { href: "/assistente-anuncios", label: "Criar anúncio", icon: "listings" },
   { href: "/ean", label: "EAN em lote", icon: "ean" },
   { href: "/historico", label: "Histórico de análises", icon: "history" },

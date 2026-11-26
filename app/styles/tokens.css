@@ -13,43 +13,42 @@
   --fs-14: 14px;
   --fs-16: 16px;
   --fs-18: 18px;
-  --fs-20: 20px;
   --fs-22: 22px;
   --fs-28: 28px;
   --fs-36: 36px;
 
   /* tinta (texto) */
-  --ink-900: #0b202d;
-  --ink-700: #29404a;
-  --ink-500: #526575;
-  --ink-400: #64748b;
+  --ink-900: #0b1120;
+  --ink-700: #26324a;
+  --ink-500: #526071;
+  --ink-400: #6b778a;
   --ink-300: #aab3c2;
 
   /* papel e superfícies */
-  --paper: #f4f7fa;
+  --paper: #f3f5f9;
   --surface: #ffffff;
   --surface-2: #f8fafc;
-  --surface-3: #edf2f4;
-  --line: #dfe7eb;
-  --line-strong: #cad6dd;
+  --surface-3: #edf1f7;
+  --line: #e3e8f0;
+  --line-strong: #d8dee9;
 
   /* marca */
-  --brand: #0f766e;
-  --brand-600: #0b625c;
-  --brand-700: #09524d;
-  --brand-tint: #e5f4ef;
-  --brand-tint-2: #f2faf7;
-  --signal: #2ee5ad;
+  --brand: #1263ff;
+  --brand-600: #0050d8;
+  --brand-700: #003fa8;
+  --brand-tint: #e8efff;
+  --brand-tint-2: #f3f7ff;
+  --signal: #00d1e6;
 
   /* barra lateral (noite do radar) */
-  --night: #0b202d;
-  --night-2: #122d39;
-  --night-3: #1a3a46;
+  --night: #0b1120;
+  --night-2: #131c30;
+  --night-3: #1c2740;
   --night-line: rgba(255, 255, 255, 0.07);
-  --night-text: #e5edf1;
-  --night-gradient: #0b202d;
-  --brand-gradient: #0f766e;
-  --night-muted: #a4b7c2;
+  --night-text: #e6ebf3;
+  --night-gradient: linear-gradient(135deg, #0c2a6c 0%, #04102b 100%);
+  --brand-gradient: linear-gradient(135deg, #19d5d8 0%, #15afff 52%, #2563ff 100%);
+  --night-muted: #8f9bb0;
 
   /* estados */
   --ok: #16a36a;
@@ -63,8 +62,8 @@
   --risk-ink: #7f2a1f;
   --warn-line: #f0d9a6;
   --warn-ink: #6b4500;
-  --info: #0f766e;
-  --info-tint: #e5f4ef;
+  --info: #1263ff;
+  --info-tint: #e8efff;
 
   /* forma */
   --r-xs: 6px;
@@ -87,7 +86,7 @@
   --shadow-pop: 0 14px 36px rgba(11, 17, 32, 0.16), 0 2px 6px rgba(11, 17, 32, 0.06);
   --shadow-hair: 0 1px 0 rgba(11, 17, 32, 0.04);
 
-  --focus: 0 0 0 3px rgba(15, 118, 110, 0.30);
+  --focus: 0 0 0 3px rgba(18, 99, 255, 0.28);
   --sidebar-w: 248px;
   --sidebar-w-collapsed: 72px;
   --content-max: 1360px;

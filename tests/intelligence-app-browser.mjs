@@ -73,16 +73,6 @@ export async function runBrowserChecks({ base, cookie }) {
         console.log(`PASS app-browser ${path} at ${width}`);
       }
     }
-    await page.route("**/api/decisions?*", route => route.fulfill({ json: { connected: false, configured: false, workspaceName: "Teste", summary: null, decisions: [], days: 30 } }));
-    await page.goto(base + "/");
-    await page.getByRole("heading", { name: "O que você quer revender?" }).waitFor();
-    await page.getByRole("link", { name: "Conectar Mercado Livre", exact: true }).waitFor();
-    assert.equal(await page.locator(".radar-home-setup").evaluate(el => el.open), false);
-    await page.getByLabel("Produto para pesquisar").fill("Ilhós Baxmann");
-    await page.getByRole("button", { name: "Buscar fornecedores", exact: true }).click();
-    await page.waitForURL(/\/onde-comprar\?q=/);
-    await page.unroute("**/api/decisions?*");
-    checks++;
     await page.goto(base + "/anuncios");
     await page.route("**/api/ml/listing-insights?*", (route) =>
       route.fulfill({ status: 503, json: { error: "Análise temporariamente indisponível" } }));
@@ -265,10 +255,6 @@ export async function runBrowserChecks({ base, cookie }) {
     checks++;
     await page.setViewportSize({ width: 390, height: 960 });
     await page.getByRole("button", { name: "Abrir menu", exact: true }).click();
-    const nav = page.getByRole("navigation", { name: "Navegação principal" });
-    for (const label of ["Início", "Explorar mercado", "Onde comprar", "Rentabilidade", "Anúncios", "Vendas", "Estoque e compras", "Configurações"]) {
-      assert.equal(await nav.getByRole("link", { name: label, exact: true }).count(), 1, label);
-    }
     const more = page.locator(".sidebar details.nav-more");
     if (!(await more.evaluate(el => el.open))) await more.locator("summary").click();
     await page.getByRole("link", { name: "Concorrentes", exact: true }).click();

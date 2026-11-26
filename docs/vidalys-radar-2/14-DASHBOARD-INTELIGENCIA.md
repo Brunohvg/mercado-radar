@@ -1,3 +1,0 @@
-# 14 · Dashboard de inteligência comercial
-
-26/11/2026. Pesquisa de fornecedores é a primeira ação, inclusive sem conta ML. Uma faixa de indicadores preserva a cobertura e dados desconhecidos; histórico incompleto não é apresentado como completo. Piloto mantém operações e confirmações existentes, mostra três prioridades inicialmente e recolhe detalhes e premissas. Guia de configuração permanece disponível. Teste desconectado e navegação para estudo; screenshots existentes em desktop e mobile. Sem alteração das APIs, banco ou regras de publicação. Inspeção visual humana e implantação ainda pendentes.

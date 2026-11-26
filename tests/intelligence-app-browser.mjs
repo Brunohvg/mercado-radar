@@ -165,6 +165,32 @@ export async function runBrowserChecks({ base, cookie }) {
     await page.getByRole("heading", { name: "Fornecedores para este produto" }).waitFor();
     await page.getByText(/Orçamento para o lote: R\$\s*500,00/).waitFor();
     await page.getByText(/Busca automática desligada/).waitFor();
+    // Simula apenas a resposta do provedor para validar filtros e cadastro de candidatos.
+    await page.route("**/api/sourcing/opportunities/*/search", async (route) => {
+      if (route.request().method() !== "POST") return route.continue();
+      const baseCandidate = { reasons: ["Menciona atacado"], snippet: null, query: "teste" };
+      await route.fulfill({ json: { search: { status: "OK", message: null, discarded: 0, queries: [], manualLinks: [], searchedAt: new Date().toISOString(), candidates: [
+        { ...baseCandidate, name: "Fabricante fixture", url: "https://fabricante.example.com", domain: "fabricante.example.com", kind: "FABRICANTE", evidence: "PRODUTO" },
+        { ...baseCandidate, name: "Distribuidor fixture", url: "https://distribuidor.example.com", domain: "distribuidor.example.com", kind: "DISTRIBUIDOR", evidence: "MARCA", origin: "IA", city: "Cidade sugerida", state: "MG", sellsToCpf: true }
+      ] } } });
+    });
+    await page.getByRole("button", { name: "Buscar de novo" }).click();
+    await page.getByText("2 de 2 candidatos.", { exact: false }).waitFor();
+    await page.getByLabel("Somente resultados com sinal do produto").check();
+    await page.getByText("1 de 2 candidatos.", { exact: false }).waitFor();
+    assert.equal(await page.getByText("Distribuidor fixture", { exact: true }).count(), 0);
+    await page.getByLabel("Somente resultados com sinal do produto").uncheck();
+    await page.getByLabel("Tipo de fornecedor", { exact: true }).selectOption("DISTRIBUIDOR");
+    await page.getByText("Distribuidor fixture", { exact: true }).waitFor();
+    assert.equal(await page.getByText("Fabricante fixture", { exact: true }).count(), 0);
+    await page.getByRole("button", { name: "Adicionar", exact: true }).click();
+    assert.equal(await page.getByLabel("Cidade", { exact: true }).inputValue(), "");
+    assert.equal(await page.getByLabel("UF", { exact: true }).inputValue(), "");
+    assert.equal(await page.locator('select[name="sellsToCpf"]').inputValue(), "");
+    await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+    await page.unroute("**/api/sourcing/opportunities/*/search");
+    console.log("PASS app-browser supplier evidence filters and unverified AI data");
+    checks++;
     await page.getByRole("button", { name: "Usar fornecedor salvo" }).click();
     const directory = page.locator('select[name="supplierId"]');
     await directory.waitFor();

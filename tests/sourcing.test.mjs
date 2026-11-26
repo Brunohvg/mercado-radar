@@ -368,3 +368,27 @@ test("estimativa sem frete e cotação vencida ficam atrás de condição confir
   const missingShipping = evaluateQuote({ ...sale, shippingCost: null }, quote);
   assert.equal(recommendNextAction({ sale, supplierCount: 1, quoteCount: 1, best: missingShipping }).tab, "mercado");
 });
+
+
+test("viabilidade exige tributos e custos operacionais explícitos, inclusive zero", () => {
+  const incomplete = evaluateQuote({ ...sale, taxPercent: null, operatingCost: null }, quote);
+  assert.equal(incomplete.status, "FALTAM_DADOS");
+  assert.deepEqual(incomplete.missing, ["tributos", "custos operacionais"]);
+  assert.equal(incomplete.perSale, null);
+  assert.equal(incomplete.maxUnitCostForTarget, null);
+  assert.equal(recommendNextAction({ sale, supplierCount: 1, quoteCount: 1, best: incomplete }).tab, "mercado");
+  const explicitZero = evaluateQuote({ ...sale, taxPercent: 0, operatingCost: 0 }, quote);
+  assert.equal(explicitZero.status, "CALCULADO");
+  assert.ok(explicitZero.perSale);
+});
+
+test("capital zero não vira orçamento ilimitado e alternativa acessível tem prioridade", () => {
+  const zero = evaluateQuote({ ...sale, budget: 0 }, quote);
+  assert.equal(zero.status, "CAPITAL_INSUFICIENTE");
+  const confirmed = evaluateQuote({ ...sale, budget: 100 }, quote);
+  const accessible = evaluateQuote({ ...sale, budget: 100 }, { ...quote, id: "accessible", minUnits: 1000, source: "PRECO_PUBLICADO" });
+  assert.equal(confirmed.status, "CAPITAL_INSUFICIENTE");
+  assert.equal(accessible.status, "CALCULADO");
+  assert.equal(bestViability([confirmed, accessible]).quoteId, "accessible");
+  assert.equal(recommendNextAction({ sale, supplierCount: 2, quoteCount: 2, best: accessible }).tab, "fornecedores");
+});

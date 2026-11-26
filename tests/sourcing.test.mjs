@@ -392,3 +392,21 @@ test("capital zero não vira orçamento ilimitado e alternativa acessível tem p
   assert.equal(bestViability([confirmed, accessible]).quoteId, "accessible");
   assert.equal(recommendNextAction({ sale, supplierCount: 2, quoteCount: 2, best: accessible }).tab, "fornecedores");
 });
+
+
+test("busca preserva fabricante nacional com GTIN e rejeita modelo explicitamente diferente", () => {
+  const identity = extractIdentity({ title: "Ilhós Nº 54 Baxmann alumínio", attributes: [{ id: "BRAND", value_name: "Baxmann" }, { id: "MODEL", value_name: "54" }, { id: "GTIN", value_name: "7894900011517" }] });
+  assert.equal(buildSupplierQueries(identity).length, 5);
+  assert.ok(buildSupplierQueries(identity).some(q => q.intent === "Fabricantes nacionais"));
+  assert.equal(classifyResult({ title: "Distribuidor Baxmann Ilhós modelo 45 alumínio", url: "https://exemplo.com.br/45" }, "q", identity), null);
+  assert.equal(classifyResult({ title: "Fabricante Baxmann", url: "https://user:pass@exemplo.com.br" }, "q", identity), null);
+});
+
+test("qualificação não aprova fornecedor incompatível com CPF ou sem nota", () => {
+  const cpf = qualifySupplier({ ...supplierBase, sellsToCpf: false, servesSmall: true }, null, { buyerHasCnpj: false, buyerState: "MG" });
+  assert.equal(cpf.level, "BLOQUEADO");
+  const invoice = qualifySupplier({ ...supplierBase, issuesInvoice: false }, null);
+  assert.equal(invoice.level, "BLOQUEADO");
+  const expired = qualifySupplier(supplierBase, { unitPrice: 1, source: "COTACAO_RECEBIDA", exactMatch: true, freightCost: 0, expired: true });
+  assert.equal(expired.criteria.find(c => c.key === "price").state, "PENDENTE");
+});

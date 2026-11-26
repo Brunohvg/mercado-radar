@@ -157,6 +157,13 @@ export async function runBrowserChecks({ base, cookie }) {
     });
     assert.equal(supplier.status(), 201, await supplier.text());
     await page.goto(base + "/onde-comprar");
+    await page.getByRole("heading", { name: "Encontre fornecedores para um produto" }).waitFor();
+    const discovery = page.locator(".vr-home-tool").filter({ hasText: "Descobrir produtos para revender" });
+    await discovery.waitFor();
+    assert.equal(await discovery.evaluate((element) => element.open), false);
+    assert.equal(await page.locator(".hunter").count(), 0, "Discovery should only mount after intentional opening");
+    const capitalTool = page.locator(".vr-home-tool").filter({ hasText: "Encontrar opções pelo meu orçamento" });
+    assert.equal(await capitalTool.evaluate((element) => element.open), false);
     await page.getByLabel("Link do anúncio ou nome do produto").fill("Ilhós Baxmann Nº 54, 1000 unidades");
     await page.getByText("Orçamento e preço de venda (opcionais)").click();
     await page.getByLabel("Quanto pode investir?").fill("500");

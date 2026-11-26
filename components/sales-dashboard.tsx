@@ -123,14 +123,39 @@ export function SalesDashboard() {
     void load(false, days);
   }, [days, load]);
 
+  const productRows = data?.productRows ?? [];
+  const noCostCount = productRows.filter((row) => row.unitCost == null && row.profit == null).length;
+  const riskCount = productRows.filter((row) => row.profit != null && row.profit < 0).length;
+  const lowMarginCount = productRows.filter((row) => row.profit != null && row.profit >= 0 && row.marginPercent != null && row.marginPercent < (data?.targetMarginPercent ?? 20)).length;
+  const pendingCount = productRows.filter((row) => row.unitCost != null && row.profit == null).length;
+  const attentionTitle = noCostCount > 0
+    ? "Complete os custos para fechar o lucro"
+    : riskCount > 0
+      ? "Revise os produtos que estão dando prejuízo"
+      : lowMarginCount > 0
+        ? "Confira os produtos abaixo da sua meta"
+        : pendingCount > 0
+          ? "Há produtos aguardando conciliação"
+          : "Sua margem calculada está dentro da meta";
+  const attentionDetail = noCostCount > 0
+    ? `${noCostCount} produto(s) sem custo informado`
+    : riskCount > 0
+      ? `${riskCount} produto(s) com resultado negativo`
+      : lowMarginCount > 0
+        ? `${lowMarginCount} produto(s) abaixo de ${data?.targetMarginPercent ?? 20}% de margem`
+        : pendingCount > 0
+          ? `${pendingCount} produto(s) ainda sem dados para conciliação completa`
+          : "Os produtos conciliados estão acima da meta configurada";
+
   return (
     <section className="module-section sales-page" id="vendas">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">Vendas e lucro</p>
-          <h2>O que realmente está deixando dinheiro?</h2>
+      <header className="sales-header">
+        <div className="sales-title-block">
+          <p className="eyebrow">OPERAÇÃO / RESULTADO</p>
+          <h2>Vendas e lucro</h2>
+          <p>Acompanhe o que entrou, o que custou e quais produtos precisam da sua atenção.</p>
         </div>
-        <div className="module-heading-actions">
+        <div className="sales-controls">
           <div className="period-switch" role="group" aria-label="Período">
             {[7, 30, 90].map((period) => (
               <button
@@ -146,64 +171,94 @@ export function SalesDashboard() {
           </div>
           <button
             type="button"
-            className="secondary"
+            className="vr-btn vr-btn--ghost sales-sync-button"
             disabled={refreshing}
             onClick={() => void load(true, days)}
           >
-            {refreshing ? "Sincronizando..." : "Sincronizar vendas"}
+            {refreshing ? "Sincronizando..." : "Atualizar dados"}
           </button>
         </div>
-      </div>
+      </header>
 
       {loading && <div className="module-loading">Carregando vendas...</div>}
       {error && <div className="error">{error}</div>}
 
       {data && data.days === days && data.pagination.page === page && (
         <>
-          {!data.dataQuality.reportComplete && <div className="radar-notice"><p>Histórico parcial ou desatualizado. Sincronize para conferir todo o período.</p></div>}
-          <div className="clean-kpi-grid sales-kpis">
-            <article className="clean-kpi-card">
-              <span>Faturamento</span>
-              <strong>{money.format(data.summary.grossRevenue)}</strong>
-              <small>{data.summary.orders} pedidos pagos</small>
-            </article>
-            <article className="clean-kpi-card">
-              <span>Unidades</span>
-              <strong>{data.summary.units}</strong>
-              <small>ticket {money.format(data.summary.averageTicket)}</small>
-            </article>
-            <article className="clean-kpi-card">
-              <span>Tarifas realizadas</span>
-              <strong>
-                {data.summary.feeReadyCount > 0
-                  ? money.format(data.summary.knownFees)
-                  : "Aguardando"}
+          {!data.dataQuality.reportComplete && (
+            <div className="sales-data-notice" role="status">
+              <span className="sales-notice-mark" aria-hidden="true">!</span>
+              <div>
+                <strong>Os dados deste período ainda não estão completos</strong>
+                <p>Atualize as vendas para carregar o histórico mais recente antes de tomar decisões.</p>
+              </div>
+              <button type="button" className="sales-notice-action" disabled={refreshing} onClick={() => void load(true, days)}>
+                {refreshing ? "Atualizando…" : "Atualizar agora"}
+              </button>
+            </div>
+          )}
+
+          <section className="sales-result-panel" aria-label="Resumo financeiro do período">
+            <div className="sales-result-primary">
+              <div className="sales-result-label">
+                <span className="sales-live-dot" aria-hidden="true" />
+                RESULTADO CONFIRMADO
+              </div>
+              <strong className="sales-result-value">
+                {data.summary.profitReadyCount > 0 ? money.format(data.summary.realizedProfit) : "—"}
               </strong>
-              <small>
-                {data.summary.feeReadyCount}/{data.summary.orders} pedidos conciliados
-              </small>
-            </article>
-            <article
-              className={
-                "clean-kpi-card accent" +
-                (data.summary.awaitingCostCount > 0 ? " attention" : "")
-              }
-            >
-              <span>Lucro realizado</span>
-              <strong>
-                {data.summary.profitReadyCount > 0
-                  ? money.format(data.summary.realizedProfit)
-                  : "Em preparação"}
-              </strong>
-              <small>
-                {data.summary.realizedMarginPercent != null
-                  ? `${data.summary.realizedMarginPercent.toFixed(1)}% de margem · em ${data.summary.profitReadyCount} de ${data.summary.orders} pedidos`
-                  : data.summary.awaitingCostCount > 0
-                    ? `${data.summary.awaitingCostCount} pedido(s) aguardando custo/frete`
-                    : "custos completos"}
-              </small>
-            </article>
-          </div>
+              <div className="sales-result-meta">
+                <span>
+                  {data.summary.realizedMarginPercent == null
+                    ? "Ainda sem pedidos com custo completo"
+                    : `${data.summary.realizedMarginPercent.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% de margem nos pedidos conciliados`}
+                </span>
+                <span className="sales-coverage-pill">
+                  {data.summary.profitReadyCount} de {data.summary.orders} pedidos conciliados
+                </span>
+              </div>
+              <p>O resultado só é exibido quando custo, tarifas, frete e configurações necessárias estão disponíveis.</p>
+            </div>
+            <div className="sales-result-breakdown">
+              <div className="sales-breakdown-heading">
+                <span>VISÃO DO PERÍODO</span>
+                <span>{days} dias</span>
+              </div>
+              <div className="sales-breakdown-row">
+                <div><span>Vendas</span><small>{data.summary.orders} pedidos pagos</small></div>
+                <strong>{money.format(data.summary.grossRevenue)}</strong>
+              </div>
+              <div className="sales-breakdown-row">
+                <div><span>Tarifas identificadas</span><small>{data.summary.feeReadyCount} de {data.summary.orders} pedidos conciliados</small></div>
+                <strong>{data.summary.feeReadyCount > 0 ? money.format(data.summary.knownFees) : "Aguardando"}</strong>
+              </div>
+              <div className="sales-breakdown-row sales-breakdown-secondary">
+                <div><span>Unidades vendidas</span><small>Ticket médio {money.format(data.summary.averageTicket)}</small></div>
+                <strong>{data.summary.units}</strong>
+              </div>
+            </div>
+          </section>
+
+          {productRows.length > 0 && (
+            <section className="sales-attention-strip" aria-label="Resumo de atenção por produto">
+              <div className="sales-attention-copy">
+                <span className="sales-attention-kicker">PRÓXIMA AÇÃO</span>
+                <strong>{attentionTitle}</strong>
+                <small>{attentionDetail}</small>
+              </div>
+              <div className="sales-attention-stats" aria-label="Produtos por situação">
+                {noCostCount > 0 && <span className="attention-stat is-pending"><b>{noCostCount}</b> sem custo</span>}
+                {riskCount > 0 && <span className="attention-stat is-risk"><b>{riskCount}</b> prejuízo</span>}
+                {lowMarginCount > 0 && <span className="attention-stat is-warn"><b>{lowMarginCount}</b> margem baixa</span>}
+                {pendingCount > 0 && <span className="attention-stat"><b>{pendingCount}</b> aguardando</span>}
+                {noCostCount > 0 ? (
+                  <a className="vr-btn vr-btn--small sales-attention-button" href="/vendas?filtro=sem-custo#product-table-title">Revisar custos <span aria-hidden="true">→</span></a>
+                ) : (
+                  <a className="sales-attention-link" href="#product-table-title">Ver produtos <span aria-hidden="true">→</span></a>
+                )}
+              </div>
+            </section>
+          )}
 
           {data.productRows && (
             <ProductTable rows={data.productRows} targetMargin={data.targetMarginPercent ?? 20} onSaved={() => void load(false, days)} />
@@ -211,11 +266,9 @@ export function SalesDashboard() {
 
           <details className="clean-panel sales-order-list sales-orders-details">
             <summary className="module-subhead">
-              <strong>Ver pedidos um a um ({data.summary.orders})</strong>
-              <small>
-                O Radar só chama de lucro real quando custo do produto, imposto, operação, tarifa e
-                frete realizado estiverem completos.
-              </small>
+              <span className="sales-orders-summary-icon" aria-hidden="true">↳</span>
+              <span className="sales-orders-summary-copy"><strong>Conferir pedidos individualmente</strong><small>{data.summary.orders} pedidos neste período · tarifas, frete e resultado por pedido</small></span>
+              <span className="sales-orders-summary-count">{data.summary.orders}<span aria-hidden="true">⌄</span></span>
             </summary>
 
             {data.orders.length === 0 ? (
@@ -305,11 +358,13 @@ export function SalesDashboard() {
               </button>
             )}
           </details>
-          <div className="page-header-actions">
-            <button className="secondary" disabled={loading || page <= 1} onClick={() => { setShowAllOrders(false); setPage((p) => p - 1); }}>Anterior</button>
-            <span>Página {page} de {Math.max(1, data.pagination.pages)} · {data.pagination.total} pedidos importados</span>
-            <button className="secondary" disabled={loading || page >= data.pagination.pages} onClick={() => { setShowAllOrders(false); setPage((p) => p + 1); }}>Próxima</button>
-            <a className="clean-secondary" href={`/api/ml/sales/export?days=${days}`}>Exportar período em CSV</a>
+          <div className="sales-footer-tools">
+            <div className="sales-pagination">
+              <button className="vr-btn vr-btn--ghost vr-btn--small" disabled={loading || page <= 1} onClick={() => { setShowAllOrders(false); setPage((p) => p - 1); }}>Anterior</button>
+              <span>Página <strong>{page}</strong> de {Math.max(1, data.pagination.pages)} <i>·</i> {data.pagination.total} pedidos importados</span>
+              <button className="vr-btn vr-btn--ghost vr-btn--small" disabled={loading || page >= data.pagination.pages} onClick={() => { setShowAllOrders(false); setPage((p) => p + 1); }}>Próxima</button>
+            </div>
+            <a className="sales-export-link" href={`/api/ml/sales/export?days=${days}`}><span aria-hidden="true">↓</span> Exportar CSV do período</a>
           </div>
         </>
       )}

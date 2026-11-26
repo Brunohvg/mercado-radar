@@ -38,7 +38,7 @@ export function matchByCapital(
       reasons.push(`Margem de ${v.perSale.marginPercent.toFixed(1)}%`);
     if (v.purchasePending.length) reasons.push(`Confirme: ${v.purchasePending.join(", ")}`);
     if (filters.profile === "CPF" && (candidate.sellsToCpf !== true || candidate.requiresCnpj === true))
-      reasons.push(candidate.requiresCnpj === true ? "Exige CNPJ" : candidate.sellsToCpf === false ? "Não vende para CPF" : "Venda para CPF não confirmada");
+      reasons.push(candidate.sellsToCpf === false ? "Não vende para CPF" : candidate.requiresCnpj === true ? "Exige CNPJ" : "Venda para CPF não confirmada");
     if (filters.profile === "FABRICA" && candidate.supplierKind !== "FABRICANTE")
       reasons.push("Fornecedor não é o fabricante");
     if (filters.profile === "CNPJ" && candidate.requiresCnpj === false && candidate.supplierKind === "LOJA_ML")

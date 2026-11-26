@@ -126,181 +126,70 @@ export function ExecutiveDashboard() {
   const summary = visible?.summary;
   const coverage = summary?.profitCoveragePercent;
   return (
-    <section className="overview-dashboard" aria-busy={loading || refreshing}>
-      <header className="page-header clean-page-header">
+    <section className="overview-dashboard radar-home" aria-busy={loading || refreshing}>
+      <header className="radar-home-heading">
         <div>
-          <p className="page-kicker">
-            {visible?.workspaceName || "Minha operação"}
-          </p>
-          <h1>Seu radar de decisões</h1>
-          <p>Saiba onde agir para proteger lucro e fazer o estoque girar.</p>
-        </div>
-        <div className="page-header-actions">
-          <select
-            className="clean-select"
-            aria-label="Período dos indicadores"
-            value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
-            disabled={refreshing}
-          >
-            <option value={7}>Últimos 7 dias</option>
-            <option value={30}>Últimos 30 dias</option>
-            <option value={90}>Últimos 90 dias</option>
-          </select>
-          <button
-            className="clean-secondary"
-            onClick={() => void refresh()}
-            disabled={refreshing || loading || !visible?.connected}
-          >
-            {refreshing ? "Sincronizando…" : "Atualizar dados"}
-          </button>
+          <h1>Visão geral</h1>
+          <p>{visible?.workspaceName ? visible.workspaceName + " · " : ""}Inteligência para encontrar, comprar e revender.</p>
         </div>
       </header>
-      <SetupChecklist />
-      <PilotBriefing />
-      {error && (
-        <div className="error" role="alert">
-          {error} <button onClick={() => void load()}>Tentar novamente</button>
+
+      <section className="radar-home-search clean-panel" aria-label="Pesquisar uma oportunidade">
+        <div className="radar-home-search-copy">
+          <h2>O que você quer revender?</h2>
+          <p>Encontre fornecedores e descubra quanto pode pagar pelo produto.</p>
         </div>
-      )}
-      {loading && !visible && (
-        <div className="radar-skeleton" role="status">
-          <span /> <span /> <span />
-          <p>Preparando as decisões da sua operação…</p>
+        <form action="/onde-comprar" method="GET">
+          <label className="sr-only" htmlFor="dashboard-product-search">Produto para pesquisar</label>
+          <input id="dashboard-product-search" type="search" name="q" minLength={2} maxLength={300} required placeholder="Nome do produto ou link do anúncio" />
+          <button className="clean-primary" type="submit">Buscar fornecedores</button>
+        </form>
+        <div className="radar-home-shortcuts">
+          <Link href="/mercado">Explorar mercado <span aria-hidden="true">›</span></Link>
+          <Link href="/analisar">Calcular rentabilidade <span aria-hidden="true">›</span></Link>
         </div>
-      )}
+      </section>
+
+      {error && <div className="error" role="alert">{error} <button onClick={() => void load()}>Tentar novamente</button></div>}
+      {loading && !visible && <p className="radar-home-muted" role="status">Carregando dados da operação…</p>}
       {visible && !visible.connected && (
-        <section className="radar-welcome clean-panel">
-          <span className="radar-symbol" aria-hidden="true">
-            ◎
-          </span>
-          <p className="page-kicker">Comece pelo que importa</p>
-          <h2>Transforme suas vendas em decisões.</h2>
-          <p>
-            Conecte sua conta, confira os custos e descubra quanto sobra em cada
-            produto.
-          </p>
-          <div className="radar-start-steps">
-            <span>01 · Conectar Mercado Livre</span>
-            <span>02 · Definir custos e impostos</span>
-            <span>03 · Encontrar sua próxima ação</span>
-          </div>
-          <Link className="clean-primary" href="/integracoes">
-            Conectar minha conta
-          </Link>
-          <Link href="/configuracoes">Configurar minha operação →</Link>
+        <section className="radar-home-connect" aria-label="Conectar conta">
+          <div><h2>Conecte sua operação</h2><p>Pesquise fornecedores sem conta vinculada. Conecte o Mercado Livre para acompanhar suas vendas, custos e estoque.</p></div>
+          <Link className="clean-secondary" href="/integracoes">Conectar Mercado Livre</Link>
         </section>
       )}
+
       {visible?.connected && (
         <>
-          {!visible.configured && (
-            <div className="radar-notice">
-              <div>
-                <strong>Complete o perfil financeiro</strong>
-                <p>
-                  Confirme seu imposto e o custo de embalagem/operação para
-                  liberar o lucro e as recomendações.
-                </p>
+          <section className="radar-home-performance" aria-labelledby="radar-performance-title">
+            <header className="radar-home-section-head">
+              <div><h2 id="radar-performance-title">Minha operação</h2><p>{visible.lastSyncedAt ? `Atualização: ${new Date(visible.lastSyncedAt).toLocaleString("pt-BR")}` : "Vendas ainda não sincronizadas"}</p></div>
+              <div className="page-header-actions">
+                <select className="clean-select" aria-label="Período dos indicadores" value={days} onChange={(e) => setDays(Number(e.target.value))} disabled={refreshing}>
+                  <option value={7}>Últimos 7 dias</option><option value={30}>Últimos 30 dias</option><option value={90}>Últimos 90 dias</option>
+                </select>
+                <button className="clean-secondary" onClick={() => void refresh()} disabled={refreshing || loading}>{refreshing ? "Sincronizando…" : "Atualizar dados"}</button>
               </div>
-              <Link className="clean-secondary" href="/configuracoes">
-                Definir custos
-              </Link>
-            </div>
-          )}
-          <section
-            className="clean-kpi-grid"
-            aria-label="Indicadores do período"
-          >
-            <article className="clean-kpi-card">
-              <span>Receita paga</span>
-              <strong>{money.format(summary?.grossRevenue ?? 0)}</strong>
-              <small>
-                {summary?.orders ?? 0} pedidos · {summary?.units ?? 0} unidades
-              </small>
-            </article>
-            <article
-              className={
-                "clean-kpi-card " +
-                (summary && summary.realizedProfit < 0
-                  ? "radar-loss"
-                  : "accent")
-              }
-            >
-              <span>Lucro conhecido · antes de Ads</span>
-              <strong>
-                {summary?.profitReadyCount
-                  ? money.format(summary.realizedProfit)
-                  : "A apurar"}
-              </strong>
-              <small>
-                {summary?.profitReadyCount ?? 0} pedidos com custos completos
-              </small>
-            </article>
-            <article className="clean-kpi-card">
-              <span>Margem conhecida</span>
-              <strong>{percent(summary?.realizedMarginPercent ?? null)}</strong>
-              <small>
-                {coverage == null ? "sem vendas no período" : `em ${coverage.toFixed(0)}% da receita · `}
-                {coverage != null && <Link href="/vendas">ver vendas</Link>}
-              </small>
-            </article>
-            <article className="clean-kpi-card">
-              <span>Capital conhecido em estoque</span>
-              <strong>
-                {decisions.some((d) => d.inventoryCapital != null)
-                  ? money.format(inventoryCapital)
-                  : "A apurar"}
-              </strong>
-              <small>
-                {decisions.filter((d) => d.inventoryCapital != null).length} de{" "}
-                {decisions.length} produtos com custo
-              </small>
-            </article>
+            </header>
+            {!visible.reportComplete && <p className="radar-home-data-warning" role="status">Histórico parcial ou desatualizado. Os valores consideram apenas os dados importados.</p>}
+            <dl className="radar-home-metrics" aria-label="Indicadores do período">
+              <div><dt>Receita paga</dt><dd>{summary ? money.format(summary.grossRevenue) : "A apurar"}</dd><small>{summary ? `${summary.orders} pedidos · ${summary.units} unidades` : "Sem dados disponíveis"}</small></div>
+              <div><dt>Resultado conhecido · antes de Ads</dt><dd className={summary && summary.realizedProfit < 0 ? "radar-home-negative" : undefined}>{summary?.profitReadyCount ? money.format(summary.realizedProfit) : "A apurar"}</dd><small>{summary?.profitReadyCount ?? 0} pedidos com custos completos</small></div>
+              <div><dt>Margem conhecida</dt><dd>{percent(summary?.realizedMarginPercent ?? null)}</dd><small>{coverage == null ? "Cobertura não calculada" : `${coverage.toFixed(0)}% da receita`}</small></div>
+              <div><dt>Capital conhecido em estoque</dt><dd>{decisions.some((d) => d.inventoryCapital != null) ? money.format(inventoryCapital) : "A apurar"}</dd><small>{decisions.filter((d) => d.inventoryCapital != null).length} de {decisions.length} produtos com custo</small></div>
+            </dl>
+            {!visible.configured && <p className="radar-home-data-warning">Confirme impostos e custos para melhorar a análise. <Link href="/configuracoes">Definir custos</Link></p>}
+            <Link className="radar-home-link" href="/vendas">Ver detalhes das vendas <span aria-hidden="true">›</span></Link>
           </section>
-          <section
-            className="radar-discover clean-panel"
-            aria-label="Pesquisar uma oportunidade"
-          >
-            <div>
-              <p className="page-kicker">Sua próxima oportunidade</p>
-              <h2>O que você está pensando em vender?</h2>
-              <p>
-                Cole o link do anúncio ou digite o produto. Mostramos fornecedores
-                e quanto você pode pagar para ter lucro.
-              </p>
-            </div>
-            <form action="/onde-comprar" method="GET">
-              <label className="sr-only" htmlFor="dashboard-product-search">
-                Produto para pesquisar
-              </label>
-              <input
-                id="dashboard-product-search"
-                type="search"
-                name="q"
-                minLength={2}
-                maxLength={300}
-                required
-                placeholder="Link do anúncio ou nome do produto"
-              />
-              <button className="clean-primary" type="submit">
-                Começar →
-              </button>
-            </form>
-            <Link href="/analisar">Só quero calcular o lucro de um anúncio →</Link>
-          </section>
-          <footer className="radar-data-note">
-            <span>
-              {visible.lastSyncedAt
-                ? `Vendas atualizadas em ${new Date(visible.lastSyncedAt).toLocaleString("pt-BR")}`
-                : "Vendas ainda não sincronizadas"}
-            </span>
-            <span>
-              Decisões orientam sua revisão. Preços e compras dependem da sua
-              aprovação.
-            </span>
-          </footer>
+          <PilotBriefing compact />
         </>
       )}
+
+      <details className="radar-home-setup">
+        <summary>Configuração e primeiros passos</summary>
+        <SetupChecklist />
+        <Link href="/onboarding">Abrir guia de configuração</Link>
+      </details>
     </section>
   );
 }

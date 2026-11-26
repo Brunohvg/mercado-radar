@@ -73,6 +73,16 @@ export async function runBrowserChecks({ base, cookie }) {
         console.log(`PASS app-browser ${path} at ${width}`);
       }
     }
+    await page.route("**/api/decisions?*", route => route.fulfill({ json: { connected: false, configured: false, workspaceName: "Teste", summary: null, decisions: [], days: 30 } }));
+    await page.goto(base + "/");
+    await page.getByRole("heading", { name: "O que você quer revender?" }).waitFor();
+    await page.getByRole("link", { name: "Conectar Mercado Livre", exact: true }).waitFor();
+    assert.equal(await page.locator(".radar-home-setup").evaluate(el => el.open), false);
+    await page.getByLabel("Produto para pesquisar").fill("Ilhós Baxmann");
+    await page.getByRole("button", { name: "Buscar fornecedores", exact: true }).click();
+    await page.waitForURL(/\/onde-comprar\?q=/);
+    await page.unroute("**/api/decisions?*");
+    checks++;
     await page.goto(base + "/anuncios");
     await page.route("**/api/ml/listing-insights?*", (route) =>
       route.fulfill({ status: 503, json: { error: "Análise temporariamente indisponível" } }));

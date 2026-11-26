@@ -1,0 +1,44 @@
+{
+  "head": "7fdfa333474f4254ffd3e0daa44f3193c145392c",
+  "input": {
+    "productName": "Exemplo fictício de auditoria",
+    "discountPercent": 0,
+    "kitQuantity": 1,
+    "salePrice": 100,
+    "listingType": "CLASSIC",
+    "commissionPercent": 12,
+    "fixedFee": 0,
+    "shippingCost": 10,
+    "operatingCost": 2,
+    "taxPercent": 4,
+    "targetMarginPercent": 20,
+    "targetRoiPercent": 100
+  },
+  "reverse": {
+    "forTargetMargin": 52,
+    "breakEven": 72
+  },
+  "atLimit": {
+    "profit": 20,
+    "marginPercent": 20,
+    "roiPercent": 37.04,
+    "verdict": "TIGHT"
+  },
+  "missingCosts": {
+    "taxPercent": 0,
+    "shippingCost": 0,
+    "shippingPending": false,
+    "assumptions": [
+      {
+        "field": "taxPercent",
+        "text": "Imposto não informado: calculado sem imposto. MEI costuma pagar um valor fixo por mês; no Simples, comércio começa em 4%.",
+        "material": true
+      },
+      {
+        "field": "shippingCost",
+        "text": "Abaixo de R$ 79 o frete é pago pelo comprador: nenhum frete descontado de você.",
+        "material": false
+      }
+    ]
+  }
+}

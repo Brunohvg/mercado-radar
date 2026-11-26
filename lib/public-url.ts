@@ -26,3 +26,19 @@ export function getPublicOrigin(request: Request) {
 
   return url.origin;
 }
+
+
+/** Installer downloads must use the externally reachable deployment, never the bind address. */
+export function getInstallerOrigin(request: Request): string | null {
+  try {
+    const url = new URL(getPublicOrigin(request));
+    const local = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+    // Restrict shell interpolation to a canonical DNS hostname and optional port.
+    if (url.username || url.password || !/^[a-z0-9.-]+$/i.test(url.hostname)) return null;
+    if (url.hostname === "0.0.0.0" || (!local && (/^\d+(?:\.\d+){3}$/.test(url.hostname) || !url.hostname.includes(".")))) return null;
+    if (url.protocol !== "https:" && !(local && url.protocol === "http:")) return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}

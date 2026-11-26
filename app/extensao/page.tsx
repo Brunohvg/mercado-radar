@@ -49,24 +49,23 @@ export default function ExtensionPage() {
                   Instalar extensão no Linux
                 </a>
 
-                <span
-                  className="secondary extension-install-secondary"
-                  aria-disabled="true"
-                >
-                  Chrome Web Store · publicação pendente
-                </span>
+                <details>
+                  <summary>Problemas com o instalador Windows?</summary>
+                  <p>Baixe novamente o instalador para receber a versão do ambiente atual. Se necessário, use o arquivo PowerShell diretamente.</p>
+                  <a href="/api/extension/dev-installer" download>Baixar instalador PowerShell (.ps1)</a>
+                  <p>Abra o PowerShell na pasta Downloads e execute <code>powershell -NoProfile -ExecutionPolicy Bypass -File .\MercadoRadar-Instalar.ps1</code>. A opção de execução vale apenas para esse processo.</p>
+                </details>
               </div>
 
               <small>
-                Não instala programas externos, não grava token do Mercado Livre
-                e não precisa de acesso administrativo ao Windows.
+                Instalação sem acesso administrativo. A publicação na Chrome Web Store ainda está pendente.
               </small>
             </div>
 
             <ol className="extension-install-steps" aria-label="Passo a passo">
               <li>
                 <span aria-hidden="true">1</span>
-                <strong>Dê dois cliques no instalador</strong>
+                <strong>Execute o instalador</strong>
                 <small>
                   No Windows, execute MercadoRadar-Instalar.cmd. No Linux,
                   abra o terminal na pasta de downloads e rode
@@ -89,7 +88,7 @@ export default function ExtensionPage() {
                   pasta aberta pelo instalador. No Linux, fica em
                   <code>~/.local/share/MercadoRadar/ExtensionBeta</code> para
                   homologação ou <code>ExtensionDev</code> na produção.
-                  Não selecione a pasta Downloads nem o instalador.
+                  Se estiver atualizando a extensão já instalada na mesma pasta, clique em Recarregar no Chrome. Não selecione Downloads nem o instalador.
                 </small>
               </li>
             </ol>

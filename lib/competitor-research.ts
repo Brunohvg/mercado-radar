@@ -140,8 +140,23 @@ export async function researchCompetitors(input: {
         });
         for (const d of result.items) {
           const entry = d.raw as { body?: Record<string, unknown> };
-          if (entry.body && /^MLB\d+$/.test(d.id))
-            items.set(d.id, fromApi(entry.body, seller, observedAt));
+          if (entry.body && /^MLB\d+$/.test(d.id)) {
+            const previous = items.get(d.id);
+            const fresh = fromApi(entry.body, seller, observedAt);
+            // Both reads belong to this request; do not fill gaps with stale counters.
+            if (previous) {
+              fresh.sold ??= previous.sold;
+              fresh.dateCreated ??= previous.dateCreated;
+              fresh.sellerId ??= previous.sellerId;
+              fresh.isOwn = fresh.sellerId === seller;
+              fresh.color ??= previous.color;
+              fresh.price ??= previous.price;
+              fresh.quantity ??= previous.quantity;
+              fresh.quantitySource ??= previous.quantitySource;
+              fresh.unitPrice = unitPrice(fresh.price, fresh.quantity);
+            }
+            items.set(d.id, fresh);
+          }
         }
         if (result.restrictedIds.length)
           notices.push({
@@ -274,6 +289,8 @@ export async function researchCompetitors(input: {
           observedAt: row.lastSeenAt.toISOString(),
         });
       }
+  const savedDates = new Map(observations.map(row => [row.id, row.dateCreated]));
+  for (const item of items.values()) item.dateCreated ??= savedDates.get(item.id)?.toISOString() ?? null;
   // Read only the current account's monitored evidence; failure must not break search.
   const watched = account && items.size ? await prisma.radarWatchItem.findMany({
     where: { sellerUserId: account.mercadoLivreUserId, mlItemId: { in: [...items.keys()] }, active: true },
@@ -283,7 +300,7 @@ export async function researchCompetitors(input: {
   for (const item of items.values()) {
     item.salesVelocity = salesVelocity({
       sold: item.sold, lowerBound: item.soldIsLowerBound, dateCreated: item.dateCreated,
-      observedAt: item.observedAt, readings: byId.get(item.id),
+      observedAt: item.observedAt, now: observedAt, readings: byId.get(item.id),
     });
   }
   return {

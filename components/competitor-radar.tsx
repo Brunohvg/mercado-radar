@@ -37,9 +37,9 @@ function velocityLabel(i: Competitor) {
   const v = i.salesVelocity;
   if (!v) return "Giro não disponível";
   const fmt = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
-  if (v.recent !== null) return `Ritmo observado: ${fmt(v.recent)}/30 dias (janela de ${v.recentDays} dias)`;
-  if (v.lifetime !== null) return `Média desde criação: ${v.lifetimeIsMinimum ? "≥ " : ""}${fmt(v.lifetime)}/30 dias`;
-  return "Giro não disponível: falta data ou contador";
+  const history = v.lifetime === null ? null : `Média desde criação: ${v.lifetimeIsMinimum ? "≥ " : ""}${fmt(v.lifetime)}/30 dias`;
+  const recent = v.recent === null ? null : `Ritmo do contador: ${fmt(v.recent)}/30 dias (janela de ${v.recentDays} dias${v.recentThrough ? ", até " + new Date(v.recentThrough).toLocaleDateString("pt-BR") : ""})`;
+  return [history, recent].filter(Boolean).join(" · ") || "Giro não disponível: falta evidência";
 }
 function shipping(i: Competitor) {
   return [
@@ -67,6 +67,9 @@ export function CompetitorRadar() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [watching, setWatching] = useState<string | null>(null);
+  const watchLock = useRef(false);
+  const [watchSelection, setWatchSelection] = useState<string[]>([]);
+  const [failedWatch, setFailedWatch] = useState<string[]>([]);
   const sequence = useRef(0);
   const activeQuery = useRef({ query: "", category: "" });
   const comparison = useRef<HTMLElement>(null);
@@ -86,9 +89,10 @@ export function CompetitorRadar() {
           (!full || r.item.fulfillment),
       )
       .sort((a, b) => {
-        if (sort === "velocity") {
-          const av = a.item.salesVelocity?.recent ?? a.item.salesVelocity?.lifetime ?? null;
-          const bv = b.item.salesVelocity?.recent ?? b.item.salesVelocity?.lifetime ?? null;
+        if (sort === "velocity" || sort === "lifetime") {
+          const key = sort === "velocity" ? "recent" : "lifetime";
+          const av = a.item.salesVelocity?.[key] ?? null;
+          const bv = b.item.salesVelocity?.[key] ?? null;
           return av == null ? (bv == null ? 0 : 1) : bv == null ? -1 : bv - av;
         }
         const av = sort === "unit" ? a.item.unitPrice : a.item.price,
@@ -108,6 +112,8 @@ export function CompetitorRadar() {
     if (!offset) {
       setResult(null);
       setSelected([]);
+      setWatchSelection([]);
+      setFailedWatch([]);
       setOverrides({});
       setReferenceId(null);
     }
@@ -171,6 +177,7 @@ export function CompetitorRadar() {
   }, []);
   function submit(e: FormEvent) {
     e.preventDefault();
+    if (watchLock.current) return;
     setFilter("ALL");
     setFull(false);
     void search(query, category);
@@ -185,6 +192,8 @@ export function CompetitorRadar() {
     );
   }
   async function monitor(item: Competitor) {
+    if (watchLock.current) return;
+    watchLock.current = true;
     setWatching(item.id);
     setMessage("");
     try {
@@ -206,24 +215,33 @@ export function CompetitorRadar() {
     } catch (error) {
       setMessage((error as Error).message);
     } finally {
+      watchLock.current = false;
       setWatching(null);
     }
   }
   async function monitorSample() {
-    const candidates = rows.map(r => r.item).filter(i => !i.isOwn && i.status !== "closed" && i.status !== "paused").slice(0, 50);
+    if (watchLock.current) return;
+    const candidates = rows.map(r => r.item).filter(i => watchSelection.includes(i.id) && !i.isOwn && (!i.status || i.status === "active" || i.status === "unknown")).slice(0, 50);
     if (!candidates.length) return;
+    watchLock.current = true;
     setWatching("sample");
+    setFailedWatch([]);
     let ok = 0;
+    const failed: string[] = [];
     try {
-      for (const item of candidates) {
+      for (let n = 0; n < candidates.length; n++) {
+        const item = candidates[n];
+        setMessage(`Monitorando ${n + 1}/${candidates.length}: ${item.id}`);
         try {
           const url = item.source === "RADAR_OBSERVATION" ? "/api/intelligence/competitors/watch" : "/api/monitoring/watchlist";
-          const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ itemId: item.id }) });
-          if (response.ok) ok++;
-        } catch { /* report partial completion */ }
+          const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ itemId: item.id }), signal: AbortSignal.timeout(30000) });
+          if (response.ok) ok++; else failed.push(item.id);
+        } catch { failed.push(item.id); }
       }
-      setMessage(`${ok}/${candidates.length} anúncios enviados ao monitoramento. Leituras de página dependem da extensão; API depende das permissões.`);
-    } finally { setWatching(null); }
+      setFailedWatch(failed);
+      setWatchSelection(failed);
+      setMessage(`${ok}/${candidates.length} salvos; ${failed.length} não confirmados. Leituras PAGE dependem da extensão; API depende das permissões. Falhas ficam selecionadas para nova tentativa.`);
+    } finally { watchLock.current = false; setWatching(null); }
   }
   function openDraft(draft: IntelligenceDraft) {
     const parsed = researchPayloadSchema.safeParse(draft.payload);
@@ -297,7 +315,9 @@ export function CompetitorRadar() {
             <div>
               <strong>{rows.length} oferta(s) nesta amostra</strong>
               <p>{result.scope}</p>
-              <button className="secondary" disabled={watching !== null || busy || !rows.some(r => !r.item.isOwn)} onClick={monitorSample}>{watching === "sample" ? "Salvando amostra…" : "Monitorar até 50 ofertas"}</button>
+              <button className="secondary" disabled={watching !== null || busy} onClick={() => setWatchSelection(rows.map(r => r.item).filter(i => !i.isOwn && (!i.status || i.status === "active" || i.status === "unknown")).slice(0,50).map(i => i.id))}>Selecionar até 50 ofertas visíveis</button>
+              <button className="secondary" disabled={watching !== null || busy || !watchSelection.length} onClick={monitorSample}>{watching === "sample" ? "Salvando amostra…" : `Monitorar seleção (${watchSelection.length})`}</button>
+              {failedWatch.length > 0 && <small>Não confirmados: {failedWatch.join(", ")}</small>}
               <small>Ritmo recente e média histórica são estimativas distintas.</small>
             </div>
             <div className="intel-filters">
@@ -325,7 +345,8 @@ export function CompetitorRadar() {
                 >
                   <option value="unit">Menor preço por unidade</option>
                   <option value="price">Menor preço total</option>
-                  <option value="velocity">Maior giro estimado</option>
+                  <option value="velocity">Maior ritmo recente do contador</option>
+                  <option value="lifetime">Maior média histórica</option>
                 </select>
               </label>
               <label className="intel-check">
@@ -492,6 +513,7 @@ export function CompetitorRadar() {
                   </details>
                 </div>
                 <div className="intel-offer-actions">
+                  {!item.isOwn && <label className="intel-check"><input type="checkbox" checked={watchSelection.includes(item.id)} disabled={watching !== null || (!watchSelection.includes(item.id) && watchSelection.length >= 50)} onChange={() => setWatchSelection(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id])}/> Selecionar para monitoramento</label>}
                   <label className="intel-check">
                     <input
                       type="checkbox"

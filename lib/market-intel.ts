@@ -82,6 +82,7 @@ export async function recordObservations(input: {
         id: true,
         lastPrice: true,
         lastSoldLower: true,
+        lastSoldUpper: true,
         lastReviews: true,
         lastSnapshotAt: true,
       },
@@ -116,6 +117,7 @@ export async function recordObservations(input: {
       !last ||
       toNum(last.lastPrice) !== (l.price ?? null) ||
       (last.lastSoldLower ?? null) !== (sold.lower ?? null) ||
+      (last.lastSoldUpper ?? null) !== (sold.upper ?? null) ||
       (last.lastReviews ?? null) !== (l.reviews ?? null);
     const due =
       !last?.lastSnapshotAt ||
@@ -133,7 +135,7 @@ export async function recordObservations(input: {
       lastPrice: l.price ?? undefined,
       lastOriginalPrice: l.originalPrice ?? null,
       lastSoldLower: sold.lower ?? undefined,
-      lastSoldUpper: sold.upper ?? undefined,
+      lastSoldUpper: sold.lower == null ? undefined : sold.upper,
       lastSoldLabel: l.soldLabel ?? undefined,
       lastReviews: l.reviews ?? undefined,
       lastRating: l.rating ?? undefined,
@@ -229,7 +231,7 @@ export async function recordOwnListings(
     id: string;
     title: string;
     price: number | null;
-    soldQuantity: number;
+    soldQuantity: number | null;
     visitsTotal: number | null;
     dateCreated: string | null;
     permalink: string | null;
@@ -274,7 +276,7 @@ export async function recordOwnListings(
       lastSoldUpper: item.soldQuantity,
       freeShipping: item.freeShipping,
       fulfillment: item.fulfillment,
-      dateCreated: created && !Number.isNaN(created.getTime()) ? created : null,
+      dateCreated: created && !Number.isNaN(created.getTime()) ? created : undefined,
       isOwn: true,
       lastSeenAt: now,
       ...(takeSnapshot ? { lastSnapshotAt: now } : {}),

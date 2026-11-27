@@ -1,4 +1,4 @@
-import { apiSold, VALIDATED_COUNTER } from "@/lib/competitor-sales-velocity";
+import { apiSold, VALIDATED_COUNTER, demandEvidence, snapshotDue } from "@/lib/competitor-sales-velocity";
 import { prisma } from "@/lib/prisma";
 import {
   getItemsBulk,
@@ -30,7 +30,7 @@ function createChangeAlerts(input: {
   previousPrice: number | null;
   currentPrice: number | null;
   previousScore: number | null;
-  currentScore: number;
+  currentScore: number | null;
   previousDemand: string | null;
   currentDemand: string;
 }): AlertInput[] {
@@ -68,7 +68,7 @@ function createChangeAlerts(input: {
   }
 
   if (
-    input.previousScore != null &&
+    input.currentScore != null && input.previousScore != null &&
     Math.abs(input.currentScore - input.previousScore) >= 8
   ) {
     const improved = input.currentScore > input.previousScore;
@@ -133,7 +133,7 @@ export async function refreshRadarWatchlist(input?: {
 
   const watchItems = await prisma.radarWatchItem.findMany({
     where: { sellerUserId, active: true, trackingMode: "API" },
-    orderBy: { updatedAt: "desc" },
+    orderBy: [{ updatedAt: "asc" }, { id: "asc" }],
     take: limit,
   });
 
@@ -144,12 +144,13 @@ export async function refreshRadarWatchlist(input?: {
   const results: Array<{
     mlItemId: string;
     price: number | null;
-    score: number;
-    demandLabel: string;
+    score: number | null;
+    demandLabel: string | null;
     alertsCreated: number;
   }> = [];
 
   let alertsCreated = 0;
+  let unavailable = 0;
 
   for (let index = 0; index < watchItems.length; index += 50) {
     const batch = watchItems.slice(index, index + 50);
@@ -174,7 +175,12 @@ export async function refreshRadarWatchlist(input?: {
 
     for (const watchItem of batch) {
       const item = detailById.get(watchItem.mlItemId);
-      if (!item) continue;
+      if (!item) {
+        unavailable++;
+        // Rotate failed items as well; lastCheckedAt stays the last successful reading.
+        await prisma.radarWatchItem.updateMany({ where: { id: watchItem.id, active: true, updatedAt: watchItem.updatedAt }, data: { updatedAt: new Date() } });
+        continue;
+      }
 
       const currentPrice =
         prices[item.id] ?? (item.currentPrice > 0 ? item.currentPrice : null);
@@ -190,6 +196,8 @@ export async function refreshRadarWatchlist(input?: {
         listingTypeId: item.listingTypeId,
       });
 
+      const score = demandEvidence(reported, intelligence.score, watchItem.score);
+      const demandLabel = demandEvidence(reported, intelligence.demandLabel, watchItem.demandLabel);
       const alerts = createChangeAlerts({
         title: item.title,
         previousPrice:
@@ -197,63 +205,35 @@ export async function refreshRadarWatchlist(input?: {
             ? null
             : Number(watchItem.currentPrice),
         currentPrice,
-        previousScore: watchItem.score,
-        currentScore: intelligence.score,
-        previousDemand: watchItem.demandLabel,
-        currentDemand: intelligence.demandLabel,
+        previousScore: watchItem.soldKnown ? watchItem.score : null,
+        currentScore: reported === null ? null : score,
+        previousDemand: watchItem.soldKnown ? watchItem.demandLabel : null,
+        currentDemand: reported === null ? "" : demandLabel ?? "",
       });
 
-      await prisma.$transaction([
-        prisma.radarWatchItem.update({
-          where: { id: watchItem.id },
-          data: {
-            title: item.title,
-            permalink: item.permalink,
-            thumbnail: item.thumbnail,
-            currentPrice,
-            score: intelligence.score,
-            demandLabel: intelligence.demandLabel,
-            soldQuantity: reported ?? 0,
-            soldKnown: reported !== null,
-            soldIsLowerBound: false,
-            visits: itemVisits,
-            lastCheckedAt: new Date(),
-          },
-        }),
-        prisma.radarWatchSnapshot.create({
-          data: {
-            watchItemId: watchItem.id,
-            price: currentPrice,
-            score: intelligence.score,
-            demandLabel: intelligence.demandLabel,
-            soldQuantity: reported ?? 0,
-            soldKnown: reported !== null,
-            soldIsLowerBound: false,
-            trackingMode: VALIDATED_COUNTER,
-            visits: itemVisits,
-          },
-        }),
-        ...alerts.map((alert) =>
-          prisma.radarAlert.create({
-            data: {
-              sellerUserId,
-              watchItemId: watchItem.id,
-              kind: alert.kind,
-              severity: alert.severity,
-              title: alert.title,
-              message: alert.message,
-              metadata: alert.metadata,
-            },
-          }),
-        ),
-      ]);
+      const written = await prisma.$transaction(async tx => {
+        const now = new Date();
+        const changed = await tx.radarWatchItem.updateMany({ where: { id: watchItem.id, active: true, trackingMode: "API", updatedAt: watchItem.updatedAt }, data: {
+          title: item.title, permalink: item.permalink, thumbnail: item.thumbnail, currentPrice, score, demandLabel,
+          soldQuantity: reported ?? 0, soldKnown: reported !== null, soldIsLowerBound: false, visits: itemVisits, lastCheckedAt: now,
+        } });
+        if (!changed.count) return false;
+        const latest = await tx.radarWatchSnapshot.findFirst({ where: { watchItemId: watchItem.id }, orderBy: { capturedAt: "desc" } });
+        const snapshot = { price: currentPrice, soldQuantity: reported ?? 0, soldKnown: reported !== null, soldIsLowerBound: false, visits: itemVisits };
+        if (snapshotDue(latest, snapshot, now)) await tx.radarWatchSnapshot.create({ data: { ...snapshot, watchItemId: watchItem.id, score: reported === null ? null : score, demandLabel: reported === null ? null : demandLabel, trackingMode: VALIDATED_COUNTER, capturedAt: now } });
+        const date = item.dateCreated ? new Date(item.dateCreated) : null;
+        if (date && Number.isFinite(date.getTime()) && date <= now) await tx.marketItem.upsert({ where: { workspaceId_id: { workspaceId: session.account.workspaceId, id: item.id } }, create: { workspaceId: session.account.workspaceId, id: item.id, title: item.title, dateCreated: date, isOwn: item.sellerId === sellerUserId }, update: { dateCreated: date } });
+        for (const alert of alerts) await tx.radarAlert.create({ data: { sellerUserId, watchItemId: watchItem.id, ...alert } });
+        return true;
+      });
+      if (!written) continue;
 
       alertsCreated += alerts.length;
       results.push({
         mlItemId: item.id,
         price: currentPrice,
-        score: intelligence.score,
-        demandLabel: intelligence.demandLabel,
+        score,
+        demandLabel,
         alertsCreated: alerts.length,
       });
     }
@@ -262,6 +242,8 @@ export async function refreshRadarWatchlist(input?: {
   return {
     sellerUserId,
     updated: results.length,
+    attempted: watchItems.length,
+    unavailable,
     alertsCreated,
     items: results,
   };

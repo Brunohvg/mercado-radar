@@ -1,3 +1,4 @@
+import { apiSold } from "@/lib/competitor-sales-velocity";
 import { hasRefund, allocateCents } from "@/lib/sales-economics";
 import { recalculateOrder } from "@/lib/recalculate-order";
 import { prisma } from "@/lib/prisma";
@@ -89,7 +90,7 @@ export async function syncMercadoLivreProducts(accountId?: string) {
             listingCreatedAt: item.dateCreated ? new Date(item.dateCreated) : null,
             currentPrice: price,
             availableQuantity: item.availableQuantity,
-            soldQuantity: item.soldQuantity,
+            soldQuantity: apiSold(item.raw) ?? undefined,
             visitsTotal: visits[item.id] ?? null,
             permalink: item.permalink,
             thumbnail: item.thumbnail,
@@ -130,7 +131,7 @@ export async function syncMercadoLivreProducts(accountId?: string) {
           id: item.id,
           title: item.title,
           price: prices[item.id] ?? (item.currentPrice > 0 ? item.currentPrice : null),
-          soldQuantity: item.soldQuantity,
+          soldQuantity: apiSold(item.raw),
           visitsTotal: visits[item.id] ?? null,
           dateCreated: item.dateCreated,
           permalink: item.permalink,

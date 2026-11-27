@@ -106,6 +106,7 @@ export function CompetitorRadar() {
     offset = 0,
     restore?: ReturnType<typeof researchPayloadSchema.parse>,
   ) {
+    if (watchLock.current) return;
     const seq = ++sequence.current;
     setBusy(true);
     setMessage("");
@@ -221,7 +222,7 @@ export function CompetitorRadar() {
   }
   async function monitorSample() {
     if (watchLock.current) return;
-    const candidates = rows.map(r => r.item).filter(i => watchSelection.includes(i.id) && !i.isOwn && (!i.status || i.status === "active" || i.status === "unknown")).slice(0, 50);
+    const candidates = (result?.items ?? []).filter(i => watchSelection.includes(i.id) && !i.isOwn && (!i.status || i.status === "active" || i.status === "unknown")).slice(0, 50);
     if (!candidates.length) return;
     watchLock.current = true;
     setWatching("sample");
@@ -513,7 +514,7 @@ export function CompetitorRadar() {
                   </details>
                 </div>
                 <div className="intel-offer-actions">
-                  {!item.isOwn && <label className="intel-check"><input type="checkbox" checked={watchSelection.includes(item.id)} disabled={watching !== null || (!watchSelection.includes(item.id) && watchSelection.length >= 50)} onChange={() => setWatchSelection(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id])}/> Selecionar para monitoramento</label>}
+                  {!item.isOwn && (!item.status || item.status === "active" || item.status === "unknown") && <label className="intel-check"><input type="checkbox" checked={watchSelection.includes(item.id)} disabled={watching !== null || (!watchSelection.includes(item.id) && watchSelection.length >= 50)} onChange={() => setWatchSelection(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id])}/> Selecionar para monitoramento</label>}
                   <label className="intel-check">
                     <input
                       type="checkbox"

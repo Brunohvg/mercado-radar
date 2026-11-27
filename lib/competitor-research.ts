@@ -254,13 +254,15 @@ export async function researchCompetitors(input: {
     },
     orderBy: { lastSeenAt: "desc" },
     take: 60,
+    include: { snapshots: { orderBy: { observedAt: "desc" }, take: 1 } },
   });
   // Saved observations only on first page; remote pagination does not duplicate them.
   if (input.offset === 0)
     for (const row of observations)
       if (!items.has(row.id)) {
         const quantity = kitQuantity(row.title);
-        const price = row.lastPrice == null ? null : Number(row.lastPrice);
+        const latest = row.snapshots[0];
+        const price = latest?.price == null ? null : Number(latest.price);
         items.set(row.id, {
           id: row.id,
           title: row.title,
@@ -281,12 +283,12 @@ export async function researchCompetitors(input: {
           listingType: null,
           freeShipping: row.freeShipping,
           fulfillment: row.fulfillment,
-          sold: row.lastSoldLower,
+          sold: latest?.soldExact ?? latest?.soldLower ?? null,
           dateCreated: row.dateCreated?.toISOString() ?? null,
-          soldIsLowerBound: row.lastSoldUpper !== row.lastSoldLower,
+          soldIsLowerBound: latest?.soldExact == null && latest?.soldLower != null && latest.soldUpper !== latest.soldLower,
           isOwn: row.isOwn,
           source: "RADAR_OBSERVATION",
-          observedAt: row.lastSeenAt.toISOString(),
+          observedAt: (latest?.observedAt ?? row.lastSeenAt).toISOString(),
         });
       }
   const savedDates = new Map(observations.map(row => [row.id, row.dateCreated]));

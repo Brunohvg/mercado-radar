@@ -8,6 +8,7 @@ export async function saveApiWatch(input: { sellerUserId: string; workspaceId: s
   const computed = calculateRadarOpportunityScore({ price: price ?? 0, soldQuantity: reported, visits, dateCreated: item.dateCreated, freeShipping: item.freeShipping, listingTypeId: item.listingTypeId });
   const now = new Date();
   return prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${sellerUserId}), hashtext(${item.id}))::text`;
     const key = { sellerUserId_mlItemId: { sellerUserId, mlItemId: item.id } };
     // Upsert acquires the row lock; subsequent reads and snapshot decision are serialized.
     const data = { title: item.title, permalink: item.permalink, thumbnail: item.thumbnail, currentPrice: price, soldQuantity: reported ?? 0, soldKnown: reported !== null, soldIsLowerBound: false, trackingMode: "API", visits, active: true, lastCheckedAt: now };

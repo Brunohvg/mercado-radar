@@ -23,6 +23,7 @@ export async function POST(request: Request) {
         where: {
           workspaceId_id: { workspaceId: user.workspaceId, id: id.data },
         },
+        include: { snapshots: { orderBy: { observedAt: "desc" }, take: 1 } },
       }),
     ]);
     if (!account)
@@ -31,25 +32,27 @@ export async function POST(request: Request) {
         409,
         "CONNECT_ACCOUNT",
       );
-    if (!row)
+    if (!row || !row.snapshots.length)
       throw new IntelligenceError(
         "Esta leitura não está disponível na sua operação. Capture o anúncio com a extensão.",
         404,
         "NOT_FOUND",
       );
+    const latest = row.snapshots[0];
+    const lower = latest.soldExact ?? latest.soldLower;
     const saved = await savePageWatch(
       account.mercadoLivreUserId,
       {
         id: row.id,
         title: row.title,
-        price: row.lastPrice == null ? null : Number(row.lastPrice),
-        soldLower: row.lastSoldLower,
-        soldHasPlus: row.lastSoldUpper !== row.lastSoldLower,
+        price: latest.price == null ? null : Number(latest.price),
+        soldLower: lower,
+        soldHasPlus: latest.soldExact == null && lower != null && latest.soldUpper !== lower,
         thumbnail: row.thumbnail,
         permalink: row.permalink,
       },
       true,
-      row.lastSeenAt,
+      latest.observedAt,
     );
     return NextResponse.json({
       ok: true,

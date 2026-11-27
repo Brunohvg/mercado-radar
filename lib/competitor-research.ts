@@ -1,3 +1,4 @@
+import { reportedSold, salesVelocity, VALIDATED_COUNTER } from "@/lib/competitor-sales-velocity";
 import { prisma } from "@/lib/prisma";
 import {
   getWorkspaceMlAccount,
@@ -55,7 +56,7 @@ function fromApi(
     unitPrice: unitPrice(price, quantity.quantity),
     categoryId: raw.category_id ?? null,
     catalogProductId: raw.catalog_product_id ?? null,
-    sellerId: raw.seller_id == null ? null : String(raw.seller_id),
+    sellerId: (raw.seller_id ?? raw.seller?.id) == null ? null : String(raw.seller_id ?? raw.seller?.id),
     sellerName: raw.seller?.nickname ?? null,
     reputation: raw.seller?.seller_reputation?.level_id ?? null,
     listingType: raw.listing_type_id ?? null,
@@ -66,9 +67,10 @@ function fromApi(
     fulfillment: raw.shipping?.logistic_type
       ? raw.shipping.logistic_type === "fulfillment"
       : null,
-    sold: availableNumber(raw.sold_quantity),
+    sold: reportedSold(raw.sold_quantity),
+    dateCreated: typeof raw.date_created === "string" && Number.isFinite(Date.parse(raw.date_created)) ? raw.date_created : null,
     soldIsLowerBound: false,
-    isOwn: String(raw.seller_id) === ownSeller,
+    isOwn: String(raw.seller_id ?? raw.seller?.id) === ownSeller,
     source: "ML_API",
     observedAt: at,
   };
@@ -265,12 +267,25 @@ export async function researchCompetitors(input: {
           freeShipping: row.freeShipping,
           fulfillment: row.fulfillment,
           sold: row.lastSoldLower,
+          dateCreated: row.dateCreated?.toISOString() ?? null,
           soldIsLowerBound: row.lastSoldUpper !== row.lastSoldLower,
           isOwn: row.isOwn,
           source: "RADAR_OBSERVATION",
           observedAt: row.lastSeenAt.toISOString(),
         });
       }
+  // Read only the current account's monitored evidence; failure must not break search.
+  const watched = account && items.size ? await prisma.radarWatchItem.findMany({
+    where: { sellerUserId: account.mercadoLivreUserId, mlItemId: { in: [...items.keys()] }, active: true },
+    select: { mlItemId: true, snapshots: { where: { trackingMode: VALIDATED_COUNTER, capturedAt: { gte: new Date(Date.parse(observedAt) - 30 * 86400000) } }, orderBy: { capturedAt: "desc" }, take: 200 } },
+  }).catch(() => []) : [];
+  const byId = new Map(watched.map(w => [w.mlItemId, w.snapshots]));
+  for (const item of items.values()) {
+    item.salesVelocity = salesVelocity({
+      sold: item.sold, lowerBound: item.soldIsLowerBound, dateCreated: item.dateCreated,
+      observedAt: item.observedAt, readings: byId.get(item.id),
+    });
+  }
   return {
     query: parsed.query,
     referenceId: parsed.id && !parsed.catalog ? parsed.id : null,

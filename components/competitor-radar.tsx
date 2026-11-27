@@ -33,6 +33,14 @@ const sold = (i: Competitor) =>
   i.sold == null
     ? "Não disponível"
     : `${i.sold.toLocaleString("pt-BR")}${i.soldIsLowerBound ? "+" : ""} vendidos no total`;
+function velocityLabel(i: Competitor) {
+  const v = i.salesVelocity;
+  if (!v) return "Giro não disponível";
+  const fmt = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+  if (v.recent !== null) return `Ritmo observado: ${fmt(v.recent)}/30 dias (janela de ${v.recentDays} dias)`;
+  if (v.lifetime !== null) return `Média desde criação: ${v.lifetimeIsMinimum ? "≥ " : ""}${fmt(v.lifetime)}/30 dias`;
+  return "Giro não disponível: falta data ou contador";
+}
 function shipping(i: Competitor) {
   return [
     i.fulfillment ? "Full" : null,
@@ -78,6 +86,11 @@ export function CompetitorRadar() {
           (!full || r.item.fulfillment),
       )
       .sort((a, b) => {
+        if (sort === "velocity") {
+          const av = a.item.salesVelocity?.recent ?? a.item.salesVelocity?.lifetime ?? null;
+          const bv = b.item.salesVelocity?.recent ?? b.item.salesVelocity?.lifetime ?? null;
+          return av == null ? (bv == null ? 0 : 1) : bv == null ? -1 : bv - av;
+        }
         const av = sort === "unit" ? a.item.unitPrice : a.item.price,
           bv = sort === "unit" ? b.item.unitPrice : b.item.price;
         return av == null ? (bv == null ? 0 : 1) : bv == null ? -1 : av - bv;
@@ -196,6 +209,22 @@ export function CompetitorRadar() {
       setWatching(null);
     }
   }
+  async function monitorSample() {
+    const candidates = rows.map(r => r.item).filter(i => !i.isOwn && i.status !== "closed" && i.status !== "paused").slice(0, 50);
+    if (!candidates.length) return;
+    setWatching("sample");
+    let ok = 0;
+    try {
+      for (const item of candidates) {
+        try {
+          const url = item.source === "RADAR_OBSERVATION" ? "/api/intelligence/competitors/watch" : "/api/monitoring/watchlist";
+          const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ itemId: item.id }) });
+          if (response.ok) ok++;
+        } catch { /* report partial completion */ }
+      }
+      setMessage(`${ok}/${candidates.length} anúncios enviados ao monitoramento. Leituras de página dependem da extensão; API depende das permissões.`);
+    } finally { setWatching(null); }
+  }
   function openDraft(draft: IntelligenceDraft) {
     const parsed = researchPayloadSchema.safeParse(draft.payload);
     if (!parsed.success) {
@@ -268,6 +297,8 @@ export function CompetitorRadar() {
             <div>
               <strong>{rows.length} oferta(s) nesta amostra</strong>
               <p>{result.scope}</p>
+              <button className="secondary" disabled={watching !== null || busy || !rows.some(r => !r.item.isOwn)} onClick={monitorSample}>{watching === "sample" ? "Salvando amostra…" : "Monitorar até 50 ofertas"}</button>
+              <small>Ritmo recente e média histórica são estimativas distintas.</small>
             </div>
             <div className="intel-filters">
               <label>
@@ -294,6 +325,7 @@ export function CompetitorRadar() {
                 >
                   <option value="unit">Menor preço por unidade</option>
                   <option value="price">Menor preço total</option>
+                  <option value="velocity">Maior giro estimado</option>
                 </select>
               </label>
               <label className="intel-check">
@@ -388,6 +420,7 @@ export function CompetitorRadar() {
                   <strong>{money(item.unitPrice, true)}</strong>
                   <span>por unidade · {item.quantity ?? "?"} un.</span>
                   <small>{money(item.price)} o anúncio</small>
+                  <small>{velocityLabel(item)}</small>
                 </div>
                 <div className="intel-match">
                   <span className="intel-pill">
@@ -438,6 +471,8 @@ export function CompetitorRadar() {
                           : "Não disponível"}
                     </p>
                     <p>Vendas: {sold(item)}</p>
+                    <p>Criação: {item.dateCreated ? new Date(item.dateCreated).toLocaleDateString("pt-BR") : "Não disponível"}</p>
+                    <p>{velocityLabel(item)}. Contador do anúncio, não pedidos comprovados; média não é previsão.</p>
                     <p>Reputação: {item.reputation ?? "Não disponível"}</p>
                     <p>
                       Modalidade:{" "}

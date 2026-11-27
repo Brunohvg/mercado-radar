@@ -1,4 +1,5 @@
 /** Public facts only. Title heuristics remain reviewable and never prove identity. */
+import type { SalesVelocity } from "@/lib/competitor-sales-velocity";
 import { comparisonTokens } from "@/lib/market-comparison";
 
 export const MATCH_LABELS = {
@@ -35,6 +36,8 @@ export type Competitor = {
   isOwn: boolean;
   source: "ML_API" | "RADAR_OBSERVATION";
   observedAt: string;
+  dateCreated?: string | null;
+  salesVelocity?: SalesVelocity;
 };
 export type Correspondence = {
   level: MatchLevel;
@@ -163,7 +166,7 @@ export function kitQuantity(
   const t = normalized(title.replace(/(\d)\.(?=\d{3}(?:\D|$))/g, "$1"));
   const counts = new Set<number>();
   const patterns = [
-    /(?:^|\b)(\d+)\s*(?:unidades?|unids?|unds?|un|pecas?|pcs|canetas?|refis|refil)\b/g,
+    /(?:^|\b)(\d+)\s*(?:unidades?|unids?|unds?|un|pecas?|pcs|rolos?|hastes?|canetas?|refis|refil)\b/g,
     /\b(?:kit|pacote|caixa|pack|combo)\s*(?:com|c|de)?\s*(\d+)\b/g,
   ];
   for (const re of patterns)

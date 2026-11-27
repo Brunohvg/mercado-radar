@@ -1,3 +1,4 @@
+import { apiSold, VALIDATED_COUNTER } from "@/lib/competitor-sales-velocity";
 import { prisma } from "@/lib/prisma";
 import {
   getItemsBulk,
@@ -178,10 +179,11 @@ export async function refreshRadarWatchlist(input?: {
       const currentPrice =
         prices[item.id] ?? (item.currentPrice > 0 ? item.currentPrice : null);
       const itemVisits = visits[item.id] ?? null;
+      const reported = apiSold(item.raw);
 
       const intelligence = calculateRadarOpportunityScore({
         price: currentPrice ?? 0,
-        soldQuantity: item.soldQuantity,
+        soldQuantity: reported,
         visits: itemVisits,
         dateCreated: item.dateCreated,
         freeShipping: item.freeShipping,
@@ -211,7 +213,9 @@ export async function refreshRadarWatchlist(input?: {
             currentPrice,
             score: intelligence.score,
             demandLabel: intelligence.demandLabel,
-            soldQuantity: item.soldQuantity,
+            soldQuantity: reported ?? 0,
+            soldKnown: reported !== null,
+            soldIsLowerBound: false,
             visits: itemVisits,
             lastCheckedAt: new Date(),
           },
@@ -222,7 +226,10 @@ export async function refreshRadarWatchlist(input?: {
             price: currentPrice,
             score: intelligence.score,
             demandLabel: intelligence.demandLabel,
-            soldQuantity: item.soldQuantity,
+            soldQuantity: reported ?? 0,
+            soldKnown: reported !== null,
+            soldIsLowerBound: false,
+            trackingMode: VALIDATED_COUNTER,
             visits: itemVisits,
           },
         }),

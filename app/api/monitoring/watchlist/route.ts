@@ -1,3 +1,4 @@
+import { apiSold, VALIDATED_COUNTER } from "@/lib/competitor-sales-velocity";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -62,10 +63,11 @@ export async function POST(request: Request) {
           ? item.currentPrice
           : null;
     const itemVisits = visits[item.id] ?? null;
+    const reported = apiSold(item.raw);
 
     const intelligence = calculateRadarOpportunityScore({
       price: price ?? 0,
-      soldQuantity: item.soldQuantity,
+      soldQuantity: reported,
       visits: itemVisits,
       dateCreated: item.dateCreated,
       freeShipping: item.freeShipping,
@@ -89,7 +91,10 @@ export async function POST(request: Request) {
         currentPrice: price,
         score: intelligence.score,
         demandLabel: intelligence.demandLabel,
-        soldQuantity: item.soldQuantity,
+        soldQuantity: reported ?? 0,
+        soldKnown: reported !== null,
+        soldIsLowerBound: false,
+        trackingMode: "API",
         visits: itemVisits,
         active: true,
         lastCheckedAt: new Date(),
@@ -102,7 +107,10 @@ export async function POST(request: Request) {
         currentPrice: price,
         score: intelligence.score,
         demandLabel: intelligence.demandLabel,
-        soldQuantity: item.soldQuantity,
+        soldQuantity: reported ?? 0,
+        soldKnown: reported !== null,
+        soldIsLowerBound: false,
+        trackingMode: "API",
         visits: itemVisits,
         active: true,
         lastCheckedAt: new Date(),
@@ -115,7 +123,10 @@ export async function POST(request: Request) {
         price,
         score: intelligence.score,
         demandLabel: intelligence.demandLabel,
-        soldQuantity: item.soldQuantity,
+        soldQuantity: reported ?? 0,
+        soldKnown: reported !== null,
+        soldIsLowerBound: false,
+        trackingMode: VALIDATED_COUNTER,
         visits: itemVisits,
       },
     });
@@ -174,7 +185,7 @@ export async function GET() {
         createdAt: item.createdAt,
         momentum: calculateRadarMomentum(
           item.snapshots
-            .filter((snapshot) => snapshot.trackingMode === "API")
+            .filter((snapshot) => snapshot.trackingMode === VALIDATED_COUNTER && snapshot.soldKnown && !snapshot.soldIsLowerBound)
             .map((snapshot) => ({
               score: snapshot.score,
               demandLabel: snapshot.demandLabel,
@@ -189,7 +200,7 @@ export async function GET() {
           demandLabel: snapshot.demandLabel,
           soldQuantity: snapshot.soldKnown ? snapshot.soldQuantity : null,
           soldIsLowerBound: snapshot.soldIsLowerBound,
-          trackingMode: snapshot.trackingMode,
+          trackingMode: snapshot.trackingMode === VALIDATED_COUNTER ? "API" : snapshot.trackingMode,
           visits: snapshot.visits,
           capturedAt: snapshot.capturedAt,
         })),

@@ -1,3 +1,4 @@
+import { reportedSold, salesVelocity, VALIDATED_COUNTER } from "@/lib/competitor-sales-velocity";
 import { prisma } from "@/lib/prisma";
 import {
   getWorkspaceMlAccount,
@@ -55,7 +56,7 @@ function fromApi(
     unitPrice: unitPrice(price, quantity.quantity),
     categoryId: raw.category_id ?? null,
     catalogProductId: raw.catalog_product_id ?? null,
-    sellerId: raw.seller_id == null ? null : String(raw.seller_id),
+    sellerId: (raw.seller_id ?? raw.seller?.id) == null ? null : String(raw.seller_id ?? raw.seller?.id),
     sellerName: raw.seller?.nickname ?? null,
     reputation: raw.seller?.seller_reputation?.level_id ?? null,
     listingType: raw.listing_type_id ?? null,
@@ -66,9 +67,10 @@ function fromApi(
     fulfillment: raw.shipping?.logistic_type
       ? raw.shipping.logistic_type === "fulfillment"
       : null,
-    sold: availableNumber(raw.sold_quantity),
+    sold: reportedSold(raw.sold_quantity),
+    dateCreated: typeof raw.date_created === "string" && Number.isFinite(Date.parse(raw.date_created)) ? raw.date_created : null,
     soldIsLowerBound: false,
-    isOwn: String(raw.seller_id) === ownSeller,
+    isOwn: String(raw.seller_id ?? raw.seller?.id) === ownSeller,
     source: "ML_API",
     observedAt: at,
   };
@@ -138,8 +140,23 @@ export async function researchCompetitors(input: {
         });
         for (const d of result.items) {
           const entry = d.raw as { body?: Record<string, unknown> };
-          if (entry.body && /^MLB\d+$/.test(d.id))
-            items.set(d.id, fromApi(entry.body, seller, observedAt));
+          if (entry.body && /^MLB\d+$/.test(d.id)) {
+            const previous = items.get(d.id);
+            const fresh = fromApi(entry.body, seller, observedAt);
+            // Both reads belong to this request; do not fill gaps with stale counters.
+            if (previous) {
+              fresh.sold ??= previous.sold;
+              fresh.dateCreated ??= previous.dateCreated;
+              fresh.sellerId ??= previous.sellerId;
+              fresh.isOwn = fresh.sellerId === seller;
+              fresh.color ??= previous.color;
+              fresh.price ??= previous.price;
+              fresh.quantity ??= previous.quantity;
+              fresh.quantitySource ??= previous.quantitySource;
+              fresh.unitPrice = unitPrice(fresh.price, fresh.quantity);
+            }
+            items.set(d.id, fresh);
+          }
         }
         if (result.restrictedIds.length)
           notices.push({
@@ -237,13 +254,15 @@ export async function researchCompetitors(input: {
     },
     orderBy: { lastSeenAt: "desc" },
     take: 60,
+    include: { snapshots: { orderBy: { observedAt: "desc" }, take: 1 } },
   });
   // Saved observations only on first page; remote pagination does not duplicate them.
   if (input.offset === 0)
     for (const row of observations)
       if (!items.has(row.id)) {
         const quantity = kitQuantity(row.title);
-        const price = row.lastPrice == null ? null : Number(row.lastPrice);
+        const latest = row.snapshots[0];
+        const price = latest?.price == null ? null : Number(latest.price);
         items.set(row.id, {
           id: row.id,
           title: row.title,
@@ -264,13 +283,28 @@ export async function researchCompetitors(input: {
           listingType: null,
           freeShipping: row.freeShipping,
           fulfillment: row.fulfillment,
-          sold: row.lastSoldLower,
-          soldIsLowerBound: row.lastSoldUpper !== row.lastSoldLower,
+          sold: latest?.soldExact ?? latest?.soldLower ?? null,
+          dateCreated: row.dateCreated?.toISOString() ?? null,
+          soldIsLowerBound: latest?.soldExact == null && latest?.soldLower != null && latest.soldUpper !== latest.soldLower,
           isOwn: row.isOwn,
           source: "RADAR_OBSERVATION",
-          observedAt: row.lastSeenAt.toISOString(),
+          observedAt: (latest?.observedAt ?? row.lastSeenAt).toISOString(),
         });
       }
+  const savedDates = new Map(observations.map(row => [row.id, row.dateCreated]));
+  for (const item of items.values()) item.dateCreated ??= savedDates.get(item.id)?.toISOString() ?? null;
+  // Read only the current account's monitored evidence; failure must not break search.
+  const watched = account && items.size ? await prisma.radarWatchItem.findMany({
+    where: { sellerUserId: account.mercadoLivreUserId, mlItemId: { in: [...items.keys()] }, active: true },
+    select: { mlItemId: true, snapshots: { where: { trackingMode: VALIDATED_COUNTER, capturedAt: { gte: new Date(Date.parse(observedAt) - 30 * 86400000) } }, orderBy: { capturedAt: "desc" }, take: 200 } },
+  }).catch(() => []) : [];
+  const byId = new Map(watched.map(w => [w.mlItemId, w.snapshots]));
+  for (const item of items.values()) {
+    item.salesVelocity = salesVelocity({
+      sold: item.sold, lowerBound: item.soldIsLowerBound, dateCreated: item.dateCreated,
+      observedAt: item.observedAt, now: observedAt, readings: byId.get(item.id),
+    });
+  }
   return {
     query: parsed.query,
     referenceId: parsed.id && !parsed.catalog ? parsed.id : null,

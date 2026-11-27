@@ -1,3 +1,4 @@
+import { reportedSold } from "@/lib/competitor-sales-velocity";
 import { prisma } from "@/lib/prisma";
 import type { ObservedListing } from "@/lib/market-intel";
 
@@ -11,7 +12,9 @@ export async function savePageWatch(
   const key = {
     sellerUserId_mlItemId: { sellerUserId, mlItemId: observed.id },
   };
-  const existing = await prisma.radarWatchItem.findUnique({
+  return prisma.$transaction(async tx => {
+  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${sellerUserId}), hashtext(${observed.id}))::text`;
+  const existing = await tx.radarWatchItem.findUnique({
     where: key,
     include: {
       snapshots: {
@@ -28,7 +31,8 @@ export async function savePageWatch(
   const now = observedAt ?? new Date();
   // A saved research result is dated evidence, not a fresh page visit.
   if (existing?.lastCheckedAt && existing.lastCheckedAt > now) return existing;
-  const soldKnown = observed.soldLower != null;
+  const sold = reportedSold(observed.soldLower);
+  const soldKnown = sold !== null;
   const data = {
     title: observed.title,
     referenceId: observed.id,
@@ -38,7 +42,7 @@ export async function savePageWatch(
     score: null,
     demandLabel: null,
     visits: null,
-    soldQuantity: observed.soldLower ?? 0,
+    soldQuantity: sold ?? 0,
     soldKnown,
     soldIsLowerBound: soldKnown && observed.soldHasPlus !== false,
     trackingMode: "PAGE",
@@ -56,13 +60,13 @@ export async function savePageWatch(
     changed ||
     now.getTime() - (existing?.snapshots[0]?.capturedAt.getTime() ?? 0) >=
       6 * 3600_000;
-  const watch = await prisma.radarWatchItem.upsert({
+  const watch = await tx.radarWatchItem.upsert({
     where: key,
     create: { sellerUserId, mlItemId: observed.id, ...data },
     update: data,
   });
   if (snapshot)
-    await prisma.radarWatchSnapshot.create({
+    await tx.radarWatchSnapshot.create({
       data: {
         watchItemId: watch.id,
         price: observed.price,
@@ -74,4 +78,5 @@ export async function savePageWatch(
       },
     });
   return watch;
+  });
 }

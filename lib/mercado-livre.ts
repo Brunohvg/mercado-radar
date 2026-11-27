@@ -328,11 +328,13 @@ export async function saveMlAccount(input: {
   expiresIn: number;
   scope?: string;
 }) {
-  const otherAccount = await prisma.mercadoLivreAccount.findFirst({ where: { workspaceId: input.workspaceId, mercadoLivreUserId: { not: input.userId } } });
+  return prisma.$transaction(async tx => {
+  await tx.$queryRaw`SELECT "id" FROM "RadarWorkspace" WHERE "id" = ${input.workspaceId} FOR UPDATE`;
+  const otherAccount = await tx.mercadoLivreAccount.findFirst({ where: { workspaceId: input.workspaceId, mercadoLivreUserId: { not: input.userId } } });
   if (otherAccount) throw new Error("O piloto permite uma conta do Mercado Livre por operação. Reconecte a conta já vinculada.");
-  const existing = await prisma.mercadoLivreAccount.findUnique({ where: { mercadoLivreUserId: input.userId } });
+  const existing = await tx.mercadoLivreAccount.findUnique({ where: { mercadoLivreUserId: input.userId } });
   if (existing && existing.workspaceId !== input.workspaceId) throw new Error("Esta conta já está vinculada a outro cliente.");
-  return prisma.mercadoLivreAccount.upsert({
+  return tx.mercadoLivreAccount.upsert({
     where: { mercadoLivreUserId: input.userId, workspaceId: input.workspaceId },
     update: {
       nickname: input.nickname,
@@ -350,6 +352,7 @@ export async function saveMlAccount(input: {
       tokenExpiresAt: new Date(Date.now() + input.expiresIn * 1000),
       scopes: input.scope,
     },
+  });
   });
 }
 

@@ -1,3 +1,5 @@
+import { momentumEligible, VALIDATED_COUNTER } from "@/lib/competitor-sales-velocity";
+import { saveApiWatch } from "@/lib/api-watch-persistence";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -8,7 +10,6 @@ import {
   getMlSession,
 } from "@/lib/mercado-livre";
 import { calculateRadarMomentum } from "@/lib/radar-momentum";
-import { calculateRadarOpportunityScore } from "@/lib/radar-score";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ const createSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const parsed = createSchema.safeParse(await request.json());
+  const parsed = createSchema.safeParse(await request.json().catch(() => null));
 
   if (!parsed.success) {
     return NextResponse.json({ error: "Anúncio inválido." }, { status: 400 });
@@ -61,64 +62,7 @@ export async function POST(request: Request) {
         : item.currentPrice > 0
           ? item.currentPrice
           : null;
-    const itemVisits = visits[item.id] ?? null;
-
-    const intelligence = calculateRadarOpportunityScore({
-      price: price ?? 0,
-      soldQuantity: item.soldQuantity,
-      visits: itemVisits,
-      dateCreated: item.dateCreated,
-      freeShipping: item.freeShipping,
-      listingTypeId: item.listingTypeId,
-    });
-
-    const watchItem = await prisma.radarWatchItem.upsert({
-      where: {
-        sellerUserId_mlItemId: {
-          sellerUserId: session.account.mercadoLivreUserId,
-          mlItemId: item.id,
-        },
-      },
-      create: {
-        sellerUserId: session.account.mercadoLivreUserId,
-        mlItemId: item.id,
-        referenceId: parsed.data.referenceId ?? null,
-        title: item.title,
-        permalink: item.permalink,
-        thumbnail: item.thumbnail,
-        currentPrice: price,
-        score: intelligence.score,
-        demandLabel: intelligence.demandLabel,
-        soldQuantity: item.soldQuantity,
-        visits: itemVisits,
-        active: true,
-        lastCheckedAt: new Date(),
-      },
-      update: {
-        referenceId: parsed.data.referenceId ?? undefined,
-        title: item.title,
-        permalink: item.permalink,
-        thumbnail: item.thumbnail,
-        currentPrice: price,
-        score: intelligence.score,
-        demandLabel: intelligence.demandLabel,
-        soldQuantity: item.soldQuantity,
-        visits: itemVisits,
-        active: true,
-        lastCheckedAt: new Date(),
-      },
-    });
-
-    await prisma.radarWatchSnapshot.create({
-      data: {
-        watchItemId: watchItem.id,
-        price,
-        score: intelligence.score,
-        demandLabel: intelligence.demandLabel,
-        soldQuantity: item.soldQuantity,
-        visits: itemVisits,
-      },
-    });
+    const watchItem = await saveApiWatch({ sellerUserId: session.account.mercadoLivreUserId, workspaceId: session.account.workspaceId, item, price: price, visits: visits[item.id] ?? null, referenceId: parsed.data.referenceId });
 
     return NextResponse.json({
       ok: true,
@@ -174,7 +118,7 @@ export async function GET() {
         createdAt: item.createdAt,
         momentum: calculateRadarMomentum(
           item.snapshots
-            .filter((snapshot) => snapshot.trackingMode === "API")
+            .filter(momentumEligible)
             .map((snapshot) => ({
               score: snapshot.score,
               demandLabel: snapshot.demandLabel,
@@ -189,7 +133,7 @@ export async function GET() {
           demandLabel: snapshot.demandLabel,
           soldQuantity: snapshot.soldKnown ? snapshot.soldQuantity : null,
           soldIsLowerBound: snapshot.soldIsLowerBound,
-          trackingMode: snapshot.trackingMode,
+          trackingMode: snapshot.trackingMode === VALIDATED_COUNTER ? "API" : snapshot.trackingMode,
           visits: snapshot.visits,
           capturedAt: snapshot.capturedAt,
         })),
